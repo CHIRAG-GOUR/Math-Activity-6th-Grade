@@ -160,10 +160,10 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
         animate={{ opacity: 1, y: 0 }}
         className="flex flex-col items-center text-center mt-1"
       >
-        <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight text-slate-900 font-bank uppercase drop-shadow-md">
+        <h1 className="text-6xl sm:text-7xl md:text-8xl font-black tracking-tight font-bank uppercase white-text-black-border">
           MATH VAULT
         </h1>
-        <p className="text-sm sm:text-base md:text-lg font-black tracking-widest text-blue-900 font-game uppercase mt-1">
+        <p className="text-sm sm:text-base md:text-lg font-black tracking-widest text-white font-game uppercase mt-1 drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]">
           CRACK 5 CODES MENTALLY TO CLAIM THE TREASURE
         </p>
       </motion.div>

@@ -61,6 +61,14 @@ body {
   filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.8));
 }
 
+/* White Heading with Crisp Solid Black Border */
+.white-text-black-border {
+  color: #ffffff !important;
+  -webkit-text-stroke: 4px #000000;
+  paint-order: stroke fill;
+  text-shadow: 0 6px 16px rgba(0, 0, 0, 0.75);
+}
+
 .blue-bank-text {
   background: linear-gradient(180deg, #0055aa 0%, #0088ff 50%, #00c8ff 100%);
   -webkit-background-clip: text;
