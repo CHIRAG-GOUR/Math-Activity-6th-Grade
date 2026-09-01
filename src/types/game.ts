@@ -33,6 +33,7 @@ export interface Question {
   explanation: string;
   topic: MathTopic;
   difficulty: DifficultyLevel;
+  timeLimit?: number;
 }
 
 export interface TeamState {

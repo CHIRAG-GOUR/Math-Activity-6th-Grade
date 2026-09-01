@@ -88,10 +88,10 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
     });
   };
 
-  const difficulties: { id: DifficultyLevel; label: string }[] = [
-    { id: 'easy', label: 'STANDARD' },
-    { id: 'medium', label: 'ADVANCED' },
-    { id: 'hard', label: 'EXPERT' },
+  const difficulties: { id: DifficultyLevel; label: string; timer: string; defaultSec: number }[] = [
+    { id: 'easy', label: 'STANDARD', timer: '10-20s', defaultSec: 15 },
+    { id: 'medium', label: 'ADVANCED', timer: '20-30s', defaultSec: 25 },
+    { id: 'hard', label: 'EXPERT', timer: '30-40s', defaultSec: 35 },
   ];
   const lengths: GameLength[] = [5, 10, 20];
 
@@ -178,38 +178,39 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
               <GraduationCap className="w-4 h-4 text-blue-600" /> TARGET CURRICULUM
             </span>
             <div className="flex items-center justify-between p-3 bg-blue-50 border-2 border-blue-300 rounded-xl mb-2">
-              <span className="text-2xl font-black font-bank text-blue-950">GRADE 6</span>
-              <span className="px-2.5 py-0.5 rounded-full text-xs font-black bg-blue-600 text-white font-game">
+              <span className="text-xl font-black text-blue-950 font-bank">GRADE 6</span>
+              <span className="px-2.5 py-1 rounded-full bg-blue-600 text-white text-[10px] font-black font-game uppercase">
                 ACTIVE
               </span>
             </div>
-            <p className="text-xs font-bold text-slate-600 leading-relaxed">
+            <p className="text-xs text-slate-600 font-medium leading-relaxed">
               100% Mental Math: Fast calculations for integers, BODMAS, ratios, percentages, and geometry without pen & paper.
             </p>
           </div>
-          <div className="flex items-center gap-1.5 text-[11px] font-black text-blue-800 font-game mt-3 pt-2 border-t border-slate-100">
+
+          <div className="mt-4 pt-3 border-t border-slate-100 flex items-center gap-1.5 text-[10px] font-black text-blue-800 font-game uppercase">
             <Cpu className="w-3.5 h-3.5 text-blue-600" />
-            <span>1000+ DYNAMIC QUESTIONS (ZERO REPEATS)</span>
+            <span>1000+ Dynamic Questions (Zero Repeats)</span>
           </div>
         </div>
 
-        {/* 2. MULTI-SELECT BLOOM'S TOPICS (NO SCROLLBAR) */}
-        <div className="bg-white/95 border-2 border-blue-200 p-5 rounded-2xl shadow-sm flex flex-col justify-between">
+        {/* 2. BLOOM'S TAXONOMY TOPICS MULTI-SELECT (ZERO SCROLLBARS) */}
+        <div className="bg-white/95 border-2 border-blue-200 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col justify-between">
           <div>
-            <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-black uppercase tracking-widest text-slate-800 font-game flex items-center gap-1.5">
-                <Calculator className="w-4 h-4 text-blue-600" /> BLOOM'S TOPICS
+                <Calculator className="w-4 h-4 text-blue-600" /> BLOOM’S TOPICS
               </span>
               <button
                 onClick={handleSelectAll}
-                className="text-[10px] font-black text-blue-700 hover:text-blue-900 font-game uppercase px-2 py-0.5 rounded bg-blue-100/80 cursor-pointer"
+                className="px-2 py-0.5 rounded-md bg-blue-50 hover:bg-blue-100 border border-blue-300 text-[10px] font-black text-blue-800 font-game uppercase transition cursor-pointer"
               >
                 SELECT ALL
               </button>
             </div>
 
-            {/* Clean Topic Button Stack with NO SCROLLBAR */}
-            <div className="flex flex-col gap-1.5">
+            {/* Topic Checkboxes (Zero Scrollbars - Clean Vertical Stack) */}
+            <div className="flex flex-col gap-1.5 w-full">
               {topicsList.map((t) => {
                 const Icon = t.icon;
                 const isSelected = currentSelectedTopics.includes(t.id);
@@ -217,20 +218,22 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
                   <button
                     key={t.id}
                     onClick={() => toggleTopic(t.id)}
-                    className={`py-2 px-3 rounded-xl text-xs font-black font-game border-2 flex items-center justify-between transition-all cursor-pointer ${
+                    className={`w-full py-1.5 px-2.5 rounded-xl border flex items-center justify-between text-left transition-all cursor-pointer ${
                       isSelected
                         ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
-                        : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
+                        : 'bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-700'
                     }`}
                   >
                     <div className="flex items-center gap-2">
-                      <Icon className="w-3.5 h-3.5" />
-                      <span className="truncate">{t.label}</span>
+                      <Icon className={`w-3.5 h-3.5 ${isSelected ? 'text-cyan-200' : 'text-blue-600'}`} />
+                      <span className="text-xs font-black font-game uppercase tracking-wide">
+                        {t.label}
+                      </span>
                     </div>
                     {isSelected ? (
-                      <CheckSquare className="w-4 h-4 shrink-0 text-white" />
+                      <CheckSquare className="w-3.5 h-3.5 text-cyan-300" />
                     ) : (
-                      <Square className="w-4 h-4 shrink-0 text-slate-400" />
+                      <Square className="w-3.5 h-3.5 text-slate-400" />
                     )}
                   </button>
                 );
@@ -251,15 +254,22 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
                   key={d.id}
                   onClick={() => {
                     soundManager.playClick();
-                    onUpdateSettings({ ...settings, difficulty: d.id });
+                    onUpdateSettings({
+                      ...settings,
+                      difficulty: d.id,
+                      timePerRound: d.defaultSec,
+                    });
                   }}
-                  className={`py-2 px-1 rounded-xl text-xs font-black font-game border-2 transition-all cursor-pointer ${
+                  className={`py-2 px-1 rounded-xl text-xs font-black font-game border-2 transition-all cursor-pointer flex flex-col items-center justify-center ${
                     settings.difficulty === d.id
                       ? 'bg-blue-600 text-white border-blue-700 shadow-sm'
                       : 'bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100'
                   }`}
                 >
-                  {d.label}
+                  <span>{d.label}</span>
+                  <span className={`text-[9px] font-bold ${settings.difficulty === d.id ? 'text-cyan-200' : 'text-slate-500'}`}>
+                    {d.timer}
+                  </span>
                 </button>
               ))}
             </div>

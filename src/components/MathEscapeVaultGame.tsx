@@ -97,7 +97,8 @@ export const MathEscapeVaultGame: React.FC = () => {
       const q = generateQuestion(activeTopics, settings.difficulty, '6', roundNum);
       setCurrentQuestion(q);
       setCurrentRound(roundNum);
-      setTimeLeft(settings.timePerRound);
+      const timerSec = q.timeLimit || settings.timePerRound || 25;
+      setTimeLeft(timerSec);
 
       // Handle next round skip penalty for Blue
       if (blueSkipNextRound) {

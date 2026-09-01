@@ -441,6 +441,12 @@ export function generateQuestion(
     generatedData = fn(difficulty);
   }
 
+  // Target timer according to difficulty specification:
+  // Hard: 30-40s (35s)
+  // Medium: 20-30s (25s)
+  // Easy: 10-20s (15s)
+  const timeLimit = difficulty === 'hard' ? 35 : difficulty === 'medium' ? 25 : 15;
+
   return {
     id: `g6-q-${idSuffix}-${Math.random().toString(36).substring(2, 7)}`,
     text: generatedData.text,
@@ -450,5 +456,6 @@ export function generateQuestion(
     explanation: generatedData.explanation,
     topic: chosenTopic,
     difficulty,
+    timeLimit,
   };
 }
