@@ -1,0 +1,235 @@
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Rajdhani:wght@600;700;800&family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-game: 'Rajdhani', sans-serif;
+  --font-display: 'Outfit', sans-serif;
+  --font-digital: 'Orbitron', monospace, sans-serif;
+  --font-bank: 'Cinzel', serif;
+}
+
+* {
+  box-sizing: border-box;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background-color: #f7e7c6;
+  color: #1e293b;
+  font-family: var(--font-display);
+  touch-action: manipulation;
+}
+
+/* ==========================================================================
+   BRIGHT LUXURY BANK VAULT STYLING
+   ========================================================================== */
+
+/* Bank Wall Paneling Background */
+.bank-wall-bg {
+  background: 
+    radial-gradient(circle at 50% 30%, #fffbf2 0%, #faedd3 45%, #edd2a4 100%);
+}
+
+.bank-marble-floor {
+  background: linear-gradient(180deg, rgba(232, 199, 123, 0.4) 0%, rgba(201, 160, 80, 0.8) 100%);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Gold Metallic Trim & Headers */
+.bank-gold-text {
+  background: linear-gradient(180deg, #996515 0%, #d49a17 40%, #ffd700 70%, #8a5300 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.8)) drop-shadow(0 2px 4px rgba(120, 80, 0, 0.3));
+}
+
+.bank-silver-text {
+  background: linear-gradient(180deg, #334155 0%, #64748b 45%, #94a3b8 70%, #1e293b 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 1px 2px rgba(255, 255, 255, 0.8));
+}
+
+.blue-bank-text {
+  background: linear-gradient(180deg, #0055aa 0%, #0088ff 50%, #00c8ff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(0, 136, 255, 0.4));
+}
+
+.red-bank-text {
+  background: linear-gradient(180deg, #aa1133 0%, #ff2a5f 50%, #ff6688 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 6px rgba(255, 42, 95, 0.4));
+}
+
+/* ==========================================================================
+   BANK SECURITY ANSWER CONSOLES
+   ========================================================================== */
+
+.bank-console-blue {
+  background: linear-gradient(165deg, #ffffff 0%, #f0f7ff 35%, #d9ebff 80%, #bcd9fc 100%);
+  border: 3px solid #0088ff;
+  box-shadow: 
+    0 18px 45px rgba(0, 100, 220, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -3px 6px rgba(0, 100, 220, 0.15);
+}
+
+.bank-console-red {
+  background: linear-gradient(165deg, #ffffff 0%, #fff0f3 35%, #ffd9e0 80%, #fcbcc7 100%);
+  border: 3px solid #ff2a5f;
+  box-shadow: 
+    0 18px 45px rgba(220, 30, 70, 0.25),
+    0 4px 12px rgba(0, 0, 0, 0.1),
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -3px 6px rgba(220, 30, 70, 0.15);
+}
+
+/* LCD Digital Display Screens */
+.bank-lcd-blue {
+  background: linear-gradient(180deg, #07152b 0%, #0c2347 100%);
+  border: 2px solid #00a2ff;
+  box-shadow: 
+    inset 0 3px 10px rgba(0, 0, 0, 0.8),
+    0 0 15px rgba(0, 162, 255, 0.35);
+}
+
+.bank-lcd-red {
+  background: linear-gradient(180deg, #2b0710 0%, #470c1a 100%);
+  border: 2px solid #ff2a5f;
+  box-shadow: 
+    inset 0 3px 10px rgba(0, 0, 0, 0.8),
+    0 0 15px rgba(255, 42, 95, 0.35);
+}
+
+/* ==========================================================================
+   PHYSICAL 3D KEYPAD BUTTONS
+   ========================================================================== */
+
+.keypad-btn-blue {
+  background: linear-gradient(180deg, #ffffff 0%, #e1effe 50%, #c3ddfd 100%);
+  border: 2px solid #0088ff;
+  box-shadow: 
+    0 6px 0 #0055aa,
+    0 10px 18px rgba(0, 70, 150, 0.25),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9);
+  color: #0b2545;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.keypad-btn-blue:active {
+  transform: translateY(4px) !important;
+  box-shadow: 
+    0 2px 0 #0055aa,
+    0 4px 8px rgba(0, 70, 150, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  background: #d0e5fc;
+}
+
+.keypad-btn-red {
+  background: linear-gradient(180deg, #ffffff 0%, #ffe1e7 50%, #fdc3cf 100%);
+  border: 2px solid #ff2a5f;
+  box-shadow: 
+    0 6px 0 #aa1133,
+    0 10px 18px rgba(150, 20, 50, 0.25),
+    inset 0 2px 2px rgba(255, 255, 255, 0.9);
+  color: #450b18;
+  transition: transform 0.06s ease, box-shadow 0.06s ease;
+}
+
+.keypad-btn-red:active {
+  transform: translateY(4px) !important;
+  box-shadow: 
+    0 2px 0 #aa1133,
+    0 4px 8px rgba(150, 20, 50, 0.3),
+    inset 0 2px 4px rgba(0, 0, 0, 0.15);
+  background: #fcd0da;
+}
+
+/* Action Buttons: ENTER & CLEAR */
+.btn-enter-blue {
+  background: linear-gradient(180deg, #00c6ff 0%, #0072ff 100%);
+  border: 2px solid #ffffff;
+  box-shadow: 
+    0 6px 0 #004499,
+    0 10px 22px rgba(0, 114, 255, 0.4),
+    inset 0 2px 2px rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.btn-enter-blue:active {
+  transform: translateY(4px) !important;
+  box-shadow: 0 2px 0 #004499, 0 4px 10px rgba(0, 114, 255, 0.5);
+}
+
+.btn-enter-red {
+  background: linear-gradient(180deg, #ff416c 0%, #ff2a5f 100%);
+  border: 2px solid #ffffff;
+  box-shadow: 
+    0 6px 0 #991133,
+    0 10px 22px rgba(255, 42, 95, 0.4),
+    inset 0 2px 2px rgba(255, 255, 255, 0.6);
+  color: #ffffff;
+}
+
+.btn-enter-red:active {
+  transform: translateY(4px) !important;
+  box-shadow: 0 2px 0 #991133, 0 4px 10px rgba(255, 42, 95, 0.5);
+}
+
+/* ==========================================================================
+   BANK VAULT DOOR STYLES
+   ========================================================================== */
+
+.bank-vault-frame {
+  background: radial-gradient(circle at 50% 35%, #ffffff 0%, #e2e8f0 35%, #94a3b8 75%, #475569 100%);
+  border: 5px solid #d9a441;
+  box-shadow: 
+    0 25px 70px rgba(120, 80, 20, 0.35),
+    0 10px 25px rgba(0, 0, 0, 0.2),
+    inset 0 3px 8px rgba(255, 255, 255, 0.8),
+    inset 0 -5px 12px rgba(0, 0, 0, 0.3);
+}
+
+.bank-vault-gold-ring {
+  background: radial-gradient(circle at 50% 30%, #fff8db 0%, #ffd700 35%, #c68a0c 70%, #784e03 100%);
+  box-shadow: 
+    0 8px 30px rgba(217, 164, 65, 0.5),
+    inset 0 2px 6px rgba(255, 255, 255, 0.7),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.4);
+}
+
+.bank-vault-core-plate {
+  background: radial-gradient(circle at 50% 30%, #334155 0%, #1e293b 65%, #0f172a 100%);
+  border: 3px solid #ffd700;
+  box-shadow: 
+    inset 0 15px 45px rgba(0, 0, 0, 0.8),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3),
+    0 0 35px rgba(255, 215, 0, 0.3);
+}
+
+/* ==========================================================================
+   TOP HUD & HARDWARE
+   ========================================================================== */
+
+.bank-top-hud {
+  background: linear-gradient(180deg, #ffffff 0%, #faf3e6 60%, #eedbc0 100%);
+  border: 2px solid #d9a441;
+  box-shadow: 
+    0 10px 30px rgba(120, 80, 20, 0.15),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
+}
