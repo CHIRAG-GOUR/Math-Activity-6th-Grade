@@ -170,14 +170,14 @@ export const MathEscapeVaultGame: React.FC = () => {
     setPhase('countdown');
   };
 
-  // Next round transition
+  // Next round transition: End match only when all 5, 10, or 20 rounds have been attempted
   const advanceRound = useCallback(() => {
-    if (correctCount >= settings.totalRounds || currentRound >= settings.totalRounds) {
+    if (currentRound >= settings.totalRounds) {
       setPhase('game_over');
     } else {
       startRound(currentRound + 1);
     }
-  }, [correctCount, currentRound, settings.totalRounds, startRound]);
+  }, [currentRound, settings.totalRounds, startRound]);
 
   // Timer countdown loop
   useEffect(() => {
