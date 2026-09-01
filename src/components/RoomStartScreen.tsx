@@ -22,7 +22,6 @@ import {
   Maximize,
   Minimize,
   Cpu,
-  Terminal,
 } from 'lucide-react';
 import { DifficultyLevel, GameLength, GameSettings, MathTopic } from '@/types/game';
 import { soundManager } from '@/utils/audio';
@@ -307,9 +306,8 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.94 }}
         onClick={handleEnterClick}
-        className="px-16 sm:px-24 py-4 sm:py-5 rounded-3xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 border-4 border-white text-white font-black text-2xl sm:text-3xl md:text-4xl tracking-wider uppercase font-game shadow-[0_12px_35px_rgba(0,136,255,0.5)] flex items-center gap-4 cursor-pointer mb-2"
+        className="px-16 sm:px-24 py-4 sm:py-5 rounded-3xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 border-4 border-white text-white font-black text-2xl sm:text-3xl md:text-4xl tracking-wider uppercase font-game shadow-[0_12px_35px_rgba(0,136,255,0.5)] flex items-center justify-center gap-4 cursor-pointer mb-2"
       >
-        <Terminal className="w-8 h-8 text-cyan-200" />
         <span>ENTER 3D ROOM</span>
         <Play className="w-8 h-8 fill-white" />
       </motion.button>
