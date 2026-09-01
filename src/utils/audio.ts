@@ -4,6 +4,8 @@
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private bgmAudio: HTMLAudioElement | null = null;
+  private isBgmStarted: boolean = false;
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -18,8 +20,37 @@ class SoundEngine {
     }
   }
 
+  // 40% Volume Detective Background Music (On Loop)
+  public startBgm(volume = 0.4) {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!this.bgmAudio) {
+        this.bgmAudio = new Audio('/audio/detective-bgm.mp3');
+        this.bgmAudio.loop = true;
+      }
+      this.bgmAudio.volume = this.isMuted ? 0 : volume;
+      this.isBgmStarted = true;
+      this.bgmAudio.play().catch(() => {
+        // Autoplay may wait for first user click
+      });
+    } catch {
+      // Audio autoplay policy fallback
+    }
+  }
+
+  public stopBgm() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.bgmAudio.currentTime = 0;
+      this.isBgmStarted = false;
+    }
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = muted ? 0 : 0.4;
+    }
   }
 
   public getMuted(): boolean {
@@ -28,6 +59,12 @@ class SoundEngine {
 
   public toggleMute(): boolean {
     this.isMuted = !this.isMuted;
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.isMuted ? 0 : 0.4;
+      if (!this.isMuted && this.bgmAudio.paused && this.isBgmStarted) {
+        this.bgmAudio.play().catch(() => {});
+      }
+    }
     if (!this.isMuted) {
       this.playClick();
     }

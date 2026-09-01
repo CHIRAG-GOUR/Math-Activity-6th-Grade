@@ -82,6 +82,28 @@ export const MathEscapeVaultGame: React.FC = () => {
 
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Start detective BGM at 40% volume on loop
+  useEffect(() => {
+    soundManager.startBgm(0.4);
+
+    const handleFirstUserGesture = () => {
+      soundManager.startBgm(0.4);
+      window.removeEventListener('click', handleFirstUserGesture);
+      window.removeEventListener('keydown', handleFirstUserGesture);
+      window.removeEventListener('touchstart', handleFirstUserGesture);
+    };
+
+    window.addEventListener('click', handleFirstUserGesture);
+    window.addEventListener('keydown', handleFirstUserGesture);
+    window.addEventListener('touchstart', handleFirstUserGesture);
+
+    return () => {
+      window.removeEventListener('click', handleFirstUserGesture);
+      window.removeEventListener('keydown', handleFirstUserGesture);
+      window.removeEventListener('touchstart', handleFirstUserGesture);
+    };
+  }, []);
+
   // Sync team names if settings change
   useEffect(() => {
     if (phase === 'start') {
