@@ -1,9 +1,9 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { RotateCcw, Settings, ShieldCheck, ShieldAlert, Lock, Siren } from 'lucide-react';
+import { RotateCcw, Settings, ShieldCheck, ShieldAlert, Lock, Siren, Volume2, VolumeX } from 'lucide-react';
 import {
   GtaLargeGoldRollingCage,
   Gta3dBlueTrolley,
@@ -32,6 +32,8 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
   onPlayAgain,
   onChangeSettings,
 }) => {
+  const [isMuted, setIsMuted] = useState(soundManager.getMuted());
+
   // Check if at least one team scored points and it's not a tie
   const hasSolvedAny = teamBlue.score > 0 || teamRed.score > 0;
   const isTied = teamBlue.score === teamRed.score;
@@ -155,6 +157,17 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
             <Settings className="w-4 h-4 text-slate-700" />
             <span>SETTINGS</span>
           </motion.button>
+
+          <button
+            onClick={() => {
+              soundManager.toggleMute();
+              setIsMuted(soundManager.getMuted());
+            }}
+            title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
+            className="p-3 rounded-xl bg-white border-2 border-slate-300 text-slate-800 shadow cursor-pointer hover:bg-slate-50"
+          >
+            {isMuted ? <VolumeX className="w-5 h-5 text-rose-500" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
+          </button>
         </div>
 
       </div>
@@ -288,6 +301,17 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
           <Settings className="w-4 h-4 text-amber-800" />
           <span>SETTINGS</span>
         </motion.button>
+
+        <button
+          onClick={() => {
+            soundManager.toggleMute();
+            setIsMuted(soundManager.getMuted());
+          }}
+          title={isMuted ? 'Unmute Sound & Music' : 'Mute Sound & Music'}
+          className="p-3 rounded-xl bg-white border-2 border-amber-400 text-amber-950 shadow cursor-pointer hover:bg-amber-50"
+        >
+          {isMuted ? <VolumeX className="w-5 h-5 text-rose-500" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
+        </button>
       </div>
 
     </div>

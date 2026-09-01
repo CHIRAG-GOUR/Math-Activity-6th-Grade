@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Timer as TimerIcon, Maximize, Minimize } from 'lucide-react';
+import { Timer as TimerIcon, Maximize, Minimize, Volume2, VolumeX } from 'lucide-react';
 import { TeamState } from '@/types/game';
 import { soundManager } from '@/utils/audio';
 
@@ -23,6 +23,7 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
   isTieBreaker = false,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isMuted, setIsMuted] = useState(soundManager.getMuted());
 
   useEffect(() => {
     const handleFullscreenChange = () => {
@@ -43,6 +44,11 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
     }
   };
 
+  const toggleSound = () => {
+    const muted = soundManager.toggleMute();
+    setIsMuted(muted);
+  };
+
   const formattedTime = `00:${timeLeft < 10 ? `0${timeLeft}` : timeLeft}`;
   const isWarning = timeLeft <= 5 && timeLeft > 2;
   const isUrgent = timeLeft <= 2;
@@ -51,7 +57,7 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
     <header className="relative w-full flex items-center justify-between px-3 sm:px-8 py-1 z-30 pointer-events-none select-none">
       
       {/* 1. LEFT SPACER */}
-      <div className="w-12 hidden sm:block" />
+      <div className="w-24 hidden sm:block" />
 
       {/* 2. CENTER: ROUND COUNTER + TIME LEFT COUNTDOWN */}
       <div className="flex items-center gap-3 pointer-events-auto mx-auto">
@@ -113,16 +119,30 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
         </div>
       </div>
 
-      {/* 3. RIGHT: FULLSCREEN BUTTON IN TOP-RIGHT CORNER */}
-      <motion.button
-        whileHover={{ scale: 1.06 }}
-        whileTap={{ scale: 0.94 }}
-        onClick={toggleFullscreen}
-        title="Toggle Fullscreen"
-        className="pointer-events-auto p-2.5 rounded-2xl bg-white/95 border-2 border-purple-400 text-purple-700 hover:text-purple-900 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
-      >
-        {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
-      </motion.button>
+      {/* 3. RIGHT: SOUND MUTE & FULLSCREEN CONTROLS */}
+      <div className="flex items-center gap-2 pointer-events-auto">
+        {/* Sound & Music Mute Toggle */}
+        <motion.button
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={toggleSound}
+          title={isMuted ? 'Unmute Background Music & Sound' : 'Mute Background Music & Sound'}
+          className="p-2.5 rounded-2xl bg-white/95 border-2 border-amber-400 text-slate-800 hover:text-slate-950 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
+        >
+          {isMuted ? <VolumeX className="w-5 h-5 text-rose-500" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
+        </motion.button>
+
+        {/* Fullscreen Toggle */}
+        <motion.button
+          whileHover={{ scale: 1.06 }}
+          whileTap={{ scale: 0.94 }}
+          onClick={toggleFullscreen}
+          title="Toggle Fullscreen"
+          className="p-2.5 rounded-2xl bg-white/95 border-2 border-purple-400 text-purple-700 hover:text-purple-900 shadow-md flex items-center justify-center cursor-pointer backdrop-blur-md"
+        >
+          {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
+        </motion.button>
+      </div>
 
     </header>
   );
