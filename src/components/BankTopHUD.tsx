@@ -7,17 +7,20 @@ import { TeamState } from '@/types/game';
 import { soundManager } from '@/utils/audio';
 
 interface BankTopHUDProps {
-  teamBlue: TeamState;
-  teamRed: TeamState;
+  teamBlue?: TeamState;
+  teamRed?: TeamState;
   currentRound: number;
   totalRounds: number;
   timeLeft: number;
+  totalTime?: number;
+  isTieBreaker?: boolean;
 }
 
 export const BankTopHUD: React.FC<BankTopHUDProps> = ({
   currentRound,
   totalRounds,
   timeLeft,
+  isTieBreaker = false,
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
 
@@ -52,20 +55,31 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
 
       {/* 2. CENTER: ROUND COUNTER + TIME LEFT COUNTDOWN */}
       <div className="flex items-center gap-3 pointer-events-auto mx-auto">
-        {/* ROUND COUNTER BADGE */}
-        <div className="px-4 py-1.5 rounded-2xl border-2 border-amber-400 flex flex-col items-center justify-center shadow-md bg-white/95 backdrop-blur-md">
-          <span className="text-[9px] font-black tracking-widest uppercase text-amber-900 font-game">
-            ROUND
-          </span>
-          <div className="flex items-baseline gap-0.5">
-            <span className="text-xl sm:text-2xl font-black text-slate-900 font-game">
-              {currentRound}
+        {/* ROUND COUNTER BADGE / SUDDEN DEATH BADGE */}
+        {isTieBreaker ? (
+          <div className="px-4 py-1.5 rounded-2xl border-2 border-rose-500 flex flex-col items-center justify-center shadow-md bg-rose-950 text-white animate-pulse">
+            <span className="text-[9px] font-black tracking-widest uppercase text-rose-300 font-game">
+              SUDDEN DEATH
             </span>
-            <span className="text-xs font-bold text-slate-500 font-game">
-              /{totalRounds}
+            <span className="text-sm sm:text-base font-black text-white font-game uppercase">
+              SUPER QUESTION
             </span>
           </div>
-        </div>
+        ) : (
+          <div className="px-4 py-1.5 rounded-2xl border-2 border-amber-400 flex flex-col items-center justify-center shadow-md bg-white/95 backdrop-blur-md">
+            <span className="text-[9px] font-black tracking-widest uppercase text-amber-900 font-game">
+              ROUND
+            </span>
+            <div className="flex items-baseline gap-0.5">
+              <span className="text-xl sm:text-2xl font-black text-slate-900 font-game">
+                {currentRound}
+              </span>
+              <span className="text-xs font-bold text-slate-500 font-game">
+                /{totalRounds}
+              </span>
+            </div>
+          </div>
+        )}
 
         {/* TIME LEFT COUNTER BADGE */}
         <div className="px-4 py-1.5 rounded-2xl border-2 border-amber-400 flex flex-col items-center justify-center shadow-md bg-white/95 backdrop-blur-md min-w-[110px]">

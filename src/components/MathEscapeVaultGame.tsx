@@ -1,19 +1,29 @@
 'use client';
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Siren, Zap, ShieldAlert, Lock } from 'lucide-react';
+import {
+  GamePhase,
+  GameSettings,
+  Question,
+  TeamId,
+  TeamState,
+} from '@/types/game';
+import { generateQuestion, clearQuestionHistory } from '@/utils/questionGenerator';
+import { soundManager } from '@/utils/audio';
+
+// Visual & Sub-Components
 import { Room3DScene } from './Room3DScene';
+import { RoomStartScreen } from './RoomStartScreen';
+import { RoomVictoryScreen } from './RoomVictoryScreen';
+import { CountdownOverlay } from './CountdownOverlay';
 import { BankTopHUD } from './BankTopHUD';
 import { Vault3DDoor } from './Vault3DDoor';
 import { VaultQuestionBox } from './VaultQuestionBox';
 import { FastCompetitiveConsole } from './FastCompetitiveConsole';
 import { TeamConsoleScoreHeader } from './TeamConsoleScoreHeader';
 import { GameFeedback } from './GameFeedback';
-import { CountdownOverlay } from './CountdownOverlay';
-import { RoomStartScreen } from './RoomStartScreen';
-import { RoomVictoryScreen } from './RoomVictoryScreen';
-import { GamePhase, GameSettings, Question, TeamId, TeamState } from '@/types/game';
-import { generateQuestion, clearQuestionHistory } from '@/utils/questionGenerator';
-import { soundManager } from '@/utils/audio';
 
 const INITIAL_SETTINGS: GameSettings = {
   grade: '5-6',
@@ -21,11 +31,13 @@ const INITIAL_SETTINGS: GameSettings = {
   topics: ['addition', 'subtraction', 'multiplication', 'division', 'mixed'],
   difficulty: 'medium',
   totalRounds: 5,
-  timePerRound: 20,
+  timePerRound: 25,
   soundEnabled: true,
   teamBlueName: 'TEAM 1',
   teamRedName: 'TEAM 2',
 };
+
+const VAULT_UNLOCK_TARGET = 5;
 
 const createInitialTeam = (id: TeamId, name: string): TeamState => ({
   id,
@@ -45,18 +57,21 @@ const createInitialTeam = (id: TeamId, name: string): TeamState => ({
 export const MathEscapeVaultGame: React.FC = () => {
   const [phase, setPhase] = useState<GamePhase>('start');
   const [settings, setSettings] = useState<GameSettings>(INITIAL_SETTINGS);
-  const VAULT_UNLOCK_TARGET = settings.totalRounds;
 
-  const [teamBlue, setTeamBlue] = useState<TeamState>(createInitialTeam('blue', INITIAL_SETTINGS.teamBlueName));
-  const [teamRed, setTeamRed] = useState<TeamState>(createInitialTeam('red', INITIAL_SETTINGS.teamRedName));
+  const [teamBlue, setTeamBlue] = useState<TeamState>(
+    createInitialTeam('blue', INITIAL_SETTINGS.teamBlueName)
+  );
+  const [teamRed, setTeamRed] = useState<TeamState>(
+    createInitialTeam('red', INITIAL_SETTINGS.teamRedName)
+  );
 
-  // Lockouts & 3-Strike Alarms
+  // Fast Keypad Lockout states
   const [blueLockedOut, setBlueLockedOut] = useState<boolean>(false);
   const [redLockedOut, setRedLockedOut] = useState<boolean>(false);
 
+  // Wrong strikes
   const [blueStrikes, setBlueStrikes] = useState<number>(0);
   const [redStrikes, setRedStrikes] = useState<number>(0);
-
   const [blueBusted, setBlueBusted] = useState<boolean>(false);
   const [redBusted, setRedBusted] = useState<boolean>(false);
 
@@ -66,6 +81,11 @@ export const MathEscapeVaultGame: React.FC = () => {
   const [blueIsSkipping, setBlueIsSkipping] = useState<boolean>(false);
   const [redIsSkipping, setRedIsSkipping] = useState<boolean>(false);
 
+  // TIE-BREAKER SUDDEN DEATH MECHANICS
+  const [isSuperTieBreaker, setIsSuperTieBreaker] = useState<boolean>(false);
+  const [isPoliceBusted, setIsPoliceBusted] = useState<boolean>(false);
+  const [tieBreakerIntro, setTieBreakerIntro] = useState<boolean>(false);
+
   // WHOLE SCREEN GLOBAL ZOOM
   const [globalZoom, setGlobalZoom] = useState<number>(1);
 
@@ -73,7 +93,7 @@ export const MathEscapeVaultGame: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(INITIAL_SETTINGS.timePerRound);
 
-  // Progressive vault door unlocking count (0 to 5)
+  // Progressive vault door unlocking count
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [lastSolvedTeam, setLastSolvedTeam] = useState<'blue' | 'red' | null>(null);
 
@@ -189,17 +209,85 @@ export const MathEscapeVaultGame: React.FC = () => {
     setRedSkipNextRound(false);
     setBlueIsSkipping(false);
     setRedIsSkipping(false);
+    setIsSuperTieBreaker(false);
+    setIsPoliceBusted(false);
+    setTieBreakerIntro(false);
     setPhase('countdown');
   };
 
-  // Next round transition: End match only when all 5, 10, or 20 rounds have been attempted
+  // Next round transition with TIE-BREAKER SUDDEN DEATH SUPPORT
   const advanceRound = useCallback(() => {
-    if (currentRound >= settings.totalRounds) {
+    if (currentRound >= settings.totalRounds && !isSuperTieBreaker) {
+      // Check if scores are tied!
+      if (teamBlue.score === teamRed.score) {
+        // TRIGGER SUPER SUDDEN DEATH QUESTION
+        setIsSuperTieBreaker(true);
+        setTieBreakerIntro(true);
+        soundManager.playSecurityAlarm();
+
+        setTimeout(() => {
+          setTieBreakerIntro(false);
+          const activeTopics = settings.topics && settings.topics.length > 0 ? settings.topics : [settings.topic || 'mixed'];
+          const q = generateQuestion(activeTopics, 'hard', '6', 99999);
+          q.text = `⚡ [SUDDEN DEATH] ` + q.text;
+          q.subText = 'TIE-BREAKER SUPER QUESTION // FIRST TEAM TO SOLVE WINS';
+          setCurrentQuestion(q);
+          setCurrentRound(settings.totalRounds + 1);
+          setTimeLeft(35);
+
+          // Reset lockouts and strikes for fair sudden death
+          setBlueLockedOut(false);
+          setBlueBusted(false);
+          setBlueIsSkipping(false);
+          setBlueStrikes(0);
+
+          setRedLockedOut(false);
+          setRedBusted(false);
+          setRedIsSkipping(false);
+          setRedStrikes(0);
+
+          setTeamBlue((prev) => ({
+            ...prev,
+            currentInput: '',
+            selectedAnswer: null,
+            isLocked: false,
+            lastResult: null,
+            lastScoreGained: 0,
+          }));
+
+          setTeamRed((prev) => ({
+            ...prev,
+            currentInput: '',
+            selectedAnswer: null,
+            isLocked: false,
+            lastResult: null,
+            lastScoreGained: 0,
+          }));
+
+          setPhase('playing');
+        }, 3200);
+      } else {
+        setPhase('game_over');
+      }
+    } else if (isSuperTieBreaker) {
+      // Tie breaker ended without a victor: Police busts both!
+      if (teamBlue.score === teamRed.score) {
+        setIsPoliceBusted(true);
+      }
       setPhase('game_over');
     } else {
       startRound(currentRound + 1);
     }
-  }, [currentRound, settings.totalRounds, startRound]);
+  }, [
+    currentRound,
+    settings.totalRounds,
+    isSuperTieBreaker,
+    teamBlue.score,
+    teamRed.score,
+    settings.topics,
+    settings.topic,
+    startRound,
+  ]);
 
   // Timer countdown loop
   useEffect(() => {
@@ -214,7 +302,14 @@ export const MathEscapeVaultGame: React.FC = () => {
           if (timerRef.current) clearInterval(timerRef.current);
           setPhase('round_reveal');
           soundManager.playWrong();
-          setTimeout(advanceRound, 2000);
+
+          if (isSuperTieBreaker) {
+            // Super question expired: Police busts both!
+            setIsPoliceBusted(true);
+            setTimeout(() => setPhase('game_over'), 2000);
+          } else {
+            setTimeout(advanceRound, 2000);
+          }
           return 0;
         }
 
@@ -229,7 +324,7 @@ export const MathEscapeVaultGame: React.FC = () => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [phase, advanceRound]);
+  }, [phase, isSuperTieBreaker, advanceRound]);
 
   // 1. KEYPAD DIGIT PRESS
   const handleDigitPress = (teamId: TeamId, digit: string) => {
@@ -273,13 +368,12 @@ export const MathEscapeVaultGame: React.FC = () => {
       const isCorrect = String(teamBlue.currentInput).trim() === String(currentQuestion.answer).trim();
 
       if (isCorrect) {
-        // INSTANT WIN FOR TEAM BLUE!
         if (timerRef.current) clearInterval(timerRef.current);
         setPhase('round_reveal');
         soundManager.playCorrect();
         soundManager.playVaultWheelTurn();
 
-        const basePts = 100;
+        const basePts = isSuperTieBreaker ? 200 : 100;
         const streakBonus = Math.min((teamBlue.streak + 1) * 15, 60);
         const gained = basePts + streakBonus;
 
@@ -299,22 +393,17 @@ export const MathEscapeVaultGame: React.FC = () => {
         setBlueEarnedKey(true);
         setBlueStrikes(0);
 
-        setTimeout(advanceRound, 1500);
+        if (isSuperTieBreaker) {
+          // Instant Win for Team Blue on Sudden Death!
+          setTimeout(() => setPhase('game_over'), 1600);
+        } else {
+          setTimeout(advanceRound, 1500);
+        }
 
       } else {
         // WRONG ANSWER FOR TEAM BLUE
         soundManager.playWrong();
-        const newStrikes = blueStrikes + 1;
-        setBlueStrikes(newStrikes);
-
-        if (newStrikes >= 3) {
-          // 3 WRONG: TRIGGER ALARM & BUSTED! (MUST SKIP NEXT ROUND AS WELL)
-          soundManager.playSecurityAlarm();
-          setBlueBusted(true);
-          setBlueSkipNextRound(true);
-        } else {
-          setBlueLockedOut(true);
-        }
+        setBlueLockedOut(true);
 
         setTeamBlue((prev) => ({
           ...prev,
@@ -325,11 +414,27 @@ export const MathEscapeVaultGame: React.FC = () => {
           lastScoreGained: 0,
         }));
 
-        // If Team Red is also locked out or busted, both failed!
-        if (redLockedOut || redBusted || redIsSkipping) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setPhase('round_reveal');
-          setTimeout(advanceRound, 2000);
+        if (isSuperTieBreaker) {
+          // If in tie-breaker and red is also locked out -> both failed!
+          if (redLockedOut || redBusted || redIsSkipping) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setIsPoliceBusted(true);
+            setPhase('round_reveal');
+            setTimeout(() => setPhase('game_over'), 2000);
+          }
+        } else {
+          const newStrikes = blueStrikes + 1;
+          setBlueStrikes(newStrikes);
+          if (newStrikes >= 3) {
+            soundManager.playSecurityAlarm();
+            setBlueBusted(true);
+            setBlueSkipNextRound(true);
+          }
+          if (redLockedOut || redBusted || redIsSkipping) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setPhase('round_reveal');
+            setTimeout(advanceRound, 2000);
+          }
         }
       }
 
@@ -340,13 +445,12 @@ export const MathEscapeVaultGame: React.FC = () => {
       const isCorrect = String(teamRed.currentInput).trim() === String(currentQuestion.answer).trim();
 
       if (isCorrect) {
-        // INSTANT WIN FOR TEAM RED!
         if (timerRef.current) clearInterval(timerRef.current);
         setPhase('round_reveal');
         soundManager.playCorrect();
         soundManager.playVaultWheelTurn();
 
-        const basePts = 100;
+        const basePts = isSuperTieBreaker ? 200 : 100;
         const streakBonus = Math.min((teamRed.streak + 1) * 15, 60);
         const gained = basePts + streakBonus;
 
@@ -366,22 +470,17 @@ export const MathEscapeVaultGame: React.FC = () => {
         setRedEarnedKey(true);
         setRedStrikes(0);
 
-        setTimeout(advanceRound, 1500);
+        if (isSuperTieBreaker) {
+          // Instant Win for Team Red on Sudden Death!
+          setTimeout(() => setPhase('game_over'), 1600);
+        } else {
+          setTimeout(advanceRound, 1500);
+        }
 
       } else {
         // WRONG ANSWER FOR TEAM RED
         soundManager.playWrong();
-        const newStrikes = redStrikes + 1;
-        setRedStrikes(newStrikes);
-
-        if (newStrikes >= 3) {
-          // 3 WRONG: TRIGGER ALARM & BUSTED! (MUST SKIP NEXT ROUND AS WELL)
-          soundManager.playSecurityAlarm();
-          setRedBusted(true);
-          setRedSkipNextRound(true);
-        } else {
-          setRedLockedOut(true);
-        }
+        setRedLockedOut(true);
 
         setTeamRed((prev) => ({
           ...prev,
@@ -392,23 +491,60 @@ export const MathEscapeVaultGame: React.FC = () => {
           lastScoreGained: 0,
         }));
 
-        // If Team Blue is also locked out or busted, both failed!
-        if (blueLockedOut || blueBusted || blueIsSkipping) {
-          if (timerRef.current) clearInterval(timerRef.current);
-          setPhase('round_reveal');
-          setTimeout(advanceRound, 2000);
+        if (isSuperTieBreaker) {
+          // If in tie-breaker and blue is also locked out -> both failed!
+          if (blueLockedOut || blueBusted || blueIsSkipping) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setIsPoliceBusted(true);
+            setPhase('round_reveal');
+            setTimeout(() => setPhase('game_over'), 2000);
+          }
+        } else {
+          const newStrikes = redStrikes + 1;
+          setRedStrikes(newStrikes);
+          if (newStrikes >= 3) {
+            soundManager.playSecurityAlarm();
+            setRedBusted(true);
+            setRedSkipNextRound(true);
+          }
+          if (blueLockedOut || blueBusted || blueIsSkipping) {
+            if (timerRef.current) clearInterval(timerRef.current);
+            setPhase('round_reveal');
+            setTimeout(advanceRound, 2000);
+          }
         }
       }
     }
   };
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden flex flex-col justify-between select-none bg-[#357fca]">
+    <main className="relative w-screen h-screen overflow-hidden bg-[#0c1829] select-none">
       
-      {/* 1. FIXED FULL-BLEED 3D ESCAPE ROOM BACKGROUND (NEVER SHOWS WHITE GAPS) */}
-      <div className="fixed inset-0 w-full h-full pointer-events-none z-0">
-        <Room3DScene />
-      </div>
+      {/* 3D Bank Room Background */}
+      <Room3DScene />
+
+      {/* SUDDEN DEATH INTRO MODAL */}
+      <AnimatePresence>
+        {tieBreakerIntro && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 1.1 }}
+            className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none"
+          >
+            <div className="flex items-center gap-2.5 px-6 py-2 rounded-full bg-rose-600 border-2 border-white text-white font-mono font-black text-sm tracking-widest uppercase mb-4 shadow-[0_0_30px_#ff0000] animate-pulse">
+              <Siren className="w-6 h-6 animate-bounce" />
+              <span>SCORE TIED ({teamBlue.score} - {teamRed.score}) // SUDDEN DEATH</span>
+            </div>
+            <h2 className="text-5xl sm:text-7xl font-black font-bank uppercase text-white drop-shadow-[0_10px_35px_rgba(255,0,0,0.8)]">
+              SUPER QUESTION INCOMING!
+            </h2>
+            <p className="text-base sm:text-xl font-black text-amber-300 font-game uppercase tracking-widest mt-4 max-w-2xl">
+              FIRST TEAM TO ENTER THE CORRECT CODE WINS THE HEIST • IF BOTH ARE WRONG OR TIME RUNS OUT, POLICE BUSTS BOTH TEAMS!
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* PHASE 1: START SCREEN */}
       {phase === 'start' && (
@@ -419,29 +555,32 @@ export const MathEscapeVaultGame: React.FC = () => {
         />
       )}
 
-      {/* PHASE 2: COUNTDOWN */}
+      {/* PHASE 2: 3-2-1 COUNTDOWN OVERLAY */}
       {phase === 'countdown' && (
-        <CountdownOverlay onComplete={() => startRound(1)} />
+        <CountdownOverlay
+          onComplete={() => {
+            startRound(1);
+          }}
+        />
       )}
 
-      {/* PHASE 3: ACTIVE PLAYING WITH GLOBAL SCREEN ZOOM */}
+      {/* PHASE 3: ACTIVE PLAYING / ROUND REVEAL */}
       {(phase === 'playing' || phase === 'round_reveal') && (
         <div
-          style={{ transform: `scale(${globalZoom})`, transformOrigin: 'center center' }}
-          className="relative w-full h-full flex flex-col justify-between max-w-[1920px] mx-auto z-10 p-2 sm:p-4 transition-transform duration-200"
+          style={{ transform: `scale(${globalZoom})`, transformOrigin: 'top center' }}
+          className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 md:p-4 z-30 transition-transform duration-200 overflow-hidden"
         >
-          
-          {/* TOP AREA: HUD */}
+          {/* Top Bar HUD with Round & Timer */}
           <BankTopHUD
-            teamBlue={teamBlue}
-            teamRed={teamRed}
             currentRound={currentRound}
             totalRounds={settings.totalRounds}
             timeLeft={timeLeft}
+            totalTime={currentQuestion?.timeLimit || settings.timePerRound}
+            isTieBreaker={isSuperTieBreaker}
           />
 
-          {/* MAIN 3-COLUMN PLAYING SCREEN: TEAM 1 | CENTER 3D VAULT | TEAM 2 */}
-          <div className="relative flex-1 grid grid-cols-12 gap-3 sm:gap-6 items-center px-2 sm:px-6 my-1">
+          {/* MAIN ARENA GRID: TEAM 1 (LEFT) | CENTER (VAULT + ARDUINO) | TEAM 2 (RIGHT) */}
+          <div className="w-full flex-1 grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 items-center justify-center max-w-[1400px] mx-auto z-20 my-auto">
             
             {/* LEFT COLUMN: TEAM 1 SCORE HEADER + COMPACT KEYPAD CONSOLE */}
             <div className="col-span-3 lg:col-span-3 flex flex-col items-center justify-center">
@@ -515,11 +654,12 @@ export const MathEscapeVaultGame: React.FC = () => {
         </div>
       )}
 
-      {/* PHASE 4: VICTORY TREASURY SCENE */}
+      {/* PHASE 4: VICTORY TREASURY SCENE OR POLICE BUST LOCKDOWN */}
       {phase === 'game_over' && (
         <RoomVictoryScreen
           teamBlue={teamBlue}
           teamRed={teamRed}
+          isPoliceBusted={isPoliceBusted}
           onPlayAgain={() => {
             setTeamBlue(createInitialTeam('blue', settings.teamBlueName));
             setTeamRed(createInitialTeam('red', settings.teamRedName));
@@ -530,6 +670,9 @@ export const MathEscapeVaultGame: React.FC = () => {
             setRedSkipNextRound(false);
             setBlueIsSkipping(false);
             setRedIsSkipping(false);
+            setIsSuperTieBreaker(false);
+            setIsPoliceBusted(false);
+            setTieBreakerIntro(false);
             setPhase('countdown');
           }}
           onChangeSettings={() => setPhase('start')}

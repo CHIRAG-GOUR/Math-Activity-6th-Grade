@@ -3,7 +3,7 @@
 import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
-import { RotateCcw, Settings, ShieldCheck, ShieldAlert, Lock } from 'lucide-react';
+import { RotateCcw, Settings, ShieldCheck, ShieldAlert, Lock, Siren } from 'lucide-react';
 import {
   GtaLargeGoldRollingCage,
   Gta3dBlueTrolley,
@@ -20,6 +20,7 @@ import { soundManager } from '@/utils/audio';
 interface RoomVictoryScreenProps {
   teamBlue: TeamState;
   teamRed: TeamState;
+  isPoliceBusted?: boolean;
   onPlayAgain: () => void;
   onChangeSettings: () => void;
 }
@@ -27,29 +28,22 @@ interface RoomVictoryScreenProps {
 export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
   teamBlue,
   teamRed,
+  isPoliceBusted = false,
   onPlayAgain,
   onChangeSettings,
 }) => {
-  // Check if at least one team answered and scored points
+  // Check if at least one team scored points and it's not a tie
   const hasSolvedAny = teamBlue.score > 0 || teamRed.score > 0;
+  const isTied = teamBlue.score === teamRed.score;
+  const shouldBust = isPoliceBusted || !hasSolvedAny || isTied;
 
-  // STRICT EXPLICIT WINNER: Never show "Team 1 & Team 2"
-  let blueWon = teamBlue.score > teamRed.score;
-  let redWon = teamRed.score > teamBlue.score;
-
-  // Tie-breaker if scores are equal (only if at least one team scored)
-  if (hasSolvedAny && !blueWon && !redWon) {
-    if (teamBlue.streak >= teamRed.streak) {
-      blueWon = true;
-    } else {
-      redWon = true;
-    }
-  }
-
+  // STRICT EXPLICIT WINNER: Only when someone has strictly higher score
+  const blueWon = !shouldBust && teamBlue.score > teamRed.score;
+  const redWon = !shouldBust && teamRed.score > teamBlue.score;
   const winnerName = blueWon ? teamBlue.name : teamRed.name;
 
   useEffect(() => {
-    if (hasSolvedAny) {
+    if (!shouldBust && (blueWon || redWon)) {
       soundManager.playVaultCracked();
 
       const count = 350;
@@ -74,60 +68,66 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
       fire(0.1, { spread: 120, startVelocity: 25, decay: 0.92, scalar: 1.2 });
       fire(0.1, { spread: 120, startVelocity: 45 });
     } else {
-      // No team answered or scored: Vault remains locked
+      // Police Bust / Lockdown alarm
+      soundManager.playSecurityAlarm();
       soundManager.playWrong();
     }
-  }, [hasSolvedAny, blueWon, redWon]);
+  }, [shouldBust, blueWon, redWon]);
 
   // =========================================================================
-  // SCENARIO A: NO TEAM ANSWERED AT ALL -> VAULT REMAINS LOCKED (HEIST FAILED)
+  // SCENARIO A: POLICE BUSTED / DRAW / ZERO POINTS -> NOBODY ENTERS THE VAULT
   // =========================================================================
-  if (!hasSolvedAny) {
+  if (shouldBust) {
     return (
       <div className="relative w-full h-full flex flex-col items-center justify-between p-4 sm:p-6 z-40 select-none max-w-5xl mx-auto overflow-hidden">
         
+        {/* Flashing Police Siren Emergency Strobe */}
+        <div className="absolute inset-0 bg-gradient-to-r from-red-600/10 via-transparent to-blue-600/10 animate-pulse pointer-events-none" />
+
         {/* Top Header Banner */}
         <motion.div
           initial={{ y: -20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           className="flex flex-col items-center text-center mt-2 z-20"
         >
-          <div className="flex items-center gap-2 px-5 py-1.5 rounded-full bg-rose-100 border-2 border-rose-500 text-rose-900 text-xs font-black tracking-widest uppercase font-game mb-2 shadow">
-            <ShieldAlert className="w-4 h-4 text-rose-600 animate-pulse" />
-            <span>SECURITY LOCKDOWN • ZERO CODES SOLVED</span>
+          <div className="flex items-center gap-2 px-5 py-1.5 rounded-full bg-rose-950/90 border-2 border-rose-500 text-rose-200 text-xs font-black tracking-widest uppercase font-game mb-2 shadow-lg animate-pulse">
+            <Siren className="w-4 h-4 text-rose-400" />
+            <span>🚨 POLICE BUSTED • HEIST TERMINATED</span>
           </div>
 
           <h1 className="text-5xl sm:text-6xl md:text-7xl font-black font-bank uppercase tracking-tight text-slate-900 drop-shadow-md">
-            <span className="text-rose-600">VAULT REMAINS LOCKED</span>
+            <span className="text-rose-600">NOBODY CLAIMS THE VAULT</span>
           </h1>
           <p className="text-sm sm:text-base font-black text-slate-700 uppercase font-game mt-1">
-            NO TEAM ANSWERED CORRECTLY • ACCESS DENIED
+            {isTied && hasSolvedAny
+              ? 'SCORE TIED • SUPER QUESTION MISSED • POLICE INTERCEPTED THE HEIST'
+              : 'ZERO CODES SOLVED • ACCESS DENIED • POLICE ARRIVED ON SCENE'}
           </p>
         </motion.div>
 
-        {/* Center: Heavy Closed Locked Steel Vault */}
+        {/* Center: Locked Heavy Vault Door */}
         <div className="relative w-full flex-1 flex flex-col items-center justify-center py-2 z-20">
           <div className="relative">
             <Vault3DDoor correctCount={0} totalNeeded={5} roundNumber={1} />
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="px-6 py-3 rounded-2xl bg-rose-950/90 border-2 border-rose-500 text-rose-200 font-mono font-black text-sm tracking-widest flex items-center gap-2 shadow-2xl">
-                <Lock className="w-5 h-5 text-rose-400 animate-bounce" />
-                <span>ACCESS LOCKED</span>
+              <div className="px-6 py-3 rounded-2xl bg-rose-950/95 border-3 border-rose-500 text-rose-200 font-mono font-black text-base tracking-widest flex items-center gap-3 shadow-2xl">
+                <Lock className="w-6 h-6 text-rose-400" />
+                <span>POLICE LOCKDOWN // 100% SEALED</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Final Scores (0 PTS) & Action Buttons */}
+        {/* Final Tied Scores & Action Buttons */}
         <div className="flex flex-wrap items-center justify-center gap-4 z-30 mb-2">
           <div className="px-5 py-2 rounded-xl bg-blue-50 border-2 border-blue-400 flex items-center gap-3 shadow">
             <span className="text-sm font-black text-blue-950 uppercase font-game">{teamBlue.name}:</span>
-            <span className="text-xl font-black text-blue-900 font-display">0 PTS</span>
+            <span className="text-xl font-black text-blue-900 font-display">{teamBlue.score} PTS</span>
           </div>
 
           <div className="px-5 py-2 rounded-xl bg-rose-50 border-2 border-rose-400 flex items-center gap-3 shadow">
             <span className="text-sm font-black text-rose-950 uppercase font-game">{teamRed.name}:</span>
-            <span className="text-xl font-black text-rose-900 font-display">0 PTS</span>
+            <span className="text-xl font-black text-rose-900 font-display">{teamRed.score} PTS</span>
           </div>
 
           <motion.button
@@ -140,7 +140,7 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
             className="px-8 py-3 rounded-xl bg-gradient-to-r from-blue-600 via-cyan-500 to-blue-700 border border-white text-white font-black text-base uppercase font-game shadow-md flex items-center gap-2 cursor-pointer"
           >
             <RotateCcw className="w-5 h-5 stroke-[2.5]" />
-            <span>TRY AGAIN</span>
+            <span>PLAY AGAIN</span>
           </motion.button>
 
           <motion.button
@@ -162,7 +162,7 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
   }
 
   // =========================================================================
-  // SCENARIO B: TEAM SOLVED CODES -> VAULT CRACKED & OPEN INTO GTA V TREASURY
+  // SCENARIO B: DISTINCT WINNER -> VAULT CRACKED & OPEN INTO GTA V TREASURY
   // =========================================================================
   return (
     <div className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-4 z-40 select-none max-w-7xl mx-auto overflow-hidden">
