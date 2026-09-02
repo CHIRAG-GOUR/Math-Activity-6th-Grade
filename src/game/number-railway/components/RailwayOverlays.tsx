@@ -32,96 +32,44 @@ export const RailwayTitleScreen: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-hidden p-3 sm:p-5 bg-slate-950"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-hidden p-4 sm:p-6"
     >
-      {/* ── 1. Dynamic Solid Comic Split Background (Left: Red, Right: Blue) ── */}
-      <div className="absolute inset-0 flex pointer-events-none z-0 overflow-hidden">
-        {/* Left Side: Solid Comic Red Sunburst */}
-        <div
-          className="w-1/2 h-full relative"
-          style={{
-            background: 'radial-gradient(circle at 45% 50%, #dc2626 0%, #b91c1c 50%, #7f1d1d 100%)',
-          }}
-        >
-          {/* Comic Sunburst Lines */}
-          <div
-            className="absolute inset-0 opacity-25"
-            style={{
-              backgroundImage: 'repeating-conic-gradient(from 0deg at 100% 50%, #ffffff 0deg 10deg, transparent 10deg 20deg)',
-            }}
-          />
-        </div>
-
-        {/* Right Side: Solid Comic Blue Sunburst */}
-        <div
-          className="w-1/2 h-full relative"
-          style={{
-            background: 'radial-gradient(circle at 55% 50%, #2563eb 0%, #1d4ed8 50%, #172554 100%)',
-          }}
-        >
-          {/* Comic Sunburst Lines */}
-          <div
-            className="absolute inset-0 opacity-25"
-            style={{
-              backgroundImage: 'repeating-conic-gradient(from 0deg at 0% 50%, #ffffff 0deg 10deg, transparent 10deg 20deg)',
-            }}
-          />
-        </div>
-
-        {/* Center Jagged Comic Lightning Divider */}
-        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-14 sm:w-18 flex items-center justify-center">
-          <svg viewBox="0 0 100 1000" className="w-full h-full preserve-3d" preserveAspectRatio="none">
-            {/* White Glow / Outer Border */}
-            <polyline
-              points="50,0 25,200 75,380 25,560 80,740 35,900 50,1000"
-              fill="none"
-              stroke="#ffffff"
-              strokeWidth="26"
-              strokeLinecap="round"
-              strokeLinejoin="miter"
-            />
-            {/* Black Lightning Core */}
-            <polyline
-              points="50,0 25,200 75,380 25,560 80,740 35,900 50,1000"
-              fill="none"
-              stroke="#0f172a"
-              strokeWidth="15"
-              strokeLinecap="round"
-              strokeLinejoin="miter"
-            />
-          </svg>
-        </div>
-      </div>
+      {/* ── 1. Comic Red VS Blue Graphic Background Image (100% Fullscreen) ── */}
+      <img
+        src="/images/comic_vs_bg.png"
+        alt="Comic Red vs Blue Background"
+        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
+      />
 
       {/* ── 2. Top Header Title & Badge ── */}
       <div className="relative z-10 flex flex-col items-center text-center mt-1">
         <motion.div
           initial={{ y: -15, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
-          className="px-4 py-1 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[10px] sm:text-xs font-black tracking-widest uppercase shadow-xl flex items-center gap-1.5"
+          className="px-5 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[10px] sm:text-xs font-black tracking-widest uppercase shadow-2xl flex items-center gap-1.5"
         >
           <Sparkles className="w-3.5 h-3.5 text-amber-500" />
           <span>GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING</span>
         </motion.div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-white uppercase leading-tight mt-1 drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white uppercase leading-tight mt-1.5 drop-shadow-[0_6px_20px_rgba(0,0,0,0.9)]">
           THE GREAT NUMBER RAILWAY
         </h1>
       </div>
 
-      {/* ── 3. Central Side-by-Side Square Team Cards & Comic VS ── */}
-      <div className="relative z-10 w-full max-w-4xl flex flex-row items-center justify-center gap-4 sm:gap-6 my-auto px-2">
+      {/* ── 3. Central Side-by-Side Square Team Cards ── */}
+      <div className="relative z-10 w-full max-w-4xl flex flex-row items-center justify-between sm:justify-around my-auto px-4">
         {/* ── TEAM 1 (Left RED Square Card) ── */}
         <motion.div
           initial={{ x: -40, scale: 0.9, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-[260px] sm:w-[280px] p-3 rounded-2xl bg-white/95 backdrop-blur-md border-3 border-red-500 shadow-[0_15px_40px_rgba(220,38,38,0.5)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="w-[260px] sm:w-[280px] p-3.5 rounded-2xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_15px_40px_rgba(220,38,38,0.6)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
-          <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1">
+          <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-600 shadow-xs" />
+              <span className="w-3 h-3 rounded-full bg-red-600 shadow-xs" />
               <span className="text-xs font-black text-red-900 tracking-wider uppercase">
                 TEAM 1 (RED)
               </span>
@@ -132,7 +80,7 @@ export const RailwayTitleScreen: React.FC = () => {
           </div>
 
           {/* Original Red Train Illustration (Facing Right → Toward Center) */}
-          <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-red-200 shadow-xs flex items-center justify-center my-1.5">
+          <div className="relative w-full h-28 sm:h-34 rounded-xl overflow-hidden border border-red-200 shadow-xs flex items-center justify-center my-1.5">
             <img
               src="/images/red_locomotive.png"
               alt="Team 1 Red Train"
@@ -156,42 +104,20 @@ export const RailwayTitleScreen: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* ── COMIC LIGHTNING & VS EMBLEM (Center) ── */}
-        <motion.div
-          initial={{ scale: 0.4, opacity: 0 }}
-          animate={{ scale: [1, 1.08, 1], opacity: 1 }}
-          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
-          className="relative flex flex-col items-center justify-center shrink-0 z-20 mx-1"
-        >
-          {/* Comic Lightning Glow Aura */}
-          <div className="absolute w-24 h-24 rounded-full bg-amber-400/50 blur-2xl pointer-events-none" />
-
-          {/* Iconic Comic VS Emblem */}
-          <div className="relative flex items-center justify-center">
-            <span
-              className="font-display text-4xl sm:text-5xl md:text-6xl font-black italic tracking-tighter text-white select-none"
-              style={{
-                WebkitTextStroke: '3.5px #000000',
-                textShadow: '4px 4px 0px #000000, 0 0 20px rgba(255,255,255,0.9)',
-                filter: 'drop-shadow(0 8px 20px rgba(0,0,0,0.85))',
-              }}
-            >
-              VS
-            </span>
-          </div>
-        </motion.div>
+        {/* ── Center Empty Space for the Comic Background's Built-in Lightning & VS ── */}
+        <div className="w-20 sm:w-28 shrink-0 pointer-events-none" />
 
         {/* ── TEAM 2 (Right BLUE Square Card) ── */}
         <motion.div
           initial={{ x: 40, scale: 0.9, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="w-[260px] sm:w-[280px] p-3 rounded-2xl bg-white/95 backdrop-blur-md border-3 border-blue-500 shadow-[0_15px_40px_rgba(37,99,235,0.5)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="w-[260px] sm:w-[280px] p-3.5 rounded-2xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_15px_40px_rgba(37,99,235,0.6)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
-          <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1">
+          <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1.5">
             <div className="flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-full bg-blue-600 shadow-xs" />
+              <span className="w-3 h-3 rounded-full bg-blue-600 shadow-xs" />
               <span className="text-xs font-black text-blue-900 tracking-wider uppercase">
                 TEAM 2 (BLUE)
               </span>
@@ -202,7 +128,7 @@ export const RailwayTitleScreen: React.FC = () => {
           </div>
 
           {/* Original Blue Train Illustration (Facing Left ← Toward Center) */}
-          <div className="relative w-full h-28 sm:h-32 rounded-xl overflow-hidden border border-blue-200 shadow-xs flex items-center justify-center my-1.5">
+          <div className="relative w-full h-28 sm:h-34 rounded-xl overflow-hidden border border-blue-200 shadow-xs flex items-center justify-center my-1.5">
             <img
               src="/images/blue_locomotive.png"
               alt="Team 2 Blue Train"
@@ -228,9 +154,9 @@ export const RailwayTitleScreen: React.FC = () => {
       </div>
 
       {/* ── 4. Bottom Controls: Compact Question Selector & Compact Action Button ── */}
-      <div className="relative z-10 flex flex-col items-center gap-2 mb-1">
+      <div className="relative z-10 flex flex-col items-center gap-2 mb-2">
         {/* Match Length Selector (5, 10, 15) - Compact Inline Pill */}
-        <div className="px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-lg flex items-center gap-2">
+        <div className="px-3.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl flex items-center gap-2">
           <span className="text-[9px] font-black uppercase tracking-widest text-slate-800">
             🎯 QUESTIONS:
           </span>
@@ -242,7 +168,7 @@ export const RailwayTitleScreen: React.FC = () => {
                 <button
                   key={cnt}
                   onClick={() => setQuestionCountConfig(cnt)}
-                  className={`py-1 px-2.5 rounded-lg font-black text-[11px] transition-all border cursor-pointer ${
+                  className={`py-1 px-3 rounded-lg font-black text-[11px] transition-all border cursor-pointer ${
                     isSelected
                       ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-600 shadow-sm scale-105'
                       : 'bg-slate-100 text-slate-700 border-slate-300 hover:border-amber-400'
@@ -260,7 +186,7 @@ export const RailwayTitleScreen: React.FC = () => {
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={startGame}
-          className="w-64 max-w-xs py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-sm tracking-wider uppercase shadow-[0_8px_20px_rgba(245,158,11,0.5)] border-2 border-amber-500 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-64 max-w-xs py-2.5 px-5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-sm tracking-wider uppercase shadow-[0_8px_25px_rgba(245,158,11,0.6)] border-2 border-amber-500 flex items-center justify-center gap-2 cursor-pointer"
         >
           <Play className="w-4 h-4 fill-slate-950" />
           <span>START SHOWDOWN 🚂</span>
