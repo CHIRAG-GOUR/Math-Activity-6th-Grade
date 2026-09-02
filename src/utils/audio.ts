@@ -435,6 +435,45 @@ class SoundEngine {
   public playTimerWarning() {
     this.playClick();
   }
+
+  // Number Railway Sound Aliases
+  public playTrainWhistle() {
+    this.initCtx();
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(520, now);
+    osc.frequency.linearRampToValueAtTime(580, now + 0.1);
+    osc.frequency.linearRampToValueAtTime(520, now + 0.3);
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.linearRampToValueAtTime(0, now + 0.5);
+    osc.start(now);
+    osc.stop(now + 0.5);
+  }
+
+  public playSignalChange() {
+    this.playCorrect();
+  }
+
+  public playSwitchMechanism() {
+    this.playClick();
+  }
+
+  public playTrainDepart() {
+    this.playTrainWhistle();
+  }
+
+  public playTrainArrive() {
+    this.playCorrect();
+  }
+
+  public playRailwayVictory() {
+    this.playVaultCracked();
+  }
 }
 
 export const soundManager = new SoundEngine();
