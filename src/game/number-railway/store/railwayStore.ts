@@ -1,11 +1,14 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Zustand Game Store
-// Robust Competitive Progression Logic (Activity #1 Model):
-// - Symmetrical team evaluation with speed bonuses & streaks
-// - 5-Stage Station Loading & High-Graphics Journey
-// - Round Reveal feedback phase
-// - Super Tie-Breaker Challenge for tied scores
-// - Winner / Loser / Draw Game Over state
+// - Skillizee Junction ➔ CCIS Junction
+// - Support for 5, 10, or 15 Question Rounds (1, 2, or 3 questions per step)
+// - Initial train approach to Skillizee Junction before Q1
+// - Reordered 5-Stage Physical Progression:
+//   Step 1: 👥 Passengers Board from Platform
+//   Step 2: 🚗 Vehicles (Sedan & Pickup) Loaded onto Flatbed
+//   Step 3: 🪜 Materials (Ladders, Planks, Steel, Bricks) Loaded
+//   Step 4: ⚙️ Locomotive Driver Releases Brakes & Builds Steam
+//   Step 5: 🚦 Master Green Signal & 15-Second Scenic Journey
 // ============================================================
 
 import { create } from 'zustand';
@@ -16,11 +19,12 @@ import {
   TrainAnimState,
   GamePhase,
   LoadedTrainItems,
+  TotalQuestionsOption,
 } from '../types';
 import {
-  RAILWAY_CHALLENGES,
   STATIONS_LIST,
   SUPER_TIE_BREAKER_CHALLENGE,
+  getChallengeSet,
 } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
 
@@ -39,9 +43,9 @@ const createTeamState = (id: TeamId): TeamState => ({
 });
 
 const DEFAULT_LOADED_ITEMS: LoadedTrainItems = {
+  passengers: false,
   vehicles: false,
   materials: false,
-  passengers: false,
   brakesLifted: false,
   signalGreen: false,
 };
@@ -59,7 +63,8 @@ const DEFAULT_TRAIN_STATE: TrainAnimState = {
 
 interface RailwayStoreActions {
   setPhase: (phase: GamePhase) => void;
-  startGame: () => void;
+  setTotalQuestionsCount: (count: TotalQuestionsOption) => void;
+  startGame: (totalQ?: TotalQuestionsOption) => void;
 
   setTeamAnswer: (team: TeamId, answer: number | string) => void;
   lockInTeam: (team: TeamId) => void;
@@ -81,11 +86,15 @@ export type RailwayStore = RailwayGameState & RailwayStoreActions;
 
 export const useRailwayStore = create<RailwayStore>((set, get) => ({
   phase: 'title',
+  totalQuestionsCount: 5,
+  questionsPerStep: 1,
+  stepQuestionsCompleted: 0,
+
   currentStationIndex: 0,
   currentStepIndex: 1,
   activeChallengeIndex: 0,
-  challenges: RAILWAY_CHALLENGES,
-  activeChallenge: RAILWAY_CHALLENGES[0] || null,
+  challenges: getChallengeSet(5),
+  activeChallenge: getChallengeSet(5)[0] || null,
   isSuperTieBreaker: false,
   winner: null,
 
@@ -97,8 +106,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   signalState: 'red',
   train: { ...DEFAULT_TRAIN_STATE },
 
-  fromStationName: STATIONS_LIST[0]?.name || 'Sunny Valley Central',
-  toStationName: STATIONS_LIST[1]?.name || 'Pine Ridge Terminal',
+  fromStationName: STATIONS_LIST[0].name,
+  toStationName: STATIONS_LIST[1].name,
   totalJourneysCompleted: 0,
 
   isMuted: false,
@@ -108,13 +117,35 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   setPhase: (phase) => set({ phase }),
 
-  startGame: () => {
-    const firstChallenge = RAILWAY_CHALLENGES[0];
+  setTotalQuestionsCount: (count) => {
+    const qList = getChallengeSet(count);
+    const qPerStep = count === 5 ? 1 : count === 10 ? 2 : 3;
     set({
-      phase: 'briefing',
+      totalQuestionsCount: count,
+      questionsPerStep: qPerStep,
+      challenges: qList,
+      activeChallenge: qList[0],
+    });
+  },
+
+  startGame: (totalQ) => {
+    const qCount = totalQ || get().totalQuestionsCount || 5;
+    const qPerStep = qCount === 5 ? 1 : qCount === 10 ? 2 : 3;
+    const qList = getChallengeSet(qCount);
+    const firstChallenge = qList[0];
+
+    // Play whistle and show train arriving into Skillizee Junction platform
+    soundManager.playTrainWhistle();
+
+    set({
+      phase: 'train-approaching',
+      totalQuestionsCount: qCount,
+      questionsPerStep: qPerStep,
+      stepQuestionsCompleted: 0,
       currentStationIndex: 0,
       currentStepIndex: 1,
       activeChallengeIndex: 0,
+      challenges: qList,
       activeChallenge: firstChallenge,
       isSuperTieBreaker: false,
       winner: null,
@@ -122,14 +153,23 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       redTeam: createTeamState('red'),
       loadedItems: { ...DEFAULT_LOADED_ITEMS },
       signalState: 'red',
-      train: { ...DEFAULT_TRAIN_STATE, state: 'idle' },
+      train: { ...DEFAULT_TRAIN_STATE, state: 'arriving-start', progress: 0, speed: 1, smokeActive: true },
       fromStationName: STATIONS_LIST[0].name,
       toStationName: STATIONS_LIST[1].name,
       totalJourneysCompleted: 0,
       timeRemaining: firstChallenge?.timeLimit || 35,
       timerActive: false,
-      stepAnimationMessage: null,
+      stepAnimationMessage: '🚂 LOCOMOTIVE ARRIVING AT SKILLIZEE JUNCTION...',
     });
+
+    // After 2.5s train arrival animation, open briefing
+    setTimeout(() => {
+      set((s) => ({
+        phase: 'briefing',
+        train: { ...s.train, state: 'idle', speed: 0, smokeActive: false },
+        stepAnimationMessage: null,
+      }));
+    }, 2500);
   },
 
   setTeamAnswer: (team, answer) => {
@@ -143,7 +183,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   lockInTeam: (team) => {
     const state = get();
     const challenge = state.activeChallenge;
-    if (!challenge || state.phase !== 'challenge' && state.phase !== 'super-tie-breaker') return;
+    if (!challenge || (state.phase !== 'challenge' && state.phase !== 'super-tie-breaker')) return;
 
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
     const teamState = state[key];
@@ -153,7 +193,6 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     soundManager.playClick();
     const isCorrect = challenge.validation(answer);
 
-    // Speed bonus calculation (e.g. +10 to +30 pts if answered fast)
     const speedBonus = isCorrect ? Math.max(0, Math.floor(state.timeRemaining * 1.5)) : 0;
     const pointsGained = isCorrect ? challenge.points + speedBonus : 0;
     const newStreak = isCorrect ? teamState.streak + 1 : 0;
@@ -164,27 +203,27 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       soundManager.playWrong();
     }
 
-    // Apply physical loading step consequence if correct!
+    // Physical loading consequence
     const step = challenge.stepIndex;
     const updatedLoaded = { ...state.loadedItems };
     let toastMsg = '';
 
     if (isCorrect && !state.isSuperTieBreaker) {
       if (step === 1) {
-        updatedLoaded.vehicles = true;
-        toastMsg = '🚗 STEP 1/5: VEHICLES LOADED!';
-      } else if (step === 2) {
-        updatedLoaded.materials = true;
-        toastMsg = '🧱 STEP 2/5: BUILDING MATERIALS SECURED!';
-      } else if (step === 3) {
         updatedLoaded.passengers = true;
-        toastMsg = '👥 STEP 3/5: PASSENGERS ONBOARDED!';
+        toastMsg = '👥 STEP 1/5: PASSENGERS ONBOARDED INTO COACH!';
+      } else if (step === 2) {
+        updatedLoaded.vehicles = true;
+        toastMsg = '🚗 STEP 2/5: VEHICLES SECURED ONTO FLATBED!';
+      } else if (step === 3) {
+        updatedLoaded.materials = true;
+        toastMsg = '🪜 STEP 3/5: LADDERS, PLANKS & STEEL LOADED!';
       } else if (step === 4) {
         updatedLoaded.brakesLifted = true;
-        toastMsg = '⚙️ STEP 4/5: BRAKES LIFTED & STEAM CHARGED!';
+        toastMsg = '⚙️ STEP 4/5: DRIVER DISENGAGES BRAKES & BUILDS STEAM!';
       } else if (step === 5) {
         updatedLoaded.signalGreen = true;
-        toastMsg = '🚦 STEP 5/5: SIGNAL GREEN! DEPARTING!';
+        toastMsg = '🚦 STEP 5/5: SIGNAL TURNS GREEN! ALL ABOARD!';
       }
     }
 
@@ -198,19 +237,16 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         correctAnswersCount: isCorrect ? s[key].correctAnswersCount + 1 : s[key].correctAnswersCount,
         lastScoreGained: pointsGained,
         lastFeedback: {
-          message: isCorrect
-            ? `✅ CORRECT! +${pointsGained} PTS`
-            : `❌ WRONG ANSWER`,
+          message: isCorrect ? `✅ CORRECT! +${pointsGained} PTS` : `❌ WRONG ANSWER`,
           isCorrect,
           pointsEarned: pointsGained,
         },
       },
       loadedItems: updatedLoaded,
       stepAnimationMessage: toastMsg ? toastMsg : s.stepAnimationMessage,
-      signalState: (step === 5 && isCorrect) ? 'green' : s.signalState,
+      signalState: step === 5 && isCorrect ? 'green' : s.signalState,
     }));
 
-    // If super tie-breaker solved by this team, trigger instant victory!
     if (state.isSuperTieBreaker && isCorrect) {
       soundManager.playRailwayVictory();
       set({
@@ -220,7 +256,6 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       return;
     }
 
-    // Check if both teams have locked in
     setTimeout(() => {
       const curState = get();
       if (curState.blueTeam.isLocked && curState.redTeam.isLocked) {
@@ -236,7 +271,6 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     soundManager.playWrong();
 
     if (state.isSuperTieBreaker) {
-      // Tie breaker expired without answer: check score or declare draw
       const winner =
         state.blueTeam.score > state.redTeam.score
           ? 'blue'
@@ -252,7 +286,6 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       return;
     }
 
-    // Lock in both teams and advance
     set((s) => ({
       blueTeam: { ...s.blueTeam, isLocked: true },
       redTeam: { ...s.redTeam, isLocked: true },
@@ -275,35 +308,11 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const curIdx = state.activeChallengeIndex;
     const challenge = state.activeChallenge;
 
-    // If this was Step 5 (or last question in journey), trigger Train Departure!
-    if (challenge && challenge.stepIndex === 5) {
-      get().startTrainJourneyToNextStation();
-      return;
-    }
-
+    // Check if step 5 questions completed
     const nextIdx = curIdx + 1;
     if (nextIdx >= state.challenges.length) {
-      // Check for tie-breaker or victory
-      if (state.blueTeam.score === state.redTeam.score) {
-        // TRIGGER SUPER TIE-BREAKER!
-        set({
-          phase: 'super-tie-breaker',
-          isSuperTieBreaker: true,
-          activeChallenge: SUPER_TIE_BREAKER_CHALLENGE,
-          timeRemaining: SUPER_TIE_BREAKER_CHALLENGE.timeLimit,
-          timerActive: true,
-          blueTeam: { ...state.blueTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
-          redTeam: { ...state.redTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
-        });
-        soundManager.playTrainWhistle();
-      } else {
-        const winner = state.blueTeam.score > state.redTeam.score ? 'blue' : 'red';
-        set({
-          phase: 'game-over',
-          winner,
-        });
-        soundManager.playRailwayVictory();
-      }
+      // Journey departure!
+      get().startTrainJourneyToNextStation();
       return;
     }
 
@@ -339,17 +348,18 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     let prog = 0;
     let tickCount = 0;
 
+    // 300 ticks * 50ms = 15.0 SECONDS JOURNEY!
     const interval = setInterval(() => {
       tickCount++;
-      prog += 0.005; // 200 ticks * 50ms = 10.0 seconds!
+      prog += 1 / 300; // Exact 15.0 seconds!
 
       // Rhythmic steam chuffing every ~350ms
-      if (tickCount % 7 === 0 && prog < 0.92) {
+      if (tickCount % 7 === 0 && prog < 0.94) {
         soundManager.playTrainChug();
       }
 
-      // Mid-journey scenic bridge whistle blast at ~5 seconds!
-      if (tickCount === 100) {
+      // Mid-journey scenic bridge whistle blast at ~7.5 seconds
+      if (tickCount === 150) {
         soundManager.playTrainWhistle();
       }
 
@@ -382,36 +392,27 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   completeStationArrival: () => {
     const state = get();
-    const nextStationIdx = (state.currentStationIndex + 1) % state.stations.length;
-    const fromName = state.stations[state.currentStationIndex].name;
-    const toName = state.stations[nextStationIdx].name;
-
     soundManager.playTrainArrive();
 
-    // Check if scores are tied after arrival
     if (state.blueTeam.score === state.redTeam.score) {
+      // Tie breaker
       set({
-        phase: 'station-arrived',
-        currentStationIndex: nextStationIdx,
-        fromStationName: fromName,
-        toStationName: toName,
-        totalJourneysCompleted: state.totalJourneysCompleted + 1,
-        train: { ...state.train, state: 'arrived', progress: 0, speed: 0, smokeActive: false, whistleActive: false },
-        loadedItems: { ...DEFAULT_LOADED_ITEMS },
-        signalState: 'red',
+        phase: 'super-tie-breaker',
+        isSuperTieBreaker: true,
+        activeChallenge: SUPER_TIE_BREAKER_CHALLENGE,
+        timeRemaining: SUPER_TIE_BREAKER_CHALLENGE.timeLimit,
+        timerActive: true,
+        blueTeam: { ...state.blueTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+        redTeam: { ...state.redTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
       });
+      soundManager.playTrainWhistle();
     } else {
       const winner = state.blueTeam.score > state.redTeam.score ? 'blue' : 'red';
       set({
         phase: 'game-over',
         winner,
-        currentStationIndex: nextStationIdx,
-        fromStationName: fromName,
-        toStationName: toName,
         totalJourneysCompleted: state.totalJourneysCompleted + 1,
-        train: { ...state.train, state: 'arrived', progress: 0, speed: 0, smokeActive: false, whistleActive: false },
-        loadedItems: { ...DEFAULT_LOADED_ITEMS },
-        signalState: 'red',
+        train: { ...state.train, state: 'arrived', progress: 1, speed: 0, smokeActive: false, whistleActive: false },
       });
       soundManager.playRailwayVictory();
     }

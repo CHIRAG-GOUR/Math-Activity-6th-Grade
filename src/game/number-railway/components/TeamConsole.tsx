@@ -1,10 +1,9 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Symmetrical Team Control Console
-// Perfectly Identical Sizing & High-Contrast Visuals for Both Teams:
-// - Blue Team = Left (Porcelain White + Royal Blue Accents)
-// - Red Team = Right (Porcelain White + Crimson Red Accents)
-// - 100% Readable Text on All States (Default, Selected, Confirm)
-// - String & Number Safe Selection Comparison
+// 100% Guaranteed High-Contrast Inline Styles:
+// - Blue Team = Left (Royal Blue Selection)
+// - Red Team = Right (Solid Crimson Red Selection & Confirm)
+// - Eliminates any white-on-white text issues
 // ============================================================
 
 'use client';
@@ -28,31 +27,8 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
 
   const isBlue = team === 'blue';
   const teamTitle = isBlue ? 'TEAM BLUE' : 'TEAM RED';
-
-  // High-Contrast Theme Tokens
-  const theme = isBlue
-    ? {
-        headerBg: 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700 text-white',
-        border: 'border-blue-400',
-        badgeBg: 'bg-blue-50 text-blue-900 border-blue-200',
-        numberBoxBg: 'bg-blue-50/90 border-2 border-blue-400',
-        numberText: 'text-blue-900',
-        optionDefault: 'bg-white border-2 border-slate-300 text-slate-900 hover:border-blue-500 hover:bg-blue-50 shadow-xs',
-        optionSelected: 'bg-blue-600 border-2 border-blue-800 text-white font-black shadow-md shadow-blue-500/40',
-        confirmActive: 'bg-blue-600 hover:bg-blue-700 border-2 border-blue-800 text-white font-black shadow-md shadow-blue-600/30 cursor-pointer',
-        confirmDisabled: 'bg-slate-100 border-2 border-slate-200 text-slate-400 font-bold cursor-not-allowed',
-      }
-    : {
-        headerBg: 'bg-gradient-to-r from-red-600 via-red-700 to-rose-700 text-white',
-        border: 'border-red-400',
-        badgeBg: 'bg-red-50 text-red-900 border-red-200',
-        numberBoxBg: 'bg-red-50/90 border-2 border-red-400',
-        numberText: 'text-red-900',
-        optionDefault: 'bg-white border-2 border-slate-300 text-slate-900 hover:border-red-500 hover:bg-red-50 shadow-xs',
-        optionSelected: 'bg-red-600 border-2 border-red-800 text-white font-black shadow-md shadow-red-500/40',
-        confirmActive: 'bg-red-600 hover:bg-red-700 border-2 border-red-800 text-white font-black shadow-md shadow-red-600/30 cursor-pointer',
-        confirmDisabled: 'bg-slate-100 border-2 border-slate-200 text-slate-400 font-bold cursor-not-allowed',
-      };
+  const teamPrimaryColor = isBlue ? '#2563eb' : '#dc2626';
+  const teamDarkBorder = isBlue ? '#1e40af' : '#991b1b';
 
   const isPlayable = phase === 'challenge' || phase === 'super-tie-breaker';
 
@@ -71,11 +47,19 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
 
   return (
     <div
-      className={`w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 ${theme.border} rounded-2xl shadow-2xl shadow-slate-900/20 select-none overflow-hidden font-sans flex flex-col`}
+      className={`w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden font-sans flex flex-col`}
+      style={{ borderColor: isBlue ? '#60a5fa' : '#f87171' }}
       onPointerDown={(e) => e.stopPropagation()} // Multi-touch isolation
     >
       {/* ── 1. Team Header Bar ── */}
-      <div className={`px-3 py-2 ${theme.headerBg} flex items-center justify-between shadow-xs`}>
+      <div
+        className="px-3 py-2 flex items-center justify-between text-white shadow-xs"
+        style={{
+          background: isBlue
+            ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
+            : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)',
+        }}
+      >
         <div className="flex items-center gap-1.5">
           <span className="text-base">{isBlue ? '🔵' : '🔴'}</span>
           <div>
@@ -105,7 +89,14 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
 
       {/* ── 2. Current Step Badge ── */}
       {challenge && (
-        <div className={`px-2.5 py-1 ${isSuperTieBreaker ? 'bg-amber-100 text-amber-900 border-amber-300' : theme.badgeBg} border-b flex items-center justify-between`}>
+        <div
+          className="px-2.5 py-1 border-b flex items-center justify-between text-xs font-black"
+          style={{
+            backgroundColor: isSuperTieBreaker ? '#fef3c7' : isBlue ? '#eff6ff' : '#fef2f2',
+            color: isSuperTieBreaker ? '#78350f' : isBlue ? '#1e40af' : '#991b1b',
+            borderColor: isBlue ? '#bfdbfe' : '#fecaca',
+          }}
+        >
           <div className="flex items-center gap-1 font-black text-[9px] uppercase tracking-tight">
             <span>{challenge.stepIcon}</span>
             <span>{challenge.stepTitle}</span>
@@ -129,17 +120,26 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                 {challenge.prompt}
               </h3>
 
-              {/* High-Contrast Large Number Display */}
+              {/* High-Contrast Large Number Box */}
               {challenge.numberString && (
-                <div className={`mt-1.5 p-1.5 rounded-lg text-center ${theme.numberBoxBg}`}>
-                  <div className={`font-mono text-xl font-black tracking-wide ${theme.numberText}`}>
+                <div
+                  className="mt-1.5 p-1.5 rounded-lg text-center border-2"
+                  style={{
+                    backgroundColor: isBlue ? '#eff6ff' : '#fef2f2',
+                    borderColor: isBlue ? '#60a5fa' : '#f87171',
+                  }}
+                >
+                  <div
+                    className="font-mono text-xl font-black tracking-wide"
+                    style={{ color: isBlue ? '#1e3a8a' : '#991b1b' }}
+                  >
                     {challenge.numberString}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Answer Options Grid (Safe comparison for number & string) */}
+            {/* Answer Options Grid with Guaranteed Inline Contrast */}
             <div className="flex flex-col gap-1.5">
               {challenge.options.map((opt, i) => {
                 const isSelected =
@@ -153,11 +153,16 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                     whileTap={!isLocked ? { scale: 0.97 } : {}}
                     onClick={() => handleSelectOption(opt.value)}
                     disabled={isLocked}
-                    className={`w-full py-2 px-2.5 rounded-xl font-mono text-sm font-black text-center transition-all duration-150 ${
-                      isSelected
-                        ? theme.optionSelected
-                        : theme.optionDefault
-                    } ${isLocked && !isSelected ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
+                    className="w-full py-2 px-2.5 rounded-xl font-mono text-sm font-black text-center transition-all duration-150 border-2 shadow-xs cursor-pointer"
+                    style={{
+                      backgroundColor: isSelected ? teamPrimaryColor : '#ffffff',
+                      color: isSelected ? '#ffffff' : '#0f172a',
+                      borderColor: isSelected ? teamDarkBorder : '#cbd5e1',
+                      opacity: isLocked && !isSelected ? 0.4 : 1,
+                      boxShadow: isSelected
+                        ? `0 4px 12px ${isBlue ? 'rgba(37, 99, 235, 0.4)' : 'rgba(220, 38, 38, 0.4)'}`
+                        : '0 1px 2px rgba(0,0,0,0.05)',
+                    }}
                   >
                     {opt.label}
                   </motion.button>
@@ -171,16 +176,32 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                 whileTap={{ scale: 0.96 }}
                 onClick={handleConfirmAnswer}
                 disabled={teamState.selectedAnswer === null}
-                className={`w-full py-2.5 rounded-xl text-xs uppercase tracking-wider transition-all duration-150 ${
-                  teamState.selectedAnswer !== null
-                    ? theme.confirmActive
-                    : theme.confirmDisabled
-                }`}
+                className="w-full py-2.5 rounded-xl text-xs font-black uppercase tracking-wider transition-all duration-150 border-2"
+                style={{
+                  backgroundColor:
+                    teamState.selectedAnswer !== null ? teamPrimaryColor : '#f1f5f9',
+                  color: teamState.selectedAnswer !== null ? '#ffffff' : '#94a3b8',
+                  borderColor:
+                    teamState.selectedAnswer !== null ? teamDarkBorder : '#e2e8f0',
+                  cursor:
+                    teamState.selectedAnswer !== null ? 'pointer' : 'not-allowed',
+                  boxShadow:
+                    teamState.selectedAnswer !== null
+                      ? `0 4px 14px ${isBlue ? 'rgba(37, 99, 235, 0.35)' : 'rgba(220, 38, 38, 0.35)'}`
+                      : 'none',
+                }}
               >
                 ⚡ CONFIRM ROUTE
               </motion.button>
             ) : (
-              <div className="w-full py-2 rounded-xl bg-amber-50 border-2 border-amber-400 text-center font-black text-[10px] text-amber-900 animate-pulse shadow-xs">
+              <div
+                className="w-full py-2 rounded-xl border-2 text-center font-black text-[10px] animate-pulse shadow-xs"
+                style={{
+                  backgroundColor: '#fef3c7',
+                  borderColor: '#f59e0b',
+                  color: '#78350f',
+                }}
+              >
                 ⏳ ROUTE CONFIRMED...
               </div>
             )}

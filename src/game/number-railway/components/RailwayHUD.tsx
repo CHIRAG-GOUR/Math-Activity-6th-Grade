@@ -15,9 +15,9 @@ import { Volume2, VolumeX, Home } from 'lucide-react';
 import Link from 'next/link';
 
 const LOADING_STEP_BADGES = [
-  { step: 1, icon: '🚗', name: 'Vehicles' },
-  { step: 2, icon: '🧱', name: 'Materials' },
-  { step: 3, icon: '👥', name: 'Passengers' },
+  { step: 1, icon: '👥', name: 'Passengers' },
+  { step: 2, icon: '🚗', name: 'Vehicles' },
+  { step: 3, icon: '🪜', name: 'Materials' },
   { step: 4, icon: '⚙️', name: 'Brakes' },
   { step: 5, icon: '🚦', name: 'Go!' },
 ];
@@ -103,11 +103,11 @@ export const RailwayHUD: React.FC = () => {
             {LOADING_STEP_BADGES.map((b) => {
               const isCompleted =
                 b.step === 1
-                  ? loadedItems.vehicles
+                  ? loadedItems.passengers
                   : b.step === 2
-                    ? loadedItems.materials
+                    ? loadedItems.vehicles
                     : b.step === 3
-                      ? loadedItems.passengers
+                      ? loadedItems.materials
                       : b.step === 4
                         ? loadedItems.brakesLifted
                         : loadedItems.signalGreen;

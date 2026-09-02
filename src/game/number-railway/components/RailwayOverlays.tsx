@@ -1,10 +1,12 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Overlays & Celebration Screens
-// Bright, Light-Themed Storybook Modals:
-// - Title Screen (Sunny Sky & Warm Cards)
-// - Mission Briefing (Crisp White Card + Amber Button)
-// - Round Reveal Solution & Points Feedback
-// - Station Arrival & Game Over Champion Celebrations
+// - Title Screen with 5 / 10 / 15 Question Match Length Selector
+// - Origin: Skillizee Junction ➔ Destination: CCIS Junction
+// - Step 1: 👥 Board Passengers from Platform
+// - Step 2: 🚗 Load Vehicles onto Flatbed
+// - Step 3: 🪜 Secure Materials (Ladders, Planks, Steel & Bricks)
+// - Step 4: ⚙️ Locomotive Driver Disengages Brakes & Builds Steam
+// - Step 5: 🚦 Green Signal & 15-Second Scenic Journey
 // ============================================================
 
 'use client';
@@ -12,12 +14,15 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
+import { TotalQuestionsOption } from '../types';
 import { Trophy, ArrowRight, Play, CheckCircle } from 'lucide-react';
 
-// ── 1. Storybook Title Screen ──
+// ── 1. Storybook Title Screen with 5 / 10 / 15 Question Selector ──
 export const RailwayTitleScreen: React.FC = () => {
   const startGame = useRailwayStore((s) => s.startGame);
   const phase = useRailwayStore((s) => s.phase);
+  const totalQuestions = useRailwayStore((s) => s.totalQuestionsCount);
+  const setTotalQuestions = useRailwayStore((s) => s.setTotalQuestionsCount);
 
   if (phase !== 'title') return null;
 
@@ -28,15 +33,15 @@ export const RailwayTitleScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-sky-400 via-sky-300 to-amber-100 text-slate-900 select-none overflow-hidden p-6"
     >
-      {/* Decorative Track Stripes */}
+      {/* Track Stripe */}
       <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#94a3b8_0px,#94a3b8_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-400 opacity-40" />
 
-      {/* Hero Badge */}
+      {/* Badge */}
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ delay: 0.1 }}
-        className="px-4 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-amber-800 text-xs font-black tracking-widest uppercase mb-3 shadow-md"
+        className="px-4 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-amber-800 text-xs font-black tracking-widest uppercase mb-2 shadow-md"
       >
         GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING
       </motion.div>
@@ -46,33 +51,65 @@ export const RailwayTitleScreen: React.FC = () => {
         initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ delay: 0.2 }}
-        className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight text-center max-w-4xl text-slate-950 drop-shadow-sm"
+        className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-center max-w-4xl text-slate-950 drop-shadow-sm"
       >
         THE GREAT NUMBER RAILWAY
       </motion.h1>
 
-      <p className="text-slate-800 text-sm sm:text-base font-bold max-w-xl text-center mt-2 leading-relaxed">
-        Solve place value & rounding to load <strong className="text-blue-700">Vehicles</strong>, <strong className="text-amber-800">Materials</strong>, and <strong className="text-purple-700">Passengers</strong>, lift brakes, turn signal <strong className="text-emerald-700">GREEN</strong>, and cruise to the next station!
+      <p className="text-slate-800 text-xs sm:text-sm font-bold max-w-xl text-center mt-2 leading-relaxed">
+        Board <strong className="text-purple-700">Passengers</strong> from Skillizee Junction, load <strong className="text-blue-700">Vehicles</strong> & <strong className="text-amber-800">Materials (Ladders & Planks)</strong>, release brakes, and embark on a <strong className="text-emerald-700">15-second cruise to CCIS Junction</strong>!
       </p>
 
+      {/* Station Route Pill */}
+      <div className="mt-3 px-4 py-1.5 rounded-xl bg-white/95 border-2 border-slate-300 text-xs font-black text-slate-800 flex items-center gap-2 shadow-sm">
+        <span className="text-blue-700">🚉 Skillizee Junction</span>
+        <span className="text-amber-500 font-black">➔</span>
+        <span className="text-emerald-700">🏁 CCIS Junction</span>
+      </div>
+
+      {/* Match Length Selector (5, 10, or 15 Questions) */}
+      <div className="my-4 flex flex-col items-center gap-1.5">
+        <span className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+          SELECT JOURNEY LENGTH
+        </span>
+        <div className="flex gap-2">
+          {([5, 10, 15] as TotalQuestionsOption[]).map((count) => {
+            const isSelected = totalQuestions === count;
+            return (
+              <button
+                key={count}
+                onClick={() => setTotalQuestions(count)}
+                className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer border-2 ${
+                  isSelected
+                    ? 'bg-amber-400 border-amber-600 text-slate-950 shadow-md scale-105'
+                    : 'bg-white/90 border-slate-300 text-slate-700 hover:border-amber-400'
+                }`}
+              >
+                {count} QUESTIONS {count === 5 ? '(Quick)' : count === 10 ? '(Standard)' : '(Grand)'}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       {/* Dual Team Preview Cards */}
-      <div className="flex items-center gap-6 my-6">
-        <div className="flex flex-col items-center p-4 rounded-2xl bg-white border-2 border-blue-400 shadow-xl w-44">
-          <div className="w-12 h-12 rounded-2xl bg-blue-600 flex items-center justify-center text-2xl shadow-md mb-1.5 text-white">
+      <div className="flex items-center gap-6 mb-4">
+        <div className="flex flex-col items-center p-3 rounded-2xl bg-white border-2 border-blue-400 shadow-lg w-40">
+          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
             🔵
           </div>
           <span className="font-black text-xs text-blue-800 tracking-wider">TEAM BLUE</span>
-          <span className="text-[10px] text-slate-500 font-bold mt-0.5">LEFT CONSOLE</span>
+          <span className="text-[9px] text-slate-500 font-bold mt-0.5">LEFT CONSOLE</span>
         </div>
 
-        <div className="text-2xl font-black text-amber-600">VS</div>
+        <div className="text-xl font-black text-amber-600">VS</div>
 
-        <div className="flex flex-col items-center p-4 rounded-2xl bg-white border-2 border-red-400 shadow-xl w-44">
-          <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-2xl shadow-md mb-1.5 text-white">
+        <div className="flex flex-col items-center p-3 rounded-2xl bg-white border-2 border-red-400 shadow-lg w-40">
+          <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
             🔴
           </div>
           <span className="font-black text-xs text-red-800 tracking-wider">TEAM RED</span>
-          <span className="text-[10px] text-slate-500 font-bold mt-0.5">RIGHT CONSOLE</span>
+          <span className="text-[9px] text-slate-500 font-bold mt-0.5">RIGHT CONSOLE</span>
         </div>
       </div>
 
@@ -80,11 +117,11 @@ export const RailwayTitleScreen: React.FC = () => {
       <motion.button
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
-        onClick={startGame}
-        className="px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base tracking-wider uppercase shadow-xl shadow-amber-500/30 border-2 border-amber-500 flex items-center gap-3 cursor-pointer"
+        onClick={() => startGame(totalQuestions)}
+        className="px-10 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base tracking-wider uppercase shadow-xl shadow-amber-500/30 border-2 border-amber-500 flex items-center gap-3 cursor-pointer"
       >
         <Play className="w-5 h-5 fill-slate-950" />
-        <span>ALL ABOARD • START RUN</span>
+        <span>ALL ABOARD • START RUN ({totalQuestions}Q)</span>
       </motion.button>
     </motion.div>
   );
@@ -140,7 +177,7 @@ export const MissionBriefing: React.FC = () => {
           onClick={handleStartMission}
           className="w-full py-3.5 rounded-xl bg-gradient-to-r from-amber-400 via-amber-500 to-orange-400 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-amber-500/30 border border-amber-500 flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span>BEGIN STEP 1 • LOAD VEHICLES</span>
+          <span>BEGIN STEP 1 • BOARD PASSENGERS</span>
           <ArrowRight className="w-4 h-4" />
         </motion.button>
       </motion.div>
@@ -202,17 +239,13 @@ export const RoundRevealOverlay: React.FC = () => {
   );
 };
 
-// ── 4. Next Station Arrival Celebration (Light Theme) ──
+// ── 4. Next Station Arrival Celebration (CCIS Junction) ──
 export const StationArrivalOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
-  const currentStationIdx = useRailwayStore((s) => s.currentStationIndex);
-  const stations = useRailwayStore((s) => s.stations);
   const fromStation = useRailwayStore((s) => s.fromStationName);
   const nextStepOrDepart = useRailwayStore((s) => s.advanceToNextQuestion);
 
   if (phase !== 'station-arrived') return null;
-
-  const arrivedStation = stations[currentStationIdx]?.name || 'Pine Ridge Terminal';
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs select-none p-4">
@@ -229,11 +262,11 @@ export const StationArrivalOverlay: React.FC = () => {
           SUCCESSFUL RAILWAY ARRIVAL
         </span>
         <h2 className="text-2xl font-black mt-0.5 mb-2 text-slate-950">
-          WELCOME TO {arrivedStation.toUpperCase()}!
+          WELCOME TO CCIS JUNCTION!
         </h2>
 
         <p className="text-xs text-slate-700 leading-relaxed font-semibold mb-4 bg-emerald-50 p-3 rounded-xl border border-emerald-200">
-          All 5 stages completed: Vehicles, Building Materials, and Passengers have arrived safely from {fromStation}!
+          All stages completed: Passengers, Vehicles, and Materials (Ladders & Planks) have safely arrived from {fromStation}!
         </p>
 
         <motion.button
@@ -271,7 +304,7 @@ export const StepLoadingToast: React.FC = () => {
   );
 };
 
-// ── 6. Game Over / Grand Champion Victory Screen (Light Theme) ──
+// ── 6. Game Over / Grand Champion Victory Screen ──
 export const NetworkCompleteOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const winner = useRailwayStore((s) => s.winner);
@@ -326,7 +359,7 @@ export const NetworkCompleteOverlay: React.FC = () => {
         {/* Buttons */}
         <div className="flex gap-3 w-full justify-center mt-2">
           <button
-            onClick={startGame}
+            onClick={() => startGame()}
             className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md shadow-emerald-500/20 cursor-pointer"
           >
             PLAY AGAIN 🔄

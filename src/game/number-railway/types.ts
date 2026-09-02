@@ -1,7 +1,12 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Core Types
 // Grade 6 Mathematics: Place Value & Rounding
-// 5-Stage Station Journey & Competitive Battle System
+// 5-Stage Station Journey System:
+// Step 1: 👥 Passengers Board from Skillizee Junction Platform
+// Step 2: 🚗 Vehicles (Realistic Sedan & Pickup) Loaded onto Flatbed
+// Step 3: 🪜 Materials (Ladders, Planks, Steel & Bricks) Loaded onto Cargo
+// Step 4: ⚙️ Locomotive Driver Charges Steam & Disengages Brakes
+// Step 5: 🚦 Green Signal & 15-Second Scenic Journey to CCIS Junction!
 // ============================================================
 
 export type BloomLevel =
@@ -27,15 +32,16 @@ export type TeamId = 'blue' | 'red';
 export type SignalState = 'red' | 'yellow' | 'green';
 
 export type LoadingStepType =
-  | 'vehicles'     // Q1: Load Vehicles onto flatbed
-  | 'materials'    // Q2: Load Building materials (logs, steel, bricks)
-  | 'passengers'   // Q3: Board passengers into passenger car
-  | 'brakes'       // Q4: Release brakes & build boiler steam
-  | 'departure'    // Q5: Green signal & high-graphics journey to next station
-  | 'tie-breaker'; // Super Tie-Breaker Question
+  | 'passengers'   // Step 1: Passengers board
+  | 'vehicles'     // Step 2: Vehicles loaded
+  | 'materials'    // Step 3: Materials (ladders, planks) loaded
+  | 'brakes'       // Step 4: Driver releases brakes & steam
+  | 'departure'    // Step 5: Green signal & 15s journey
+  | 'tie-breaker'; // Super Tie-Breaker
 
 export type GamePhase =
   | 'title'
+  | 'train-approaching' // Train arriving at Skillizee Junction before Q1
   | 'briefing'
   | 'challenge'
   | 'round-reveal'
@@ -48,6 +54,7 @@ export type GamePhase =
 
 export type TrainState =
   | 'idle'
+  | 'arriving-start'
   | 'loading'
   | 'departing'
   | 'moving'
@@ -65,7 +72,7 @@ export interface StationInfo {
 export interface RailwayChallenge {
   id: string;
   stationIndex: number;
-  stepIndex: number; // 1 to 5, or 6 for super tie breaker
+  stepIndex: number; // 1 to 5 (or 6 for tie breaker)
   stepType: LoadingStepType;
   stepTitle: string;
   stepDescription: string;
@@ -76,7 +83,7 @@ export interface RailwayChallenge {
   challengeType: ChallengeType;
   difficulty: 'foundation' | 'core' | 'challenge';
   points: number;
-  timeLimit: number; // seconds
+  timeLimit: number;
 
   context: {
     originStation: string;
@@ -97,11 +104,11 @@ export interface RailwayChallenge {
 }
 
 export interface LoadedTrainItems {
-  vehicles: boolean;      // Step 1
-  materials: boolean;     // Step 2
-  passengers: boolean;    // Step 3
-  brakesLifted: boolean;  // Step 4
-  signalGreen: boolean;   // Step 5
+  passengers: boolean;    // Step 1: Passengers in coach
+  vehicles: boolean;      // Step 2: Cars on flatbed
+  materials: boolean;     // Step 3: Ladders/planks on cargo
+  brakesLifted: boolean;  // Step 4: Brakes released
+  signalGreen: boolean;   // Step 5: Signal green
 }
 
 export interface TeamState {
@@ -125,7 +132,7 @@ export interface TeamState {
 export interface TrainAnimState {
   position: [number, number, number];
   rotation: [number, number, number];
-  progress: number; // 0..1 along journey track
+  progress: number;
   speed: number;
   state: TrainState;
   wheelRotation: number;
@@ -133,10 +140,16 @@ export interface TrainAnimState {
   whistleActive: boolean;
 }
 
+export type TotalQuestionsOption = 5 | 10 | 15;
+
 export interface RailwayGameState {
   phase: GamePhase;
-  currentStationIndex: number; // 0, 1, 2...
-  currentStepIndex: number;    // 1..5
+  totalQuestionsCount: TotalQuestionsOption;
+  questionsPerStep: number; // 1 for 5Q, 2 for 10Q, 3 for 15Q
+  stepQuestionsCompleted: number; // Counter within current step
+
+  currentStationIndex: number;
+  currentStepIndex: number; // 1..5
   activeChallengeIndex: number;
   challenges: RailwayChallenge[];
   activeChallenge: RailwayChallenge | null;
@@ -151,7 +164,6 @@ export interface RailwayGameState {
   signalState: SignalState;
   train: TrainAnimState;
 
-  // Journey tracking
   fromStationName: string;
   toStationName: string;
   totalJourneysCompleted: number;

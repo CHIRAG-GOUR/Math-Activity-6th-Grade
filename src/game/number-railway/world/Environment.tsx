@@ -1,10 +1,8 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Environment & Storybook Stations
-// Matching the cartoon reference image:
-// - Blue curved canopy station placed cleanly behind track
-// - Silver lattice truss frame and yellow column footings
-// - Concrete platform with yellow hazard curb and park bench
-// - Layered cartoon pine trees, fluffy bushes, and 3D floating clouds
+// - Station 1: Skillizee Junction with 3D Waiting Passengers on Platform
+// - Station 2: CCIS Junction (Highlands Destination Terminal)
+// - Blue curved canopy, yellow footing boots, park benches, and lush scenery
 // ============================================================
 
 'use client';
@@ -12,43 +10,45 @@
 import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
+import { HumanFigure } from './Locomotive';
+import { useRailwayStore } from '../store/railwayStore';
 
-// ── Storybook Cartoon Station Component ──
 interface CartoonStationProps {
   position: [number, number, number];
   name: string;
-  isCurrentStation?: boolean;
-  isNextDestination?: boolean;
+  isSkillizeeJunction?: boolean;
 }
 
 export const CartoonStation: React.FC<CartoonStationProps> = ({
   position,
   name,
-  isCurrentStation = false,
-  isNextDestination = false,
+  isSkillizeeJunction = false,
 }) => {
+  const loadedItems = useRailwayStore((s) => s.loadedItems);
+  const passengersOnPlatform = isSkillizeeJunction && !loadedItems.passengers;
+
   return (
     <group position={position}>
-      {/* ── 1. Concrete Platform with Hazard Warning Stripe ── */}
+      {/* ── 1. Concrete Platform ── */}
       <group position={[0, 0, 0]}>
         {/* Main Platform Slab */}
         <mesh position={[0, 0.08, 0]} receiveShadow>
-          <boxGeometry args={[2.4, 0.16, 7.0]} />
+          <boxGeometry args={[2.4, 0.16, 8.0]} />
           <meshStandardMaterial color="#f1f5f9" roughness={0.7} />
         </mesh>
 
-        {/* Yellow Safety Hazard Stripe along Track Curb (at X = +1.18 toward track) */}
+        {/* Yellow Safety Hazard Stripe along Track Curb */}
         <mesh position={[1.16, 0.165, 0]}>
-          <boxGeometry args={[0.08, 0.01, 7.0]} />
+          <boxGeometry args={[0.08, 0.01, 8.0]} />
           <meshStandardMaterial color="#facc15" roughness={0.3} />
         </mesh>
         <mesh position={[1.1, 0.165, 0]}>
-          <boxGeometry args={[0.04, 0.01, 7.0]} />
+          <boxGeometry args={[0.04, 0.01, 8.0]} />
           <meshStandardMaterial color="#ea580c" roughness={0.3} />
         </mesh>
 
-        {/* Park Bench on Platform */}
-        <group position={[-0.4, 0.16, 1.2]}>
+        {/* Park Bench */}
+        <group position={[-0.4, 0.16, 1.6]}>
           {[-0.08, 0.04, 0.16].map((z, i) => (
             <mesh key={i} position={[0, 0.22, z]}>
               <boxGeometry args={[1.3, 0.03, 0.09]} />
@@ -70,19 +70,50 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
             </group>
           ))}
         </group>
+
+        {/* ── 3D PASSENGERS WAITING ON SKILLIZEE PLATFORM (Before Step 1) ── */}
+        {passengersOnPlatform && (
+          <group position={[0.4, 0.16, -1.0]}>
+            {/* Passenger 1 (Student with Backpack) */}
+            <HumanFigure
+              position={[0, 0, 0]}
+              rotation={[0, Math.PI / 2, 0]}
+              scale={0.8}
+              shirtColor="#0284c7"
+              pantsColor="#1e293b"
+              hasBag={true}
+            />
+            {/* Passenger 2 (Teacher/Commuter with Cap) */}
+            <HumanFigure
+              position={[-0.4, 0, -0.8]}
+              rotation={[0, Math.PI / 2 - 0.2, 0]}
+              scale={0.85}
+              shirtColor="#16a34a"
+              pantsColor="#334155"
+              hasCap={true}
+            />
+            {/* Passenger 3 (Traveler with Bag) */}
+            <HumanFigure
+              position={[0.1, 0, -1.6]}
+              rotation={[0, Math.PI / 2 + 0.1, 0]}
+              scale={0.78}
+              shirtColor="#ea580c"
+              pantsColor="#1e293b"
+              hasBag={true}
+            />
+          </group>
+        )}
       </group>
 
       {/* ── 2. Station Canopy Roof & Steel Truss Structure ── */}
       <group position={[-0.4, 0, 0]}>
-        {/* Twin Steel Columns with Bright Yellow Footing Boots */}
-        {[-2.4, 2.4].map((z, i) => (
+        {/* Twin Steel Columns with Yellow Base Boots */}
+        {[-2.8, 2.8].map((z, i) => (
           <group key={`col-${i}`} position={[0.6, 0, z]}>
-            {/* Bright Yellow Base Boot */}
             <mesh position={[0, 0.22, 0]}>
               <cylinderGeometry args={[0.16, 0.18, 0.24, 16]} />
               <meshStandardMaterial color="#facc15" roughness={0.3} />
             </mesh>
-            {/* Silver Steel Post */}
             <mesh position={[0, 1.35, 0]}>
               <cylinderGeometry args={[0.08, 0.08, 2.1, 16]} />
               <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.3} />
@@ -90,13 +121,13 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
           </group>
         ))}
 
-        {/* Silver Lattice Truss Network Support Beam */}
+        {/* Silver Lattice Truss Support Beam */}
         <group position={[0.6, 2.35, 0]}>
           <mesh>
-            <boxGeometry args={[0.12, 0.22, 5.2]} />
+            <boxGeometry args={[0.12, 0.22, 6.0]} />
             <meshStandardMaterial color="#64748b" metalness={0.7} roughness={0.4} />
           </mesh>
-          {[-2.0, -1.2, -0.4, 0.4, 1.2, 2.0].map((z, i) => (
+          {[-2.4, -1.6, -0.8, 0, 0.8, 1.6, 2.4].map((z, i) => (
             <mesh key={`strut-${i}`} position={[0, 0, z]} rotation={[0.6 * (i % 2 === 0 ? 1 : -1), 0, 0]}>
               <boxGeometry args={[0.04, 0.28, 0.04]} />
               <meshStandardMaterial color="#94a3b8" metalness={0.8} />
@@ -104,45 +135,45 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
           ))}
         </group>
 
-        {/* ── Curved Royal Blue Station Canopy Roof ── */}
+        {/* Curved Royal Blue Canopy */}
         <group position={[0.1, 2.65, 0]}>
-          <mesh position={[0, 0, 0]} rotation={[0, 0, 0.05]}>
-            <boxGeometry args={[2.2, 0.16, 5.6]} />
+          <mesh position={[0, 0, 0]}>
+            <boxGeometry args={[2.2, 0.16, 6.4]} />
             <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.2} />
           </mesh>
           <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[1.1, 1.1, 5.6, 24, 1, false, 0, Math.PI]} />
+            <cylinderGeometry args={[1.1, 1.1, 6.4, 24, 1, false, 0, Math.PI]} />
             <meshStandardMaterial color="#0369a1" roughness={0.3} />
           </mesh>
 
-          {/* ── "STATION" Sign Board ── */}
+          {/* Station Name Board on Canopy Roof */}
           <group position={[0.9, -0.15, 0]}>
             <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[0.04, 0.46, 2.0]} />
+              <boxGeometry args={[0.04, 0.52, 2.8]} />
               <meshStandardMaterial color="#ffffff" roughness={0.2} />
             </mesh>
             <mesh position={[-0.01, 0, 0]}>
-              <boxGeometry args={[0.04, 0.52, 2.06]} />
+              <boxGeometry args={[0.04, 0.58, 2.86]} />
               <meshStandardMaterial color="#dc2626" roughness={0.3} />
             </mesh>
             <mesh position={[0.025, 0, 0]}>
-              <boxGeometry args={[0.02, 0.24, 1.6]} />
-              <meshStandardMaterial color="#991b1b" roughness={0.2} />
+              <boxGeometry args={[0.02, 0.26, 2.4]} />
+              <meshStandardMaterial color={isSkillizeeJunction ? '#1e3a8a' : '#14532d'} roughness={0.2} />
             </mesh>
           </group>
         </group>
 
-        {/* Station Name Board on Platform */}
+        {/* Station Platform Name Signpost */}
         <group position={[-0.8, 1.2, 0]}>
           <mesh position={[0, 0, 0]}>
-            <boxGeometry args={[0.08, 0.35, 2.4]} />
+            <boxGeometry args={[0.08, 0.38, 2.6]} />
             <meshStandardMaterial color="#1e293b" roughness={0.4} />
           </mesh>
           <mesh position={[0.05, 0, 0]}>
-            <boxGeometry args={[0.02, 0.22, 2.2]} />
+            <boxGeometry args={[0.02, 0.24, 2.4]} />
             <meshStandardMaterial
-              color={isCurrentStation ? '#38bdf8' : isNextDestination ? '#4ade80' : '#facc15'}
-              emissive={isCurrentStation ? '#0284c7' : isNextDestination ? '#16a34a' : '#ca8a04'}
+              color={isSkillizeeJunction ? '#38bdf8' : '#4ade80'}
+              emissive={isSkillizeeJunction ? '#0284c7' : '#16a34a'}
               emissiveIntensity={0.6}
             />
           </mesh>
@@ -202,7 +233,7 @@ export const CartoonBush: React.FC<{ position: [number, number, number]; scale?:
   );
 };
 
-// ── 3D Floating Cartoon Clouds ──
+// ── Floating Clouds ──
 export const CartoonCloud: React.FC<{ position: [number, number, number]; speed?: number; scale?: number }> = ({
   position,
   speed = 0.5,
@@ -241,7 +272,7 @@ export const CartoonCloud: React.FC<{ position: [number, number, number]; speed?
   );
 };
 
-// ── Ground with Ballast Layer ──
+// ── Ground ──
 export const StorybookGround: React.FC = () => {
   return (
     <group>
@@ -249,8 +280,8 @@ export const StorybookGround: React.FC = () => {
         <planeGeometry args={[140, 140]} />
         <meshStandardMaterial color="#65a30d" roughness={0.85} />
       </mesh>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -16]} receiveShadow>
-        <planeGeometry args={[6, 70]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -17]} receiveShadow>
+        <planeGeometry args={[6, 75]} />
         <meshStandardMaterial color="#78716c" roughness={0.95} />
       </mesh>
     </group>
