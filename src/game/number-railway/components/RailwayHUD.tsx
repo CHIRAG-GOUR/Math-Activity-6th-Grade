@@ -1,172 +1,121 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Sleek Floating Top HUD
-// Modern, crisp, floating navigation bar:
-// - Blue Team Score (Left)
-// - Station Route & 5-Step Visual Progress Badges (Center)
-// - Red Team Score & Sound Toggle (Right)
+// THE GREAT NUMBER RAILWAY — Top HUD (wood & brass)
+//   Blue team plaque (left) · STAGE x/N + round + timer (centre) ·
+//   Red team plaque (right) + mute. Drives the question countdown.
 // ============================================================
 
 'use client';
 
 import React, { useEffect, useRef } from 'react';
-import { motion } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
 import { Volume2, VolumeX, Home } from 'lucide-react';
 import Link from 'next/link';
+import { TeamId } from '../types';
 
-const LOADING_STEP_BADGES = [
-  { step: 1, icon: '👥', name: 'Passengers' },
-  { step: 2, icon: '🚗', name: 'Vehicles' },
-  { step: 3, icon: '🪜', name: 'Materials' },
-  { step: 4, icon: '⚙️', name: 'Brakes' },
-  { step: 5, icon: '🚦', name: 'Go!' },
-];
+
+const TeamPlaque: React.FC<{ team: TeamId; align: 'left' | 'right' }> = ({ team, align }) => {
+  const t = useRailwayStore((s) => (team === 'blue' ? s.blueTeam : s.redTeam));
+  const isBlue = team === 'blue';
+  const primary = isBlue ? '#2563eb' : '#dc2626';
+  const dark = isBlue ? '#1e3a8a' : '#7f1d1d';
+  const avatar = (
+    <div className="w-11 h-11 rounded-full flex items-center justify-center shrink-0" style={{ background: 'radial-gradient(circle at 35% 30%,#fff,#e2e8f0)', border: `2.5px solid ${dark}`, boxShadow: '0 2px 6px rgba(0,0,0,0.35)' }}>
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="8" r="3.6" fill={primary} /><path d="M4.5 20.5c0-3.9 3.4-6.5 7.5-6.5s7.5 2.6 7.5 6.5" fill={primary} /><rect x="6.6" y="2.6" width="10.8" height="3.2" rx="1.6" fill={dark} /><rect x="10.4" y="6.4" width="3.2" height="1.6" rx="0.6" fill="#f9d451" /></svg>
+    </div>
+  );
+  const info = (
+    <div className={align === 'right' ? 'text-right' : 'text-left'}>
+      <div className="text-[10px] font-black uppercase tracking-widest" style={{ color: '#f9d451' }}>TEAM {isBlue ? 'BLUE' : 'RED'}</div>
+      <div className="flex items-center gap-1 leading-none" style={{ justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="#f9d451"><path d="M12 2l2.9 6.3 6.9.7-5.1 4.6 1.4 6.7L12 17.8 5.9 20.3l1.4-6.7L2.2 9l6.9-.7z" /></svg>
+        <span className="text-[20px] font-black text-white tracking-tight">{t.score.toLocaleString()}</span>
+        <span className="text-[9px] font-bold text-amber-200/70 ml-0.5">PTS</span>
+      </div>
+    </div>
+  );
+  return (
+    <div className="flex items-center gap-2.5 px-3 py-2 rounded-2xl" style={{ background: 'linear-gradient(180deg,#5b4326,#3a2a17)', border: '3px solid #c9a24b', boxShadow: '0 8px 22px rgba(0,0,0,0.35), inset 0 2px 0 rgba(255,255,255,0.15)' }}>
+      {align === 'left' ? (<>{avatar}{info}</>) : (<>{info}{avatar}</>)}
+    </div>
+  );
+};
 
 export const RailwayHUD: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
-  const currentStep = useRailwayStore((s) => s.currentStepIndex);
-  const blueTeam = useRailwayStore((s) => s.blueTeam);
-  const redTeam = useRailwayStore((s) => s.redTeam);
-  const loadedItems = useRailwayStore((s) => s.loadedItems);
-  const fromStation = useRailwayStore((s) => s.fromStationName);
-  const toStation = useRailwayStore((s) => s.toStationName);
+  const roundIndex = useRailwayStore((s) => s.currentRoundIndex);
+  const totalRounds = useRailwayStore((s) => s.totalRounds);
+  const rounds = useRailwayStore((s) => s.rounds);
+  const qIndex = useRailwayStore((s) => s.questionIndexInRound);
   const timeRemaining = useRailwayStore((s) => s.timeRemaining);
   const timerActive = useRailwayStore((s) => s.timerActive);
   const setTime = useRailwayStore((s) => s.setTimeRemaining);
   const isMuted = useRailwayStore((s) => s.isMuted);
   const toggleMute = useRailwayStore((s) => s.toggleMute);
-
   const handleTimerExpired = useRailwayStore((s) => s.handleTimerExpired);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-
   useEffect(() => {
     if (timerActive) {
       timerRef.current = setInterval(() => {
-        const curTime = useRailwayStore.getState().timeRemaining;
-        if (curTime <= 1) {
+        const cur = useRailwayStore.getState().timeRemaining;
+        if (cur <= 1) {
           if (timerRef.current) clearInterval(timerRef.current);
           setTime(0);
           handleTimerExpired();
-        } else {
-          setTime(curTime - 1);
-        }
+        } else setTime(cur - 1);
       }, 1000);
     }
-    return () => {
-      if (timerRef.current) clearInterval(timerRef.current);
-    };
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
   }, [timerActive, setTime, handleTimerExpired]);
 
-  const timerColor =
-    timeRemaining <= 10 ? '#ef4444' : timeRemaining <= 20 ? '#f59e0b' : '#10b981';
+  if (phase === 'title' || phase === 'network-complete') return null;
 
-  if (phase === 'title') return null;
+  const round = rounds[roundIndex];
+  const totalQ = round?.questions.length ?? 5;
+  const mm = String(Math.floor(timeRemaining / 60)).padStart(2, '0');
+  const ss = String(timeRemaining % 60).padStart(2, '0');
+  const timerColor = timeRemaining <= 8 ? '#f87171' : timeRemaining <= 18 ? '#fbbf24' : '#4ade80';
+
+  const centreLine =
+    phase === 'showdown' ? 'RAILWAY SHOWDOWN'
+      : phase === 'tie-break' ? 'TIE-BREAK'
+        : phase === 'winner-reveal' ? 'ROUTE CLEARED'
+          : `QUESTION ${Math.min(qIndex + 1, totalQ)} / ${totalQ}`;
 
   return (
-    <header className="absolute top-2.5 inset-x-0 z-30 px-4 pointer-events-none select-none flex justify-center">
-      <div className="w-full max-w-6xl pointer-events-auto bg-white/95 backdrop-blur-md border border-slate-200/80 rounded-2xl shadow-xl shadow-slate-900/10 px-4 py-2 flex items-center justify-between gap-3 text-slate-800">
-        
-        {/* ── 1. BLUE TEAM SCORE (LEFT) ── */}
-        <div className="flex items-center gap-2.5 min-w-[150px]">
-          <Link
-            href="/"
-            title="Return to Arcade Hub"
-            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-          >
-            <Home className="w-4 h-4 text-blue-600" />
-          </Link>
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-blue-700 to-blue-500 flex items-center justify-center text-sm shadow-md text-white font-black">
-            🔵
+    <header className="absolute top-2.5 inset-x-0 z-30 px-3 pointer-events-none select-none flex items-start justify-between gap-3">
+      {/* Left: Blue plaque + home */}
+      <div className="flex items-center gap-2 pointer-events-auto">
+        <Link href="/" title="Arcade Hub" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(180deg,#5b4326,#3a2a17)', border: '2px solid #c9a24b' }}>
+          <Home className="w-4 h-4 text-amber-200" />
+        </Link>
+        <TeamPlaque team="blue" align="left" />
+      </div>
+
+      {/* Centre: Stage + round + timer */}
+      <div className="pointer-events-auto flex flex-col items-center gap-1 mt-0.5">
+        <div className="px-4 py-1.5 rounded-2xl flex items-center gap-3" style={{ background: 'linear-gradient(180deg,#3a2a17,#241a0e)', border: '3px solid #c9a24b', boxShadow: '0 8px 22px rgba(0,0,0,0.4)' }}>
+          <div className="text-center leading-tight">
+            <div className="text-[10px] font-black tracking-widest text-amber-200/80">STAGE {roundIndex + 1} / {totalRounds}</div>
+            <div className="text-[13px] font-black tracking-wide text-white">{round?.name ?? 'RAILWAY'}</div>
           </div>
-          <div>
-            <div className="text-[9px] font-black uppercase tracking-wider text-blue-700">
-              BLUE TEAM
-            </div>
-            <div className="text-lg font-black tracking-tight text-slate-900 leading-none">
-              {blueTeam.score} <span className="text-[9px] font-bold text-slate-400">PTS</span>
-            </div>
+          <div className="w-px h-8" style={{ background: 'rgba(201,162,75,0.6)' }} />
+          <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg" style={{ background: '#140e07', border: '1px solid rgba(201,162,75,0.6)' }}>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={timerColor} strokeWidth="2.4"><circle cx="12" cy="13" r="8" /><path d="M12 9v4l2.5 2M9 2h6" strokeLinecap="round" /></svg>
+            <span className="font-mono text-[16px] font-black tracking-wider" style={{ color: timerColor }}>{timerActive ? `${mm}:${ss}` : '--:--'}</span>
           </div>
         </div>
-
-        {/* ── 2. CENTER: ROUTE BANNER & 5-STEP STAGE BADGES ── */}
-        <div className="flex-1 flex flex-col items-center max-w-xl">
-          {/* Station Route Banner */}
-          <div className="flex items-center gap-2 text-[11px] font-black tracking-wide text-slate-700">
-            <span className="text-blue-700 font-extrabold">🚉 {fromStation}</span>
-            <span className="text-amber-500 font-bold">➔</span>
-            <span className="text-emerald-700 font-extrabold">🏁 {toStation}</span>
-          </div>
-
-          {/* 5-Step Visual Badges */}
-          <div className="flex items-center gap-1.5 mt-1">
-            {LOADING_STEP_BADGES.map((b) => {
-              const isCompleted =
-                b.step === 1
-                  ? loadedItems.passengers
-                  : b.step === 2
-                    ? loadedItems.vehicles
-                    : b.step === 3
-                      ? loadedItems.materials
-                      : b.step === 4
-                        ? loadedItems.brakesLifted
-                        : loadedItems.signalGreen;
-
-              const isCurrent = currentStep === b.step;
-
-              return (
-                <div
-                  key={b.step}
-                  className={`flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-black border transition-all duration-200 ${
-                    isCompleted
-                      ? 'bg-emerald-600 border-emerald-600 text-white shadow-xs'
-                      : isCurrent
-                        ? 'bg-amber-400 border-amber-500 text-slate-950 scale-105 shadow-sm animate-pulse'
-                        : 'bg-slate-100 border-slate-200 text-slate-400'
-                  }`}
-                >
-                  <span className="text-[11px]">{b.icon}</span>
-                  <span className="hidden sm:inline">{b.name}</span>
-                  {isCompleted && <span>✓</span>}
-                </div>
-              );
-            })}
-
-            {/* Timer Badge */}
-            {timerActive && (
-              <div
-                className="ml-1 font-mono font-black text-xs px-2 py-0.5 rounded-md bg-slate-100 border border-slate-300"
-                style={{ color: timerColor }}
-              >
-                ⏱ {timeRemaining}s
-              </div>
-            )}
-          </div>
+        <div className="px-3 py-0.5 rounded-full text-[10px] font-black tracking-widest text-white" style={{ background: 'rgba(36,26,14,0.85)', border: '1.5px solid rgba(201,162,75,0.5)' }}>
+          {centreLine}
         </div>
+      </div>
 
-        {/* ── 3. RED TEAM SCORE (RIGHT) ── */}
-        <div className="flex items-center gap-2.5 min-w-[150px] justify-end">
-          <div className="text-right">
-            <div className="text-[9px] font-black uppercase tracking-wider text-red-700">
-              RED TEAM
-            </div>
-            <div className="text-lg font-black tracking-tight text-slate-900 leading-none">
-              {redTeam.score} <span className="text-[9px] font-bold text-slate-400">PTS</span>
-            </div>
-          </div>
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-red-700 to-red-500 flex items-center justify-center text-sm shadow-md text-white font-black">
-            🔴
-          </div>
-
-          {/* Sound Toggle */}
-          <button
-            onClick={toggleMute}
-            className="p-1.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 transition cursor-pointer"
-            title="Toggle Sound"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4 text-rose-500" /> : <Volume2 className="w-4 h-4 text-emerald-600" />}
-          </button>
-        </div>
+      {/* Right: Red plaque + mute */}
+      <div className="flex items-center gap-2 pointer-events-auto">
+        <TeamPlaque team="red" align="right" />
+        <button onClick={toggleMute} title="Sound" className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: 'linear-gradient(180deg,#5b4326,#3a2a17)', border: '2px solid #c9a24b' }}>
+          {isMuted ? <VolumeX className="w-4 h-4 text-rose-300" /> : <Volume2 className="w-4 h-4 text-emerald-300" />}
+        </button>
       </div>
     </header>
   );

@@ -170,6 +170,7 @@ export interface RailwayGameState {
 
   stations: StationInfo[];
   unlockedStationIds: string[];
+  totalRounds: number;
 
   isMuted: boolean;
   timeRemaining: number;

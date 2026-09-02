@@ -11,7 +11,6 @@ import React, { useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { HumanFigure } from './Locomotive';
-import { useRailwayStore } from '../store/railwayStore';
 
 interface CartoonStationProps {
   position: [number, number, number];
@@ -24,8 +23,7 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
   name,
   isSkillizeeJunction = false,
 }) => {
-  const loadedItems = useRailwayStore((s) => s.loadedItems);
-  const passengersOnPlatform = isSkillizeeJunction && !loadedItems.passengers;
+  const passengersOnPlatform = isSkillizeeJunction;
 
   return (
     <group position={position}>
@@ -283,6 +281,65 @@ export const StorybookGround: React.FC = () => {
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, -17]} receiveShadow>
         <planeGeometry args={[6, 75]} />
         <meshStandardMaterial color="#78716c" roughness={0.95} />
+      </mesh>
+    </group>
+  );
+};
+
+// ── Small Network Station Marker (lights up when its round is won) ──
+export const NetworkStationMarker: React.FC<{
+  position: [number, number, number];
+  color: string;
+  unlocked: boolean;
+}> = ({ position, color, unlocked }) => {
+  const lampRef = useRef<THREE.MeshStandardMaterial>(null);
+  const roofRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (roofRef.current) {
+      const targetY = unlocked ? 0 : -0.05;
+      roofRef.current.position.y += (targetY - roofRef.current.position.y) * Math.min(1, delta * 4);
+    }
+    if (lampRef.current) {
+      const target = unlocked ? 2.4 : 0;
+      lampRef.current.emissiveIntensity += (target - lampRef.current.emissiveIntensity) * Math.min(1, delta * 4);
+    }
+  });
+
+  const bodyColor = unlocked ? color : '#94a3b8';
+
+  return (
+    <group position={position}>
+      {/* Foundation */}
+      <mesh position={[0, 0.06, 0]} receiveShadow>
+        <boxGeometry args={[1.4, 0.12, 1.0]} />
+        <meshStandardMaterial color={unlocked ? '#f8fafc' : '#cbd5e1'} roughness={0.7} />
+      </mesh>
+      {/* Hut body */}
+      <mesh position={[0, 0.42, 0]} castShadow>
+        <boxGeometry args={[1.0, 0.6, 0.7]} />
+        <meshStandardMaterial color={unlocked ? '#fef3c7' : '#e2e8f0'} roughness={0.6} />
+      </mesh>
+      {/* Roof (rises slightly when active) */}
+      <group ref={roofRef}>
+        <mesh position={[0, 0.82, 0]} rotation={[0, Math.PI / 4, 0]}>
+          <coneGeometry args={[0.78, 0.4, 4]} />
+          <meshStandardMaterial color={bodyColor} roughness={0.5} />
+        </mesh>
+      </group>
+      {/* Door */}
+      <mesh position={[0, 0.32, 0.36]}>
+        <boxGeometry args={[0.28, 0.4, 0.02]} />
+        <meshStandardMaterial color={unlocked ? '#7f1d1d' : '#64748b'} roughness={0.6} />
+      </mesh>
+      {/* Status lamp on a small pole */}
+      <mesh position={[0.62, 0.5, 0]}>
+        <cylinderGeometry args={[0.03, 0.03, 1.0, 8]} />
+        <meshStandardMaterial color="#334155" metalness={0.6} />
+      </mesh>
+      <mesh position={[0.62, 1.05, 0]}>
+        <sphereGeometry args={[0.09, 16, 16]} />
+        <meshStandardMaterial ref={lampRef} color={unlocked ? color : '#64748b'} emissive={color} emissiveIntensity={0} roughness={0.3} />
       </mesh>
     </group>
   );

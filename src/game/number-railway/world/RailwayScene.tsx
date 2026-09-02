@@ -1,12 +1,10 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Main 3D Canvas Scene
-// Skillizee Junction ➔ CCIS Junction
-// Stage-Aware Camera System:
-// - Step 1: 👥 Passenger Coach & Platform with Boarding Figures
-// - Step 2: 🚗 Vehicle Flatbed with Cyan Sedan & Yellow Pickup
-// - Step 3: 🪜 Cargo Wagon with Ladders, Planks, Steel & Bricks
-// - Step 4: ⚙️ Locomotive Engine, Wheels & 3D Driver in Cabin
-// - Step 5: 🚦 Green Semaphore & 15-Second Scenic Journey
+// A wye junction: BLUE spur (left) + RED spur (right) merge at a central
+// mechanical SWITCH onto the shared scenic main line to the highlands.
+// Each team has its own liveried train and its own three-aspect signal.
+// The camera stays on the junction during play and the showdown, then
+// chases the winning train down the line to its destination.
 // ============================================================
 
 'use client';
@@ -15,168 +13,136 @@ import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useRailwayStore } from '../store/railwayStore';
-import { ContinuousRailwayTrack, DynamicRailwaySignal } from './RailwayTrack';
-import { CartoonTrain } from './Locomotive';
+import { ContinuousRailwayTrack, DynamicRailwaySignal, RailwaySwitch } from './RailwayTrack';
+import { TeamTrain } from './Locomotive';
 import {
   CartoonStation,
   CartoonPineTree,
   CartoonBush,
   CartoonCloud,
   StorybookGround,
+  NetworkStationMarker,
 } from './Environment';
+import { NETWORK_STATIONS } from '../engine/challenges';
 
-// Continuous Main Scenic Track Route between Skillizee & CCIS Junctions
-export const MAIN_TRACK_POINTS: [number, number, number][] = [
-  [0, 0.1, 4],       // Skillizee Junction Platform
-  [0, 0.1, -4],
-  [-3.5, 0.1, -12],  // Scenic curve past timber hills
-  [-2.5, 0.1, -19],  // Scenic trestle bridge section
-  [3.2, 0.1, -26],   // Highland mountain pass
-  [0, 0.1, -33],     // Approach CCIS Junction
-  [0, 0.1, -38],     // CCIS Junction Terminal stop
+// ── Junction geometry ──
+const JUNCTION: [number, number, number] = [0, 0.1, 5.0];
+
+const BLUE_SPUR: [number, number, number][] = [
+  [-4.6, 0.1, 9.6], [-3.4, 0.1, 7.6], [-1.7, 0.1, 6.0], JUNCTION,
+];
+const RED_SPUR: [number, number, number][] = [
+  [4.6, 0.1, 9.6], [3.4, 0.1, 7.6], [1.7, 0.1, 6.0], JUNCTION,
+];
+const MAIN_TAIL: [number, number, number][] = [
+  [0, 0.1, 5.0], [0, 0.1, 1.5], [0, 0.1, -4], [-3.5, 0.1, -12],
+  [-2.5, 0.1, -19], [3.2, 0.1, -26], [0, 0.1, -33], [0, 0.1, -40],
 ];
 
-// ── Stage-Aware Cinematic Camera Controller ──
-const StageAwareCameraController: React.FC = () => {
-  const { camera } = useThree();
-  const trainState = useRailwayStore((s) => s.train);
-  const phase = useRailwayStore((s) => s.phase);
-  const currentStep = useRailwayStore((s) => s.currentStepIndex);
+export const BLUE_ROUTE: [number, number, number][] = [...BLUE_SPUR.slice(0, 3), ...MAIN_TAIL];
+export const RED_ROUTE: [number, number, number][] = [...RED_SPUR.slice(0, 3), ...MAIN_TAIL];
 
-  const curve = useMemo(() => {
-    const pts = MAIN_TRACK_POINTS.map((p) => new THREE.Vector3(...p));
-    return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
-  }, []);
+// ── Cinematic Camera Controller ──
+const CameraController: React.FC = () => {
+  const { camera } = useThree();
+
+  const blueCurve = useMemo(() => new THREE.CatmullRomCurve3(BLUE_ROUTE.map((p) => new THREE.Vector3(...p)), false, 'catmullrom', 0.5), []);
+  const redCurve = useMemo(() => new THREE.CatmullRomCurve3(RED_ROUTE.map((p) => new THREE.Vector3(...p)), false, 'catmullrom', 0.5), []);
+
+  const camPos = useMemo(() => new THREE.Vector3(), []);
+  const camLook = useMemo(() => new THREE.Vector3(), []);
 
   useFrame(() => {
-    if (phase === 'train-journey' && curve) {
-      // 15-Second Cinematic Dynamic Chase Camera
-      const t = Math.min(Math.max(trainState.progress, 0), 0.999);
-      const trainPos = curve.getPointAt(t);
+    const s = useRailwayStore.getState();
+    const phase = s.phase;
+    const step = s.showdownStep;
+    const route = s.activeRoute;
 
-      const targetCamPos = new THREE.Vector3(trainPos.x + 4.8, trainPos.y + 3.6, trainPos.z + 6.2);
-      const targetLookAt = new THREE.Vector3(trainPos.x, trainPos.y + 0.6, trainPos.z);
+    // Default: symmetric establishing shot of the whole junction yard
+    camPos.set(0, 5.6, 15.5);
+    camLook.set(0, 0.9, 1.5);
 
-      camera.position.lerp(targetCamPos, 0.05);
-      camera.lookAt(targetLookAt);
-    } else if (phase === 'train-approaching') {
-      // Camera viewing train steaming into Skillizee Junction
-      const targetCamPos = new THREE.Vector3(5.5, 3.2, 3.5);
-      const targetLookAt = new THREE.Vector3(0, 0.6, -1.0);
-      camera.position.lerp(targetCamPos, 0.04);
-      camera.lookAt(targetLookAt);
-    } else {
-      // Front-Side Unobstructed Angles per Loading Step
-      let targetCamPos = new THREE.Vector3(5.2, 3.2, 1.0);
-      let targetLookAt = new THREE.Vector3(0, 0.5, -1.8);
-
-      if (currentStep === 1) {
-        // Step 1: 👥 Passenger Coach & Platform Close-Up
-        targetCamPos = new THREE.Vector3(4.5, 2.5, -4.2);
-        targetLookAt = new THREE.Vector3(0, 0.5, -6.0);
-      } else if (currentStep === 2) {
-        // Step 2: 🚗 Vehicle Flatbed (Sedan & Pickup) Close-Up
-        targetCamPos = new THREE.Vector3(4.5, 2.5, -0.4);
-        targetLookAt = new THREE.Vector3(0, 0.4, -2.1);
-      } else if (currentStep === 3) {
-        // Step 3: 🪜 Building Materials (Ladders & Planks) Close-Up
-        targetCamPos = new THREE.Vector3(4.5, 2.5, -2.2);
-        targetLookAt = new THREE.Vector3(0, 0.4, -4.0);
-      } else if (currentStep === 4) {
-        // Step 4: ⚙️ Locomotive Engine, Wheels & 3D Driver in Cabin
-        targetCamPos = new THREE.Vector3(4.5, 2.4, 2.2);
-        targetLookAt = new THREE.Vector3(0, 0.6, 0.2);
-      } else if (currentStep === 5) {
-        // Step 5: 🚦 Semaphore Green Signal & Full Train Departure View
-        targetCamPos = new THREE.Vector3(6.0, 4.0, 3.0);
-        targetLookAt = new THREE.Vector3(0, 0.6, -1.5);
-      }
-
-      camera.position.lerp(targetCamPos, 0.04);
-      camera.lookAt(targetLookAt);
+    if (phase === 'showdown' && (step === 'switching' || step === 'signal-yellow' || step === 'signal-green' || step === 'quiet')) {
+      // Emphasise the junction switch & the deciding signals
+      camPos.set(0.2, 3.4, 10.5);
+      camLook.set(0, 0.7, 4.6);
+    } else if ((phase === 'showdown' && step === 'departing') || phase === 'winner-reveal') {
+      // Chase the winning train down the line
+      const curve = route === 'red' ? redCurve : blueCurve;
+      const anim = route === 'red' ? s.redTrain : s.blueTrain;
+      const t = Math.min(Math.max(anim.progress, 0), 0.999);
+      const p = curve.getPointAt(t);
+      camPos.set(p.x + 4.6, p.y + 3.4, p.z + 6.0);
+      camLook.set(p.x, p.y + 0.6, p.z);
+    } else if (phase === 'round-intro') {
+      camPos.set(0, 5.2, 14.0);
+      camLook.set(0, 0.9, 2.0);
     }
+
+    camera.position.lerp(camPos, 0.045);
+    camera.lookAt(camLook);
   });
 
   return null;
 };
 
-// ── 3D Scene Composition ──
-const CartoonRailwayWorld: React.FC = () => {
-  const signalState = useRailwayStore((s) => s.signalState);
+// ── 3D World Composition ──
+const RailwayWorld: React.FC = () => {
+  const signalBlue = useRailwayStore((s) => s.signalBlue);
+  const signalRed = useRailwayStore((s) => s.signalRed);
+  const switchTarget = useRailwayStore((s) => s.switchTarget);
+  const unlocked = useRailwayStore((s) => s.unlockedStationIds);
 
   return (
     <>
       <ambientLight intensity={0.85} color="#fffbeb" />
-      <directionalLight
-        position={[14, 22, 14]}
-        intensity={1.4}
-        color="#fffdf5"
-        castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-      />
+      <directionalLight position={[14, 22, 14]} intensity={1.4} color="#fffdf5" castShadow shadow-mapSize-width={1024} shadow-mapSize-height={1024} />
       <directionalLight position={[-10, 14, -8]} intensity={0.45} color="#bae6fd" />
       <hemisphereLight args={['#38bdf8', '#65a30d', 0.55]} />
 
-      {/* Ground & Ballast */}
       <StorybookGround />
 
-      {/* Floating 3D Clouds */}
       <CartoonCloud position={[-18, 14, -20]} speed={0.8} scale={1.2} />
       <CartoonCloud position={[8, 16, -30]} speed={0.5} scale={1.4} />
       <CartoonCloud position={[22, 13, -10]} speed={0.6} scale={1.0} />
-      <CartoonCloud position={[-8, 15, 5]} speed={0.7} scale={1.1} />
+      <CartoonCloud position={[-8, 15, 8]} speed={0.7} scale={1.1} />
 
-      {/* Station 1: Skillizee Junction (Origin Platform with Waiting Passengers) */}
-      <CartoonStation
-        position={[-2.2, 0, -2.0]}
-        name="Skillizee Junction"
-        isSkillizeeJunction={true}
-      />
+      {/* Origin platform (front-left) & highlands terminus */}
+      <CartoonStation position={[-7.4, 0, 8.5]} name="Skillizee Junction" isSkillizeeJunction />
+      <CartoonStation position={[-2.6, 0, -40]} name="CCIS Junction" isSkillizeeJunction={false} />
 
-      {/* Station 2: CCIS Junction (Highlands Destination Terminal) */}
-      <CartoonStation
-        position={[-2.2, 0, -35]}
-        name="CCIS Junction"
-        isSkillizeeJunction={false}
-      />
+      {/* Network station markers that light up as rounds are won */}
+      {NETWORK_STATIONS.map((st) => (
+        <NetworkStationMarker key={st.id} position={st.position} color={st.color} unlocked={unlocked.includes(st.id)} />
+      ))}
 
-      {/* Dynamic Semaphore Signals */}
-      <DynamicRailwaySignal position={[1.4, 0, 2.2]} signalState={signalState} />
-      <DynamicRailwaySignal position={[1.4, 0, -34]} signalState={signalState} />
+      {/* Team signals guarding each spur */}
+      <DynamicRailwaySignal position={[-2.5, 0, 8.4]} signalState={signalBlue} team="blue" />
+      <DynamicRailwaySignal position={[2.5, 0, 8.4]} signalState={signalRed} team="red" />
 
-      {/* Continuous Tracks with Bridge & Tunnel */}
-      <ContinuousRailwayTrack
-        controlPoints={MAIN_TRACK_POINTS}
-        active={true}
-        hasBridge={true}
-        hasTunnel={true}
-      />
+      {/* Spur tracks + the mechanical switch + the shared main line */}
+      <ContinuousRailwayTrack controlPoints={BLUE_SPUR} active />
+      <ContinuousRailwayTrack controlPoints={RED_SPUR} active />
+      <RailwaySwitch position={[0, 0, 4.6]} target={switchTarget} />
+      <ContinuousRailwayTrack controlPoints={MAIN_TAIL} active hasBridge hasTunnel />
 
-      {/* Hero Locomotive with 3D Driver & 3 Articulated Carriages */}
-      <CartoonTrain trackPoints={MAIN_TRACK_POINTS} />
+      {/* The two team trains, each idling on its own spur */}
+      <TeamTrain team="blue" route={BLUE_ROUTE} />
+      <TeamTrain team="red" route={RED_ROUTE} />
 
-      {/* Scenic Pine Trees */}
-      <CartoonPineTree position={[-5.8, 0, -2]} scale={1.3} />
-      <CartoonPineTree position={[-6.8, 0, 3]} scale={1.1} />
-      <CartoonPineTree position={[-7.2, 0, -8]} scale={1.5} />
-      <CartoonPineTree position={[5.8, 0, -5]} scale={1.2} />
-      <CartoonPineTree position={[6.5, 0, 4]} scale={1.0} />
-
+      {/* Scenery */}
+      <CartoonPineTree position={[-6.6, 0, 3]} scale={1.2} />
+      <CartoonPineTree position={[6.6, 0, 3]} scale={1.2} />
+      <CartoonPineTree position={[-7.4, 0, -8]} scale={1.5} />
+      <CartoonPineTree position={[6.2, 0, -5]} scale={1.2} />
       <CartoonPineTree position={[-7.5, 0, -14]} scale={1.4} />
       <CartoonPineTree position={[-8.5, 0, -20]} scale={1.6} />
       <CartoonPineTree position={[6.2, 0, -16]} scale={1.3} />
       <CartoonPineTree position={[7.0, 0, -24]} scale={1.5} />
-
       <CartoonPineTree position={[-5.8, 0, -30]} scale={1.4} />
-      <CartoonPineTree position={[-6.5, 0, -37]} scale={1.2} />
-      <CartoonPineTree position={[5.8, 0, -32]} scale={1.3} />
-      <CartoonPineTree position={[6.8, 0, -38]} scale={1.5} />
-
-      {/* Cartoon Bushes */}
-      <CartoonBush position={[-3.8, 0, 1.8]} scale={1.1} />
-      <CartoonBush position={[-4.2, 0, -4.5]} scale={1.3} />
-      <CartoonBush position={[3.8, 0, 1.5]} scale={1.0} />
+      <CartoonPineTree position={[6.8, 0, -36]} scale={1.5} />
+      <CartoonBush position={[-4.6, 0, 6.5]} scale={1.1} />
+      <CartoonBush position={[4.6, 0, 6.5]} scale={1.1} />
       <CartoonBush position={[-4.2, 0, -22]} scale={1.3} />
       <CartoonBush position={[4.5, 0, -28]} scale={1.2} />
     </>
@@ -187,16 +153,12 @@ export const RailwayScene: React.FC = () => {
   return (
     <Canvas
       shadows
-      camera={{ position: [5.2, 3.2, 1.0], fov: 42, near: 0.1, far: 200 }}
-      style={{
-        width: '100%',
-        height: '100%',
-        background: 'linear-gradient(180deg, #38bdf8 0%, #7dd3fc 60%, #bae6fd 100%)',
-      }}
+      camera={{ position: [0, 5.6, 15.5], fov: 44, near: 0.1, far: 200 }}
+      style={{ width: '100%', height: '100%', background: 'linear-gradient(180deg, #38bdf8 0%, #7dd3fc 60%, #bae6fd 100%)' }}
       gl={{ antialias: true, powerPreference: 'high-performance' }}
     >
-      <StageAwareCameraController />
-      <CartoonRailwayWorld />
+      <CameraController />
+      <RailwayWorld />
     </Canvas>
   );
 };

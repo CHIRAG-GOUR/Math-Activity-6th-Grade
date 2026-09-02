@@ -12,7 +12,7 @@
 import React, { useMemo, useRef } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { SignalState } from '../types';
+import { SignalState, SwitchTarget } from '../types';
 
 interface TrackProps {
   controlPoints: [number, number, number][];
@@ -197,74 +197,162 @@ export const ContinuousRailwayTrack: React.FC<TrackProps> = ({
   );
 };
 
-// ── Physical Railway Semaphore Signal ──
+// ── Physical Railway Semaphore Signal (RED / YELLOW / GREEN) ──
 interface DynamicSignalProps {
   position: [number, number, number];
   signalState: SignalState;
+  team?: 'blue' | 'red';
 }
 
-export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({ position, signalState }) => {
+export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({ position, signalState, team }) => {
   const armRef = useRef<THREE.Group>(null);
   const isGreen = signalState === 'green';
+  const isYellow = signalState === 'yellow';
+  const isRed = signalState === 'red';
 
   useFrame((_, delta) => {
     if (armRef.current) {
-      const targetRotation = isGreen ? -0.75 : 0;
-      armRef.current.rotation.z += (targetRotation - armRef.current.rotation.z) * delta * 6;
+      // Red = horizontal (0), Yellow = 45deg, Green = fully cleared (-0.78)
+      const target = isGreen ? -0.78 : isYellow ? -0.42 : 0;
+      armRef.current.rotation.z += (target - armRef.current.rotation.z) * Math.min(1, delta * 6);
     }
   });
 
+  const capColor = team === 'blue' ? '#2563eb' : team === 'red' ? '#dc2626' : '#334155';
+
   return (
     <group position={position}>
-      {/* Concrete Base Footing */}
+      {/* Concrete footing */}
       <mesh position={[0, 0.12, 0]}>
         <cylinderGeometry args={[0.22, 0.25, 0.24, 12]} />
         <meshStandardMaterial color="#64748b" roughness={0.8} />
       </mesh>
 
-      {/* Signal Mast Post */}
+      {/* Mast */}
       <mesh position={[0, 1.35, 0]}>
         <cylinderGeometry args={[0.06, 0.07, 2.3, 12]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* Signal Lamp Housing Box */}
-      <mesh position={[0, 2.4, 0]}>
-        <boxGeometry args={[0.28, 0.6, 0.18]} />
+      {/* Team cap on top of the mast */}
+      <mesh position={[0, 2.72, 0]}>
+        <cylinderGeometry args={[0.09, 0.09, 0.1, 12]} />
+        <meshStandardMaterial color={capColor} roughness={0.4} metalness={0.2} />
+      </mesh>
+
+      {/* Lamp housing (3 aspects) */}
+      <mesh position={[0, 2.35, 0]}>
+        <boxGeometry args={[0.3, 0.86, 0.18]} />
         <meshStandardMaterial color="#0f172a" roughness={0.4} />
       </mesh>
 
-      {/* Red Lamp */}
-      <mesh position={[0, 2.56, 0.1]}>
+      {/* RED lamp (top) */}
+      <mesh position={[0, 2.62, 0.1]}>
         <sphereGeometry args={[0.075, 16, 16]} />
-        <meshStandardMaterial
-          color={!isGreen ? '#ef4444' : '#450a0a'}
-          emissive={!isGreen ? '#ef4444' : '#000000'}
-          emissiveIntensity={!isGreen ? 2.5 : 0}
-        />
+        <meshStandardMaterial color={isRed ? '#ef4444' : '#450a0a'} emissive={isRed ? '#ef4444' : '#000000'} emissiveIntensity={isRed ? 2.6 : 0} />
+      </mesh>
+      {/* YELLOW lamp (middle) */}
+      <mesh position={[0, 2.35, 0.1]}>
+        <sphereGeometry args={[0.075, 16, 16]} />
+        <meshStandardMaterial color={isYellow ? '#facc15' : '#3f2d05'} emissive={isYellow ? '#facc15' : '#000000'} emissiveIntensity={isYellow ? 2.8 : 0} />
+      </mesh>
+      {/* GREEN lamp (bottom) */}
+      <mesh position={[0, 2.08, 0.1]}>
+        <sphereGeometry args={[0.075, 16, 16]} />
+        <meshStandardMaterial color={isGreen ? '#22c55e' : '#052e16'} emissive={isGreen ? '#22c55e' : '#000000'} emissiveIntensity={isGreen ? 3.0 : 0} />
       </mesh>
 
-      {/* Green Lamp */}
-      <mesh position={[0, 2.24, 0.1]}>
-        <sphereGeometry args={[0.075, 16, 16]} />
-        <meshStandardMaterial
-          color={isGreen ? '#22c55e' : '#052e16'}
-          emissive={isGreen ? '#22c55e' : '#000000'}
-          emissiveIntensity={isGreen ? 3.0 : 0}
-        />
-      </mesh>
-
-      {/* Mechanical Semaphore Blade Arm */}
-      <group ref={armRef} position={[0, 2.4, 0]}>
-        <mesh position={[0.42, 0, -0.05]}>
+      {/* Mechanical semaphore blade arm */}
+      <group ref={armRef} position={[0, 2.35, 0.02]}>
+        <mesh position={[0.42, 0, 0]}>
           <boxGeometry args={[0.7, 0.12, 0.03]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.3} />
+          <meshStandardMaterial color={isGreen ? '#16a34a' : isYellow ? '#f59e0b' : '#dc2626'} roughness={0.3} />
         </mesh>
-        <mesh position={[0.62, 0, -0.04]}>
+        <mesh position={[0.62, 0, 0.01]}>
           <boxGeometry args={[0.14, 0.12, 0.035]} />
           <meshStandardMaterial color="#ffffff" roughness={0.3} />
         </mesh>
       </group>
+    </group>
+  );
+};
+
+// ── Mechanical Point Switch at the junction ──
+interface RailwaySwitchProps {
+  position: [number, number, number];
+  target: SwitchTarget;
+}
+
+export const RailwaySwitch: React.FC<RailwaySwitchProps> = ({ position, target }) => {
+  const leverRef = useRef<THREE.Group>(null);
+  const pointsRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    // Lever throws: neutral = upright forward, blue = tilt left, red = tilt right
+    const leverTarget = target === 'blue' ? 0.85 : target === 'red' ? -0.85 : 0;
+    // Movable point rails shift laterally toward the selected route
+    const shiftTarget = target === 'blue' ? 0.14 : target === 'red' ? -0.14 : 0;
+    if (leverRef.current) {
+      leverRef.current.rotation.z += (leverTarget - leverRef.current.rotation.z) * Math.min(1, delta * 5);
+    }
+    if (pointsRef.current) {
+      pointsRef.current.position.x += (shiftTarget - pointsRef.current.position.x) * Math.min(1, delta * 5);
+    }
+  });
+
+  const lampColor =
+    target === 'blue' ? '#3b82f6' : target === 'red' ? '#ef4444' : '#94a3b8';
+  const lampEmissive = target === 'neutral' ? 0.2 : 2.4;
+
+  return (
+    <group position={position}>
+      {/* Movable point rails (short tapered rails that swing) */}
+      <group ref={pointsRef} position={[0, 0.07, 0.35]}>
+        <mesh position={[-0.2, 0, 0]} rotation={[0, 0.12, 0]}>
+          <boxGeometry args={[0.05, 0.05, 1.1]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.2} />
+        </mesh>
+        <mesh position={[0.2, 0, 0]} rotation={[0, -0.12, 0]}>
+          <boxGeometry args={[0.05, 0.05, 1.1]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.2} />
+        </mesh>
+        {/* Tie bar linking the points */}
+        <mesh position={[0, -0.02, 0.5]}>
+          <boxGeometry args={[0.55, 0.03, 0.06]} />
+          <meshStandardMaterial color="#475569" metalness={0.6} roughness={0.4} />
+        </mesh>
+      </group>
+
+      {/* Switch stand base */}
+      <mesh position={[0.55, 0.12, 0.1]}>
+        <cylinderGeometry args={[0.16, 0.19, 0.24, 12]} />
+        <meshStandardMaterial color="#334155" metalness={0.5} roughness={0.5} />
+      </mesh>
+
+      {/* Ground target indicator lamp */}
+      <mesh position={[0.55, 0.28, 0.1]}>
+        <sphereGeometry args={[0.08, 16, 16]} />
+        <meshStandardMaterial color={lampColor} emissive={lampColor} emissiveIntensity={lampEmissive} />
+      </mesh>
+
+      {/* Throw lever */}
+      <group ref={leverRef} position={[0.55, 0.24, 0.1]}>
+        <mesh position={[0, 0.28, 0]}>
+          <cylinderGeometry args={[0.028, 0.028, 0.56, 10]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.7} roughness={0.3} />
+        </mesh>
+        {/* Red ball handle */}
+        <mesh position={[0, 0.58, 0]}>
+          <sphereGeometry args={[0.075, 16, 16]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.3} metalness={0.2} />
+        </mesh>
+      </group>
+
+      {/* Brass counterweight collar */}
+      <mesh position={[0.55, 0.2, 0.1]}>
+        <torusGeometry args={[0.1, 0.025, 8, 16]} />
+        <meshStandardMaterial color="#facc15" metalness={0.85} roughness={0.2} />
+      </mesh>
     </group>
   );
 };
