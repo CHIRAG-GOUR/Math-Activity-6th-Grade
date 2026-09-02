@@ -1,4 +1,4 @@
-import { MathChallenge, PlaceValueKey, PLACE_VALUE_SLOTS } from '../types';
+import { MathChallenge, PlaceValueKey, GRADE_6_PLACE_SLOTS } from '../types';
 
 export function createDigitHuntChallenge(seedIndex: number): MathChallenge {
   const sampleNumbers = [
@@ -8,18 +8,13 @@ export function createDigitHuntChallenge(seedIndex: number): MathChallenge {
     914837,
     625981,
     430752,
-    1845920,
-    3928174,
   ];
   
   const num = sampleNumbers[seedIndex % sampleNumbers.length];
-  const numStr = num.toString();
-  const places: PlaceValueKey[] = num > 999999
-    ? ['millions', 'hundredThousands', 'tenThousands', 'thousands', 'hundreds', 'tens', 'ones']
-    : ['hundredThousands', 'tenThousands', 'thousands', 'hundreds', 'tens', 'ones'];
+  const places: PlaceValueKey[] = ['hundredThousands', 'tenThousands', 'thousands', 'hundreds', 'tens', 'ones'];
   
   const targetPlace = places[seedIndex % places.length];
-  const slotInfo = PLACE_VALUE_SLOTS.find(s => s.key === targetPlace)!;
+  const slotInfo = GRADE_6_PLACE_SLOTS.find(s => s.key === targetPlace)!;
   
   // Calculate digit value
   const placeMultiplier = slotInfo.multiplier;
@@ -32,13 +27,18 @@ export function createDigitHuntChallenge(seedIndex: number): MathChallenge {
     bloomLevel: 'remember',
     zone: 'workshop',
     title: 'DIGIT VALUE HUNT',
-    question: `Look at the forged number ${num.toLocaleString()}. Which digit is in the ${slotInfo.label} place, and what is its full value?`,
+    question: `Find the value of the digit in the ${slotInfo.label} place in ${num.toLocaleString()}`,
     promptText: `Select the ${slotInfo.label} digit and identify its full value!`,
     targetNumber: num,
     numberString: num.toLocaleString(),
-    difficulty: num > 999999 ? 'challenge' : 'foundation',
+    difficulty: 'foundation',
     points: 100,
     timeLimit: 25,
+    structuredDecomposition: {
+      placeParts: [{ quantity: digitValue, placeLabel: slotInfo.label }],
+      additionParts: [fullValue.toLocaleString()],
+      targetDisplay: num.toLocaleString(),
+    },
     data: {
       targetPlace,
       targetDigit: digitValue,
@@ -76,34 +76,55 @@ export function createPlaceValueBuilderChallenge(seedIndex: number): MathChallen
     ones: cfg.o,
   };
 
+  const placeParts = [
+    { quantity: cfg.hTh, placeLabel: 'Hundred Thousands' },
+    { quantity: cfg.tTh, placeLabel: 'Ten Thousands' },
+    { quantity: cfg.th, placeLabel: 'Thousands' },
+    { quantity: cfg.h, placeLabel: 'Hundreds' },
+    { quantity: cfg.t, placeLabel: 'Tens' },
+    { quantity: cfg.o, placeLabel: 'Ones' },
+  ];
+
+  const additionParts = [
+    (cfg.hTh * 100000).toLocaleString(),
+    `+ ${(cfg.tTh * 10000).toLocaleString()}`,
+    `+ ${(cfg.th * 1000).toLocaleString()}`,
+    `+ ${(cfg.h * 100).toLocaleString()}`,
+    `+ ${(cfg.t * 10).toLocaleString()}`,
+    `+ ${cfg.o}`,
+  ];
+
   return {
     id: `pv-builder-${seedIndex}-${Date.now()}`,
     type: 'place-value-builder',
     bloomLevel: 'understand',
     zone: 'tower',
     title: 'PLACE VALUE TOWER BUILDER',
-    question: `Construct the complete forged number using the place value slots:\n${cfg.hTh} Hundred Thousands + ${cfg.tTh} Ten Thousands + ${cfg.th} Thousands + ${cfg.h} Hundreds + ${cfg.t} Tens + ${cfg.o} Ones`,
+    question: `BUILD THE NUMBER`,
     promptText: `Snap physical number blocks into each place value slot to forge ${targetNum.toLocaleString()}!`,
     targetNumber: targetNum,
     numberString: targetNum.toLocaleString(),
     difficulty: 'core',
     points: 150,
-    timeLimit: 30,
+    timeLimit: 35,
+    structuredDecomposition: {
+      placeParts,
+      additionParts,
+      targetDisplay: targetNum.toLocaleString(),
+    },
     data: {
       slotsRequired,
       expectedValue: targetNum,
     },
-    explanation: `Combining ${cfg.hTh}00,000 + ${cfg.tTh}0,000 + ${cfg.th},000 + ${cfg.h}00 + ${cfg.t}0 + ${cfg.o} creates ${targetNum.toLocaleString()}. Notice how zeroes act as crucial place holders!`,
+    explanation: `Combining ${cfg.hTh * 100000} + ${cfg.tTh * 10000} + ${cfg.th * 1000} + ${cfg.h * 100} + ${cfg.t * 10} + ${cfg.o} creates ${targetNum.toLocaleString()}. Notice how zeroes act as crucial place holders!`,
     learningTip: `Always fill empty slots with 0 to preserve the correct place values.`,
   };
 }
 
 export function createExpandedFormChallenge(seedIndex: number): MathChallenge {
   const samples = [
-    { num: 472306, parts: [400000, 70000, 2000, 300, 6] },
-    { num: 850492, parts: [800000, 50000, 400, 90, 2] },
-    { num: 609280, parts: [600000, 9000, 200, 80] },
-    { num: 345019, parts: [300000, 40000, 5000, 10, 9] },
+    { num: 472306, parts: [400000, 70000, 2000, 300, 6], breakdown: [{ q: 4, l: 'Hundred Thousands' }, { q: 7, l: 'Ten Thousands' }, { q: 2, l: 'Thousands' }, { q: 3, l: 'Hundreds' }, { q: 0, l: 'Tens' }, { q: 6, l: 'Ones' }] },
+    { num: 850492, parts: [800000, 50000, 400, 90, 2], breakdown: [{ q: 8, l: 'Hundred Thousands' }, { q: 5, l: 'Ten Thousands' }, { q: 0, l: 'Thousands' }, { q: 4, l: 'Hundreds' }, { q: 9, l: 'Tens' }, { q: 2, l: 'Ones' }] },
   ];
 
   const item = samples[seedIndex % samples.length];
@@ -112,52 +133,56 @@ export function createExpandedFormChallenge(seedIndex: number): MathChallenge {
     id: `expanded-form-${seedIndex}-${Date.now()}`,
     type: 'expanded-form',
     bloomLevel: 'understand',
-    zone: 'workshop',
-    title: 'EXPANDED FORM DECOMPOSER',
-    question: `Decompose ${item.num.toLocaleString()} into its expanded mathematical form.`,
-    promptText: `Select the complete sum of place values for ${item.num.toLocaleString()}:`,
+    zone: 'tower',
+    title: 'EXPANDED FORM DECOMPOSITION',
+    question: `BUILD THE EXPANDED NUMBER`,
+    promptText: `Decompose the number into place values!`,
     targetNumber: item.num,
     numberString: item.num.toLocaleString(),
     difficulty: 'core',
-    points: 120,
-    timeLimit: 25,
-    data: {
-      expandedParts: item.parts,
-      expectedValue: item.num,
+    points: 150,
+    timeLimit: 30,
+    structuredDecomposition: {
+      placeParts: item.breakdown.map(b => ({ quantity: b.q, placeLabel: b.l })),
+      additionParts: item.parts.map((p, i) => (i === 0 ? p.toLocaleString() : `+ ${p.toLocaleString()}`)),
+      targetDisplay: item.num.toLocaleString(),
     },
-    explanation: `${item.num.toLocaleString()} in expanded form is ${item.parts.map(p => p.toLocaleString()).join(' + ')}. Zero values in places are omitted from the sum!`,
-    learningTip: `Expanded form shows the individual value of each non-zero digit added together.`,
+    data: {
+      expectedValue: item.num,
+      expandedParts: item.parts,
+    },
+    explanation: `The expanded form of ${item.num.toLocaleString()} is ${item.parts.join(' + ')}.`,
+    learningTip: `Zero place values can be omitted in expanded form, but never in standard form!`,
   };
 }
 
 export function createCompareChallenge(seedIndex: number): MathChallenge {
-  const pairs: [number, number][] = [
-    [483219, 438921],
-    [759402, 759042],
-    [921085, 921805],
-    [640912, 649012],
-    [1580240, 1580420],
+  const pairs: Array<[number, number]> = [
+    [584920, 584290],
+    [729104, 729140],
+    [340892, 340982],
   ];
-
-  const [a, b] = pairs[seedIndex % pairs.length];
-  const greater = a > b ? a : b;
+  const pair = pairs[seedIndex % pairs.length];
+  const larger = Math.max(pair[0], pair[1]);
 
   return {
     id: `compare-${seedIndex}-${Date.now()}`,
     type: 'compare-numbers',
     bloomLevel: 'apply',
-    zone: 'tower',
-    title: 'PLACE VALUE COMPARATOR',
-    question: `Which forged number is GREATER: ${a.toLocaleString()} or ${b.toLocaleString()}?`,
-    promptText: `Inspect digits starting from the highest place value to compare:`,
+    zone: 'workshop',
+    title: 'COMPARE NUMBER FORGE',
+    question: `BUILD THE GREATER NUMBER`,
+    promptText: `Which number is greater?`,
+    targetNumber: larger,
+    numberString: larger.toLocaleString(),
     difficulty: 'core',
-    points: 100,
-    timeLimit: 20,
+    points: 120,
+    timeLimit: 25,
     data: {
-      comparePair: [a, b],
-      expectedValue: greater,
+      comparePair: pair,
+      expectedValue: larger,
     },
-    explanation: `Comparing from left to right: starting at the highest differing place value shows ${greater.toLocaleString()} is greater than ${(a === greater ? b : a).toLocaleString()}.`,
-    learningTip: `Always compare numbers starting from the largest place value on the far left.`,
+    explanation: `Comparing from the highest place value to the right, ${larger.toLocaleString()} is greater.`,
+    learningTip: `Compare digits starting from the highest place value on the left!`,
   };
 }

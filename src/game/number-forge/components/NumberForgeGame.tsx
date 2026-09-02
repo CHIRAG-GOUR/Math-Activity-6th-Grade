@@ -6,10 +6,10 @@ import { useNumberForgeStore } from '../store/numberForgeStore';
 import { NumberForgeWorldCanvas } from '../world/NumberForgeWorldCanvas';
 import { ForgeTopHUD } from './ForgeTopHUD';
 import { NumberForgeStartScreen } from './NumberForgeStartScreen';
-import { DualTeamForgeConsole } from './DualTeamForgeConsole';
+import { PlaceValueSideConsole } from './PlaceValueSideConsole';
 import { ForgeVictoryScreen } from './ForgeVictoryScreen';
 import { soundManager } from '@/utils/audio';
-import { ArrowRight, CheckCircle2, Lightbulb, Wrench } from 'lucide-react';
+import { ArrowRight, CheckCircle2, Lightbulb, Wrench, Sparkles } from 'lucide-react';
 
 export const NumberForgeGame: React.FC = () => {
   const {
@@ -43,14 +43,18 @@ export const NumberForgeGame: React.FC = () => {
     initializeGame(blueName, redName, rounds);
   };
 
-  const handleAnswerSubmit = (team: 'blue' | 'red', val: any) => {
-    submitAnswer(team, val);
+  const handleBlueSubmit = (slots: any, total: number) => {
+    submitAnswer('blue', slots, total);
+  };
+
+  const handleRedSubmit = (slots: any, total: number) => {
+    submitAnswer('red', slots, total);
   };
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#24170d] text-slate-100 select-none flex flex-col justify-between">
       
-      {/* 1. 3D STYLIZED WORKSHOP CANVAS (60FPS THREE.JS) */}
+      {/* 1. 3D STYLIZED WORKSHOP CANVAS (60FPS THREE.JS - STABLE FRONTAL ISOMETRIC CAMERA) */}
       <NumberForgeWorldCanvas
         activeZone={activeZone}
         teamBlueAction={teamBlue.characterAction}
@@ -62,11 +66,11 @@ export const NumberForgeGame: React.FC = () => {
         <NumberForgeStartScreen onStartGame={handleStart} />
       )}
 
-      {/* 3. STAGE: ACTIVE MATHEMATICAL CHALLENGE (SIMULTANEOUS DUAL TEAM CONSOLES) */}
+      {/* 3. STAGE: ACTIVE MATHEMATICAL CHALLENGE (SIDE-BY-SIDE 3-COLUMN COMPOSITION) */}
       {gameStage === 'active-challenge' && currentChallenge && (
-        <div className="relative w-full h-full flex flex-col justify-between p-2 sm:p-4 z-20 overflow-y-auto">
+        <div className="relative w-full h-full flex flex-col justify-between z-20 overflow-hidden">
           
-          {/* Top HUD */}
+          {/* TOP COMPACT HUD */}
           <ForgeTopHUD
             teamBlue={teamBlue}
             teamRed={teamRed}
@@ -76,27 +80,78 @@ export const NumberForgeGame: React.FC = () => {
             bloomLevel={currentChallenge.bloomLevel}
           />
 
-          {/* Center Main Stage Activity Area */}
-          <div className="w-full max-w-6xl mx-auto flex flex-col items-center gap-3 my-auto">
+          {/* MAIN 3-COLUMN INTERACTION ARENA */}
+          <div className="flex-1 w-full max-w-[1920px] mx-auto px-4 py-2 flex items-center justify-between gap-4 overflow-hidden">
             
-            {/* High-Contrast Question Header Card */}
-            <div className="w-full p-4 rounded-3xl bg-[#1e1008] border-3 border-amber-400 text-center shadow-2xl">
-              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-400/20 text-amber-300 text-[10px] font-black font-game uppercase tracking-widest mb-1">
-                <Wrench className="w-3.5 h-3.5 text-amber-400" />
-                <span>{currentChallenge.title}</span>
-              </div>
-              <h2 className="text-xl sm:text-2xl md:text-3xl font-black font-display text-white whitespace-pre-line leading-tight">
-                {currentChallenge.question}
-              </h2>
+            {/* COLUMN 1: LEFT ~30% — TEAM BLUE CONSOLE */}
+            <div className="w-[30%] h-full max-h-[750px] flex flex-col">
+              <PlaceValueSideConsole
+                team="blue"
+                teamState={teamBlue}
+                challenge={currentChallenge}
+                onSubmit={handleBlueSubmit}
+              />
             </div>
 
-            {/* SIMULTANEOUS DUAL TEAM CONSOLES (Left: Blue, Right: Red) */}
-            <DualTeamForgeConsole
-              challenge={currentChallenge}
-              teamBlue={teamBlue}
-              teamRed={teamRed}
-              onSubmitAnswer={handleAnswerSubmit}
-            />
+            {/* COLUMN 2: CENTER ~40% — 3D FORGE MACHINE VIEWPORT + STRUCTURED CHALLENGE BANNER */}
+            <div className="w-[38%] h-full flex flex-col justify-between items-center py-2 pointer-events-none">
+              
+              {/* TOP CENTER: STRUCTURED MATHEMATICAL CHALLENGE BANNER */}
+              <div className="w-full pointer-events-auto p-4 rounded-3xl bg-[#1e1008]/95 border-3 border-amber-400 text-center shadow-2xl backdrop-blur-md flex flex-col items-center gap-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-amber-400/20 border border-amber-400/40 text-amber-300 text-xs font-black font-game uppercase tracking-widest">
+                  <Wrench className="w-3.5 h-3.5 text-amber-400" />
+                  <span>{currentChallenge.title}</span>
+                </div>
+
+                <h2 className="text-2xl sm:text-3xl font-black font-bank uppercase text-white tracking-wide">
+                  BUILD THE NUMBER
+                </h2>
+
+                {/* Structured Mathematical Place Parts Breakdown */}
+                {currentChallenge.structuredDecomposition && (
+                  <div className="w-full flex flex-col gap-2 mt-1">
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5 w-full">
+                      {currentChallenge.structuredDecomposition.placeParts.map((part, idx) => (
+                        <div
+                          key={idx}
+                          className="p-1.5 rounded-xl bg-black/60 border border-amber-400/40 text-center"
+                        >
+                          <span className="text-lg font-black font-bank text-amber-300 mr-1">
+                            {part.quantity}
+                          </span>
+                          <span className="text-[10px] sm:text-xs font-bold font-game text-slate-200 uppercase">
+                            {part.placeLabel}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Addition Breakdown Form */}
+                    <div className="w-full py-1.5 px-3 rounded-xl bg-amber-950/80 border border-amber-500/50 flex flex-wrap items-center justify-center gap-2 text-xs font-mono font-bold text-amber-200">
+                      {currentChallenge.structuredDecomposition.additionParts.map((addPart, idx) => (
+                        <span key={idx} className="tracking-wide">
+                          {addPart}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* CENTER 3D MACHINE VIEWPORT (Unobstructed view of 3D Machine & Characters) */}
+              <div className="flex-1 w-full flex items-center justify-center pointer-events-none" />
+
+            </div>
+
+            {/* COLUMN 3: RIGHT ~30% — TEAM RED CONSOLE */}
+            <div className="w-[30%] h-full max-h-[750px] flex flex-col">
+              <PlaceValueSideConsole
+                team="red"
+                teamState={teamRed}
+                challenge={currentChallenge}
+                onSubmit={handleRedSubmit}
+              />
+            </div>
 
           </div>
 

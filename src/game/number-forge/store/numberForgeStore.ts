@@ -1,36 +1,37 @@
 import { create } from 'zustand';
 import {
   MathChallenge,
-  ForgeZone,
   TeamForgeState,
   GameStage,
+  ForgeZone,
   PlaceValueKey,
+  GRADE_6_PLACE_SLOTS,
 } from '../types';
-import { generateChallengeSequence } from '../engine/challengeEngine';
-import { validateMasterBlueprintSubmission } from '../engine/masterBlueprintEngine';
+import { generateSequenceForRounds } from '../engine/challengeEngine';
 import { soundManager } from '@/utils/audio';
 
 interface NumberForgeStore {
   gameStage: GameStage;
+  activeZone: ForgeZone;
   currentRound: number;
   totalRounds: number;
-  currentChallenge: MathChallenge | null;
   challenges: MathChallenge[];
-  activeZone: ForgeZone;
+  currentChallenge: MathChallenge | null;
   timeLeft: number;
-  isTimerRunning: boolean;
+  isTimerActive: boolean;
 
   teamBlue: TeamForgeState;
   teamRed: TeamForgeState;
 
   // Actions
-  initializeGame: (blueName?: string, redName?: string, rounds?: number) => void;
-  submitAnswer: (team: 'blue' | 'red', answerValue: any) => boolean;
-  placeBlockInSlot: (team: 'blue' | 'red', slot: PlaceValueKey, digit: number) => void;
-  clearTeamSlots: (team: 'blue' | 'red') => void;
+  initializeGame: (blueName: string, redName: string, roundCount?: number) => void;
+  submitAnswer: (
+    team: 'blue' | 'red',
+    slots: Record<PlaceValueKey, number>,
+    totalValue: number
+  ) => boolean;
   nextRound: () => void;
   tickTimer: () => void;
-  setTimer: (seconds: number) => void;
   restartGame: () => void;
 }
 
@@ -44,118 +45,84 @@ const initialTeamState = (name: string): TeamForgeState => ({
   characterAction: 'idle',
   selectedNumberBlocks: [],
   placedSlots: {},
+  incorrectSlots: [],
   isLockedIn: false,
   hasAnsweredCurrent: false,
 });
 
 export const useNumberForgeStore = create<NumberForgeStore>((set, get) => ({
   gameStage: 'intro',
+  activeZone: 'tower',
   currentRound: 1,
-  totalRounds: 6,
-  currentChallenge: null,
+  totalRounds: 5,
   challenges: [],
-  activeZone: 'workshop',
-  timeLeft: 30,
-  isTimerRunning: false,
+  currentChallenge: null,
+  timeLeft: 35,
+  isTimerActive: false,
 
-  teamBlue: initialTeamState('Team Inventors (Blue)'),
-  teamRed: initialTeamState('Team Crafters (Red)'),
+  teamBlue: initialTeamState('Team Blue'),
+  teamRed: initialTeamState('Team Red'),
 
-  initializeGame: (blueName = 'Team Blue', redName = 'Team Red', rounds = 6) => {
-    const sequence = generateChallengeSequence(rounds);
+  initializeGame: (blueName = 'Team Blue', redName = 'Team Red', roundCount = 5) => {
+    const sequence = generateSequenceForRounds(roundCount);
     const firstChallenge = sequence[0];
 
     set({
       gameStage: 'active-challenge',
+      activeZone: firstChallenge.zone,
       currentRound: 1,
-      totalRounds: rounds,
+      totalRounds: roundCount,
       challenges: sequence,
       currentChallenge: firstChallenge,
-      activeZone: firstChallenge.zone,
-      timeLeft: firstChallenge.timeLimit,
-      isTimerRunning: true,
+      timeLeft: firstChallenge.timeLimit || 35,
+      isTimerActive: true,
       teamBlue: initialTeamState(blueName),
       teamRed: initialTeamState(redName),
     });
 
-    soundManager.playCorrect();
+    soundManager.startBgm(0.35);
   },
 
-  placeBlockInSlot: (team: 'blue' | 'red', slot: PlaceValueKey, digit: number) => {
-    const teamKey = team === 'blue' ? 'teamBlue' : 'teamRed';
-    const currentTeam = get()[teamKey];
-
-    const updatedSlots = {
-      ...currentTeam.placedSlots,
-      [slot]: digit,
-    };
-
-    set({
-      [teamKey]: {
-        ...currentTeam,
-        placedSlots: updatedSlots,
-        characterAction: 'operate',
-      },
-    });
-
-    soundManager.playKeypadBeep();
-  },
-
-  clearTeamSlots: (team: 'blue' | 'red') => {
-    const teamKey = team === 'blue' ? 'teamBlue' : 'teamRed';
-    const currentTeam = get()[teamKey];
-
-    set({
-      [teamKey]: {
-        ...currentTeam,
-        placedSlots: {},
-        characterAction: 'think',
-      },
-    });
-    soundManager.playClick();
-  },
-
-  submitAnswer: (team: 'blue' | 'red', answerValue: any): boolean => {
-    const { currentChallenge, currentRound, totalRounds } = get();
+  submitAnswer: (
+    team: 'blue' | 'red',
+    slots: Record<PlaceValueKey, number>,
+    totalValue: number
+  ): boolean => {
+    const { currentChallenge } = get();
     if (!currentChallenge) return false;
 
     const teamKey = team === 'blue' ? 'teamBlue' : 'teamRed';
     const currentTeam = get()[teamKey];
     if (currentTeam.hasAnsweredCurrent) return false;
 
-    let isCorrect = false;
-    let earnedPoints = 0;
+    const targetNum = currentChallenge.targetNumber || currentChallenge.data.expectedValue || 0;
+    const isExactMatch = totalValue === targetNum;
+
+    // Evaluate each slot individually
+    const incorrectSlots: PlaceValueKey[] = [];
+    GRADE_6_PLACE_SLOTS.forEach((slot) => {
+      const expectedDigit = Math.floor((targetNum / slot.multiplier) % 10);
+      const actualDigit = slots[slot.key] || 0;
+      if (expectedDigit !== actualDigit) {
+        incorrectSlots.push(slot.key);
+      }
+    });
+
+    const isCorrect = isExactMatch && incorrectSlots.length === 0;
+    const earnedPoints = isCorrect ? currentChallenge.points : 0;
+
     let feedbackMessage = '';
-
-    // Mathematical verification by challenge type
-    if (currentChallenge.type === 'master-blueprint') {
-      const constraints = currentChallenge.data.blueprintConstraints || [];
-      const validation = validateMasterBlueprintSubmission(String(answerValue), constraints);
-      isCorrect = validation.isValid;
-      earnedPoints = isCorrect ? currentChallenge.points : validation.passedCount * 50;
-      feedbackMessage = isCorrect
-        ? '🌟 MASTER BLUEPRINT FORGED PERFECTLY!'
-        : `⚠️ Missed constraints: ${validation.failedRules.join(', ')}`;
-    } else if (currentChallenge.type === 'digit-hunt') {
-      isCorrect =
-        Number(answerValue) === currentChallenge.data.targetDigit ||
-        Number(answerValue) === currentChallenge.data.expectedValue;
-      earnedPoints = isCorrect ? currentChallenge.points : 0;
-      feedbackMessage = isCorrect
-        ? `✅ Correct! Digit is ${currentChallenge.data.targetDigit} with value ${currentChallenge.data.expectedValue?.toLocaleString()}!`
-        : `❌ Not quite. In this place value, the digit is ${currentChallenge.data.targetDigit}.`;
-    } else {
-      isCorrect = Number(answerValue) === Number(currentChallenge.data.expectedValue);
-      earnedPoints = isCorrect ? currentChallenge.points : 0;
-      feedbackMessage = isCorrect
-        ? `✅ Correct Calibration! +${currentChallenge.points} PTS`
-        : `❌ Incorrect value. Correct answer: ${currentChallenge.data.expectedValue?.toLocaleString()}`;
-    }
-
     if (isCorrect) {
       soundManager.playCorrect();
+      feedbackMessage = `🌟 FORGED CORRECTLY! +${earnedPoints} PTS`;
     } else {
       soundManager.playLockout();
+      if (incorrectSlots.length > 0) {
+        const firstBadSlot = GRADE_6_PLACE_SLOTS.find((s) => s.key === incorrectSlots[0]);
+        feedbackMessage = `⚠️ Check the ${firstBadSlot?.label} place!`;
+      } else {
+        feedbackMessage = `⚠️ Incorrect number calibration.`;
+      }
     }
 
     const updatedTeam: TeamForgeState = {
@@ -164,6 +131,7 @@ export const useNumberForgeStore = create<NumberForgeStore>((set, get) => ({
       streak: isCorrect ? currentTeam.streak + 1 : 0,
       completedCount: isCorrect ? currentTeam.completedCount + 1 : currentTeam.completedCount,
       hasAnsweredCurrent: true,
+      incorrectSlots,
       characterAction: isCorrect ? 'celebrate' : 'think',
       lastFeedback: {
         isCorrect,
@@ -174,19 +142,16 @@ export const useNumberForgeStore = create<NumberForgeStore>((set, get) => ({
 
     set({ [teamKey]: updatedTeam });
 
-    // Check if both teams have answered or round is ready to summarize
+    // Check if both teams have locked in
     const otherTeamKey = team === 'blue' ? 'teamRed' : 'teamBlue';
     const otherTeam = get()[otherTeamKey];
 
     if (otherTeam.hasAnsweredCurrent) {
-      // Both teams finished current challenge
       setTimeout(() => {
-        if (currentRound >= totalRounds) {
-          set({ gameStage: 'master-complete', isTimerRunning: false });
-          soundManager.playVictory();
-        } else {
-          set({ gameStage: 'round-summary', isTimerRunning: false });
-        }
+        set({
+          gameStage: 'round-summary',
+          isTimerActive: false,
+        });
       }, 1500);
     }
 
@@ -195,69 +160,66 @@ export const useNumberForgeStore = create<NumberForgeStore>((set, get) => ({
 
   nextRound: () => {
     const { currentRound, totalRounds, challenges } = get();
-    const nextIdx = currentRound; // next index (0-based)
 
-    if (nextIdx >= totalRounds || nextIdx >= challenges.length) {
-      set({ gameStage: 'master-complete', isTimerRunning: false });
+    if (currentRound >= totalRounds) {
+      set({
+        gameStage: 'master-complete',
+        isTimerActive: false,
+      });
       soundManager.playVictory();
       return;
     }
 
-    const nextChallenge = challenges[nextIdx];
+    const nextIndex = currentRound; // next zero-based index
+    const nextChallenge = challenges[nextIndex] || challenges[0];
 
-    set((state) => ({
+    // Reset round state for both teams
+    const resetTeam = (t: TeamForgeState): TeamForgeState => ({
+      ...t,
+      placedSlots: {},
+      incorrectSlots: [],
+      hasAnsweredCurrent: false,
+      isLockedIn: false,
+      characterAction: 'idle',
+      lastFeedback: undefined,
+    });
+
+    set({
       gameStage: 'active-challenge',
-      currentRound: state.currentRound + 1,
-      currentChallenge: nextChallenge,
       activeZone: nextChallenge.zone,
-      timeLeft: nextChallenge.timeLimit,
-      isTimerRunning: true,
-      teamBlue: {
-        ...state.teamBlue,
-        hasAnsweredCurrent: false,
-        placedSlots: {},
-        characterAction: 'idle',
-        lastFeedback: undefined,
-      },
-      teamRed: {
-        ...state.teamRed,
-        hasAnsweredCurrent: false,
-        placedSlots: {},
-        characterAction: 'idle',
-        lastFeedback: undefined,
-      },
-    }));
+      currentRound: currentRound + 1,
+      currentChallenge: nextChallenge,
+      timeLeft: nextChallenge.timeLimit || 35,
+      isTimerActive: true,
+      teamBlue: resetTeam(get().teamBlue),
+      teamRed: resetTeam(get().teamRed),
+    });
 
     soundManager.playClick();
   },
 
   tickTimer: () => {
-    const { timeLeft, isTimerRunning, gameStage } = get();
-    if (!isTimerRunning || gameStage !== 'active-challenge') return;
+    const { isTimerActive, timeLeft, gameStage } = get();
+    if (!isTimerActive || gameStage !== 'active-challenge') return;
 
-    if (timeLeft <= 1) {
-      // Timer Expired: Auto reveal round summary
-      set({ timeLeft: 0, isTimerRunning: false, gameStage: 'round-summary' });
-      soundManager.playLockout();
-    } else {
+    if (timeLeft > 1) {
       set({ timeLeft: timeLeft - 1 });
-      if (timeLeft <= 6) {
+      if (timeLeft <= 5) {
         soundManager.playTimerWarning();
       }
+    } else {
+      // Time Expired
+      set({
+        timeLeft: 0,
+        isTimerActive: false,
+        gameStage: 'round-summary',
+      });
+      soundManager.playLockout();
     }
   },
 
-  setTimer: (seconds: number) => set({ timeLeft: seconds }),
-
   restartGame: () => {
-    set({
-      gameStage: 'intro',
-      currentRound: 1,
-      currentChallenge: null,
-      isTimerRunning: false,
-      teamBlue: initialTeamState('Team Blue'),
-      teamRed: initialTeamState('Team Red'),
-    });
-    soundManager.playClick();
+    const { teamBlue, teamRed, totalRounds } = get();
+    get().initializeGame(teamBlue.name, teamRed.name, totalRounds);
   },
 }));

@@ -53,21 +53,24 @@ export type PlaceValueKey =
 export interface PlaceValueSlotInfo {
   key: PlaceValueKey;
   label: string;
+  line1: string;
+  line2?: string;
   shortLabel: string;
   multiplier: number;
   color: string;
   accent: string;
 }
 
-export const PLACE_VALUE_SLOTS: PlaceValueSlotInfo[] = [
-  { key: 'millions', label: 'MILLIONS', shortLabel: 'M', multiplier: 1000000, color: '#8b5cf6', accent: '#7c3aed' },
-  { key: 'hundredThousands', label: 'HUNDRED THOUSANDS', shortLabel: 'HTh', multiplier: 100000, color: '#3b82f6', accent: '#2563eb' },
-  { key: 'tenThousands', label: 'TEN THOUSANDS', shortLabel: 'TTh', multiplier: 10000, color: '#06b6d4', accent: '#0891b2' },
-  { key: 'thousands', label: 'THOUSANDS', shortLabel: 'Th', multiplier: 1000, color: '#10b981', accent: '#059669' },
-  { key: 'hundreds', label: 'HUNDREDS', shortLabel: 'H', multiplier: 100, color: '#f59e0b', accent: '#d97706' },
-  { key: 'tens', label: 'TENS', shortLabel: 'T', multiplier: 10, color: '#f97316', accent: '#ea580c' },
-  { key: 'ones', label: 'ONES', shortLabel: 'O', multiplier: 1, color: '#ef4444', accent: '#dc2626' },
+export const GRADE_6_PLACE_SLOTS: PlaceValueSlotInfo[] = [
+  { key: 'hundredThousands', label: 'Hundred Thousands', line1: 'Hundred', line2: 'Thousands', shortLabel: 'HTh', multiplier: 100000, color: '#2563eb', accent: '#1d4ed8' },
+  { key: 'tenThousands', label: 'Ten Thousands', line1: 'Ten', line2: 'Thousands', shortLabel: 'TTh', multiplier: 10000, color: '#0284c7', accent: '#0369a1' },
+  { key: 'thousands', label: 'Thousands', line1: 'Thousands', shortLabel: 'Th', multiplier: 1000, color: '#0d9488', accent: '#0f766e' },
+  { key: 'hundreds', label: 'Hundreds', line1: 'Hundreds', shortLabel: 'H', multiplier: 100, color: '#d97706', accent: '#b45309' },
+  { key: 'tens', label: 'Tens', line1: 'Tens', shortLabel: 'T', multiplier: 10, color: '#ea580c', accent: '#c2410c' },
+  { key: 'ones', label: 'Ones', line1: 'Ones', shortLabel: 'O', multiplier: 1, color: '#e11d48', accent: '#be123c' },
 ];
+
+export const PLACE_VALUE_SLOTS = GRADE_6_PLACE_SLOTS;
 
 export interface MathChallenge {
   id: string;
@@ -83,7 +86,13 @@ export interface MathChallenge {
   points: number;
   timeLimit: number;
   
-  // Custom Data Payload depending on challenge type
+  // Clean structured breakdown for instant student comprehension
+  structuredDecomposition?: {
+    placeParts: Array<{ quantity: number; placeLabel: string }>;
+    additionParts: string[];
+    targetDisplay: string;
+  };
+
   data: {
     targetPlace?: PlaceValueKey;
     targetDigit?: number;
@@ -92,10 +101,10 @@ export interface MathChallenge {
     expandedParts?: number[];
     comparePair?: [number, number];
     sortList?: number[];
-    roundingBase?: number; // e.g. 1000, 10000
+    roundingBase?: number;
     roundingOptions?: number[];
     nearestBenchmark?: number;
-    benchmarkPegs?: [number, number, number]; // e.g. [470000, 475000, 480000]
+    benchmarkPegs?: [number, number, number];
     claimStatement?: string;
     isClaimTrue?: boolean;
     studentStatements?: {
@@ -131,6 +140,7 @@ export interface TeamForgeState {
   characterAction: CharacterAction;
   selectedNumberBlocks: number[];
   placedSlots: Partial<Record<PlaceValueKey, number>>;
+  incorrectSlots?: PlaceValueKey[];
   isLockedIn: boolean;
   hasAnsweredCurrent: boolean;
   lastFeedback?: {
