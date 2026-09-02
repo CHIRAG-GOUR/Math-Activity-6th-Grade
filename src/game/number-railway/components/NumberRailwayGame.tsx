@@ -10,9 +10,10 @@
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useRailwayStore } from '../store/railwayStore';
+import { soundManager } from '@/utils/audio';
 import { TeamConsole } from './TeamConsole';
 import { RailwayHUD } from './RailwayHUD';
 import {
@@ -32,6 +33,15 @@ const RailwayScene = dynamic(
 export const NumberRailwayGame: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const showConsoles = phase !== 'title' && phase !== 'network-complete';
+
+  // Ensure game sound isolation: stop 1st activity BGM completely
+  useEffect(() => {
+    soundManager.stopBgm();
+    return () => {
+      soundManager.stopBgm();
+      soundManager.stopTrainRunningAudio();
+    };
+  }, []);
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
