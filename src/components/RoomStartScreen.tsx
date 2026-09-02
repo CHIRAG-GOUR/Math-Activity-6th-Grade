@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Play,
@@ -22,6 +23,7 @@ import {
   Maximize,
   Minimize,
   Cpu,
+  Home,
 } from 'lucide-react';
 import { DifficultyLevel, GameLength, GameSettings, MathTopic } from '@/types/game';
 import { soundManager } from '@/utils/audio';
@@ -124,11 +126,22 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
       
       {/* Top Header Bar with Fullscreen & Sound */}
       <div className="w-full flex items-center justify-between">
-        <div className="flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 border-2 border-slate-300 shadow-sm">
-          <GraduationCap className="w-4 h-4 text-blue-700" />
-          <span className="text-xs font-black tracking-widest text-slate-800 font-game uppercase">
-            GRADE 6 MATHEMATICS • BLOOM’S TAXONOMY HEIST
-          </span>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/"
+            onClick={() => soundManager.playClick()}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-amber-400 hover:bg-yellow-400 border-2 border-slate-900 text-slate-950 font-black text-xs font-game shadow transition cursor-pointer"
+          >
+            <Home className="w-3.5 h-3.5" />
+            <span>ARCADE HUB</span>
+          </Link>
+
+          <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 border-2 border-slate-300 shadow-sm">
+            <GraduationCap className="w-4 h-4 text-blue-700" />
+            <span className="text-xs font-black tracking-widest text-slate-800 font-game uppercase">
+              GRADE 6 MATHEMATICS • BLOOM’S TAXONOMY HEIST
+            </span>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">

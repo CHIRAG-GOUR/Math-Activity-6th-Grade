@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { Timer as TimerIcon, Maximize, Minimize, Volume2, VolumeX } from 'lucide-react';
+import { Timer as TimerIcon, Maximize, Minimize, Volume2, VolumeX, Home } from 'lucide-react';
 import { TeamState } from '@/types/game';
 import { soundManager } from '@/utils/audio';
 
@@ -56,8 +57,18 @@ export const BankTopHUD: React.FC<BankTopHUDProps> = ({
   return (
     <header className="relative w-full flex items-center justify-between px-3 sm:px-8 py-1 z-30 pointer-events-none select-none">
       
-      {/* 1. LEFT SPACER */}
-      <div className="w-24 hidden sm:block" />
+      {/* 1. LEFT CONTROLS: ARCADE HUB HOME BUTTON */}
+      <div className="flex items-center gap-2 pointer-events-auto">
+        <Link
+          href="/"
+          onClick={() => soundManager.playClick()}
+          title="Return to Arcade Hub"
+          className="p-2 sm:p-2.5 rounded-2xl bg-white/95 border-2 border-slate-300 text-slate-800 hover:text-slate-950 shadow-md flex items-center gap-1.5 cursor-pointer backdrop-blur-md transition hover:bg-slate-50"
+        >
+          <Home className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500" />
+          <span className="hidden md:inline text-xs font-black font-game uppercase">ARCADE HUB</span>
+        </Link>
+      </div>
 
       {/* 2. CENTER: ROUND COUNTER + TIME LEFT COUNTDOWN */}
       <div className="flex items-center gap-3 pointer-events-auto mx-auto">
