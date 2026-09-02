@@ -12,8 +12,6 @@ interface NumberForgeWorldCanvasProps {
 
 export const NumberForgeWorldCanvas: React.FC<NumberForgeWorldCanvasProps> = ({
   activeZone = 'tower',
-  teamBlueAction = 'idle',
-  teamRedAction = 'idle',
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
@@ -22,9 +20,8 @@ export const NumberForgeWorldCanvas: React.FC<NumberForgeWorldCanvasProps> = ({
   const gear1Ref = useRef<THREE.Mesh | null>(null);
   const gear2Ref = useRef<THREE.Mesh | null>(null);
   const gear3Ref = useRef<THREE.Mesh | null>(null);
-  const blueCharRef = useRef<THREE.Group | null>(null);
-  const redCharRef = useRef<THREE.Group | null>(null);
-  const machineLightRef = useRef<THREE.PointLight | null>(null);
+  const gear4Ref = useRef<THREE.Mesh | null>(null);
+  const numberWheelRef = useRef<THREE.Group | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -32,227 +29,190 @@ export const NumberForgeWorldCanvas: React.FC<NumberForgeWorldCanvasProps> = ({
     const width = container.clientWidth || window.innerWidth;
     const height = container.clientHeight || window.innerHeight;
 
-    // 1. SCENE & STABLE FRONTAL CAMERA
+    // 1. SCENE & BRIGHT SUNLIT BACKGROUND
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x382214);
-    scene.fog = new THREE.FogExp2(0x382214, 0.04);
+    scene.background = new THREE.Color(0xfbf7ee); // Light warm cream sunlit background
+    scene.fog = new THREE.FogExp2(0xfbf7ee, 0.03);
 
-    const camera = new THREE.PerspectiveCamera(40, width / height, 0.1, 100);
-    // Stable frontal isometric camera framing the center machine perfectly
-    camera.position.set(0, 3.2, 8.5);
-    camera.lookAt(0, 1.4, 0);
+    const camera = new THREE.PerspectiveCamera(38, width / height, 0.1, 100);
+    // Stable frontal isometric camera framing the central workshop machine
+    camera.position.set(0, 3.0, 9.2);
+    camera.lookAt(0, 1.3, 0);
 
-    // 2. WEBGL RENDERER (Optimized 60FPS)
+    // 2. WEBGL RENDERER
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
     renderer.setSize(width, height);
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.15;
+    renderer.toneMappingExposure = 1.05;
     container.innerHTML = '';
     container.appendChild(renderer.domElement);
     rendererRef.current = renderer;
 
-    // 3. WARM SUNLIT ILLUMINATION
-    const ambientLight = new THREE.AmbientLight(0xffecd2, 1.2);
-    scene.add(ambientLight);
+    // 3. BRIGHT, WARM DAYLIGHT & SUNBEAMS
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0xfde68a, 1.4);
+    scene.add(hemiLight);
 
-    // Morning Sunlight pouring from Top-Left Window
-    const sunLight = new THREE.DirectionalLight(0xfff1cf, 2.5);
-    sunLight.position.set(-6, 8, 5);
+    // Warm Sunbeam Light
+    const sunLight = new THREE.DirectionalLight(0xfffaed, 2.2);
+    sunLight.position.set(-5, 9, 6);
     sunLight.castShadow = true;
     sunLight.shadow.mapSize.width = 1024;
     sunLight.shadow.mapSize.height = 1024;
-    sunLight.shadow.camera.near = 0.5;
-    sunLight.shadow.camera.far = 25;
-    sunLight.shadow.bias = -0.001;
+    sunLight.shadow.bias = -0.0005;
     scene.add(sunLight);
 
-    // Warm Machine Center Glow
-    const machineLight = new THREE.PointLight(0xf59e0b, 2.0, 10);
-    machineLight.position.set(0, 2, 0);
-    scene.add(machineLight);
-    machineLightRef.current = machineLight;
+    // Gentle Golden Accent Point Light
+    const brassLight = new THREE.PointLight(0xf59e0b, 1.5, 8);
+    brassLight.position.set(0, 2.5, 1.5);
+    scene.add(brassLight);
 
-    // 4. SHARED MATERIALS
-    const oakWoodMat = new THREE.MeshStandardMaterial({
-      color: 0x8a4b1e,
-      roughness: 0.65,
-      metalness: 0.1,
-    });
-    const darkWoodMat = new THREE.MeshStandardMaterial({
-      color: 0x4a240d,
-      roughness: 0.8,
+    // 4. ELEGANT WORKSHOP MATERIALS (Clean, Light & Polished)
+    const honeyWoodMat = new THREE.MeshStandardMaterial({
+      color: 0xd49b5c,
+      roughness: 0.5,
       metalness: 0.05,
     });
-    const brassMat = new THREE.MeshStandardMaterial({
-      color: 0xdfa037,
-      metalness: 0.85,
-      roughness: 0.3,
-    });
-    const ironMat = new THREE.MeshStandardMaterial({
-      color: 0x2b2f38,
-      metalness: 0.7,
-      roughness: 0.4,
-    });
-    const brickMat = new THREE.MeshStandardMaterial({
-      color: 0x6e3820,
+    const creamWallMat = new THREE.MeshStandardMaterial({
+      color: 0xf5ebd9,
       roughness: 0.9,
     });
+    const polishedBrassMat = new THREE.MeshStandardMaterial({
+      color: 0xe5a93b,
+      metalness: 0.85,
+      roughness: 0.25,
+    });
+    const polishedCopperMat = new THREE.MeshStandardMaterial({
+      color: 0xc86432,
+      metalness: 0.8,
+      roughness: 0.3,
+    });
+    const steelMat = new THREE.MeshStandardMaterial({
+      color: 0x475569,
+      metalness: 0.7,
+      roughness: 0.35,
+    });
+    const parchmentMat = new THREE.MeshStandardMaterial({
+      color: 0xfef3c7,
+      roughness: 0.8,
+    });
 
-    // 5. WORKSHOP ROOM GEOMETRY
-    // Floor
-    const floorGeo = new THREE.PlaneGeometry(30, 20);
-    const floor = new THREE.Mesh(floorGeo, darkWoodMat);
+    // 5. SUNLIT WORKSHOP ROOM
+    // Light Honey Wood Plank Floor
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(32, 24), honeyWoodMat);
     floor.rotation.x = -Math.PI / 2;
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Back Wall
-    const backWallGeo = new THREE.PlaneGeometry(30, 15);
-    const backWall = new THREE.Mesh(backWallGeo, brickMat);
-    backWall.position.set(0, 7.5, -6);
+    // Bright Cream Back Wall with Timber Trusses
+    const backWall = new THREE.Mesh(new THREE.PlaneGeometry(32, 16), creamWallMat);
+    backWall.position.set(0, 8, -6);
     backWall.receiveShadow = true;
     scene.add(backWall);
 
-    // Timber Roof Beams
-    for (let x = -10; x <= 10; x += 5) {
-      const beam = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 15), oakWoodMat);
-      beam.position.set(x, 7, 0);
-      beam.castShadow = true;
-      scene.add(beam);
-    }
+    // Large Arched Window on Back Wall with Sunny Sky View
+    const windowFrame = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.15, 8, 32), honeyWoodMat);
+    windowFrame.position.set(0, 6.5, -5.9);
+    scene.add(windowFrame);
 
-    // 6. CENTRAL NUMBER FORGE MACHINE (Located right in the middle)
+    const windowGlass = new THREE.Mesh(
+      new THREE.CircleGeometry(2.35, 32),
+      new THREE.MeshBasicMaterial({ color: 0xe0f2fe })
+    );
+    windowGlass.position.set(0, 6.5, -5.95);
+    scene.add(windowGlass);
+
+    // 6. CENTRAL MATHEMATICAL FORGE MACHINE (Clean, Stylized, Architectural)
     const machineGroup = new THREE.Group();
     machineGroup.position.set(0, 0, 0);
 
-    // Heavy Cast Iron Machine Base
-    const baseMesh = new THREE.Mesh(new THREE.BoxGeometry(3.6, 0.8, 2.4), ironMat);
-    baseMesh.position.y = 0.4;
-    baseMesh.castShadow = true;
-    baseMesh.receiveShadow = true;
-    machineGroup.add(baseMesh);
+    // Solid Oak Workbench Base
+    const tableTop = new THREE.Mesh(new THREE.BoxGeometry(4.6, 0.3, 2.2), honeyWoodMat);
+    tableTop.position.set(0, 1.0, 0);
+    tableTop.castShadow = true;
+    tableTop.receiveShadow = true;
+    machineGroup.add(tableTop);
 
-    // Brass Forging Chamber
-    const chamberMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 1.8, 16), brassMat);
-    chamberMesh.position.set(0, 1.7, 0);
-    chamberMesh.castShadow = true;
-    machineGroup.add(chamberMesh);
+    // Sturdy Table Legs
+    const legPositions = [
+      [-2.1, 0.5, 0.9],
+      [2.1, 0.5, 0.9],
+      [-2.1, 0.5, -0.9],
+      [2.1, 0.5, -0.9],
+    ];
+    legPositions.forEach(([x, y, z]) => {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.25, 1.0, 0.25), honeyWoodMat);
+      leg.position.set(x, y, z);
+      leg.castShadow = true;
+      machineGroup.add(leg);
+    });
 
-    // Forging Smoke Chimney
-    const chimney = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.4, 2.0, 12), ironMat);
-    chimney.position.set(0, 3.2, -0.4);
-    chimney.castShadow = true;
-    machineGroup.add(chimney);
+    // Central Place-Value Machine Pedestal
+    const pedestal = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 1.0, 1.2, 16), polishedCopperMat);
+    pedestal.position.set(0, 1.7, 0);
+    pedestal.castShadow = true;
+    machineGroup.add(pedestal);
 
-    // Mechanical Brass Gears on Front of Machine
-    const gearGeo = new THREE.CylinderGeometry(0.55, 0.55, 0.1, 12);
-    const gear1 = new THREE.Mesh(gearGeo, brassMat);
+    // Revolving Mathematical Number Dial Drum
+    const dialGroup = new THREE.Group();
+    dialGroup.position.set(0, 2.6, 0);
+
+    const drumMesh = new THREE.Mesh(new THREE.CylinderGeometry(1.1, 1.1, 0.6, 24), polishedBrassMat);
+    drumMesh.rotation.x = Math.PI / 2;
+    drumMesh.castShadow = true;
+    dialGroup.add(drumMesh);
+
+    // Carved Number Facets around Drum
+    for (let a = 0; a < 8; a++) {
+      const angle = (a / 8) * Math.PI * 2;
+      const notch = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.55, 0.08), steelMat);
+      notch.position.set(Math.cos(angle) * 1.1, Math.sin(angle) * 1.1, 0);
+      notch.rotation.z = angle;
+      dialGroup.add(notch);
+    }
+    machineGroup.add(dialGroup);
+    numberWheelRef.current = dialGroup;
+
+    // Interlocking Brass Gears on Front of Pedestal
+    const gearGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.08, 12);
+    const gear1 = new THREE.Mesh(gearGeo, polishedBrassMat);
     gear1.rotation.x = Math.PI / 2;
-    gear1.position.set(-0.6, 1.8, 1.25);
+    gear1.position.set(-0.55, 1.7, 0.85);
+    gear1.castShadow = true;
     machineGroup.add(gear1);
     gear1Ref.current = gear1;
 
-    const gear2 = new THREE.Mesh(gearGeo, brassMat);
+    const gear2 = new THREE.Mesh(gearGeo, polishedBrassMat);
     gear2.rotation.x = Math.PI / 2;
-    gear2.position.set(0.6, 1.8, 1.25);
+    gear2.position.set(0.55, 1.7, 0.85);
+    gear2.castShadow = true;
     machineGroup.add(gear2);
     gear2Ref.current = gear2;
 
-    const gear3 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.1, 8), brassMat);
+    const gear3 = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.08, 8), polishedCopperMat);
     gear3.rotation.x = Math.PI / 2;
-    gear3.position.set(0, 2.4, 1.15);
+    gear3.position.set(0, 2.1, 0.88);
     machineGroup.add(gear3);
     gear3Ref.current = gear3;
 
-    // Conveyor Rails with Wooden Blocks
-    const conveyor = new THREE.Mesh(new THREE.BoxGeometry(4.8, 0.2, 0.8), darkWoodMat);
-    conveyor.position.set(0, 0.9, 0.6);
-    conveyor.castShadow = true;
-    machineGroup.add(conveyor);
+    // Blueprint Scroll on Table Surface
+    const scroll = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 0.9), parchmentMat);
+    scroll.rotation.x = -Math.PI / 2;
+    scroll.position.set(0, 1.16, 0.4);
+    scroll.receiveShadow = true;
+    machineGroup.add(scroll);
 
-    // Carved Number Blocks on Conveyor
-    for (let i = -2; i <= 2; i++) {
-      const block = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.4, 0.4), oakWoodMat);
-      block.position.set(i * 0.9, 1.2, 0.6);
-      block.castShadow = true;
-      machineGroup.add(block);
-    }
+    // Brass Caliper & Tool on Table
+    const caliper = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.04, 0.15), polishedBrassMat);
+    caliper.position.set(1.2, 1.17, 0.4);
+    caliper.rotation.y = 0.4;
+    machineGroup.add(caliper);
 
     scene.add(machineGroup);
 
-    // 7. INVENTOR CHARACTERS (Standing deeper in scene so they NEVER block UI)
-    // Team Blue Character (Stands at Left of Central Machine)
-    const blueChar = new THREE.Group();
-    blueChar.position.set(-2.2, 0, -0.6);
-
-    const blueBodyMat = new THREE.MeshStandardMaterial({ color: 0x2563eb, roughness: 0.6 });
-    const skinMat = new THREE.MeshStandardMaterial({ color: 0xf3c59a, roughness: 0.5 });
-    const apronMat = new THREE.MeshStandardMaterial({ color: 0x92400e, roughness: 0.7 });
-
-    // Legs
-    const blueLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.8), blueBodyMat);
-    blueLegL.position.set(-0.2, 0.4, 0);
-    blueChar.add(blueLegL);
-    const blueLegR = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.8), blueBodyMat);
-    blueLegR.position.set(0.2, 0.4, 0);
-    blueChar.add(blueLegR);
-
-    // Torso with Maker Apron
-    const blueTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.9, 8), blueBodyMat);
-    blueTorso.position.set(0, 1.2, 0);
-    blueChar.add(blueTorso);
-    const blueApron = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.7, 0.2), apronMat);
-    blueApron.position.set(0, 1.15, 0.25);
-    blueChar.add(blueApron);
-
-    // Head with Maker Goggles
-    const blueHead = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), skinMat);
-    blueHead.position.set(0, 1.85, 0);
-    blueChar.add(blueHead);
-    const blueGoggles = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.06, 8, 16), brassMat);
-    blueGoggles.position.set(0, 1.9, 0.2);
-    blueChar.add(blueGoggles);
-
-    scene.add(blueChar);
-    blueCharRef.current = blueChar;
-
-    // Team Red Character (Stands at Right of Central Machine)
-    const redChar = new THREE.Group();
-    redChar.position.set(2.2, 0, -0.6);
-
-    const redBodyMat = new THREE.MeshStandardMaterial({ color: 0xd97706, roughness: 0.6 });
-
-    // Legs
-    const redLegL = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.8), redBodyMat);
-    redLegL.position.set(-0.2, 0.4, 0);
-    redChar.add(redLegL);
-    const redLegR = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.8), redBodyMat);
-    redLegR.position.set(0.2, 0.4, 0);
-    redChar.add(redLegR);
-
-    // Torso
-    const redTorso = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 0.9, 8), redBodyMat);
-    redTorso.position.set(0, 1.2, 0);
-    redChar.add(redTorso);
-    const redApron = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.7, 0.2), apronMat);
-    redApron.position.set(0, 1.15, 0.25);
-    redChar.add(redApron);
-
-    // Head
-    const redHead = new THREE.Mesh(new THREE.SphereGeometry(0.28, 16, 16), skinMat);
-    redHead.position.set(0, 1.85, 0);
-    redChar.add(redHead);
-    const redGoggles = new THREE.Mesh(new THREE.TorusGeometry(0.22, 0.06, 8, 16), brassMat);
-    redGoggles.position.set(0, 1.9, 0.2);
-    redChar.add(redGoggles);
-
-    scene.add(redChar);
-    redCharRef.current = redChar;
-
-    // 8. 60FPS ANIMATION LOOP
+    // 7. 60FPS SMOOTH ANIMATION LOOP
     let animationFrameId: number;
     let clock = new THREE.Clock();
 
@@ -260,22 +220,14 @@ export const NumberForgeWorldCanvas: React.FC<NumberForgeWorldCanvasProps> = ({
       animationFrameId = requestAnimationFrame(animate);
       const elapsed = clock.getElapsedTime();
 
-      // Rotate Gears
-      if (gear1Ref.current) gear1Ref.current.rotation.z = elapsed * 1.5;
-      if (gear2Ref.current) gear2Ref.current.rotation.z = -elapsed * 1.5;
-      if (gear3Ref.current) gear3Ref.current.rotation.z = elapsed * 2.2;
+      // Smooth gear interlocking spin
+      if (gear1Ref.current) gear1Ref.current.rotation.z = elapsed * 1.2;
+      if (gear2Ref.current) gear2Ref.current.rotation.z = -elapsed * 1.2;
+      if (gear3Ref.current) gear3Ref.current.rotation.z = elapsed * 1.8;
 
-      // Subtle Breathing Idle Animation for Characters
-      if (blueCharRef.current) {
-        blueCharRef.current.position.y = Math.sin(elapsed * 2.5) * 0.04;
-      }
-      if (redCharRef.current) {
-        redCharRef.current.position.y = Math.cos(elapsed * 2.5) * 0.04;
-      }
-
-      // Pulse Machine Glow Light
-      if (machineLightRef.current) {
-        machineLightRef.current.intensity = 1.8 + Math.sin(elapsed * 3) * 0.4;
+      // Slow majestic rotation of central mathematical drum
+      if (numberWheelRef.current) {
+        numberWheelRef.current.rotation.z = elapsed * 0.3;
       }
 
       renderer.render(scene, camera);
@@ -283,7 +235,7 @@ export const NumberForgeWorldCanvas: React.FC<NumberForgeWorldCanvasProps> = ({
 
     animate();
 
-    // 9. WINDOW RESIZE HANDLER
+    // 8. RESIZE HANDLER
     const handleResize = () => {
       if (!containerRef.current || !rendererRef.current) return;
       const w = containerRef.current.clientWidth;

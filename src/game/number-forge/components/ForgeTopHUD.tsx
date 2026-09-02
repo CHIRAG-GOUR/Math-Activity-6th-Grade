@@ -28,7 +28,6 @@ export const ForgeTopHUD: React.FC<ForgeTopHUDProps> = ({
   currentRound,
   totalRounds,
   timeLeft,
-  bloomLevel = 'understand',
 }) => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(soundManager.getMuted());
@@ -60,78 +59,76 @@ export const ForgeTopHUD: React.FC<ForgeTopHUDProps> = ({
   const formattedTime = `00:${timeLeft < 10 ? `0${timeLeft}` : timeLeft}`;
 
   return (
-    <header className="relative w-full flex items-center justify-between px-3 sm:px-6 py-2 z-30 select-none bg-slate-950/80 border-b-2 border-amber-500/40 backdrop-blur-sm">
+    <header className="relative w-full flex items-center justify-between px-4 py-2 z-30 select-none bg-white/95 border-b-2 border-amber-400/80 shadow-sm backdrop-blur-md">
       
-      {/* 1. LEFT: HOME & TEAM BLUE SCORE (28-32px) */}
-      <div className="flex items-center gap-3">
+      {/* 1. LEFT: HOME & TEAM BLUE SCORE */}
+      <div className="flex items-center gap-2.5">
         <Link
           href="/"
           onClick={() => soundManager.playClick()}
           title="Return to Arcade Hub"
-          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 text-white transition shadow cursor-pointer"
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-800 transition shadow-sm cursor-pointer"
         >
           <Home className="w-5 h-5" />
         </Link>
 
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#0c1c2e] border-2 border-blue-400 shadow">
-          <div className="w-3 h-3 rounded-full bg-cyan-400 animate-pulse" />
+        <div className="flex items-center gap-2 px-3 py-1 rounded-2xl bg-blue-50 border-2 border-blue-600 shadow-sm">
+          <div className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />
           <div className="flex flex-col">
-            <span className="text-[10px] font-black font-game uppercase tracking-widest text-cyan-300 leading-none">
+            <span className="text-[10px] font-black font-game uppercase tracking-widest text-blue-800 leading-tight">
               {teamBlue.name}
             </span>
-            <span className="text-xl sm:text-2xl font-black font-bank text-white leading-tight">
-              {teamBlue.score} <span className="text-xs font-mono text-cyan-300">PTS</span>
+            <span className="text-lg sm:text-xl font-black font-bank text-blue-950 leading-tight">
+              {teamBlue.score} <span className="text-[10px] font-mono text-blue-700">PTS</span>
             </span>
           </div>
         </div>
       </div>
 
       {/* 2. CENTER: STAGE & TIMER */}
-      <div className="flex items-center gap-3 px-4 py-1 rounded-2xl bg-black/60 border border-amber-400/60 shadow">
-        <div className="text-center">
-          <span className="text-[10px] font-black uppercase tracking-widest text-amber-300 font-game block">
-            STAGE {currentRound} / {totalRounds} • PLACE VALUE BUILDER
-          </span>
-        </div>
+      <div className="flex items-center gap-2.5 px-3.5 py-1 rounded-2xl bg-amber-50 border-2 border-amber-400 shadow-sm">
+        <span className="text-xs font-black uppercase tracking-wider text-amber-950 font-game hidden sm:inline">
+          STAGE {currentRound} / {totalRounds} • PLACE VALUE BUILDER
+        </span>
 
-        <div className={`flex items-center gap-1.5 px-3 py-1 rounded-xl border ${
+        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-xl border-2 ${
           timeLeft <= 5
-            ? 'bg-rose-600 border-white text-white animate-bounce'
-            : 'bg-amber-400 border-slate-950 text-slate-950'
+            ? 'bg-rose-600 border-rose-700 text-white animate-bounce'
+            : 'bg-amber-400 border-amber-500 text-slate-950 font-black'
         }`}>
-          <TimerIcon className="w-4 h-4 stroke-[2.5]" />
-          <span className="text-base sm:text-lg font-black font-mono tracking-wider">
+          <TimerIcon className="w-3.5 h-3.5 stroke-[3]" />
+          <span className="text-sm sm:text-base font-black font-mono tracking-wider">
             {formattedTime}
           </span>
         </div>
       </div>
 
-      {/* 3. RIGHT: TEAM RED SCORE (28-32px) & CONTROLS */}
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl bg-[#230f06] border-2 border-amber-500 shadow">
+      {/* 3. RIGHT: TEAM RED SCORE & CONTROLS */}
+      <div className="flex items-center gap-2.5">
+        <div className="flex items-center gap-2 px-3 py-1 rounded-2xl bg-amber-50 border-2 border-amber-600 shadow-sm">
           <div className="flex flex-col text-right">
-            <span className="text-[10px] font-black font-game uppercase tracking-widest text-amber-300 leading-none">
+            <span className="text-[10px] font-black font-game uppercase tracking-widest text-amber-800 leading-tight">
               {teamRed.name}
             </span>
-            <span className="text-xl sm:text-2xl font-black font-bank text-amber-100 leading-tight">
-              {teamRed.score} <span className="text-xs font-mono text-amber-300">PTS</span>
+            <span className="text-lg sm:text-xl font-black font-bank text-amber-950 leading-tight">
+              {teamRed.score} <span className="text-[10px] font-mono text-amber-700">PTS</span>
             </span>
           </div>
-          <div className="w-3 h-3 rounded-full bg-amber-400 animate-pulse" />
+          <div className="w-2.5 h-2.5 rounded-full bg-amber-600 animate-pulse" />
         </div>
 
         <button
           onClick={toggleSound}
           title={isMuted ? 'Unmute Sound' : 'Mute Sound'}
-          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 text-white transition shadow cursor-pointer"
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-800 transition shadow-sm cursor-pointer"
         >
-          {isMuted ? <VolumeX className="w-5 h-5 text-rose-400" /> : <Volume2 className="w-5 h-5 text-amber-300" />}
+          {isMuted ? <VolumeX className="w-5 h-5 text-rose-500" /> : <Volume2 className="w-5 h-5 text-amber-600" />}
         </button>
 
         <button
           onClick={toggleFullscreen}
           title="Toggle Fullscreen"
-          className="p-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/30 text-white transition shadow cursor-pointer"
+          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-300 text-slate-800 transition shadow-sm cursor-pointer"
         >
           {isFullscreen ? <Minimize className="w-5 h-5" /> : <Maximize className="w-5 h-5" />}
         </button>
