@@ -484,6 +484,26 @@ class SoundEngine {
 
   private trainRunningAudio: HTMLAudioElement | null = null;
   private trainHornAudio: HTMLAudioElement | null = null;
+  private loudWhistleAudio: HTMLAudioElement | null = null;
+
+  public playLoudWhistle() {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (!this.loudWhistleAudio) {
+          this.loudWhistleAudio = new Audio('/audio/train_whistle_loud.mp3');
+        }
+        this.loudWhistleAudio.currentTime = 0;
+        this.loudWhistleAudio.volume = 0.9;
+        this.loudWhistleAudio.play().catch(() => {
+          this.playTrainWhistle();
+        });
+        return;
+      }
+    } catch {
+      this.playTrainWhistle();
+    }
+  }
 
   public playTrainHorn() {
     if (this.isMuted) return;

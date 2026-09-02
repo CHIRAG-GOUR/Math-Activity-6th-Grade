@@ -38,6 +38,11 @@ export const NumberRailwayGame: React.FC = () => {
     else document.documentElement.requestFullscreen().catch(() => {});
   }, []);
 
+  const zoomIn = useRailwayStore((s) => s.zoomIn);
+  const zoomOut = useRailwayStore((s) => s.zoomOut);
+  const resetZoom = useRailwayStore((s) => s.resetZoom);
+  const zoomLevel = useRailwayStore((s) => s.zoomLevel);
+
   return (
     <main className="relative w-screen h-screen overflow-hidden select-none font-sans bg-sky-300">
       {/* ── 1. 3D Cartoon Railway World (100% Canvas Background) ── */}
@@ -70,14 +75,44 @@ export const NumberRailwayGame: React.FC = () => {
         </div>
       )}
 
-      {/* ── 6. Fullscreen Toggle Button ── */}
-      <button
-        onClick={toggleFullscreen}
-        title="Toggle Fullscreen"
-        className="absolute bottom-3 right-3 z-30 px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-lg cursor-pointer pointer-events-auto"
-      >
-        ⛶ FULLSCREEN
-      </button>
+      {/* ── 6. Bottom Controls: Zoom (+ & -) & Fullscreen ── */}
+      <div className="absolute bottom-3 right-3 z-30 flex items-center gap-1.5 pointer-events-auto">
+        {/* Zoom In Button */}
+        <button
+          onClick={zoomIn}
+          title="Zoom In"
+          className="w-8 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-blue-600 text-sm font-black flex items-center justify-center hover:bg-white shadow-lg transition-all cursor-pointer"
+        >
+          ＋
+        </button>
+
+        {/* Zoom Reset / Current Display */}
+        <button
+          onClick={resetZoom}
+          title="Reset Zoom"
+          className="px-2 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-amber-600 text-[10px] font-black flex items-center justify-center hover:bg-white shadow-lg transition-all cursor-pointer"
+        >
+          {Math.round(zoomLevel * 100)}%
+        </button>
+
+        {/* Zoom Out Button */}
+        <button
+          onClick={zoomOut}
+          title="Zoom Out"
+          className="w-8 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-blue-600 text-sm font-black flex items-center justify-center hover:bg-white shadow-lg transition-all cursor-pointer"
+        >
+          －
+        </button>
+
+        {/* Fullscreen Button */}
+        <button
+          onClick={toggleFullscreen}
+          title="Toggle Fullscreen"
+          className="px-3 h-8 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-lg cursor-pointer"
+        >
+          ⛶ FULLSCREEN
+        </button>
+      </div>
     </main>
   );
 };

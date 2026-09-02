@@ -1,12 +1,9 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Zustand Game Store
-// - First-Answerer & Rebound Rule:
-//   * First team to answer correctly wins the question points.
-//   * If wrong, the other team gets a rebound chance!
-//   * If both fail or timer runs out, 0 points and train doesn't move.
-// - Passenger & Signal Progression:
-//   * Correct answer seats a passenger dressed in the team's colors (Blue/Red) INSIDE the coach!
-//   * Semaphore signals turn GREEN one by one with each correct answer!
+// - Configurable Team Names & Question Lengths (5, 10, 15)
+// - Smooth In-Game Camera Zoom Controls (+ & -)
+// - First-Answerer & Rebound Competitive Rule
+// - Integrated Real Train Audio & Loud Whistle Blasts
 // ============================================================
 
 import { create } from 'zustand';
@@ -22,9 +19,9 @@ import {
 import { ROUNDS, NETWORK_STATIONS, getTieBreaker, buildRounds } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
 
-const createTeamState = (id: TeamId): TeamState => ({
+const createTeamState = (id: TeamId, customName?: string): TeamState => ({
   id,
-  name: id === 'blue' ? 'BLUE ENGINEERS' : 'RED ENGINEERS',
+  name: customName || (id === 'blue' ? 'TEAM BLUE' : 'TEAM RED'),
   score: 0,
   roundScore: 0,
   streak: 0,
@@ -77,6 +74,8 @@ const clearTravel = () => {
 
 interface RailwayActions {
   setPhase: (phase: GamePhase) => void;
+  setTeamName: (team: TeamId, name: string) => void;
+  setQuestionCountConfig: (count: 5 | 10 | 15) => void;
   setTotalRounds: (n: number) => void;
   startGame: () => void;
   startRound: (index: number) => void;
@@ -91,6 +90,10 @@ interface RailwayActions {
   startTieBreak: () => void;
   runWinnerSequence: (winner: TeamId) => void;
   proceedToNextRound: () => void;
+
+  zoomIn: () => void;
+  zoomOut: () => void;
+  resetZoom: () => void;
 
   toggleMute: () => void;
   setTimeRemaining: (t: number) => void;
@@ -109,8 +112,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   activeChallenge: ROUNDS[0].questions[0],
   isTieBreak: false,
 
-  blueTeam: createTeamState('blue'),
-  redTeam: createTeamState('red'),
+  blueTeam: createTeamState('blue', 'TEAM BLUE'),
+  redTeam: createTeamState('red', 'TEAM RED'),
 
   roundWinner: null,
   matchWinner: null,
@@ -129,7 +132,9 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   stations: NETWORK_STATIONS,
   unlockedStationIds: [NETWORK_STATIONS[0].id],
-  totalRounds: ROUNDS.length,
+  totalRounds: 1,
+  questionCountConfig: 5,
+  zoomLevel: 1.0,
 
   isMuted: false,
   timeRemaining: 35,
@@ -137,6 +142,24 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   toastMessage: null,
 
   setPhase: (phase) => set({ phase }),
+
+  setTeamName: (team, name) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    set((s) => ({
+      [key]: { ...s[key], name: name.trim() || (team === 'blue' ? 'TEAM BLUE' : 'TEAM RED') },
+    }));
+  },
+
+  setQuestionCountConfig: (count) => {
+    const roundsNeeded = count === 15 ? 3 : count === 10 ? 2 : 1;
+    const newRounds = buildRounds(roundsNeeded);
+    set({
+      questionCountConfig: count,
+      totalRounds: roundsNeeded,
+      rounds: newRounds,
+      activeChallenge: newRounds[0].questions[0],
+    });
+  },
 
   setTotalRounds: (n) => {
     const clamped = Math.max(1, Math.min(n, 5));
@@ -146,6 +169,21 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       rounds: newRounds,
       activeChallenge: newRounds[0].questions[0],
     });
+  },
+
+  zoomIn: () => {
+    soundManager.playClick();
+    set((s) => ({ zoomLevel: Math.min(1.45, Number((s.zoomLevel + 0.12).toFixed(2))) }));
+  },
+
+  zoomOut: () => {
+    soundManager.playClick();
+    set((s) => ({ zoomLevel: Math.max(0.65, Number((s.zoomLevel - 0.12).toFixed(2))) }));
+  },
+
+  resetZoom: () => {
+    soundManager.playClick();
+    set({ zoomLevel: 1.0 });
   },
 
   startGame: () => {
@@ -159,8 +197,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       questionIndexInRound: 0,
       activeChallenge: firstRound.questions[0],
       isTieBreak: false,
-      blueTeam: createTeamState('blue'),
-      redTeam: createTeamState('red'),
+      blueTeam: { ...s.blueTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+      redTeam: { ...s.redTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
       roundWinner: null,
       matchWinner: null,
       signalsGreenCount: 0,
@@ -279,13 +317,13 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         },
         signalsGreenCount: Math.min(5, s.signalsGreenCount + 1),
         onboardPassengers: [...s.onboardPassengers, newPassenger],
-        toastMessage: `👥 ${team.toUpperCase()} PASSENGER BOARDED! SIGNAL GREEN!`,
+        toastMessage: `👥 ${s[key].name} PASSENGER BOARDED! SIGNAL GREEN!`,
         timerActive: false,
       }));
 
       // If tie-break, instant victory
       if (state.isTieBreak) {
-        soundManager.playTrainWhistle();
+        soundManager.playLoudWhistle();
         get().runWinnerSequence(team);
         return;
       }
@@ -310,7 +348,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
             pointsEarned: 0,
           },
         },
-        toastMessage: `${team.toUpperCase()} INCORRECT! ${otherKey === 'blueTeam' ? 'BLUE' : 'RED'} CAN REBOUND!`,
+        toastMessage: `${s[key].name} INCORRECT! ${s[otherKey].name} CAN REBOUND!`,
       }));
 
       // If the other team was ALREADY locked out (both answered wrong), end question!
@@ -398,7 +436,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   startTieBreak: () => {
     const rIdx = get().currentRoundIndex;
     const tb = getTieBreaker(rIdx);
-    soundManager.playTrainWhistle();
+    soundManager.playLoudWhistle();
 
     set((s) => ({
       phase: 'tie-break',
@@ -415,6 +453,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   runWinnerSequence: (winner) => {
     clearTravel();
     const isBlue = winner === 'blue';
+    const winnerName = isBlue ? get().blueTeam.name : get().redTeam.name;
 
     set({
       phase: 'showdown',
@@ -435,7 +474,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       set({
         showdownStep: 'switching',
         switchTarget: winner,
-        toastMessage: `⚙️ JUNCTION SWITCH THROWING ➔ ${isBlue ? 'BLUE' : 'RED'} EXPRESS LINE`,
+        toastMessage: `⚙️ JUNCTION SWITCH THROWING ➔ ${winnerName} EXPRESS LINE`,
       });
     }, 1200);
 
@@ -445,29 +484,28 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       set({
         showdownStep: 'signal-yellow',
         [isBlue ? 'signalBlue' : 'signalRed']: 'yellow',
-        toastMessage: `🟡 SIGNAL YELLOW — ROUTE PRE-CLEARED FOR ${winner.toUpperCase()}`,
+        toastMessage: `🟡 SIGNAL YELLOW — ROUTE PRE-CLEARED FOR ${winnerName}`,
       });
     }, 2500);
 
-    // 3. Winner signal turns GREEN & Whistle blows (after 3.8s)
+    // 3. Winner signal turns GREEN & Loud Whistle blows when about to start (after 3.8s)
     setTimeout(() => {
       soundManager.playSignalChange();
-      soundManager.playTrainHorn();
+      soundManager.playLoudWhistle();
       set({
         showdownStep: 'signal-green',
         [isBlue ? 'signalBlue' : 'signalRed']: 'green',
-        toastMessage: `🟢 SIGNAL GREEN! ${winner.toUpperCase()} AUTHORIZED TO DEPART!`,
+        toastMessage: `🟢 SIGNAL GREEN! ${winnerName} AUTHORIZED TO DEPART!`,
       });
     }, 3800);
 
     // 4. Train departs & travels down the scenic line (after 5.0s)
     setTimeout(() => {
       soundManager.playTrainRunningAudio();
-      soundManager.playTrainHorn();
 
       set({
         showdownStep: 'departing',
-        toastMessage: `🚂 ${winner.toUpperCase()} STEAM TRAIN EN ROUTE!`,
+        toastMessage: `🚂 ${winnerName} STEAM TRAIN EN ROUTE!`,
         [isBlue ? 'blueTrain' : 'redTrain']: {
           progress: 0,
           speed: 1,
@@ -484,9 +522,9 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         tick++;
         prog += 1 / 180; // ~9 second cinematic ride
 
-        // Horn blasts 2 times spaced out during the run (at ~3s and ~6s)
+        // Loud whistle blasts 2 times spaced at 3-second intervals during train movement!
         if (tick === 60 || tick === 120) {
-          soundManager.playTrainHorn();
+          soundManager.playLoudWhistle();
         }
 
         const spd = prog < 0.15 ? prog * 6.6 : prog > 0.85 ? (1 - prog) * 6.6 : 1;

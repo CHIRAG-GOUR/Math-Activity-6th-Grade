@@ -19,6 +19,11 @@ import { Trophy, ArrowRight, Play, CheckCircle } from 'lucide-react';
 export const RailwayTitleScreen: React.FC = () => {
   const startGame = useRailwayStore((s) => s.startGame);
   const phase = useRailwayStore((s) => s.phase);
+  const blueTeam = useRailwayStore((s) => s.blueTeam);
+  const redTeam = useRailwayStore((s) => s.redTeam);
+  const setTeamName = useRailwayStore((s) => s.setTeamName);
+  const questionCountConfig = useRailwayStore((s) => s.questionCountConfig);
+  const setQuestionCountConfig = useRailwayStore((s) => s.setQuestionCountConfig);
 
   if (phase !== 'title') return null;
 
@@ -27,65 +32,128 @@ export const RailwayTitleScreen: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-sky-400 via-sky-300 to-amber-100 text-slate-900 select-none overflow-hidden p-6"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-sky-400 via-sky-300 to-amber-100 text-slate-900 select-none overflow-y-auto p-4 sm:p-6"
     >
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#94a3b8_0px,#94a3b8_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-400 opacity-40" />
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#94a3b8_0px,#94a3b8_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-400 opacity-30 pointer-events-none" />
 
-      {/* Grade 6 Badge */}
+      {/* Main Glassmorphic Container Card */}
       <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="px-4 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-amber-800 text-xs font-black tracking-widest uppercase mb-2 shadow-md"
+        initial={{ scale: 0.92, y: 15, opacity: 0 }}
+        animate={{ scale: 1, y: 0, opacity: 1 }}
+        transition={{ duration: 0.3 }}
+        className="max-w-3xl w-full bg-white/95 backdrop-blur-md border-2 border-amber-300 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center text-center relative z-10 my-auto"
       >
-        GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING
+        {/* Grade 6 Badge */}
+        <div className="px-4 py-1.5 rounded-full bg-amber-100 border border-amber-400 text-amber-900 text-[10px] sm:text-xs font-black tracking-widest uppercase mb-2 shadow-xs">
+          GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING
+        </div>
+
+        {/* Title */}
+        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 leading-tight">
+          THE GREAT NUMBER RAILWAY
+        </h1>
+
+        <p className="text-slate-700 text-xs sm:text-sm font-semibold max-w-xl text-center mt-1.5 leading-relaxed">
+          First correct answer <strong className="text-blue-700">boards passengers</strong>, turns semaphore signals <strong className="text-emerald-700">GREEN</strong>, and unlocks the <strong className="text-purple-700">Railway Showdown</strong> route!
+        </p>
+
+        {/* Team Customization Consoles (Blue vs Red) */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full my-5">
+          {/* Blue Team Setup Card */}
+          <div className="p-4 rounded-2xl bg-blue-50/80 border-2 border-blue-300 shadow-sm flex flex-col gap-2 text-left">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-lg shadow-sm text-white font-bold">
+                🔵
+              </div>
+              <div>
+                <span className="text-[10px] font-black tracking-wider text-blue-900 uppercase">
+                  TEAM 1 (LEFT OPERATOR)
+                </span>
+                <div className="text-[9px] text-slate-500 font-bold">Blue Locomotive</div>
+              </div>
+            </div>
+            <div className="mt-1">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">
+                TEAM NAME
+              </label>
+              <input
+                type="text"
+                value={blueTeam.name}
+                onChange={(e) => setTeamName('blue', e.target.value)}
+                placeholder="Enter Blue Team Name"
+                maxLength={20}
+                className="w-full px-3 py-2 rounded-xl bg-white border-2 border-blue-200 focus:border-blue-500 font-black text-xs text-slate-900 outline-none shadow-xs"
+              />
+            </div>
+          </div>
+
+          {/* Red Team Setup Card */}
+          <div className="p-4 rounded-2xl bg-red-50/80 border-2 border-red-300 shadow-sm flex flex-col gap-2 text-left">
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-xl bg-red-600 flex items-center justify-center text-lg shadow-sm text-white font-bold">
+                🔴
+              </div>
+              <div>
+                <span className="text-[10px] font-black tracking-wider text-red-900 uppercase">
+                  TEAM 2 (RIGHT OPERATOR)
+                </span>
+                <div className="text-[9px] text-slate-500 font-bold">Red Locomotive</div>
+              </div>
+            </div>
+            <div className="mt-1">
+              <label className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">
+                TEAM NAME
+              </label>
+              <input
+                type="text"
+                value={redTeam.name}
+                onChange={(e) => setTeamName('red', e.target.value)}
+                placeholder="Enter Red Team Name"
+                maxLength={20}
+                className="w-full px-3 py-2 rounded-xl bg-white border-2 border-red-200 focus:border-red-500 font-black text-xs text-slate-900 outline-none shadow-xs"
+              />
+            </div>
+          </div>
+        </div>
+
+        {/* Question Length / Stage Selector (5, 10, 15) */}
+        <div className="w-full p-3.5 rounded-2xl bg-slate-50 border border-slate-200 shadow-inner flex flex-col items-center gap-2 mb-6">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-700">
+            🎯 MATCH LENGTH & TOTAL QUESTIONS
+          </span>
+          <div className="grid grid-cols-3 gap-2 w-full max-w-md">
+            {([5, 10, 15] as const).map((cnt) => {
+              const isSelected = questionCountConfig === cnt;
+              const stages = cnt === 5 ? '1 STAGE' : cnt === 10 ? '2 STAGES' : '3 STAGES';
+              return (
+                <button
+                  key={cnt}
+                  onClick={() => setQuestionCountConfig(cnt)}
+                  className={`py-2 px-2 rounded-xl font-black transition-all flex flex-col items-center justify-center border-2 shadow-xs cursor-pointer ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-600 scale-102 shadow-md'
+                      : 'bg-white text-slate-700 border-slate-300 hover:border-amber-400'
+                  }`}
+                >
+                  <span className="text-sm font-black">{cnt} QUESTIONS</span>
+                  <span className="text-[9px] opacity-85">{stages}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Start Game Action Button */}
+        <motion.button
+          whileHover={{ scale: 1.03 }}
+          whileTap={{ scale: 0.97 }}
+          onClick={startGame}
+          className="w-full max-w-md py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base tracking-wider uppercase shadow-xl shadow-amber-500/30 border-2 border-amber-500 flex items-center justify-center gap-3 cursor-pointer"
+        >
+          <Play className="w-5 h-5 fill-slate-950" />
+          <span>ALL ABOARD • START RUN</span>
+        </motion.button>
       </motion.div>
-
-      {/* Title */}
-      <motion.h1
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-center max-w-4xl text-slate-950 drop-shadow-sm"
-      >
-        THE GREAT NUMBER RAILWAY
-      </motion.h1>
-
-      <p className="text-slate-800 text-xs sm:text-sm font-bold max-w-xl text-center mt-2 leading-relaxed">
-        Answer place value & rounding questions to <strong className="text-purple-700">board passengers inside the train</strong>, turn signals <strong className="text-emerald-700">GREEN</strong>, and throw the junction switch to claim the route!
-      </p>
-
-      {/* Dual Team Preview Cards */}
-      <div className="flex items-center gap-6 my-6">
-        <div className="flex flex-col items-center p-3.5 rounded-2xl bg-white border-2 border-blue-400 shadow-lg w-40">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
-            🔵
-          </div>
-          <span className="font-black text-xs text-blue-800 tracking-wider">TEAM BLUE</span>
-          <span className="text-[9px] text-slate-500 font-bold mt-0.5">LEFT CONSOLE</span>
-        </div>
-
-        <div className="text-xl font-black text-amber-600">VS</div>
-
-        <div className="flex flex-col items-center p-3.5 rounded-2xl bg-white border-2 border-red-400 shadow-lg w-40">
-          <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
-            🔴
-          </div>
-          <span className="font-black text-xs text-red-800 tracking-wider">TEAM RED</span>
-          <span className="text-[9px] text-slate-500 font-bold mt-0.5">RIGHT CONSOLE</span>
-        </div>
-      </div>
-
-      {/* Start Button */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={startGame}
-        className="px-10 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base tracking-wider uppercase shadow-xl shadow-amber-500/30 border-2 border-amber-500 flex items-center gap-3 cursor-pointer"
-      >
-        <Play className="w-5 h-5 fill-slate-950" />
-        <span>ALL ABOARD • START RUN</span>
-      </motion.button>
     </motion.div>
   );
 };
