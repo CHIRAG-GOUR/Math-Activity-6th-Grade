@@ -6,23 +6,23 @@ export const ArcadeLobbyScene: React.FC = () => {
   return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none select-none z-0">
       
-      {/* 1. WARM LUXURY ARCADE WALLS GRADIENT (Bright, inviting ambient lighting) */}
-      <div className="absolute inset-0 bg-gradient-to-b from-[#1a2c42] via-[#243b55] via-50% to-[#1e293b]" />
+      {/* 1. BRIGHT, LIGHT & WARM ARCADE WALLS GRADIENT */}
+      <div className="absolute inset-0 bg-gradient-to-b from-[#fffbeb] via-[#fef3c7] via-45% to-[#fde68a]" />
 
-      {/* 2. OVERHEAD AMBIENT TRACK SPOTLIGHTS */}
-      <div className="absolute top-0 left-1/4 w-96 h-96 bg-cyan-400/20 rounded-full blur-3xl" />
-      <div className="absolute top-0 right-1/4 w-96 h-96 bg-amber-400/25 rounded-full blur-3xl" />
-      <div className="absolute top-10 left-1/2 -translate-x-1/2 w-[600px] h-64 bg-blue-500/20 rounded-full blur-3xl" />
+      {/* 2. SOFT WARM DAYLIGHT & SUNNY TRACK SPOTLIGHTS */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-amber-200/40 rounded-full blur-3xl" />
+      <div className="absolute top-0 right-1/4 w-[500px] h-[500px] bg-sky-200/35 rounded-full blur-3xl" />
+      <div className="absolute top-5 left-1/2 -translate-x-1/2 w-[700px] h-72 bg-amber-300/30 rounded-full blur-3xl" />
 
-      {/* 3. RETRO-MODERN ARCADE NEON GEOMETRIC WALL ACCENTS */}
-      <div className="absolute top-0 inset-x-0 h-32 opacity-30 flex justify-between px-12">
-        <div className="w-1 h-32 bg-gradient-to-b from-cyan-400 to-transparent shadow-[0_0_15px_#00f0ff]" />
-        <div className="w-1 h-32 bg-gradient-to-b from-amber-400 to-transparent shadow-[0_0_15px_#ffd700]" />
-        <div className="w-1 h-32 bg-gradient-to-b from-purple-400 to-transparent shadow-[0_0_15px_#c084fc]" />
-        <div className="w-1 h-32 bg-gradient-to-b from-cyan-400 to-transparent shadow-[0_0_15px_#00f0ff]" />
+      {/* 3. LIGHT VIBRANT ARCADE CANOPY & STRIPED WALL ACCENTS */}
+      <div className="absolute top-0 inset-x-0 h-40 opacity-40 flex justify-between px-16">
+        <div className="w-2 h-40 bg-gradient-to-b from-amber-400 to-transparent shadow-[0_0_20px_#f59e0b]" />
+        <div className="w-2 h-40 bg-gradient-to-b from-sky-400 to-transparent shadow-[0_0_20px_#0284c7]" />
+        <div className="w-2 h-40 bg-gradient-to-b from-rose-400 to-transparent shadow-[0_0_20px_#e11d48]" />
+        <div className="w-2 h-40 bg-gradient-to-b from-amber-400 to-transparent shadow-[0_0_20px_#f59e0b]" />
       </div>
 
-      {/* 4. REAL POLISHED HARDWOOD FLOOR PERSPECTIVE (BRIGHT WOOD PLANK TEXTURE) */}
+      {/* 4. LIGHT HONEY-TONED POLISHED WOOD FLOOR PERSPECTIVE */}
       <div className="absolute bottom-0 inset-x-0 h-[48%] perspective-[800px]">
         <div 
           style={{
@@ -31,25 +31,25 @@ export const ArcadeLobbyScene: React.FC = () => {
             background: `
               repeating-linear-gradient(
                 90deg,
-                #b87333 0px,
-                #9a5823 4px,
-                #c68346 60px,
-                #854519 120px,
-                #ab6831 124px
+                #d99b58 0px,
+                #c5833e 4px,
+                #e5b370 60px,
+                #b8742d 120px,
+                #d39652 124px
               ),
-              linear-gradient(180deg, rgba(255,255,255,0.25) 0%, rgba(0,0,0,0.4) 100%)
+              linear-gradient(180deg, rgba(255,255,255,0.4) 0%, rgba(0,0,0,0.15) 100%)
             `,
-            boxShadow: 'inset 0 10px 40px rgba(0,0,0,0.6), 0 -15px 50px rgba(255,215,0,0.15)',
+            boxShadow: 'inset 0 10px 30px rgba(0,0,0,0.2), 0 -10px 40px rgba(245,158,11,0.2)',
           }}
-          className="w-full h-[150%] relative border-t-4 border-amber-300/40"
+          className="w-full h-[150%] relative border-t-4 border-amber-400/60"
         >
           {/* Wood Floor Planks Horizontal Seams */}
           <div 
             style={{
               backgroundImage: `repeating-linear-gradient(
                 0deg,
-                rgba(0,0,0,0.3) 0px,
-                rgba(0,0,0,0.3) 2px,
+                rgba(0,0,0,0.15) 0px,
+                rgba(0,0,0,0.15) 2px,
                 transparent 2px,
                 transparent 45px
               )`,
@@ -57,17 +57,17 @@ export const ArcadeLobbyScene: React.FC = () => {
             className="absolute inset-0"
           />
 
-          {/* Golden Specular Highlight Reflections from Cabinets & Overhead Lights */}
-          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-amber-300/10 to-cyan-300/15" />
+          {/* Bright Specular Highlight Reflections from Cabinets & Overhead Lights */}
+          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-amber-200/25 to-white/30" />
           
-          {/* Reflective Arcade Light Cones on Wood Floor */}
-          <div className="absolute top-0 left-[20%] w-64 h-full bg-cyan-400/15 blur-2xl transform -skew-x-12" />
-          <div className="absolute top-0 right-[20%] w-64 h-full bg-amber-400/20 blur-2xl transform skew-x-12" />
+          {/* Reflective Light Cones on Honey Wood Floor */}
+          <div className="absolute top-0 left-[20%] w-72 h-full bg-blue-300/25 blur-3xl transform -skew-x-12" />
+          <div className="absolute top-0 right-[20%] w-72 h-full bg-amber-300/35 blur-3xl transform skew-x-12" />
         </div>
       </div>
 
-      {/* 5. VIBRANT BASEBOARD & CORNER ACCENTS */}
-      <div className="absolute bottom-[48%] inset-x-0 h-2 bg-gradient-to-r from-amber-400 via-cyan-400 to-amber-400 shadow-[0_0_20px_rgba(255,215,0,0.8)] opacity-60" />
+      {/* 5. VIBRANT GOLD BASEBOARD ACCENT */}
+      <div className="absolute bottom-[48%] inset-x-0 h-2 bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 shadow-[0_0_20px_rgba(245,158,11,0.6)] opacity-80" />
 
     </div>
   );
