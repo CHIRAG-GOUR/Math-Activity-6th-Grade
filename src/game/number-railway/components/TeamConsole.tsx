@@ -1,10 +1,9 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Compact Floating Team Console
-// Designed for Touchscreen Ergonomics:
-// - Width: 265px (Compact, leaves ~70% screen for 3D world!)
-// - Theme: Fresh, crisp porcelain white with vibrant team accents
-// - High-contrast readable typography
-// - Multi-touch isolated interaction
+// THE GREAT NUMBER RAILWAY — Symmetrical Team Control Console
+// Perfectly Identical Sizing & Vertical Proportions for Both Teams:
+// - Dimensions: w-[270px] (Symmetrical on Left & Right)
+// - Porcelain White + Vibrant Team Color Accents
+// - Real-time Lock-in, Speed Bonus, and Round Reveal States
 // ============================================================
 
 'use client';
@@ -24,79 +23,88 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
   const phase = useRailwayStore((s) => s.phase);
   const setAnswer = useRailwayStore((s) => s.setTeamAnswer);
   const lockIn = useRailwayStore((s) => s.lockInTeam);
-  const evaluate = useRailwayStore((s) => s.evaluateTeam);
+  const isSuperTieBreaker = useRailwayStore((s) => s.isSuperTieBreaker);
 
   const isBlue = team === 'blue';
   const teamTitle = isBlue ? 'TEAM BLUE' : 'TEAM RED';
 
-  // Crisp, Fresh White + Vibrant Team Color Tokens
+  // Crisp, High-Contrast Symmetrical Color Tokens
   const theme = isBlue
     ? {
-        headerBg: 'bg-gradient-to-r from-blue-600 to-indigo-600',
-        border: 'border-blue-200',
+        headerBg: 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700',
+        border: 'border-blue-300',
         badgeBg: 'bg-blue-50 text-blue-800 border-blue-200',
-        cardBg: 'bg-blue-50/40 border-blue-100',
-        numberBoxBg: 'bg-blue-50/80 border border-blue-300',
+        cardBg: 'bg-blue-50/50 border-blue-100',
+        numberBoxBg: 'bg-blue-50/90 border-2 border-blue-400',
         numberText: 'text-blue-800',
-        optionDefault: 'bg-white border-2 border-slate-200 text-slate-800 hover:border-blue-400 hover:bg-blue-50/50 shadow-xs',
+        optionDefault: 'bg-white border-2 border-slate-200 text-slate-900 hover:border-blue-400 hover:bg-blue-50/50 shadow-xs',
         optionSelected: 'bg-blue-600 border-2 border-blue-700 text-white shadow-md shadow-blue-500/30',
         confirmBtn: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-blue-600/30',
       }
     : {
-        headerBg: 'bg-gradient-to-r from-red-600 to-rose-600',
-        border: 'border-red-200',
+        headerBg: 'bg-gradient-to-r from-red-600 via-red-700 to-rose-700',
+        border: 'border-red-300',
         badgeBg: 'bg-red-50 text-red-800 border-red-200',
-        cardBg: 'bg-red-50/40 border-red-100',
-        numberBoxBg: 'bg-red-50/80 border border-red-300',
+        cardBg: 'bg-red-50/50 border-red-100',
+        numberBoxBg: 'bg-red-50/90 border-2 border-red-400',
         numberText: 'text-red-800',
-        optionDefault: 'bg-white border-2 border-slate-200 text-slate-800 hover:border-red-400 hover:bg-red-50/50 shadow-xs',
+        optionDefault: 'bg-white border-2 border-slate-200 text-slate-900 hover:border-red-400 hover:bg-red-50/50 shadow-xs',
         optionSelected: 'bg-red-600 border-2 border-red-700 text-white shadow-md shadow-red-500/30',
         confirmBtn: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-md shadow-red-600/30',
       };
 
+  const isPlayable = phase === 'challenge' || phase === 'super-tie-breaker';
+
   const handleSelectOption = useCallback(
     (val: number | string) => {
-      if (teamState.isLockedIn || phase !== 'challenge') return;
+      if (teamState.isLocked || !isPlayable) return;
       setAnswer(team, val);
     },
-    [team, teamState.isLockedIn, phase, setAnswer]
+    [team, teamState.isLocked, isPlayable, setAnswer]
   );
 
   const handleConfirmAnswer = useCallback(() => {
-    if (teamState.isLockedIn || teamState.currentAnswer === null || phase !== 'challenge') return;
+    if (teamState.isLocked || teamState.selectedAnswer === null || !isPlayable) return;
     lockIn(team);
-    setTimeout(() => {
-      evaluate(team);
-    }, 400);
-  }, [team, teamState.isLockedIn, teamState.currentAnswer, phase, lockIn, evaluate]);
-
-  const showQuestion = phase === 'challenge' && challenge;
+  }, [team, teamState.isLocked, teamState.selectedAnswer, isPlayable, lockIn]);
 
   return (
     <div
-      className={`w-full max-w-[275px] bg-white/95 backdrop-blur-md border-2 ${theme.border} rounded-2xl shadow-2xl shadow-slate-900/15 select-none overflow-hidden font-sans flex flex-col`}
+      className={`w-[270px] min-w-[270px] max-w-[270px] bg-white/95 backdrop-blur-md border-2 ${theme.border} rounded-2xl shadow-2xl shadow-slate-900/15 select-none overflow-hidden font-sans flex flex-col`}
       onPointerDown={(e) => e.stopPropagation()} // Multi-touch isolation
     >
-      {/* ── 1. Team Header Bar ── */}
+      {/* ── 1. Symmetrical Team Header Bar ── */}
       <div className={`px-3 py-2 ${theme.headerBg} flex items-center justify-between text-white shadow-xs`}>
         <div className="flex items-center gap-1.5">
-          <span className="text-base">🚂</span>
-          <h2 className="text-[11px] font-black tracking-wider uppercase text-white leading-tight">
-            {teamTitle}
-          </h2>
+          <span className="text-base">{isBlue ? '🔵' : '🔴'}</span>
+          <div>
+            <h2 className="text-[11px] font-black tracking-wider uppercase text-white leading-tight">
+              {teamTitle}
+            </h2>
+            <div className="text-[8px] font-bold text-white/80 tracking-wide">
+              OPERATOR CONSOLE
+            </div>
+          </div>
         </div>
 
-        {/* Score Badge */}
-        <div className="px-2 py-0.5 bg-black/20 rounded-md border border-white/20 text-center">
-          <span className="text-xs font-black text-amber-300 leading-tight">
-            {teamState.score} <span className="text-[7px] text-slate-200 uppercase font-bold">PTS</span>
-          </span>
+        {/* Score & Streak */}
+        <div className="flex items-center gap-1.5">
+          {teamState.streak > 1 && (
+            <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-black text-[9px] animate-bounce">
+              🔥×{teamState.streak}
+            </span>
+          )}
+          <div className="px-2 py-0.5 bg-black/25 rounded-md border border-white/20 text-center">
+            <span className="text-xs font-black text-amber-300 leading-tight">
+              {teamState.score} <span className="text-[7px] text-slate-200 uppercase font-bold">PTS</span>
+            </span>
+          </div>
         </div>
       </div>
 
       {/* ── 2. Current Step Badge ── */}
       {challenge && (
-        <div className={`px-2.5 py-1 ${theme.badgeBg} border-b flex items-center justify-between`}>
+        <div className={`px-2.5 py-1 ${isSuperTieBreaker ? 'bg-amber-100 text-amber-900 border-amber-300' : theme.badgeBg} border-b flex items-center justify-between`}>
           <div className="flex items-center gap-1 font-black text-[9px] uppercase tracking-tight">
             <span>{challenge.stepIcon}</span>
             <span>{challenge.stepTitle}</span>
@@ -108,8 +116,8 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
       )}
 
       {/* ── 3. Interactive Challenge Content ── */}
-      <div className="p-3 flex flex-col gap-2 bg-slate-50/80 overflow-y-auto">
-        {showQuestion ? (
+      <div className="p-2.5 flex flex-col gap-2 bg-slate-50/80 overflow-y-auto max-h-[380px]">
+        {isPlayable && challenge ? (
           <>
             {/* Question Card */}
             <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
@@ -133,8 +141,8 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
             {/* Answer Options Grid */}
             <div className="flex flex-col gap-1.5">
               {challenge.options.map((opt, i) => {
-                const isSelected = teamState.currentAnswer === opt.value;
-                const isLocked = teamState.isLockedIn;
+                const isSelected = teamState.selectedAnswer === opt.value;
+                const isLocked = teamState.isLocked;
 
                 return (
                   <motion.button
@@ -142,7 +150,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                     whileTap={!isLocked ? { scale: 0.97 } : {}}
                     onClick={() => handleSelectOption(opt.value)}
                     disabled={isLocked}
-                    className={`w-full py-2 px-2.5 rounded-xl font-mono text-sm font-black text-center transition-all duration-150 ${
+                    className={`w-full py-2 px-2 rounded-xl font-mono text-sm font-black text-center transition-all duration-150 ${
                       isSelected
                         ? theme.optionSelected
                         : theme.optionDefault
@@ -155,22 +163,22 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
             </div>
 
             {/* Lock In / Confirm Route Button */}
-            {!teamState.isLockedIn ? (
+            {!teamState.isLocked ? (
               <motion.button
                 whileTap={{ scale: 0.96 }}
                 onClick={handleConfirmAnswer}
-                disabled={teamState.currentAnswer === null}
+                disabled={teamState.selectedAnswer === null}
                 className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 cursor-pointer ${
-                  teamState.currentAnswer !== null
+                  teamState.selectedAnswer !== null
                     ? theme.confirmBtn
                     : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'
                 }`}
               >
-                ⚡ CONFIRM
+                ⚡ CONFIRM ROUTE
               </motion.button>
             ) : (
-              <div className="w-full py-1.5 rounded-xl bg-amber-50 border border-amber-300 text-center font-black text-[10px] text-amber-800 animate-pulse shadow-xs">
-                ⏳ CONFIRMED...
+              <div className="w-full py-2 rounded-xl bg-amber-50 border border-amber-300 text-center font-black text-[10px] text-amber-800 animate-pulse shadow-xs">
+                ⏳ ROUTE CONFIRMED...
               </div>
             )}
 
@@ -181,7 +189,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                   initial={{ opacity: 0, y: 4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className={`p-1.5 rounded-lg border text-[9px] font-bold leading-tight shadow-xs ${
+                  className={`p-1.5 rounded-lg border text-[9px] font-black leading-tight text-center shadow-xs ${
                     teamState.lastFeedback.isCorrect
                       ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                       : 'bg-red-50 border-red-300 text-red-900'

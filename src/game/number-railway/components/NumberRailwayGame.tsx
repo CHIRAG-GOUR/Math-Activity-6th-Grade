@@ -3,9 +3,9 @@
 // Full-Bleed 3D World with Floating Ergonomic Touch Consoles:
 // - FULLSCREEN 3D CANVAS (100% Viewport Background)
 // - Floating Top HUD (Station Route, Scores, 5-Step Badges)
-// - Floating Left Console: Team Blue (265px, Bottom-Left)
-// - Floating Right Console: Team Red (265px, Bottom-Right)
-// - ~75% Unobstructed Center Viewport for 3D Train & Station!
+// - Symmetrical Floating Consoles: Team Blue (Left) & Team Red (Right)
+// - Round Reveal Solution Explanation
+// - Super Tie-Breaker & Game Over Celebrations
 // ============================================================
 
 'use client';
@@ -18,6 +18,7 @@ import { RailwayHUD } from './RailwayHUD';
 import {
   RailwayTitleScreen,
   MissionBriefing,
+  RoundRevealOverlay,
   StationArrivalOverlay,
   StepLoadingToast,
   NetworkCompleteOverlay,
@@ -55,13 +56,14 @@ export const NumberRailwayGame: React.FC = () => {
       {/* ── 4. Fullscreen Overlays & Modals ── */}
       <RailwayTitleScreen />
       <MissionBriefing />
+      <RoundRevealOverlay />
       <StationArrivalOverlay />
       <NetworkCompleteOverlay />
 
-      {/* ── 5. Floating Team Consoles (Bottom-Left & Bottom-Right) ── */}
-      <div className="absolute inset-x-0 bottom-4 top-18 pointer-events-none px-4 flex items-end justify-between z-20">
+      {/* ── 5. Floating Symmetrical Team Consoles (Bottom-Left & Bottom-Right) ── */}
+      <div className="absolute inset-x-0 bottom-3 top-16 pointer-events-none px-4 flex items-end justify-between z-20">
         
-        {/* ── LEFT: BLUE TEAM OPERATOR CONSOLE ── */}
+        {/* ── LEFT: BLUE TEAM OPERATOR CONSOLE (270px) ── */}
         <div className="pointer-events-auto">
           <TeamConsole team="blue" />
         </div>
@@ -69,12 +71,12 @@ export const NumberRailwayGame: React.FC = () => {
         {/* ── CENTER: Fullscreen Toggle Button at Bottom ── */}
         <button
           onClick={toggleFullscreen}
-          className="pointer-events-auto px-3 py-1 rounded-xl bg-white/90 backdrop-blur-md border border-slate-200 text-slate-700 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-md cursor-pointer mb-1"
+          className="pointer-events-auto px-3.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-lg cursor-pointer mb-1"
         >
           ⛶ FULLSCREEN
         </button>
 
-        {/* ── RIGHT: RED TEAM OPERATOR CONSOLE ── */}
+        {/* ── RIGHT: RED TEAM OPERATOR CONSOLE (270px) ── */}
         <div className="pointer-events-auto">
           <TeamConsole team="red" />
         </div>

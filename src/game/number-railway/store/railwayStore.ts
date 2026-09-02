@@ -1,6 +1,11 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Zustand Store
-// 5-Stage Station Journey State & Multi-Touch Team Architecture
+// THE GREAT NUMBER RAILWAY — Zustand Game Store
+// Robust Competitive Progression Logic (Activity #1 Model):
+// - Symmetrical team evaluation with speed bonuses & streaks
+// - 5-Stage Station Loading & High-Graphics Journey
+// - Round Reveal feedback phase
+// - Super Tie-Breaker Challenge for tied scores
+// - Winner / Loser / Draw Game Over state
 // ============================================================
 
 import { create } from 'zustand';
@@ -12,7 +17,11 @@ import {
   GamePhase,
   LoadedTrainItems,
 } from '../types';
-import { RAILWAY_CHALLENGES, STATIONS_LIST } from '../engine/challenges';
+import {
+  RAILWAY_CHALLENGES,
+  STATIONS_LIST,
+  SUPER_TIE_BREAKER_CHALLENGE,
+} from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
 
 const createTeamState = (id: TeamId): TeamState => ({
@@ -21,10 +30,10 @@ const createTeamState = (id: TeamId): TeamState => ({
   score: 0,
   streak: 0,
   correctAnswersCount: 0,
-  currentAnswer: null,
-  isLockedIn: false,
-  hasAnswered: false,
-  isCorrect: null,
+  selectedAnswer: null,
+  isLocked: false,
+  lastResult: null,
+  lastScoreGained: 0,
   lastFeedback: null,
   attemptsOnCurrent: 0,
 });
@@ -54,10 +63,9 @@ interface RailwayStoreActions {
 
   setTeamAnswer: (team: TeamId, answer: number | string) => void;
   lockInTeam: (team: TeamId) => void;
-  evaluateTeam: (team: TeamId) => void;
-  resetTeamInputs: () => void;
+  checkAndAdvanceRound: () => void;
+  advanceToNextQuestion: () => void;
 
-  nextStepOrDepart: () => void;
   startTrainJourneyToNextStation: () => void;
   setTrainProgress: (progress: number) => void;
   completeStationArrival: () => void;
@@ -66,6 +74,7 @@ interface RailwayStoreActions {
   setTimeRemaining: (t: number) => void;
   setTimerActive: (active: boolean) => void;
   clearAnimationMessage: () => void;
+  handleTimerExpired: () => void;
 }
 
 export type RailwayStore = RailwayGameState & RailwayStoreActions;
@@ -77,6 +86,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   activeChallengeIndex: 0,
   challenges: RAILWAY_CHALLENGES,
   activeChallenge: RAILWAY_CHALLENGES[0] || null,
+  isSuperTieBreaker: false,
+  winner: null,
 
   blueTeam: createTeamState('blue'),
   redTeam: createTeamState('red'),
@@ -91,7 +102,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   totalJourneysCompleted: 0,
 
   isMuted: false,
-  timeRemaining: 45,
+  timeRemaining: 35,
   timerActive: false,
   stepAnimationMessage: null,
 
@@ -105,6 +116,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       currentStepIndex: 1,
       activeChallengeIndex: 0,
       activeChallenge: firstChallenge,
+      isSuperTieBreaker: false,
+      winner: null,
       blueTeam: createTeamState('blue'),
       redTeam: createTeamState('red'),
       loadedItems: { ...DEFAULT_LOADED_ITEMS },
@@ -113,7 +126,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       fromStationName: STATIONS_LIST[0].name,
       toStationName: STATIONS_LIST[1].name,
       totalJourneysCompleted: 0,
-      timeRemaining: firstChallenge?.timeLimit || 45,
+      timeRemaining: firstChallenge?.timeLimit || 35,
       timerActive: false,
       stepAnimationMessage: null,
     });
@@ -123,29 +136,26 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
     soundManager.playClick();
     set((s) => ({
-      [key]: { ...s[key], currentAnswer: answer },
+      [key]: { ...s[key], selectedAnswer: answer },
     }));
   },
 
   lockInTeam: (team) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    soundManager.playClick();
-    set((s) => ({
-      [key]: { ...s[key], isLockedIn: true, hasAnswered: true },
-    }));
-  },
-
-  evaluateTeam: (team) => {
     const state = get();
     const challenge = state.activeChallenge;
-    if (!challenge) return;
+    if (!challenge || state.phase !== 'challenge' && state.phase !== 'super-tie-breaker') return;
 
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
     const teamState = state[key];
-    const answer = teamState.currentAnswer;
-    const isCorrect = answer !== null && challenge.validation(answer);
+    const answer = teamState.selectedAnswer;
+    if (answer === null) return;
 
-    const points = isCorrect ? challenge.points : 0;
+    soundManager.playClick();
+    const isCorrect = challenge.validation(answer);
+
+    // Speed bonus calculation (e.g. +10 to +30 pts if answered fast)
+    const speedBonus = isCorrect ? Math.max(0, Math.floor(state.timeRemaining * 1.5)) : 0;
+    const pointsGained = isCorrect ? challenge.points + speedBonus : 0;
     const newStreak = isCorrect ? teamState.streak + 1 : 0;
 
     if (isCorrect) {
@@ -154,101 +164,146 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       soundManager.playWrong();
     }
 
+    // Apply physical loading step consequence if correct!
+    const step = challenge.stepIndex;
+    const updatedLoaded = { ...state.loadedItems };
+    let toastMsg = '';
+
+    if (isCorrect && !state.isSuperTieBreaker) {
+      if (step === 1) {
+        updatedLoaded.vehicles = true;
+        toastMsg = '🚗 STEP 1/5: VEHICLES LOADED!';
+      } else if (step === 2) {
+        updatedLoaded.materials = true;
+        toastMsg = '🧱 STEP 2/5: BUILDING MATERIALS SECURED!';
+      } else if (step === 3) {
+        updatedLoaded.passengers = true;
+        toastMsg = '👥 STEP 3/5: PASSENGERS ONBOARDED!';
+      } else if (step === 4) {
+        updatedLoaded.brakesLifted = true;
+        toastMsg = '⚙️ STEP 4/5: BRAKES LIFTED & STEAM CHARGED!';
+      } else if (step === 5) {
+        updatedLoaded.signalGreen = true;
+        toastMsg = '🚦 STEP 5/5: SIGNAL GREEN! DEPARTING!';
+      }
+    }
+
     set((s) => ({
       [key]: {
         ...s[key],
-        isCorrect,
-        score: s[key].score + points,
+        isLocked: true,
+        lastResult: isCorrect ? 'correct' : 'wrong',
+        score: s[key].score + pointsGained,
         streak: newStreak,
         correctAnswersCount: isCorrect ? s[key].correctAnswersCount + 1 : s[key].correctAnswersCount,
-        attemptsOnCurrent: s[key].attemptsOnCurrent + 1,
+        lastScoreGained: pointsGained,
         lastFeedback: {
           message: isCorrect
-            ? `✅ CORRECT! +${points} PTS — ${challenge.stepTitle}!`
-            : `🔍 ${challenge.hints[Math.min(s[key].attemptsOnCurrent, challenge.hints.length - 1)]}`,
+            ? `✅ CORRECT! +${pointsGained} PTS`
+            : `❌ WRONG ANSWER`,
           isCorrect,
-          pointsEarned: points,
+          pointsEarned: pointsGained,
         },
       },
+      loadedItems: updatedLoaded,
+      stepAnimationMessage: toastMsg ? toastMsg : s.stepAnimationMessage,
+      signalState: (step === 5 && isCorrect) ? 'green' : s.signalState,
     }));
 
-    // If at least one team got it right, apply the physical loading consequence!
-    if (isCorrect) {
-      const step = challenge.stepIndex;
-      const updatedLoaded = { ...get().loadedItems };
-      let msg = '';
+    // If super tie-breaker solved by this team, trigger instant victory!
+    if (state.isSuperTieBreaker && isCorrect) {
+      soundManager.playRailwayVictory();
+      set({
+        phase: 'game-over',
+        winner: team,
+      });
+      return;
+    }
 
-      if (step === 1) {
-        updatedLoaded.vehicles = true;
-        msg = '🚗 STEP 1/5: VEHICLES LOADED ONTO FLATBED!';
-        soundManager.playKeypadBeep();
-      } else if (step === 2) {
-        updatedLoaded.materials = true;
-        msg = '🧱 STEP 2/5: BUILDING MATERIALS & TIMBER SECURED!';
-        soundManager.playKeypadBeep();
-      } else if (step === 3) {
-        updatedLoaded.passengers = true;
-        msg = '👥 STEP 3/5: ALL ABOARD! PASSENGERS ENTER COACH!';
-        soundManager.playTrainWhistle();
-      } else if (step === 4) {
-        updatedLoaded.brakesLifted = true;
-        msg = '⚙️ STEP 4/5: PNEUMATIC BRAKES LIFTED & STEAM FULLY CHARGED!';
-        soundManager.playKeypadBeep();
-      } else if (step === 5) {
-        updatedLoaded.signalGreen = true;
-        msg = '🚦 STEP 5/5: SIGNAL TURNS GREEN! TRAIN DEPARTS TO NEXT STATION!';
-        soundManager.playSignalChange();
+    // Check if both teams have locked in
+    setTimeout(() => {
+      const curState = get();
+      if (curState.blueTeam.isLocked && curState.redTeam.isLocked) {
+        curState.checkAndAdvanceRound();
       }
+    }, 300);
+  },
+
+  handleTimerExpired: () => {
+    const state = get();
+    if (state.phase !== 'challenge' && state.phase !== 'super-tie-breaker') return;
+
+    soundManager.playWrong();
+
+    if (state.isSuperTieBreaker) {
+      // Tie breaker expired without answer: check score or declare draw
+      const winner =
+        state.blueTeam.score > state.redTeam.score
+          ? 'blue'
+          : state.redTeam.score > state.blueTeam.score
+            ? 'red'
+            : 'draw';
 
       set({
-        loadedItems: updatedLoaded,
-        stepAnimationMessage: msg,
-        signalState: step === 5 ? 'green' : 'red',
+        phase: 'game-over',
+        winner,
+        timerActive: false,
       });
-
-      // If Step 5 is solved, start train journey! Otherwise advance to next step
-      if (step === 5) {
-        setTimeout(() => {
-          get().startTrainJourneyToNextStation();
-        }, 1200);
-      } else {
-        setTimeout(() => {
-          get().nextStepOrDepart();
-        }, 1800);
-      }
+      return;
     }
-  },
 
-  resetTeamInputs: () => {
+    // Lock in both teams and advance
     set((s) => ({
-      blueTeam: {
-        ...s.blueTeam,
-        currentAnswer: null,
-        isLockedIn: false,
-        hasAnswered: false,
-        isCorrect: null,
-        lastFeedback: null,
-        attemptsOnCurrent: 0,
-      },
-      redTeam: {
-        ...s.redTeam,
-        currentAnswer: null,
-        isLockedIn: false,
-        hasAnswered: false,
-        isCorrect: null,
-        lastFeedback: null,
-        attemptsOnCurrent: 0,
-      },
+      blueTeam: { ...s.blueTeam, isLocked: true },
+      redTeam: { ...s.redTeam, isLocked: true },
+      timerActive: false,
     }));
+
+    get().checkAndAdvanceRound();
   },
 
-  nextStepOrDepart: () => {
-    const state = get();
-    const nextIdx = state.activeChallengeIndex + 1;
+  checkAndAdvanceRound: () => {
+    set({ phase: 'round-reveal', timerActive: false });
 
+    setTimeout(() => {
+      get().advanceToNextQuestion();
+    }, 2200);
+  },
+
+  advanceToNextQuestion: () => {
+    const state = get();
+    const curIdx = state.activeChallengeIndex;
+    const challenge = state.activeChallenge;
+
+    // If this was Step 5 (or last question in journey), trigger Train Departure!
+    if (challenge && challenge.stepIndex === 5) {
+      get().startTrainJourneyToNextStation();
+      return;
+    }
+
+    const nextIdx = curIdx + 1;
     if (nextIdx >= state.challenges.length) {
-      set({ phase: 'network-complete' });
-      soundManager.playRailwayVictory();
+      // Check for tie-breaker or victory
+      if (state.blueTeam.score === state.redTeam.score) {
+        // TRIGGER SUPER TIE-BREAKER!
+        set({
+          phase: 'super-tie-breaker',
+          isSuperTieBreaker: true,
+          activeChallenge: SUPER_TIE_BREAKER_CHALLENGE,
+          timeRemaining: SUPER_TIE_BREAKER_CHALLENGE.timeLimit,
+          timerActive: true,
+          blueTeam: { ...state.blueTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+          redTeam: { ...state.redTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+        });
+        soundManager.playTrainWhistle();
+      } else {
+        const winner = state.blueTeam.score > state.redTeam.score ? 'blue' : 'red';
+        set({
+          phase: 'game-over',
+          winner,
+        });
+        soundManager.playRailwayVictory();
+      }
       return;
     }
 
@@ -261,14 +316,16 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       timerActive: true,
       phase: 'challenge',
       stepAnimationMessage: null,
+      blueTeam: { ...state.blueTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+      redTeam: { ...state.redTeam, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
     });
-    get().resetTeamInputs();
   },
 
   startTrainJourneyToNextStation: () => {
     soundManager.playTrainWhistle();
     set({
       phase: 'train-journey',
+      timerActive: false,
       train: {
         ...get().train,
         state: 'departing',
@@ -279,12 +336,11 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       },
     });
 
-    // Run journey progression animation
     let prog = 0;
     const interval = setInterval(() => {
-      prog += 0.008; // Smooth journey (~6 seconds)
+      prog += 0.009;
       const currentSpeed = prog < 0.2 ? prog * 5 : prog > 0.8 ? (1 - prog) * 5 : 1;
-      
+
       set((s) => ({
         train: {
           ...s.train,
@@ -318,23 +374,33 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
     soundManager.playTrainArrive();
 
-    set({
-      phase: 'station-arrived',
-      currentStationIndex: nextStationIdx,
-      fromStationName: fromName,
-      toStationName: toName,
-      totalJourneysCompleted: state.totalJourneysCompleted + 1,
-      train: {
-        ...state.train,
-        state: 'arrived',
-        progress: 0,
-        speed: 0,
-        smokeActive: false,
-        whistleActive: false,
-      },
-      loadedItems: { ...DEFAULT_LOADED_ITEMS }, // Reset loading for next station run!
-      signalState: 'red',
-    });
+    // Check if scores are tied after arrival
+    if (state.blueTeam.score === state.redTeam.score) {
+      set({
+        phase: 'station-arrived',
+        currentStationIndex: nextStationIdx,
+        fromStationName: fromName,
+        toStationName: toName,
+        totalJourneysCompleted: state.totalJourneysCompleted + 1,
+        train: { ...state.train, state: 'arrived', progress: 0, speed: 0, smokeActive: false, whistleActive: false },
+        loadedItems: { ...DEFAULT_LOADED_ITEMS },
+        signalState: 'red',
+      });
+    } else {
+      const winner = state.blueTeam.score > state.redTeam.score ? 'blue' : 'red';
+      set({
+        phase: 'game-over',
+        winner,
+        currentStationIndex: nextStationIdx,
+        fromStationName: fromName,
+        toStationName: toName,
+        totalJourneysCompleted: state.totalJourneysCompleted + 1,
+        train: { ...state.train, state: 'arrived', progress: 0, speed: 0, smokeActive: false, whistleActive: false },
+        loadedItems: { ...DEFAULT_LOADED_ITEMS },
+        signalState: 'red',
+      });
+      soundManager.playRailwayVictory();
+    }
   },
 
   toggleMute: () => {

@@ -1,10 +1,12 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Overlays & Celebration Screens
-// - Title Screen (Storybook Adventure Style)
-// - Mission Briefing & Step Checklist
-// - Next Station Arrival Celebration (Journey Payoff)
-// - Live Step Loading Notification Toast
-// - Network Complete Grand Victory
+// Complete Game Flow Overlays:
+// - Title Screen (Storybook Style)
+// - Mission Briefing
+// - Round Reveal Feedback Card
+// - Super Tie-Breaker Golden Announcement
+// - Next Station Arrival Celebration
+// - Game Over / Grand Champion Victory Screen
 // ============================================================
 
 'use client';
@@ -12,7 +14,7 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
-import { Trophy, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { Trophy, ArrowRight, Play, CheckCircle, Flame, Star } from 'lucide-react';
 
 // ── 1. Storybook Title Screen ──
 export const RailwayTitleScreen: React.FC = () => {
@@ -52,7 +54,7 @@ export const RailwayTitleScreen: React.FC = () => {
       </motion.h1>
 
       <p className="text-slate-300 text-sm sm:text-base font-medium max-w-xl text-center mt-3 leading-relaxed">
-        Operate a 3D railway! Solve place value & rounding to load <strong className="text-amber-300">Vehicles</strong>, <strong className="text-amber-300">Building Materials</strong>, and <strong className="text-amber-300">Passengers</strong>, lift brakes, turn the signal <strong className="text-emerald-400">GREEN</strong>, and cruise to the next station!
+        Solve place value & rounding to load <strong className="text-amber-300">Vehicles</strong>, <strong className="text-amber-300">Materials</strong>, and <strong className="text-amber-300">Passengers</strong>, lift brakes, turn the signal <strong className="text-emerald-400">GREEN</strong>, and cruise to the next station!
       </p>
 
       {/* Dual Team Preview */}
@@ -148,13 +150,67 @@ export const MissionBriefing: React.FC = () => {
   );
 };
 
-// ── 3. Next Station Arrival Celebration (Journey Payoff) ──
+// ── 3. Round Reveal Overlay (Solution & Explanation) ──
+export const RoundRevealOverlay: React.FC = () => {
+  const phase = useRailwayStore((s) => s.phase);
+  const challenge = useRailwayStore((s) => s.activeChallenge);
+  const blueTeam = useRailwayStore((s) => s.blueTeam);
+  const redTeam = useRailwayStore((s) => s.redTeam);
+
+  if (phase !== 'round-reveal' || !challenge) return null;
+
+  return (
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/70 backdrop-blur-xs select-none p-4 pointer-events-none">
+      <motion.div
+        initial={{ scale: 0.85, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="max-w-md w-full bg-slate-900/95 border-2 border-amber-400/80 rounded-3xl p-6 shadow-2xl text-white text-center flex flex-col items-center"
+      >
+        <span className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+          ROUND SOLUTION REVEAL
+        </span>
+        <h3 className="text-xl font-black text-white mt-1 mb-2">
+          {challenge.prompt}
+        </h3>
+
+        {/* Correct Answer Badge */}
+        <div className="px-5 py-2 rounded-xl bg-emerald-600 border border-emerald-400 text-white font-mono text-xl font-black shadow-lg mb-3">
+          CORRECT: {String(challenge.correctAnswer)}
+        </div>
+
+        {/* Mathematical Explanation */}
+        <p className="text-xs text-slate-200 leading-relaxed font-medium mb-4 bg-slate-800/80 p-3 rounded-xl border border-white/10 text-left">
+          💡 {challenge.explanation}
+        </p>
+
+        {/* Both Teams Performance */}
+        <div className="flex gap-4 w-full justify-center">
+          <div className={`flex-1 p-2.5 rounded-xl border ${blueTeam.lastResult === 'correct' ? 'bg-blue-950/90 border-blue-400 text-blue-200' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
+            <span className="text-[9px] font-black uppercase">TEAM BLUE</span>
+            <div className="text-sm font-black mt-0.5">
+              {blueTeam.lastResult === 'correct' ? `+${blueTeam.lastScoreGained} PTS` : '0 PTS'}
+            </div>
+          </div>
+          <div className={`flex-1 p-2.5 rounded-xl border ${redTeam.lastResult === 'correct' ? 'bg-red-950/90 border-red-400 text-red-200' : 'bg-slate-800/60 border-slate-700 text-slate-400'}`}>
+            <span className="text-[9px] font-black uppercase">TEAM RED</span>
+            <div className="text-sm font-black mt-0.5">
+              {redTeam.lastResult === 'correct' ? `+${redTeam.lastScoreGained} PTS` : '0 PTS'}
+            </div>
+          </div>
+        </div>
+      </motion.div>
+    </div>
+  );
+};
+
+// ── 4. Next Station Arrival Celebration (Journey Payoff) ──
 export const StationArrivalOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const currentStationIdx = useRailwayStore((s) => s.currentStationIndex);
   const stations = useRailwayStore((s) => s.stations);
   const fromStation = useRailwayStore((s) => s.fromStationName);
-  const nextStepOrDepart = useRailwayStore((s) => s.nextStepOrDepart);
+  const nextStepOrDepart = useRailwayStore((s) => s.advanceToNextQuestion);
 
   if (phase !== 'station-arrived') return null;
 
@@ -172,7 +228,7 @@ export const StationArrivalOverlay: React.FC = () => {
         </div>
 
         <span className="text-xs font-black tracking-widest text-emerald-400 uppercase">
-          SUCCESSFUL RAILWAY DELIVERY
+          SUCCESSFUL RAILWAY ARRIVAL
         </span>
         <h2 className="text-3xl font-black mt-1 mb-2 text-white">
           WELCOME TO {arrivedStation.toUpperCase()}!
@@ -182,17 +238,13 @@ export const StationArrivalOverlay: React.FC = () => {
           All 5 stages completed: Vehicles, Building Materials, and Passengers have arrived safely from {fromStation}!
         </p>
 
-        <div className="px-5 py-2.5 rounded-2xl bg-emerald-950 border border-emerald-400/40 text-emerald-300 text-sm font-black mb-6">
-          🎉 +500 BONUS POINTS AWARDED TO BOTH TEAMS!
-        </div>
-
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
           onClick={nextStepOrDepart}
           className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
         >
-          <span>CONTINUE TO NEXT STATION ADVENTURE</span>
+          <span>PROCEED TO VICTORY CEREMONY</span>
           <ArrowRight className="w-4 h-4" />
         </motion.button>
       </motion.div>
@@ -200,7 +252,7 @@ export const StationArrivalOverlay: React.FC = () => {
   );
 };
 
-// ── 4. Live Step Loading Toast Notification ──
+// ── 5. Live Step Loading Toast Notification ──
 export const StepLoadingToast: React.FC = () => {
   const stepMsg = useRailwayStore((s) => s.stepAnimationMessage);
 
@@ -211,9 +263,9 @@ export const StepLoadingToast: React.FC = () => {
           initial={{ opacity: 0, y: -20, scale: 0.95 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -20, scale: 0.95 }}
-          className="absolute top-20 left-1/2 -translate-x-1/2 z-40 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 border-2 border-emerald-300 text-white font-black text-sm tracking-wide shadow-2xl shadow-emerald-500/50 flex items-center gap-3 select-none pointer-events-none"
+          className="absolute top-18 left-1/2 -translate-x-1/2 z-40 px-5 py-2.5 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 border-2 border-emerald-300 text-white font-black text-xs tracking-wide shadow-2xl shadow-emerald-500/50 flex items-center gap-2 select-none pointer-events-none"
         >
-          <CheckCircle className="w-5 h-5 text-emerald-200 shrink-0" />
+          <CheckCircle className="w-4 h-4 text-emerald-200 shrink-0" />
           <span>{stepMsg}</span>
         </motion.div>
       )}
@@ -221,20 +273,19 @@ export const StepLoadingToast: React.FC = () => {
   );
 };
 
-// ── 5. Network Complete Victory Screen ──
+// ── 6. Game Over / Grand Champion Victory Screen (Activity #1 Model) ──
 export const NetworkCompleteOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
+  const winner = useRailwayStore((s) => s.winner);
   const blueTeam = useRailwayStore((s) => s.blueTeam);
   const redTeam = useRailwayStore((s) => s.redTeam);
+  const startGame = useRailwayStore((s) => s.startGame);
 
-  if (phase !== 'network-complete') return null;
+  if (phase !== 'game-over') return null;
 
-  const winner =
-    blueTeam.score > redTeam.score
-      ? 'BLUE ENGINEERS'
-      : redTeam.score > blueTeam.score
-        ? 'RED ENGINEERS'
-        : 'DRAW';
+  const isBlueWinner = winner === 'blue';
+  const isRedWinner = winner === 'red';
+  const isDraw = winner === 'draw';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-lg select-none p-6 text-white text-center">
@@ -243,36 +294,55 @@ export const NetworkCompleteOverlay: React.FC = () => {
         animate={{ scale: 1, opacity: 1 }}
         className="max-w-xl w-full flex flex-col items-center"
       >
-        <Trophy className="w-24 h-24 text-amber-400 drop-shadow-lg mb-4 animate-bounce" />
+        <Trophy className="w-24 h-24 text-amber-400 drop-shadow-lg mb-3 animate-bounce" />
         <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
-          RAILWAY NETWORK FULLY OPERATIONAL
+          RAILWAY GRAND EXPEDITION COMPLETE
         </span>
-        <h2 className="text-4xl font-black mt-1 mb-6 text-white">
-          THE GRAND EXPEDITION COMPLETE!
+
+        <h2 className="text-4xl sm:text-5xl font-black mt-1 mb-4 text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400">
+          {isBlueWinner
+            ? '🏆 TEAM BLUE WINS!'
+            : isRedWinner
+              ? '🏆 TEAM RED WINS!'
+              : '🤝 PERFECT DRAW!'}
         </h2>
 
-        {/* Scores */}
-        <div className="flex gap-6 justify-center w-full mb-8">
-          <div className="flex-1 p-6 rounded-3xl bg-blue-950/80 border border-blue-500/50 shadow-xl">
+        {/* Score Comparison Podium */}
+        <div className="flex gap-6 justify-center w-full my-6">
+          {/* Team Blue Card */}
+          <div className={`flex-1 p-6 rounded-3xl border-2 transition-all ${isBlueWinner ? 'bg-blue-950/90 border-blue-400 shadow-2xl shadow-blue-500/30 scale-105' : 'bg-slate-900/80 border-slate-700 opacity-80'}`}>
             <span className="text-xs font-black text-blue-400 uppercase">TEAM BLUE</span>
             <div className="text-4xl font-black text-white mt-2">{blueTeam.score}</div>
+            <div className="text-[10px] text-slate-400 font-bold mt-1">
+              {blueTeam.correctAnswersCount} Correct Answers
+            </div>
           </div>
-          <div className="flex-1 p-6 rounded-3xl bg-red-950/80 border border-red-500/50 shadow-xl">
+
+          {/* Team Red Card */}
+          <div className={`flex-1 p-6 rounded-3xl border-2 transition-all ${isRedWinner ? 'bg-red-950/90 border-red-400 shadow-2xl shadow-red-500/30 scale-105' : 'bg-slate-900/80 border-slate-700 opacity-80'}`}>
             <span className="text-xs font-black text-red-400 uppercase">TEAM RED</span>
             <div className="text-4xl font-black text-white mt-2">{redTeam.score}</div>
+            <div className="text-[10px] text-slate-400 font-bold mt-1">
+              {redTeam.correctAnswersCount} Correct Answers
+            </div>
           </div>
         </div>
 
-        <div className="text-2xl font-black text-amber-300 mb-8">
-          {winner === 'DRAW' ? '🤝 IT\'S A DRAW! PERFECT COOPERATION!' : `🏆 WINNER: ${winner}!`}
+        {/* Action Buttons */}
+        <div className="flex gap-4 w-full justify-center">
+          <button
+            onClick={startGame}
+            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-emerald-500/30 cursor-pointer"
+          >
+            PLAY AGAIN 🔄
+          </button>
+          <button
+            onClick={() => (window.location.href = '/')}
+            className="flex-1 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-xl shadow-amber-500/30 cursor-pointer"
+          >
+            RETURN TO ARCADE HUB
+          </button>
         </div>
-
-        <button
-          onClick={() => (window.location.href = '/')}
-          className="px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-base uppercase tracking-wider shadow-xl shadow-amber-500/40 cursor-pointer"
-        >
-          RETURN TO ARCADE HUB
-        </button>
       </motion.div>
     </div>
   );

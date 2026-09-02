@@ -36,18 +36,27 @@ export const RailwayHUD: React.FC = () => {
   const isMuted = useRailwayStore((s) => s.isMuted);
   const toggleMute = useRailwayStore((s) => s.toggleMute);
 
+  const handleTimerExpired = useRailwayStore((s) => s.handleTimerExpired);
+
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (timerActive && timeRemaining > 0) {
+    if (timerActive) {
       timerRef.current = setInterval(() => {
-        setTime(useRailwayStore.getState().timeRemaining - 1);
+        const curTime = useRailwayStore.getState().timeRemaining;
+        if (curTime <= 1) {
+          if (timerRef.current) clearInterval(timerRef.current);
+          setTime(0);
+          handleTimerExpired();
+        } else {
+          setTime(curTime - 1);
+        }
       }, 1000);
     }
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
     };
-  }, [timerActive, setTime]);
+  }, [timerActive, setTime, handleTimerExpired]);
 
   const timerColor =
     timeRemaining <= 10 ? '#ef4444' : timeRemaining <= 20 ? '#f59e0b' : '#10b981';
