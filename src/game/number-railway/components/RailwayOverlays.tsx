@@ -34,17 +34,17 @@ export const RailwayTitleScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-6"
     >
-      {/* ── 1. Animated HD Comic Background with Soft Blur & Brightness Comfort ── */}
+      {/* ── 1. Animated HD Comic Background with Soft Blur Overlay & Brightness Comfort ── */}
       <motion.img
         initial={{ scale: 1.15, opacity: 0 }}
         animate={{ scale: 1.04, opacity: 1 }}
         transition={{ duration: 0.8, ease: 'easeOut' }}
         src="/images/comic_vs_bg_hd.png"
         alt="Comic Red vs Blue Background HD"
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none blur-[2.5px] brightness-90"
+        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none blur-[4.5px] scale-105 brightness-85"
       />
-      {/* Subtle Comfort Vignette Overlay */}
-      <div className="absolute inset-0 bg-slate-950/15 pointer-events-none z-0" />
+      {/* Dark Comfort Blur Tint Overlay */}
+      <div className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px] pointer-events-none z-0" />
 
       {/* ── 2. Top Header Title & Badge with Opening Spring Animation ── */}
       <motion.div
@@ -57,36 +57,36 @@ export const RailwayTitleScreen: React.FC = () => {
           initial={{ scale: 0.8, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ delay: 0.2, duration: 0.4 }}
-          className="px-3.5 sm:px-5 py-1 sm:py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[9px] sm:text-xs font-black tracking-widest uppercase shadow-xl flex items-center gap-1.5"
+          className="px-4 sm:px-6 py-1 sm:py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[10px] sm:text-xs font-black tracking-widest uppercase shadow-xl flex items-center gap-1.5"
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500 shrink-0" />
-          <span className="truncate">GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING</span>
+          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
+          <span>GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING</span>
         </motion.div>
 
-        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white uppercase leading-tight mt-1 sm:mt-1.5 drop-shadow-[0_4px_16px_rgba(0,0,0,0.95)] px-2">
+        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white uppercase leading-tight mt-1 sm:mt-1.5 drop-shadow-[0_4px_18px_rgba(0,0,0,0.95)] px-2">
           THE GREAT NUMBER RAILWAY
         </h1>
       </motion.div>
 
-      {/* ── 3. Central Side-by-Side Square Team Cards (Goldilocks Size & Responsive) ── */}
-      <div className="relative z-10 w-full max-w-5xl flex flex-row items-center justify-center gap-2 xs:gap-3 sm:gap-6 md:gap-8 my-auto px-2 sm:px-4">
+      {/* ── 3. Central Side-by-Side Team Cards (Prominent Size with Clear Name Inputs) ── */}
+      <div className="relative z-10 w-full max-w-6xl flex flex-row items-center justify-center sm:justify-between my-auto px-2 sm:px-6 gap-3 sm:gap-6">
         {/* ── TEAM 1 (Left RED Square Card) ── */}
         <motion.div
           initial={{ x: -90, scale: 0.85, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
-          className="flex-1 max-w-[200px] xs:max-w-[240px] sm:max-w-[290px] md:max-w-[315px] lg:max-w-[330px] p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-3 sm:border-4 border-red-500 shadow-[0_15px_35px_rgba(220,38,38,0.55)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="flex-1 max-w-[280px] xs:max-w-[310px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[400px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_20px_45px_rgba(220,38,38,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
-          <div className="w-full flex items-center justify-between border-b sm:border-b-2 border-red-200 pb-1">
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-red-600 shadow-xs" />
-              <span className="text-[10px] sm:text-xs md:text-sm font-black text-red-900 tracking-wider uppercase truncate">
+          <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-600 shadow-xs" />
+              <span className="text-xs sm:text-sm md:text-base font-black text-red-900 tracking-wider uppercase truncate">
                 TEAM 1 (RED)
               </span>
             </div>
-            <span className="text-[7px] sm:text-[8px] md:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded bg-red-100 text-red-700 uppercase">
-              LEFT
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded bg-red-100 text-red-700 uppercase">
+              LEFT CONSOLE
             </span>
           </div>
 
@@ -94,7 +94,7 @@ export const RailwayTitleScreen: React.FC = () => {
           <motion.div
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
-            className="relative w-full h-24 xs:h-28 sm:h-34 md:h-38 rounded-xl sm:rounded-2xl overflow-hidden border border-red-200 shadow-xs flex items-center justify-center my-1.5 sm:my-2 bg-slate-50"
+            className="relative w-full h-28 xs:h-32 sm:h-40 md:h-46 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-red-200 shadow-xs flex items-center justify-center my-2 bg-slate-50"
           >
             <img
               src="/images/red_locomotive.png"
@@ -105,8 +105,8 @@ export const RailwayTitleScreen: React.FC = () => {
 
           {/* Team 1 Name Input */}
           <div className="w-full text-left">
-            <label className="text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-0.5">
-              OPERATOR NAME
+            <label className="text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider text-slate-800 block mb-1">
+              OPERATOR NAME:
             </label>
             <input
               type="text"
@@ -114,50 +114,31 @@ export const RailwayTitleScreen: React.FC = () => {
               onChange={(e) => setTeamName('red', e.target.value)}
               placeholder="Team 1 Name"
               maxLength={20}
-              className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-red-50/80 border sm:border-2 border-red-300 focus:border-red-600 font-black text-[10px] sm:text-xs md:text-sm text-red-950 text-center outline-none shadow-inner"
+              className="w-full px-3 py-2 sm:py-2.5 rounded-xl bg-red-50/90 border-2 border-red-300 focus:border-red-600 font-black text-xs sm:text-sm md:text-base text-red-950 text-center outline-none shadow-inner"
             />
           </div>
         </motion.div>
 
-        {/* ── Center Dynamic Animated Comic VS ── */}
-        <motion.div
-          initial={{ scale: 0, rotate: -20, opacity: 0 }}
-          animate={{ scale: [1, 1.08, 1], rotate: [0, 2, 0], opacity: 1 }}
-          transition={{ repeat: Infinity, duration: 2.4, ease: 'easeInOut', delay: 0.3 }}
-          className="relative flex flex-col items-center justify-center shrink-0 z-20 mx-1 sm:mx-2"
-        >
-          {/* Comic Lightning Pulse Glow */}
-          <div className="absolute w-16 sm:w-24 h-16 sm:h-24 rounded-full bg-amber-400/40 blur-xl pointer-events-none" />
-
-          <span
-            className="font-display text-3xl xs:text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-black italic tracking-tighter text-white select-none"
-            style={{
-              WebkitTextStroke: '3px #000000',
-              textShadow: '3px 3px 0px #000000, 0 0 15px rgba(255,255,255,0.9)',
-              filter: 'drop-shadow(0 6px 15px rgba(0,0,0,0.85))',
-            }}
-          >
-            VS
-          </span>
-        </motion.div>
+        {/* ── Empty Center Gap Letting the Background's Built-In VS Shine Through ── */}
+        <div className="w-12 xs:w-16 sm:w-28 md:w-36 lg:w-48 shrink-0 pointer-events-none" />
 
         {/* ── TEAM 2 (Right BLUE Square Card) ── */}
         <motion.div
           initial={{ x: 90, scale: 0.85, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
-          className="flex-1 max-w-[200px] xs:max-w-[240px] sm:max-w-[290px] md:max-w-[315px] lg:max-w-[330px] p-2.5 sm:p-3.5 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-3 sm:border-4 border-blue-500 shadow-[0_15px_35px_rgba(37,99,235,0.55)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="flex-1 max-w-[280px] xs:max-w-[310px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[400px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_20px_45px_rgba(37,99,235,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
-          <div className="w-full flex items-center justify-between border-b sm:border-b-2 border-blue-200 pb-1">
-            <div className="flex items-center gap-1 sm:gap-1.5">
-              <span className="w-2 h-2 sm:w-2.5 sm:h-2.5 rounded-full bg-blue-600 shadow-xs" />
-              <span className="text-[10px] sm:text-xs md:text-sm font-black text-blue-900 tracking-wider uppercase truncate">
+          <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-600 shadow-xs" />
+              <span className="text-xs sm:text-sm md:text-base font-black text-blue-900 tracking-wider uppercase truncate">
                 TEAM 2 (BLUE)
               </span>
             </div>
-            <span className="text-[7px] sm:text-[8px] md:text-[9px] font-black px-1 sm:px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
-              RIGHT
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
+              RIGHT CONSOLE
             </span>
           </div>
 
@@ -165,7 +146,7 @@ export const RailwayTitleScreen: React.FC = () => {
           <motion.div
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut', delay: 0.4 }}
-            className="relative w-full h-24 xs:h-28 sm:h-34 md:h-38 rounded-xl sm:rounded-2xl overflow-hidden border border-blue-200 shadow-xs flex items-center justify-center my-1.5 sm:my-2 bg-slate-50"
+            className="relative w-full h-28 xs:h-32 sm:h-40 md:h-46 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-blue-200 shadow-xs flex items-center justify-center my-2 bg-slate-50"
           >
             <img
               src="/images/blue_locomotive.png"
@@ -176,8 +157,8 @@ export const RailwayTitleScreen: React.FC = () => {
 
           {/* Team 2 Name Input */}
           <div className="w-full text-left">
-            <label className="text-[7px] sm:text-[8px] md:text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-0.5">
-              OPERATOR NAME
+            <label className="text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider text-slate-800 block mb-1">
+              OPERATOR NAME:
             </label>
             <input
               type="text"
@@ -185,7 +166,7 @@ export const RailwayTitleScreen: React.FC = () => {
               onChange={(e) => setTeamName('blue', e.target.value)}
               placeholder="Team 2 Name"
               maxLength={20}
-              className="w-full px-2 sm:px-3 py-1 sm:py-1.5 rounded-lg sm:rounded-xl bg-blue-50/80 border sm:border-2 border-blue-300 focus:border-blue-600 font-black text-[10px] sm:text-xs md:text-sm text-blue-950 text-center outline-none shadow-inner"
+              className="w-full px-3 py-2 sm:py-2.5 rounded-xl bg-blue-50/90 border-2 border-blue-300 focus:border-blue-600 font-black text-xs sm:text-sm md:text-base text-blue-950 text-center outline-none shadow-inner"
             />
           </div>
         </motion.div>
