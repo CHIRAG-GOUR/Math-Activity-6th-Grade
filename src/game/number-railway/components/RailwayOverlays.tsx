@@ -34,10 +34,10 @@ export const RailwayTitleScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-hidden p-4 sm:p-6"
     >
-      {/* ── 1. Comic Red VS Blue Graphic Background Image (100% Fullscreen) ── */}
+      {/* ── 1. Comic Red VS Blue Graphic Background Image (100% Fullscreen HD) ── */}
       <img
-        src="/images/comic_vs_bg.png"
-        alt="Comic Red vs Blue Background"
+        src="/images/comic_vs_bg_hd.png"
+        alt="Comic Red vs Blue Background HD"
         className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none"
       />
 
