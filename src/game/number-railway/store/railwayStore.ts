@@ -1,9 +1,12 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Zustand Game Store
-// Round-based loop with the cinematic RAILWAY SHOWDOWN:
-//   5 challenges → showdown (quiet → switch → signal → depart → arrive)
-//   → winner reveal → next round → network complete.
-// Blue Team = LEFT.  Red Team = RIGHT.
+// - First-Answerer & Rebound Rule:
+//   * First team to answer correctly wins the question points.
+//   * If wrong, the other team gets a rebound chance!
+//   * If both fail or timer runs out, 0 points and train doesn't move.
+// - Passenger & Signal Progression:
+//   * Correct answer seats a passenger dressed in the team's colors (Blue/Red) INSIDE the coach!
+//   * Semaphore signals turn GREEN one by one with each correct answer!
 // ============================================================
 
 import { create } from 'zustand';
@@ -14,6 +17,7 @@ import {
   TrainAnimState,
   GamePhase,
   RoundWinner,
+  OnboardPassenger,
 } from '../types';
 import { ROUNDS, NETWORK_STATIONS, getTieBreaker, buildRounds } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
@@ -43,7 +47,6 @@ const idleTrain = (): TrainAnimState => ({
   headlampOn: false,
 });
 
-// Reset the per-round competitive fields but keep cumulative totals.
 const resetTeamForRound = (t: TeamState): TeamState => ({
   ...t,
   roundScore: 0,
@@ -64,7 +67,6 @@ const clearTeamForQuestion = (t: TeamState): TeamState => ({
   lastFeedback: null,
 });
 
-// Module-level timer handle for the winning-train travel loop.
 let travelInterval: ReturnType<typeof setInterval> | null = null;
 const clearTravel = () => {
   if (travelInterval) {
@@ -113,6 +115,9 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   roundWinner: null,
   matchWinner: null,
 
+  signalsGreenCount: 0,
+  onboardPassengers: [],
+
   signalBlue: 'red',
   signalRed: 'red',
   switchTarget: 'neutral',
@@ -123,53 +128,43 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   redTrain: idleTrain(),
 
   stations: NETWORK_STATIONS,
-  unlockedStationIds: [],
-  totalRounds: 5,
+  unlockedStationIds: [NETWORK_STATIONS[0].id],
+  totalRounds: ROUNDS.length,
 
   isMuted: false,
   timeRemaining: 35,
   timerActive: false,
   toastMessage: null,
 
-  // ── Basic setters ──
   setPhase: (phase) => set({ phase }),
-  setTotalRounds: (n) => set({ totalRounds: n }),
-  toggleMute: () => {
-    const next = !get().isMuted;
-    soundManager.setMuted(next);
-    set({ isMuted: next });
-  },
-  setTimeRemaining: (t) => set({ timeRemaining: Math.max(0, t) }),
-  setTimerActive: (active) => set({ timerActive: active }),
-  clearToast: () => set({ toastMessage: null }),
 
-  // ── Match / round lifecycle ──
+  setTotalRounds: (n) => {
+    const clamped = Math.max(1, Math.min(n, 5));
+    const newRounds = buildRounds(clamped);
+    set({
+      totalRounds: clamped,
+      rounds: newRounds,
+      activeChallenge: newRounds[0].questions[0],
+    });
+  },
+
   startGame: () => {
     clearTravel();
-    const total = get().totalRounds;
-    const rounds = buildRounds(total);
-    set({
-      rounds,
-      unlockedStationIds: [],
-      matchWinner: null,
-      blueTeam: createTeamState('blue'),
-      redTeam: createTeamState('red'),
-    });
-    get().startRound(0);
-  },
-
-  startRound: (index) => {
-    clearTravel();
-    const round = get().rounds[index];
-    const firstQ = round.questions[0];
+    const firstRound = get().rounds[0];
     soundManager.playTrainWhistle();
+
     set((s) => ({
       phase: 'round-intro',
-      currentRoundIndex: index,
+      currentRoundIndex: 0,
       questionIndexInRound: 0,
-      activeChallenge: firstQ,
+      activeChallenge: firstRound.questions[0],
       isTieBreak: false,
+      blueTeam: createTeamState('blue'),
+      redTeam: createTeamState('red'),
       roundWinner: null,
+      matchWinner: null,
+      signalsGreenCount: 0,
+      onboardPassengers: [],
       signalBlue: 'red',
       signalRed: 'red',
       switchTarget: 'neutral',
@@ -177,267 +172,402 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       activeRoute: null,
       blueTrain: idleTrain(),
       redTrain: idleTrain(),
+      unlockedStationIds: [NETWORK_STATIONS[0].id],
+      timeRemaining: firstRound.questions[0].timeLimit,
+      timerActive: false,
+      toastMessage: null,
+    }));
+  },
+
+  startRound: (index) => {
+    clearTravel();
+    const r = get().rounds[index] || get().rounds[0];
+    set((s) => ({
+      phase: 'round-intro',
+      currentRoundIndex: index,
+      questionIndexInRound: 0,
+      activeChallenge: r.questions[0],
+      isTieBreak: false,
       blueTeam: resetTeamForRound(s.blueTeam),
       redTeam: resetTeamForRound(s.redTeam),
-      timeRemaining: firstQ.timeLimit,
+      roundWinner: null,
+      signalsGreenCount: 0,
+      onboardPassengers: [],
+      signalBlue: 'red',
+      signalRed: 'red',
+      switchTarget: 'neutral',
+      showdownStep: 'idle',
+      activeRoute: null,
+      blueTrain: idleTrain(),
+      redTrain: idleTrain(),
+      timeRemaining: r.questions[0].timeLimit,
       timerActive: false,
-      toastMessage: `ROUND ${index + 1}: ${round.name}`,
+      toastMessage: null,
     }));
-    setTimeout(() => {
-      if (get().phase !== 'round-intro') return;
-      get().clearToast();
-      get().beginChallenge();
-    }, 2300);
   },
 
   beginChallenge: () => {
     const ch = get().activeChallenge;
-    set({ phase: 'challenge', timeRemaining: ch?.timeLimit ?? 35, timerActive: true });
+    set((s) => ({
+      phase: 'challenge',
+      timeRemaining: ch?.timeLimit ?? 35,
+      timerActive: true,
+      blueTeam: clearTeamForQuestion(s.blueTeam),
+      redTeam: clearTeamForQuestion(s.redTeam),
+    }));
   },
 
   setTeamAnswer: (team, answer) => {
-    const st = get();
-    if (st.phase !== 'challenge' && st.phase !== 'tie-break') return;
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (st[key].isLocked) return;
     soundManager.playClick();
-    set((s) => ({ [key]: { ...s[key], selectedAnswer: answer } }));
+    set((s) => ({
+      [key]: { ...s[key], selectedAnswer: answer },
+    }));
   },
 
+  // ── First-Answerer & Rebound Engine ──
   lockInTeam: (team) => {
-    const st = get();
-    const ch = st.activeChallenge;
-    if (!ch) return;
-    if (st.phase !== 'challenge' && st.phase !== 'tie-break') return;
+    const state = get();
+    const ch = state.activeChallenge;
+    if (!ch || (state.phase !== 'challenge' && state.phase !== 'tie-break')) return;
+
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    const ts = st[key];
-    if (ts.isLocked || ts.selectedAnswer === null) return;
+    const otherKey = team === 'blue' ? 'redTeam' : 'blueTeam';
+    const teamState = state[key];
+    const otherTeamState = state[otherKey];
 
-    const isCorrect = ch.validation(ts.selectedAnswer);
+    if (teamState.isLocked || teamState.selectedAnswer === null) return;
 
-    // TIE-BREAK: first correct wins the route; a wrong answer lets you retry.
-    if (st.phase === 'tie-break') {
-      if (isCorrect) {
-        soundManager.playCorrect(true);
-        set((s) => ({
-          timerActive: false,
-          [key]: { ...s[key], isLocked: true, lastResult: 'correct', lastFeedback: { message: 'FIRST! ROUTE WON!', isCorrect: true, pointsEarned: 0 } },
-        }));
-        get().runWinnerSequence(team);
-      } else {
-        soundManager.playWrong();
-        set((s) => ({
-          [key]: { ...s[key], selectedAnswer: null, lastResult: 'wrong', lastFeedback: { message: 'Not quite — try again!', isCorrect: false, pointsEarned: 0 } },
-        }));
-      }
-      return;
-    }
-
-    // NORMAL question scoring
     soundManager.playClick();
-    const speedBonus = isCorrect ? Math.max(0, Math.floor(st.timeRemaining * 1.2)) : 0;
-    const gained = isCorrect ? ch.points + speedBonus : 0;
-    if (isCorrect) soundManager.playCorrect(); else soundManager.playWrong();
-    set((s) => {
-      const t = s[key];
-      return {
-        [key]: {
-          ...t,
-          isLocked: true,
-          lastResult: isCorrect ? 'correct' : 'wrong',
-          score: t.score + gained,
-          roundScore: t.roundScore + gained,
-          streak: isCorrect ? t.streak + 1 : 0,
-          correctAnswersCount: isCorrect ? t.correctAnswersCount + 1 : t.correctAnswersCount,
-          roundCorrect: isCorrect ? t.roundCorrect + 1 : t.roundCorrect,
-          lastScoreGained: gained,
-          lastFeedback: { message: isCorrect ? `CORRECT  +${gained}` : 'WRONG', isCorrect, pointsEarned: gained },
-        },
-      };
-    });
+    const isCorrect = ch.validation(teamState.selectedAnswer);
 
-    const after = get();
-    if (after.blueTeam.isLocked && after.redTeam.isLocked) {
-      set({ timerActive: false, phase: 'question-reveal', toastMessage: ch.railwayEffect });
-      setTimeout(() => { get().clearToast(); get().advanceQuestion(); }, 1900);
+    if (isCorrect) {
+      // ── WINNING ANSWER ──
+      soundManager.playCorrect();
+      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
+      const pointsGained = ch.points + speedBonus;
+      const newStreak = teamState.streak + 1;
+
+      // Add a passenger in this team's color inside the coach!
+      const nextSeat = state.onboardPassengers.length;
+      const newPassenger: OnboardPassenger = {
+        id: `pass-${team}-${nextSeat}`,
+        team,
+        seatIndex: nextSeat,
+      };
+
+      set((s) => ({
+        [key]: {
+          ...s[key],
+          isLocked: true,
+          lastResult: 'correct',
+          score: s[key].score + pointsGained,
+          roundScore: s[key].roundScore + pointsGained,
+          streak: newStreak,
+          correctAnswersCount: s[key].correctAnswersCount + 1,
+          roundCorrect: s[key].roundCorrect + 1,
+          lastScoreGained: pointsGained,
+          lastFeedback: {
+            message: `✅ CORRECT! +${pointsGained} PTS`,
+            isCorrect: true,
+            pointsEarned: pointsGained,
+          },
+        },
+        [otherKey]: {
+          ...s[otherKey],
+          isLocked: true, // Question claimed by first correct answerer!
+        },
+        signalsGreenCount: Math.min(5, s.signalsGreenCount + 1),
+        onboardPassengers: [...s.onboardPassengers, newPassenger],
+        toastMessage: `👥 ${team.toUpperCase()} PASSENGER BOARDED! SIGNAL GREEN!`,
+        timerActive: false,
+      }));
+
+      // If tie-break, instant victory
+      if (state.isTieBreak) {
+        soundManager.playTrainWhistle();
+        get().runWinnerSequence(team);
+        return;
+      }
+
+      // Enter question reveal
+      setTimeout(() => {
+        set({ phase: 'question-reveal', timerActive: false });
+      }, 500);
+
+    } else {
+      // ── WRONG ANSWER: LOCK OUT THIS TEAM & GIVE 2ND TEAM REBOUND ──
+      soundManager.playWrong();
+
+      set((s) => ({
+        [key]: {
+          ...s[key],
+          isLocked: true,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: `❌ WRONG ANSWER`,
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+        toastMessage: `${team.toUpperCase()} INCORRECT! ${otherKey === 'blueTeam' ? 'BLUE' : 'RED'} CAN REBOUND!`,
+      }));
+
+      // If the other team was ALREADY locked out (both answered wrong), end question!
+      if (otherTeamState.isLocked) {
+        set({ timerActive: false });
+        setTimeout(() => {
+          set({ phase: 'question-reveal', timerActive: false });
+        }, 600);
+      }
     }
   },
 
   handleTimerExpired: () => {
-    const st = get();
-    if (st.phase === 'challenge') {
-      soundManager.playWrong();
-      set((s) => ({
-        timerActive: false,
-        phase: 'question-reveal',
-        toastMessage: s.activeChallenge?.railwayEffect ?? null,
-        blueTeam: { ...s.blueTeam, isLocked: true, lastResult: s.blueTeam.lastResult ?? 'wrong' },
-        redTeam: { ...s.redTeam, isLocked: true, lastResult: s.redTeam.lastResult ?? 'wrong' },
-      }));
-      setTimeout(() => { get().clearToast(); get().advanceQuestion(); }, 1900);
-    } else if (st.phase === 'tie-break') {
-      const w: TeamId = st.blueTeam.score >= st.redTeam.score ? 'blue' : 'red';
-      get().runWinnerSequence(w);
+    const state = get();
+    if (state.phase !== 'challenge' && state.phase !== 'tie-break') return;
+
+    soundManager.playWrong();
+
+    if (state.isTieBreak) {
+      // Tie-break expired without winner → higher round score or draw
+      const winner =
+        state.blueTeam.roundScore > state.redTeam.roundScore
+          ? 'blue'
+          : state.redTeam.roundScore > state.blueTeam.roundScore
+            ? 'red'
+            : 'draw';
+
+      if (winner === 'draw') {
+        set({ phase: 'winner-reveal', roundWinner: 'draw', timerActive: false });
+      } else {
+        get().runWinnerSequence(winner);
+      }
+      return;
     }
+
+    // 0 points for both when timer expires with no correct answer
+    set((s) => ({
+      blueTeam: { ...s.blueTeam, isLocked: true },
+      redTeam: { ...s.redTeam, isLocked: true },
+      timerActive: false,
+      phase: 'question-reveal',
+    }));
   },
 
   advanceQuestion: () => {
-    const st = get();
-    const round = st.rounds[st.currentRoundIndex];
-    const nextQ = st.questionIndexInRound + 1;
-    if (nextQ >= round.questions.length) {
+    const state = get();
+    const curRound = state.rounds[state.currentRoundIndex];
+    const totalQ = curRound.questions.length;
+    const nextQIndex = state.questionIndexInRound + 1;
+
+    if (nextQIndex >= totalQ) {
+      // Round questions completed → Start Showdown!
       get().beginShowdown();
       return;
     }
-    const nextCh = round.questions[nextQ];
+
+    const nextChallenge = curRound.questions[nextQIndex];
     set((s) => ({
-      questionIndexInRound: nextQ,
-      activeChallenge: nextCh,
-      phase: 'challenge',
-      timeRemaining: nextCh.timeLimit,
+      questionIndexInRound: nextQIndex,
+      activeChallenge: nextChallenge,
+      timeRemaining: nextChallenge.timeLimit,
       timerActive: true,
+      phase: 'challenge',
+      toastMessage: null,
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
     }));
   },
 
-  // ── The RAILWAY SHOWDOWN ──
   beginShowdown: () => {
-    clearTravel();
-    const st = get();
-    const bs = st.blueTeam.roundScore;
-    const rs = st.redTeam.roundScore;
-    const winner: RoundWinner = bs > rs ? 'blue' : rs > bs ? 'red' : 'draw';
-    set((s) => ({
-      phase: 'showdown',
-      showdownStep: 'quiet',
-      roundWinner: winner,
-      signalBlue: 'red',
-      signalRed: 'red',
-      switchTarget: 'neutral',
-      activeRoute: null,
-      timerActive: false,
-      blueTeam: { ...s.blueTeam, isLocked: true },
-      redTeam: { ...s.redTeam, isLocked: true },
-      toastMessage: 'ROUTE DECISION',
-    }));
-    soundManager.playSignalChange();
-    setTimeout(() => {
-      const cur = get();
-      if (cur.phase !== 'showdown') return;
-      if (winner === 'draw') get().startTieBreak();
-      else get().runWinnerSequence(winner);
-    }, 1900);
+    const state = get();
+    const blue = state.blueTeam.roundScore;
+    const red = state.redTeam.roundScore;
+
+    if (blue === red) {
+      // Tied scores → Sudden Death Tie-Breaker
+      get().startTieBreak();
+      return;
+    }
+
+    const winner: TeamId = blue > red ? 'blue' : 'red';
+    get().runWinnerSequence(winner);
   },
 
   startTieBreak: () => {
-    const st = get();
-    const tb = getTieBreaker(st.currentRoundIndex);
+    const rIdx = get().currentRoundIndex;
+    const tb = getTieBreaker(rIdx);
     soundManager.playTrainWhistle();
+
     set((s) => ({
       phase: 'tie-break',
       isTieBreak: true,
       activeChallenge: tb,
-      showdownStep: 'quiet',
       timeRemaining: tb.timeLimit,
       timerActive: true,
+      toastMessage: '⚡ SUDDEN-DEATH TIE-BREAKER! FIRST CORRECT WINS ROUTE!',
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
-      toastMessage: 'RAILWAY TIE — TIE-BREAK!',
     }));
-    setTimeout(() => get().clearToast(), 1700);
   },
 
   runWinnerSequence: (winner) => {
     clearTravel();
-    // STEP: throw the mechanical switch toward the winner
-    set((s) => ({
+    const isBlue = winner === 'blue';
+
+    set({
       phase: 'showdown',
       roundWinner: winner,
-      activeRoute: winner,
       isTieBreak: false,
-      showdownStep: 'switching',
-      switchTarget: winner,
       timerActive: false,
-      toastMessage: winner === 'blue' ? 'SWITCHING TO BLUE ROUTE' : 'SWITCHING TO RED ROUTE',
-    }));
-    soundManager.playSwitchMechanism();
+      showdownStep: 'quiet',
+      activeRoute: winner,
+      signalBlue: 'red',
+      signalRed: 'red',
+      switchTarget: 'neutral',
+      toastMessage: '🛑 ALL SIGNALS RED — ROUTE CLEARANCE IN PROGRESS',
+    });
 
+    // 1. Throw switch lever toward winner (after 1.2s)
     setTimeout(() => {
-      if (get().roundWinner !== winner) return;
-      // STEP: signal RED → YELLOW
-      if (winner === 'blue') set({ showdownStep: 'signal-yellow', signalBlue: 'yellow', toastMessage: null });
-      else set({ showdownStep: 'signal-yellow', signalRed: 'yellow', toastMessage: null });
+      soundManager.playSwitchMechanism();
+      set({
+        showdownStep: 'switching',
+        switchTarget: winner,
+        toastMessage: `⚙️ JUNCTION SWITCH THROWING ➔ ${isBlue ? 'BLUE' : 'RED'} EXPRESS LINE`,
+      });
+    }, 1200);
+
+    // 2. Winner signal turns YELLOW (after 2.5s)
+    setTimeout(() => {
       soundManager.playSignalChange();
+      set({
+        showdownStep: 'signal-yellow',
+        [isBlue ? 'signalBlue' : 'signalRed']: 'yellow',
+        toastMessage: `🟡 SIGNAL YELLOW — ROUTE PRE-CLEARED FOR ${winner.toUpperCase()}`,
+      });
+    }, 2500);
 
-      setTimeout(() => {
-        // STEP: signal YELLOW → GREEN
-        if (winner === 'blue') set({ showdownStep: 'signal-green', signalBlue: 'green' });
-        else set({ showdownStep: 'signal-green', signalRed: 'green' });
-        soundManager.playSignalChange();
+    // 3. Winner signal turns GREEN & Whistle blows (after 3.8s)
+    setTimeout(() => {
+      soundManager.playSignalChange();
+      soundManager.playTrainWhistle();
+      set({
+        showdownStep: 'signal-green',
+        [isBlue ? 'signalBlue' : 'signalRed']: 'green',
+        toastMessage: `🟢 SIGNAL GREEN! ${winner.toUpperCase()} AUTHORIZED TO DEPART!`,
+      });
+    }, 3800);
 
-        setTimeout(() => {
-          // STEP: winning train departs
-          const trainKey = winner === 'blue' ? 'blueTrain' : 'redTrain';
-          set((s) => ({
-            showdownStep: 'departing',
-            [trainKey]: { ...s[trainKey], state: 'departing' as const, smokeActive: true, whistleActive: true, headlampOn: true, speed: 0.2, progress: 0 },
-            toastMessage: null,
-          }));
+    // 4. Train departs & travels down the scenic line (after 5.0s)
+    setTimeout(() => {
+      set({
+        showdownStep: 'departing',
+        toastMessage: `🚂 ${winner.toUpperCase()} STEAM TRAIN EN ROUTE!`,
+        [isBlue ? 'blueTrain' : 'redTrain']: {
+          progress: 0,
+          speed: 1,
+          state: 'departing',
+          smokeActive: true,
+          whistleActive: true,
+          headlampOn: true,
+        },
+      });
+
+      let prog = 0;
+      let tick = 0;
+      travelInterval = setInterval(() => {
+        tick++;
+        prog += 1 / 180; // ~9 second cinematic ride
+
+        if (tick % 7 === 0 && prog < 0.92) {
+          soundManager.playTrainChug();
+        }
+        if (tick === 90) {
           soundManager.playTrainWhistle();
+        }
 
-          // Travel loop (~9s) along the winner's route curve
-          let prog = 0;
-          let ticks = 0;
-          travelInterval = setInterval(() => {
-            ticks++;
-            prog += 1 / 180;
-            if (ticks % 8 === 0 && prog < 0.9) soundManager.playTrainChug();
-            if (ticks === 90) soundManager.playTrainWhistle();
-            const speed = prog < 0.15 ? prog * 6 : prog > 0.85 ? Math.max(0.1, (1 - prog) * 6) : 1;
-            const w = winner === 'blue' ? 'blueTrain' : 'redTrain';
-            set((s) => ({
-              [w]: { ...s[w], progress: Math.min(1, prog), speed, state: (prog >= 0.85 ? 'approaching' : 'moving') as 'approaching' | 'moving' },
-            }));
-            if (prog >= 1) {
-              clearTravel();
-              const st2 = get();
-              const round = st2.rounds[st2.currentRoundIndex];
-              const destId = round.destinationStationId;
-              const winKey = winner === 'blue' ? 'blueTeam' : 'redTeam';
-              soundManager.playTrainArrive();
-              soundManager.playRailwayVictory();
-              set((s) => ({
-                phase: 'winner-reveal',
-                showdownStep: 'arrived',
-                unlockedStationIds: s.unlockedStationIds.includes(destId) ? s.unlockedStationIds : [...s.unlockedStationIds, destId],
-                [winKey]: { ...s[winKey], roundsWon: s[winKey].roundsWon + 1 },
-                [w]: { ...s[w], state: 'arrived' as const, progress: 1, speed: 0, whistleActive: false, smokeActive: false },
-              }));
-            }
-          }, 50);
-        }, 700);
-      }, 850);
-    }, 1500);
+        const spd = prog < 0.15 ? prog * 6.6 : prog > 0.85 ? (1 - prog) * 6.6 : 1;
+
+        set((s) => ({
+          [isBlue ? 'blueTrain' : 'redTrain']: {
+            ...s[isBlue ? 'blueTrain' : 'redTrain'],
+            progress: Math.min(1, prog),
+            speed: spd,
+            state: prog >= 0.88 ? 'approaching' : 'moving',
+          },
+        }));
+
+        if (prog >= 1) {
+          clearTravel();
+          soundManager.playTrainArrive();
+
+          // 5. Arrived at destination station!
+          const r = get().rounds[get().currentRoundIndex];
+          const destId = r?.destinationStationId;
+
+          set((s) => ({
+            showdownStep: 'arrived',
+            phase: 'winner-reveal',
+            unlockedStationIds: destId && !s.unlockedStationIds.includes(destId)
+              ? [...s.unlockedStationIds, destId]
+              : s.unlockedStationIds,
+            [isBlue ? 'blueTeam' : 'redTeam']: {
+              ...s[isBlue ? 'blueTeam' : 'redTeam'],
+              roundsWon: s[isBlue ? 'blueTeam' : 'redTeam'].roundsWon + 1,
+            },
+            [isBlue ? 'blueTrain' : 'redTrain']: {
+              ...s[isBlue ? 'blueTrain' : 'redTrain'],
+              state: 'arrived',
+              speed: 0,
+              smokeActive: false,
+              whistleActive: false,
+            },
+            toastMessage: `🏁 ARRIVED AT ${r?.subtitle.toUpperCase()}!`,
+          }));
+        }
+      }, 50);
+    }, 5000);
   },
 
   proceedToNextRound: () => {
     clearTravel();
-    const st = get();
-    const next = st.currentRoundIndex + 1;
-    if (next >= st.totalRounds) {
-      const b = st.blueTeam;
-      const r = st.redTeam;
-      const mw: RoundWinner =
-        b.roundsWon > r.roundsWon ? 'blue'
-          : r.roundsWon > b.roundsWon ? 'red'
-            : b.score > r.score ? 'blue'
-              : r.score > b.score ? 'red'
+    const nextIdx = get().currentRoundIndex + 1;
+    if (nextIdx >= get().totalRounds) {
+      // Grand Network Complete!
+      const blueWins = get().blueTeam.roundsWon;
+      const redWins = get().redTeam.roundsWon;
+      const matchWinner: RoundWinner =
+        blueWins > redWins
+          ? 'blue'
+          : redWins > blueWins
+            ? 'red'
+            : get().blueTeam.score > get().redTeam.score
+              ? 'blue'
+              : get().redTeam.score > get().blueTeam.score
+                ? 'red'
                 : 'draw';
+
+      set({
+        phase: 'network-complete',
+        matchWinner,
+        timerActive: false,
+      });
       soundManager.playRailwayVictory();
-      set({ phase: 'network-complete', matchWinner: mw, showdownStep: 'idle' });
     } else {
-      get().startRound(next);
+      get().startRound(nextIdx);
     }
   },
+
+  toggleMute: () => {
+    const current = get().isMuted;
+    const newMuted = !current;
+    soundManager.setMuted(newMuted);
+    set({ isMuted: newMuted });
+  },
+
+  setTimeRemaining: (t) => set({ timeRemaining: Math.max(0, t) }),
+  setTimerActive: (active) => set({ timerActive: active }),
+  clearToast: () => set({ toastMessage: null }),
 }));

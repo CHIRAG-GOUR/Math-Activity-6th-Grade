@@ -1,8 +1,12 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Team Locomotive & Rolling Stock
-// Two liveried trains (Blue = LEFT spur, Red = RIGHT spur) that idle at
-// their starting positions and depart along their own route curve when
-// their team wins the Railway Showdown.
+// THE GREAT NUMBER RAILWAY — Stylized Steam Trains & Articulated Carriages
+// - Blue Team Locomotive on Left Track, Red Team Locomotive on Right Track
+// - Realistic 3D Train Driver inside both locomotive cabins
+// - Correctly positioned Passenger Coach:
+//   * Passengers sit INSIDE the coach cabin, neatly framed by side windows
+//   * Blue passengers wear Blue shirts, Red passengers wear Red shirts
+//   * ZERO roof clipping or floating
+// - Flatbed Carriage with Vehicles & Cargo Carriage with Ladders/Planks
 // ============================================================
 
 'use client';
@@ -13,7 +17,7 @@ import { useFrame } from '@react-three/fiber';
 import { useRailwayStore } from '../store/railwayStore';
 import { TeamId } from '../types';
 
-// ── Realistic Human Figure Helper (shared with the station platform) ──
+// ── Realistic Human Figure Helper (Standing / Seated) ──
 export const HumanFigure: React.FC<{
   position: [number, number, number];
   rotation?: [number, number, number];
@@ -101,283 +105,59 @@ export const HumanFigure: React.FC<{
   );
 };
 
-// ── Team livery palette ──
-interface Livery {
-  primary: string;
-  dark: string;
-  cabin: string;
-  seat: string;
-}
-const LIVERY: Record<TeamId, Livery> = {
-  blue: { primary: '#2563eb', dark: '#1d4ed8', cabin: '#1e40af', seat: '#1e3a8a' },
-  red: { primary: '#dc2626', dark: '#b91c1c', cabin: '#991b1b', seat: '#7f1d1d' },
-};
-
-interface TeamTrainProps {
+// ── Realistic Seated Passenger Figure ──
+export const SeatedPassenger: React.FC<{
+  position: [number, number, number];
   team: TeamId;
-  route: [number, number, number][];
-}
-
-export const TeamTrain: React.FC<TeamTrainProps> = ({ team, route }) => {
-  const locoRef = useRef<THREE.Group>(null);
-  const coach1Ref = useRef<THREE.Group>(null);
-  const coach2Ref = useRef<THREE.Group>(null);
-  const wheelsRef = useRef<THREE.Mesh[]>([]);
-  const rodRef = useRef<THREE.Group>(null);
-  const steamRef = useRef<THREE.Mesh[]>([]);
-  const whistleRef = useRef<THREE.Mesh>(null);
-  const headlampRef = useRef<THREE.Mesh>(null);
-
-  const L = LIVERY[team];
-
-  const curve = useMemo(() => {
-    const pts = route.map((p) => new THREE.Vector3(...p));
-    return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
-  }, [route]);
-  const curveLen = useMemo(() => curve.getLength(), [curve]);
-
-  const coach1Off = 2.15 / curveLen;
-  const coach2Off = 4.0 / curveLen;
-
-  useFrame((_, delta) => {
-    const t = useRailwayStore.getState();
-    const anim = team === 'blue' ? t.blueTrain : t.redTrain;
-    const moving = anim.state === 'departing' || anim.state === 'moving' || anim.state === 'approaching';
-    const base = anim.progress;
-
-    const place = (ref: React.RefObject<THREE.Group | null>, off: number) => {
-      if (!ref.current) return;
-      const tt = Math.min(Math.max(base - off, 0.0001), 0.9999);
-      const pos = curve.getPointAt(tt);
-      const tan = curve.getTangentAt(tt);
-      ref.current.position.set(pos.x, pos.y + 0.12, pos.z);
-      ref.current.rotation.y = Math.atan2(tan.x, tan.z);
-      ref.current.rotation.z = moving ? Math.sin(Date.now() * 0.008 + off * 12) * 0.02 : 0;
-    };
-    place(locoRef, 0);
-    place(coach1Ref, coach1Off);
-    place(coach2Ref, coach2Off);
-
-    const wheelSpeed = (moving ? anim.speed * 20 : 0) * delta;
-    wheelsRef.current.forEach((w) => { if (w) w.rotation.x -= wheelSpeed; });
-
-    if (rodRef.current) {
-      rodRef.current.position.y = 0.2 + Math.sin(Date.now() * 0.015) * (moving ? 0.045 : 0);
-      rodRef.current.position.z = 0.1 + Math.cos(Date.now() * 0.015) * (moving ? 0.06 : 0);
-    }
-
-    steamRef.current.forEach((puff, i) => {
-      if (!puff) return;
-      if (anim.smokeActive || moving) {
-        puff.visible = true;
-        const o = (Date.now() * 0.002 + i * 0.35) % 1.5;
-        puff.position.y = 1.35 + o * 1.3;
-        puff.position.z = 0.65 - (moving ? o * 0.9 : 0);
-        const s = 0.12 + o * 0.28;
-        puff.scale.set(s, s, s);
-        (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(0, 0.7 - o * 0.5);
-      } else {
-        puff.visible = false;
-      }
-    });
-
-    if (whistleRef.current) {
-      whistleRef.current.visible = anim.whistleActive;
-      if (whistleRef.current.visible) whistleRef.current.scale.setScalar(0.08 + Math.sin(Date.now() * 0.02) * 0.04);
-    }
-    if (headlampRef.current) {
-      const m = headlampRef.current.material as THREE.MeshStandardMaterial;
-      m.emissiveIntensity = anim.headlampOn ? 2.6 : 0.15;
-    }
-  });
+  scale?: number;
+}> = ({ position, team, scale = 0.75 }) => {
+  const isBlue = team === 'blue';
+  const shirtColor = isBlue ? '#2563eb' : '#dc2626';
+  const capColor = isBlue ? '#1e3a8a' : '#7f1d1d';
 
   return (
-    <group>
-      {/* ── LOCOMOTIVE ── */}
-      <group ref={locoRef} scale={[0.8, 0.8, 0.8]}>
-        {/* Boiler */}
-        <mesh position={[0, 0.62, 0.4]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.38, 0.38, 1.3, 24]} />
-          <meshStandardMaterial color="#334155" roughness={0.4} metalness={0.5} />
-        </mesh>
-        {/* Boiler cap in team colour */}
-        <mesh position={[0, 0.62, 1.06]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.4, 0.4, 0.08, 24]} />
-          <meshStandardMaterial color={L.primary} roughness={0.3} />
-        </mesh>
-        {/* Headlamp */}
-        <mesh ref={headlampRef} position={[0, 0.72, 1.12]}>
-          <cylinderGeometry args={[0.11, 0.13, 0.12, 16]} />
-          <meshStandardMaterial color="#fffbeb" emissive="#fde68a" emissiveIntensity={0.15} roughness={0.2} />
-        </mesh>
-        {/* Gold bands */}
-        {[0.0, 0.45, 0.85].map((z, i) => (
-          <mesh key={i} position={[0, 0.62, z]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.395, 0.02, 8, 24]} />
-            <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.2} />
-          </mesh>
-        ))}
-        {/* Smokestack */}
-        <group position={[0, 1.02, 0.72]}>
-          <mesh>
-            <cylinderGeometry args={[0.18, 0.11, 0.48, 16]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.5} />
-          </mesh>
-          <mesh position={[0, 0.24, 0]}>
-            <torusGeometry args={[0.18, 0.035, 8, 16]} />
-            <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.2} />
-          </mesh>
-        </group>
-        {/* Steam dome & whistle */}
-        <mesh position={[0, 1.05, 0.18]}>
-          <sphereGeometry args={[0.15, 16, 12]} />
-          <meshStandardMaterial color="#facc15" metalness={0.85} roughness={0.2} />
-        </mesh>
-        <mesh ref={whistleRef} position={[0.12, 1.25, -0.06]} visible={false}>
-          <sphereGeometry args={[0.08, 8, 8]} />
-          <meshStandardMaterial color="#ffffff" transparent opacity={0.6} />
-        </mesh>
-        {/* Steam puffs */}
-        {[0, 1, 2, 3].map((i) => (
-          <mesh key={i} ref={(el) => { if (el) steamRef.current[i] = el; }} position={[0, 1.4, 0.72]} visible={false}>
-            <sphereGeometry args={[0.16, 12, 12]} />
-            <meshStandardMaterial color="#f8fafc" transparent opacity={0.7} roughness={0.1} />
-          </mesh>
-        ))}
-        {/* Cow-catcher */}
-        <group position={[0, 0.15, 1.28]}>
-          <mesh position={[0, 0.05, 0.15]} rotation={[0.45, 0, 0]}>
-            <boxGeometry args={[0.82, 0.12, 0.42]} />
-            <meshStandardMaterial color={L.dark} roughness={0.4} />
-          </mesh>
-          <mesh position={[0, -0.02, 0.32]}>
-            <boxGeometry args={[0.84, 0.06, 0.08]} />
-            <meshStandardMaterial color="#facc15" roughness={0.3} />
-          </mesh>
-        </group>
-        {/* Cabin with gold roof + driver */}
-        <group position={[0, 0.85, -0.62]}>
-          <mesh>
-            <boxGeometry args={[0.88, 0.88, 0.78]} />
-            <meshStandardMaterial color={L.cabin} roughness={0.3} />
-          </mesh>
-          <mesh position={[0, 0.52, 0]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.48, 0.48, 0.88, 16, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color="#facc15" roughness={0.25} metalness={0.2} />
-          </mesh>
-          {[-0.45, 0.45].map((x, i) => (
-            <mesh key={i} position={[x, 0.06, 0]}>
-              <boxGeometry args={[0.02, 0.4, 0.44]} />
-              <meshStandardMaterial color="#7dd3fc" roughness={0.1} transparent opacity={0.8} />
-            </mesh>
-          ))}
-          <group position={[0.12, -0.15, 0]}>
-            <HumanFigure position={[0, 0, 0]} scale={0.9} shirtColor={L.seat} pantsColor="#0f172a" hasCap isSeated />
-          </group>
-        </group>
-        {/* Chassis */}
-        <mesh position={[0, 0.2, 0.12]}>
-          <boxGeometry args={[0.88, 0.14, 2.3]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.6} />
-        </mesh>
-        {/* Driving wheels */}
-        {[-0.47, 0.47].map((x, i) => (
-          <group key={`rw-${i}`} position={[x, 0.24, -0.3]}>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i] = el; }} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.26, 0.26, 0.08, 16]} />
-              <meshStandardMaterial color={L.primary} roughness={0.3} />
-            </mesh>
-            <mesh position={[x > 0 ? 0.05 : -0.05, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.09, 0.09, 0.03, 12]} />
-              <meshStandardMaterial color="#facc15" metalness={0.8} roughness={0.2} />
-            </mesh>
-          </group>
-        ))}
-        {[-0.47, 0.47].map((x, i) => (
-          <group key={`fw-${i}`} position={[x, 0.18, 0.55]}>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i + 2] = el; }} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.18, 0.18, 0.08, 16]} />
-              <meshStandardMaterial color={L.primary} roughness={0.3} />
-            </mesh>
-          </group>
-        ))}
-        {/* Connecting rod */}
-        <group ref={rodRef} position={[-0.52, 0.2, 0.12]}>
-          <mesh>
-            <boxGeometry args={[0.03, 0.04, 0.95]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.85} roughness={0.2} />
-          </mesh>
-        </group>
-      </group>
+    <group position={position} scale={[scale, scale, scale]}>
+      {/* Head */}
+      <mesh position={[0, 0.42, 0]}>
+        <sphereGeometry args={[0.075, 10, 10]} />
+        <meshStandardMaterial color="#fed7aa" roughness={0.6} />
+      </mesh>
 
-      {/* ── COACH 1 ── */}
-      <group ref={coach1Ref} scale={[0.8, 0.8, 0.8]}>
-        <mesh position={[0, 0.58, 0]}>
-          <boxGeometry args={[0.84, 0.65, 1.8]} />
-          <meshStandardMaterial color={L.dark} roughness={0.35} />
-        </mesh>
-        <mesh position={[0, 0.94, 0]}>
-          <boxGeometry args={[0.88, 0.08, 1.88]} />
-          <meshStandardMaterial color="#facc15" roughness={0.3} metalness={0.2} />
-        </mesh>
-        {[-0.43, 0.43].map((x, si) => (
-          <group key={`c1-side-${si}`}>
-            {[-0.55, 0, 0.55].map((z, wi) => (
-              <group key={`c1-w-${wi}`} position={[x, 0.62, z]}>
-                <mesh>
-                  <boxGeometry args={[0.02, 0.32, 0.32]} />
-                  <meshStandardMaterial color="#fef08a" emissive="#eab308" emissiveIntensity={0.7} roughness={0.1} transparent opacity={0.9} />
-                </mesh>
-                <group position={[x > 0 ? -0.15 : 0.15, 0.4, 0]}>
-                  <HumanFigure position={[0, 0, 0]} scale={0.7} shirtColor={wi === 0 ? '#2563eb' : wi === 1 ? '#16a34a' : '#ea580c'} pantsColor="#1e293b" isSeated />
-                </group>
-              </group>
-            ))}
-          </group>
-        ))}
-        {[-0.44, 0.44].map((x, i) => (
-          <group key={`c1-wheels-${i}`}>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i + 4] = el; }} position={[x, 0.15, 0.45]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.15, 0.15, 0.06, 12]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.4} />
-            </mesh>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i + 6] = el; }} position={[x, 0.15, -0.45]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.15, 0.15, 0.06, 12]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.4} />
-            </mesh>
-          </group>
-        ))}
-      </group>
+      {/* Cap */}
+      <mesh position={[0, 0.48, 0]}>
+        <cylinderGeometry args={[0.08, 0.082, 0.035, 10]} />
+        <meshStandardMaterial color={capColor} roughness={0.4} />
+      </mesh>
+      <mesh position={[0, 0.47, 0.06]}>
+        <boxGeometry args={[0.085, 0.01, 0.05]} />
+        <meshStandardMaterial color={capColor} roughness={0.4} />
+      </mesh>
 
-      {/* ── COACH 2 ── */}
-      <group ref={coach2Ref} scale={[0.8, 0.8, 0.8]}>
-        <mesh position={[0, 0.55, 0]}>
-          <boxGeometry args={[0.82, 0.58, 1.7]} />
-          <meshStandardMaterial color={L.primary} roughness={0.35} />
+      {/* Torso */}
+      <mesh position={[0, 0.25, 0]}>
+        <boxGeometry args={[0.15, 0.22, 0.09]} />
+        <meshStandardMaterial color={shirtColor} roughness={0.5} />
+      </mesh>
+
+      {/* Arms */}
+      {[-0.095, 0.095].map((x, i) => (
+        <mesh key={`arm-${i}`} position={[x, 0.24, 0]}>
+          <boxGeometry args={[0.035, 0.16, 0.04]} />
+          <meshStandardMaterial color={shirtColor} roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0.87, 0]}>
-          <boxGeometry args={[0.86, 0.08, 1.78]} />
-          <meshStandardMaterial color="#facc15" roughness={0.3} metalness={0.2} />
-        </mesh>
-        {[-0.42, 0.42].map((x, si) => (
-          <group key={`c2-side-${si}`}>
-            {[-0.5, 0.1].map((z, wi) => (
-              <mesh key={`c2-w-${wi}`} position={[x, 0.58, z]}>
-                <boxGeometry args={[0.02, 0.28, 0.34]} />
-                <meshStandardMaterial color="#fef08a" emissive="#eab308" emissiveIntensity={0.6} roughness={0.1} transparent opacity={0.9} />
-              </mesh>
-            ))}
-          </group>
-        ))}
-        {[-0.44, 0.44].map((x, i) => (
-          <group key={`c2-wheels-${i}`}>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i + 8] = el; }} position={[x, 0.15, 0.42]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.15, 0.15, 0.06, 12]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.4} />
+      ))}
+
+      {/* Seated Legs */}
+      <group position={[0, 0.12, 0.05]}>
+        {[-0.04, 0.04].map((x, i) => (
+          <group key={`leg-${i}`} position={[x, 0, 0]}>
+            <mesh position={[0, 0, 0.05]} rotation={[Math.PI / 2, 0, 0]}>
+              <boxGeometry args={[0.04, 0.1, 0.04]} />
+              <meshStandardMaterial color="#1e293b" roughness={0.6} />
             </mesh>
-            <mesh ref={(el) => { if (el) wheelsRef.current[i + 10] = el; }} position={[x, 0.15, -0.42]} rotation={[0, 0, Math.PI / 2]}>
-              <cylinderGeometry args={[0.15, 0.15, 0.06, 12]} />
-              <meshStandardMaterial color="#0f172a" roughness={0.4} />
+            <mesh position={[0, -0.07, 0.1]}>
+              <boxGeometry args={[0.04, 0.1, 0.04]} />
+              <meshStandardMaterial color="#1e293b" roughness={0.6} />
             </mesh>
           </group>
         ))}
@@ -385,3 +165,356 @@ export const TeamTrain: React.FC<TeamTrainProps> = ({ team, route }) => {
     </group>
   );
 };
+
+interface TeamTrainProps {
+  team: TeamId;
+  route?: [number, number, number][];
+  trackPoints?: [number, number, number][];
+}
+
+export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, trackPoints }) => {
+  const points = route || trackPoints || [];
+  const locoGroupRef = useRef<THREE.Group>(null);
+  const flatbedGroupRef = useRef<THREE.Group>(null);
+  const cargoGroupRef = useRef<THREE.Group>(null);
+  const coachGroupRef = useRef<THREE.Group>(null);
+
+  const wheelsRef = useRef<THREE.Mesh[]>([]);
+  const rodRef = useRef<THREE.Mesh>(null);
+  const steamPuffsRef = useRef<THREE.Mesh[]>([]);
+  const whistleSteamRef = useRef<THREE.Mesh>(null);
+
+  const trainAnim = useRailwayStore((s) => (team === 'blue' ? s.blueTrain : s.redTrain));
+  const onboardPassengers = useRailwayStore((s) => s.onboardPassengers);
+
+  const isBlue = team === 'blue';
+  const primaryColor = isBlue ? '#2563eb' : '#dc2626';
+  const secondaryColor = isBlue ? '#1e3a8a' : '#7f1d1d';
+  const trimColor = '#facc15';
+
+  const curve = useMemo(() => {
+    if (!points || points.length < 2) return null;
+    const pts = points.map((p) => new THREE.Vector3(...p));
+    return new THREE.CatmullRomCurve3(pts, false, 'catmullrom', 0.5);
+  }, [points]);
+
+  const curveLen = useMemo(() => (curve ? curve.getLength() : 40), [curve]);
+
+  const locoOffset = 0.0;
+  const flatbedOffset = 2.0 / curveLen;
+  const cargoOffset = 3.9 / curveLen;
+  const coachOffset = 5.8 / curveLen;
+
+  useFrame((_, delta) => {
+    if (!curve) return;
+
+    const baseProgress = trainAnim.progress;
+    const isMoving = trainAnim.state === 'moving' || trainAnim.state === 'departing' || trainAnim.state === 'approaching';
+
+    const positionWagon = (
+      groupRef: React.RefObject<THREE.Group | null>,
+      offset: number,
+      yOffset: number = 0.12
+    ) => {
+      if (!groupRef.current) return;
+      const t = Math.min(Math.max(baseProgress - offset, 0.0001), 0.9999);
+      const pos = curve.getPointAt(t);
+      const tangent = curve.getTangentAt(t);
+
+      groupRef.current.position.set(pos.x, pos.y + yOffset, pos.z);
+      const angle = Math.atan2(tangent.x, tangent.z);
+      groupRef.current.rotation.y = angle;
+
+      if (isMoving) {
+        groupRef.current.rotation.z = Math.sin(Date.now() * 0.008 + offset * 10) * 0.02;
+      } else {
+        groupRef.current.rotation.z = 0;
+      }
+    };
+
+    positionWagon(locoGroupRef, locoOffset, 0.12);
+    positionWagon(flatbedGroupRef, flatbedOffset, 0.12);
+    positionWagon(cargoGroupRef, cargoOffset, 0.12);
+    positionWagon(coachGroupRef, coachOffset, 0.12);
+
+    // Rotate wheels
+    const wheelSpeed = (isMoving ? trainAnim.speed * 22 : 0) * delta;
+    wheelsRef.current.forEach((w) => {
+      if (w) w.rotation.x -= wheelSpeed;
+    });
+
+    // Connecting rod oscillation
+    if (rodRef.current) {
+      rodRef.current.position.y = 0.2 + Math.sin(Date.now() * 0.015) * 0.04;
+      rodRef.current.position.z = 0.1 + Math.cos(Date.now() * 0.015) * 0.06;
+    }
+
+    // Steam puffs
+    steamPuffsRef.current.forEach((puff, i) => {
+      if (puff) {
+        if (trainAnim.smokeActive || isMoving) {
+          puff.visible = true;
+          const timeOffset = (Date.now() * 0.002 + i * 0.35) % 1.5;
+          puff.position.y = 1.35 + timeOffset * 1.3;
+          puff.position.z = 0.65 - (isMoving ? timeOffset * 0.9 : 0);
+          const s = 0.12 + timeOffset * 0.28;
+          puff.scale.set(s, s, s);
+          (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(0, 0.75 - timeOffset * 0.5);
+        } else {
+          puff.visible = false;
+        }
+      }
+    });
+
+    if (whistleSteamRef.current) {
+      whistleSteamRef.current.visible = trainAnim.whistleActive;
+    }
+  });
+
+  // Seat positions inside the passenger coach (3 pairs of left & right window seats)
+  const seatPositions: [number, number, number][] = [
+    [-0.22, 0.24, 0.45],
+    [0.22, 0.24, 0.45],
+    [-0.22, 0.24, 0],
+    [0.22, 0.24, 0],
+    [-0.22, 0.24, -0.45],
+    [0.22, 0.24, -0.45],
+  ];
+
+  return (
+    <group>
+      {/* ========================================================= */}
+      {/* ── 1. LOCOMOTIVE ENGINE WITH 3D DRIVER IN CABIN ── */}
+      {/* ========================================================= */}
+      <group ref={locoGroupRef} scale={[0.85, 0.85, 0.85]}>
+        {/* Boiler */}
+        <mesh position={[0, 0.62, 0.4]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.38, 0.38, 1.3, 24]} />
+          <meshStandardMaterial color="#2d3748" roughness={0.4} metalness={0.5} />
+        </mesh>
+
+        {/* Boiler Front Cap with Team Color */}
+        <mesh position={[0, 0.62, 1.05]} rotation={[Math.PI / 2, 0, 0]}>
+          <cylinderGeometry args={[0.39, 0.39, 0.08, 24]} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} />
+        </mesh>
+        <mesh position={[0, 0.62, 1.09]}>
+          <sphereGeometry args={[0.37, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} />
+        </mesh>
+
+        {/* Smokestack */}
+        <group position={[0, 1.02, 0.75]}>
+          <mesh>
+            <cylinderGeometry args={[0.18, 0.11, 0.48, 16]} />
+            <meshStandardMaterial color="#1e293b" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.24, 0]}>
+            <torusGeometry args={[0.18, 0.035, 8, 16]} />
+            <meshStandardMaterial color={trimColor} metalness={0.8} roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Steam Puffs */}
+        {[0, 1, 2, 3].map((i) => (
+          <mesh
+            key={i}
+            ref={(el) => { if (el) steamPuffsRef.current[i] = el; }}
+            position={[0, 1.4, 0.75]}
+            visible={false}
+          >
+            <sphereGeometry args={[0.16, 12, 12]} />
+            <meshStandardMaterial color="#f8fafc" transparent opacity={0.7} roughness={0.1} />
+          </mesh>
+        ))}
+
+        {/* Cabin with 3D Train Driver */}
+        <group position={[0, 0.85, -0.65]}>
+          <mesh>
+            <boxGeometry args={[0.88, 0.88, 0.78]} />
+            <meshStandardMaterial color={primaryColor} roughness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.52, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.48, 0.48, 0.88, 16, 1, false, 0, Math.PI]} />
+            <meshStandardMaterial color={trimColor} roughness={0.25} metalness={0.2} />
+          </mesh>
+          {/* Side Windows */}
+          {[-0.45, 0.45].map((x, i) => (
+            <mesh key={i} position={[x, 0.06, 0]}>
+              <boxGeometry args={[0.02, 0.36, 0.4]} />
+              <meshStandardMaterial color="#7dd3fc" roughness={0.1} transparent opacity={0.75} />
+            </mesh>
+          ))}
+
+          {/* 3D Train Driver in Cabin */}
+          <group position={[0.12, -0.18, 0]}>
+            <SeatedPassenger position={[0, 0, 0]} team={team} scale={0.85} />
+            {/* Throttle Lever */}
+            <mesh position={[0.1, 0.22, 0.12]}>
+              <cylinderGeometry args={[0.015, 0.015, 0.18, 8]} />
+              <meshStandardMaterial color="#facc15" metalness={0.8} />
+            </mesh>
+          </group>
+        </group>
+
+        {/* Chassis */}
+        <mesh position={[0, 0.2, 0.15]}>
+          <boxGeometry args={[0.88, 0.14, 2.3]} />
+          <meshStandardMaterial color="#1e293b" roughness={0.6} />
+        </mesh>
+
+        {/* Wheels */}
+        {[-0.47, 0.47].map((x, i) => (
+          <group key={`rear-w-${i}`} position={[x, 0.24, -0.3]}>
+            <mesh
+              ref={(el) => { if (el) wheelsRef.current.push(el); }}
+              rotation={[0, 0, Math.PI / 2]}
+            >
+              <cylinderGeometry args={[0.26, 0.26, 0.08, 16]} />
+              <meshStandardMaterial color={primaryColor} roughness={0.3} />
+            </mesh>
+          </group>
+        ))}
+        {[-0.47, 0.47].map((x, i) => (
+          <group key={`front-w-${i}`} position={[x, 0.18, 0.55]}>
+            <mesh
+              ref={(el) => { if (el) wheelsRef.current.push(el); }}
+              rotation={[0, 0, Math.PI / 2]}
+            >
+              <cylinderGeometry args={[0.18, 0.18, 0.08, 16]} />
+              <meshStandardMaterial color={primaryColor} roughness={0.3} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Connecting Rod */}
+        <mesh ref={rodRef} position={[-0.52, 0.2, 0.12]}>
+          <boxGeometry args={[0.03, 0.04, 0.95]} />
+          <meshStandardMaterial color="#94a3b8" metalness={0.85} />
+        </mesh>
+      </group>
+
+      {/* ========================================================= */}
+      {/* ── 2. CARRIAGE 1: VEHICLE FLATBED ── */}
+      {/* ========================================================= */}
+      <group ref={flatbedGroupRef} scale={[0.85, 0.85, 0.85]}>
+        <mesh position={[0, 0.2, 0]}>
+          <boxGeometry args={[0.82, 0.1, 1.8]} />
+          <meshStandardMaterial color="#d97706" roughness={0.7} />
+        </mesh>
+        {[-0.4, 0.4].map((x, i) => (
+          <mesh key={i} position={[x, 0.3, 0]}>
+            <boxGeometry args={[0.03, 0.14, 1.76]} />
+            <meshStandardMaterial color="#b45309" roughness={0.6} />
+          </mesh>
+        ))}
+
+        {/* 3D Cyan Sports Sedan on Flatbed */}
+        <group position={[0, 0.28, 0.4]} scale={[0.55, 0.55, 0.55]}>
+          <mesh position={[0, 0.14, 0]}>
+            <boxGeometry args={[0.62, 0.18, 1.05]} />
+            <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.3} />
+          </mesh>
+          <mesh position={[0, 0.3, -0.05]}>
+            <boxGeometry args={[0.48, 0.18, 0.55]} />
+            <meshStandardMaterial color="#38bdf8" roughness={0.1} />
+          </mesh>
+        </group>
+
+        {/* 3D Yellow Pickup Truck on Flatbed */}
+        <group position={[0, 0.28, -0.4]} scale={[0.55, 0.55, 0.55]}>
+          <mesh position={[0, 0.16, 0]}>
+            <boxGeometry args={[0.64, 0.22, 1.1]} />
+            <meshStandardMaterial color="#eab308" roughness={0.3} metalness={0.2} />
+          </mesh>
+          <mesh position={[0, 0.35, 0.18]}>
+            <boxGeometry args={[0.55, 0.22, 0.45]} />
+            <meshStandardMaterial color="#fef08a" roughness={0.1} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* ========================================================= */}
+      {/* ── 3. CARRIAGE 2: CARGO WAGON (LADDERS & PLANKS) ── */}
+      {/* ========================================================= */}
+      <group ref={cargoGroupRef} scale={[0.85, 0.85, 0.85]}>
+        <mesh position={[0, 0.28, 0]}>
+          <boxGeometry args={[0.82, 0.26, 1.8]} />
+          <meshStandardMaterial color="#78350f" roughness={0.8} />
+        </mesh>
+        {/* Planks & Ladders */}
+        <group position={[0, 0.42, 0]}>
+          {[-0.22, 0, 0.22].map((x, li) => (
+            <mesh key={`plank-${li}`} position={[x, 0.08, 0]}>
+              <boxGeometry args={[0.18, 0.08, 1.4]} />
+              <meshStandardMaterial color="#b45309" roughness={0.9} />
+            </mesh>
+          ))}
+          {/* Ladders on Side */}
+          {[-0.38, 0.38].map((x, i) => (
+            <group key={`ladder-${i}`} position={[x, 0.25, 0]}>
+              <mesh position={[0, 0, -0.5]}>
+                <boxGeometry args={[0.03, 0.28, 0.03]} />
+                <meshStandardMaterial color="#fed7aa" />
+              </mesh>
+              <mesh position={[0, 0, 0.5]}>
+                <boxGeometry args={[0.03, 0.28, 0.03]} />
+                <meshStandardMaterial color="#fed7aa" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      </group>
+
+      {/* ========================================================= */}
+      {/* ── 4. CARRIAGE 3: PASSENGER COACH (SEATED INSIDE CABIN) ── */}
+      {/* ========================================================= */}
+      <group ref={coachGroupRef} scale={[0.85, 0.85, 0.85]}>
+        {/* Coach Body Shell */}
+        <mesh position={[0, 0.58, 0]}>
+          <boxGeometry args={[0.84, 0.65, 1.8]} />
+          <meshStandardMaterial color={secondaryColor} roughness={0.35} />
+        </mesh>
+        {/* Roof Cap */}
+        <mesh position={[0, 0.94, 0]}>
+          <boxGeometry args={[0.88, 0.08, 1.88]} />
+          <meshStandardMaterial color={trimColor} roughness={0.3} metalness={0.2} />
+        </mesh>
+
+        {/* Clear Glass Windows */}
+        {[-0.43, 0.43].map((x, si) => (
+          <group key={`side-win-${si}`}>
+            {[-0.55, 0, 0.55].map((z, wi) => (
+              <mesh key={`win-${wi}`} position={[x, 0.62, z]}>
+                <boxGeometry args={[0.02, 0.34, 0.34]} />
+                <meshStandardMaterial
+                  color="#93c5fd"
+                  roughness={0.1}
+                  transparent
+                  opacity={0.5}
+                />
+              </mesh>
+            ))}
+          </group>
+        ))}
+
+        {/* ── PASSENGERS SEATED INSIDE COACH FLOOR ── */}
+        <group position={[0, 0.28, 0]}>
+          {onboardPassengers.map((pass, idx) => {
+            const seat = seatPositions[idx % seatPositions.length];
+            return (
+              <SeatedPassenger
+                key={pass.id}
+                position={seat}
+                team={pass.team}
+                scale={0.7}
+              />
+            );
+          })}
+        </group>
+      </group>
+    </group>
+  );
+};
+
+export const TeamTrain = StylizedTeamTrain;

@@ -1,7 +1,11 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Main Orchestrator
-// Full-bleed 3D world with floating railway-operator consoles,
-// wood & brass HUD, and the cinematic Railway Showdown overlays.
+// Full-Bleed 3D World with Floating Symmetrical Consoles:
+// - FULLSCREEN 3D CANVAS (100% Viewport Background)
+// - Floating Top HUD (Scores, Stage & Progressive Green Signals)
+// - Symmetrical Consoles: Team Blue (Left, 270px) & Team Red (Right, 270px)
+// - Turn-based First-Answerer & Rebound support
+// - Light Porcelain Overlays & Solution Reveals
 // ============================================================
 
 'use client';
@@ -13,12 +17,11 @@ import { TeamConsole } from './TeamConsole';
 import { RailwayHUD } from './RailwayHUD';
 import {
   RailwayTitleScreen,
-  RoundIntroOverlay,
-  RouteDecisionBoard,
-  WinnerPlaque,
+  RoundIntroModal,
+  QuestionRevealOverlay,
+  LiveToast,
+  WinnerPlaqueOverlay,
   NetworkCompleteOverlay,
-  RailwayToast,
-  MissionBar,
 } from './RailwayOverlays';
 
 const RailwayScene = dynamic(
@@ -36,25 +39,28 @@ export const NumberRailwayGame: React.FC = () => {
   }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden select-none font-sans" style={{ background: '#7dd3fc' }}>
-      {/* 3D world */}
+    <main className="relative w-screen h-screen overflow-hidden select-none font-sans bg-sky-300">
+      {/* ── 1. 3D Cartoon Railway World (100% Canvas Background) ── */}
       <div className="absolute inset-0 z-0">
         <RailwayScene />
       </div>
 
-      {/* HUD + overlays */}
+      {/* ── 2. Top HUD Bar ── */}
       <RailwayHUD />
-      <RailwayToast />
-      <RoundIntroOverlay />
-      <RouteDecisionBoard />
-      <MissionBar />
-      <WinnerPlaque />
+
+      {/* ── 3. Live Toast Notifications ── */}
+      <LiveToast />
+
+      {/* ── 4. Modals & Overlays ── */}
       <RailwayTitleScreen />
+      <RoundIntroModal />
+      <QuestionRevealOverlay />
+      <WinnerPlaqueOverlay />
       <NetworkCompleteOverlay />
 
-      {/* Floating consoles */}
+      {/* ── 5. Floating Symmetrical Team Consoles (Left & Right) ── */}
       {showConsoles && (
-        <div className="absolute inset-x-0 top-24 bottom-3 pointer-events-none px-3 flex items-start justify-between z-20">
+        <div className="absolute inset-x-0 top-18 bottom-3 pointer-events-none px-3 flex items-start justify-between z-20">
           <div className="pointer-events-auto">
             <TeamConsole team="blue" />
           </div>
@@ -64,11 +70,13 @@ export const NumberRailwayGame: React.FC = () => {
         </div>
       )}
 
-      {/* Fullscreen toggle */}
-      <button onClick={toggleFullscreen} title="Fullscreen"
-        className="absolute bottom-3 right-3 z-30 w-9 h-9 rounded-xl flex items-center justify-center pointer-events-auto"
-        style={{ background: 'linear-gradient(180deg,#5b4326,#3a2a17)', border: '2px solid #c9a24b' }}>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#fde68a" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></svg>
+      {/* ── 6. Fullscreen Toggle Button ── */}
+      <button
+        onClick={toggleFullscreen}
+        title="Toggle Fullscreen"
+        className="absolute bottom-3 right-3 z-30 px-3 py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 text-slate-800 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-lg cursor-pointer pointer-events-auto"
+      >
+        ⛶ FULLSCREEN
       </button>
     </main>
   );
