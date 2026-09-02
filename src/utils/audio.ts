@@ -436,23 +436,50 @@ class SoundEngine {
     this.playClick();
   }
 
-  // Number Railway Sound Aliases
+  // Number Railway Sound Synthesis
   public playTrainWhistle() {
+    this.initCtx();
+    if (!this.ctx || this.isMuted) return;
+    const now = this.ctx.currentTime;
+    
+    // Dual-tone harmonic train whistle (D5 + F#5)
+    [587.33, 739.99].forEach((freq) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now);
+      osc.frequency.linearRampToValueAtTime(freq * 1.05, now + 0.15);
+      osc.frequency.linearRampToValueAtTime(freq, now + 0.4);
+
+      gain.gain.setValueAtTime(0.12, now);
+      gain.gain.linearRampToValueAtTime(0.18, now + 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.7);
+    });
+  }
+
+  public playTrainChug() {
     this.initCtx();
     if (!this.ctx || this.isMuted) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(110, now);
+    osc.frequency.exponentialRampToValueAtTime(40, now + 0.08);
+
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
     osc.connect(gain);
     gain.connect(this.ctx.destination);
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(520, now);
-    osc.frequency.linearRampToValueAtTime(580, now + 0.1);
-    osc.frequency.linearRampToValueAtTime(520, now + 0.3);
-    gain.gain.setValueAtTime(0.15, now);
-    gain.gain.linearRampToValueAtTime(0, now + 0.5);
     osc.start(now);
-    osc.stop(now + 0.5);
+    osc.stop(now + 0.08);
   }
 
   public playSignalChange() {
@@ -468,7 +495,7 @@ class SoundEngine {
   }
 
   public playTrainArrive() {
-    this.playCorrect();
+    this.playVaultCracked();
   }
 
   public playRailwayVictory() {

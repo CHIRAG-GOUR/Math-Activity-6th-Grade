@@ -337,16 +337,30 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     });
 
     let prog = 0;
+    let tickCount = 0;
+
     const interval = setInterval(() => {
-      prog += 0.009;
-      const currentSpeed = prog < 0.2 ? prog * 5 : prog > 0.8 ? (1 - prog) * 5 : 1;
+      tickCount++;
+      prog += 0.005; // 200 ticks * 50ms = 10.0 seconds!
+
+      // Rhythmic steam chuffing every ~350ms
+      if (tickCount % 7 === 0 && prog < 0.92) {
+        soundManager.playTrainChug();
+      }
+
+      // Mid-journey scenic bridge whistle blast at ~5 seconds!
+      if (tickCount === 100) {
+        soundManager.playTrainWhistle();
+      }
+
+      const currentSpeed = prog < 0.15 ? prog * 6.6 : prog > 0.85 ? (1 - prog) * 6.6 : 1;
 
       set((s) => ({
         train: {
           ...s.train,
           progress: Math.min(1, prog),
           speed: currentSpeed,
-          state: prog >= 0.9 ? 'approaching' : 'moving',
+          state: prog >= 0.88 ? 'approaching' : 'moving',
         },
       }));
 
