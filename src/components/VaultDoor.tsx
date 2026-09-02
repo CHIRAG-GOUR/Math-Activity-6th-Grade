@@ -86,7 +86,7 @@ export const VaultDoor: React.FC<VaultDoorProps> = ({
         ))}
 
         {/* 2. LAYER 2: GLEAMING BURNISHED GOLD GEAR BEVEL */}
-        <div className="relative w-full h-full rounded-full bg-gradient-to-tr from-[#7c4f03] via-[#ffd700] via-[#fff4b8] to-[#9c6a0c] p-[10px] shadow-[inset_0_0_35px_rgba(0,0,0,0.9),0_0_30px_rgba(255,215,0,0.4)] flex items-center justify-center">
+        <div className="relative w-full h-full rounded-full bg-gradient-to-tr from-[#7c4f03] via-[#ffd700] to-[#9c6a0c] p-[10px] shadow-[inset_0_0_35px_rgba(0,0,0,0.9),0_0_30px_rgba(255,215,0,0.4)] flex items-center justify-center">
           
           {/* Rotating Mechanical Dial Markings & Gear Teeth */}
           <motion.div

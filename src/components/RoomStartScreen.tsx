@@ -53,7 +53,7 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
     };
   }, []);
 
-  const topicsList: { id: MathTopic; label: string; icon: React.ElementType }[] = [
+  const topicsList: { id: MathTopic; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
     { id: 'mixed', label: 'Bloom’s Mixed Challenge', icon: Dices },
     { id: 'multiplication', label: 'Integers & Multiplication', icon: X },
     { id: 'division', label: 'Ratios, HCF & Division', icon: Divide },

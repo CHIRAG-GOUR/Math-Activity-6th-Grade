@@ -1,9 +1,11 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Main Game Orchestrator
-// 16:9 Classroom Touchscreen Dual-Console Architecture:
-// LEFT: Blue Team Console (21% Viewport)
-// CENTER: 3D High-Graphics Cartoon Railway World (58% Viewport)
-// RIGHT: Red Team Console (21% Viewport)
+// Full-Bleed 3D World with Floating Ergonomic Touch Consoles:
+// - FULLSCREEN 3D CANVAS (100% Viewport Background)
+// - Floating Top HUD (Station Route, Scores, 5-Step Badges)
+// - Floating Left Console: Team Blue (265px, Bottom-Left)
+// - Floating Right Console: Team Red (265px, Bottom-Right)
+// - ~75% Unobstructed Center Viewport for 3D Train & Station!
 // ============================================================
 
 'use client';
@@ -37,45 +39,45 @@ export const NumberRailwayGame: React.FC = () => {
   }, []);
 
   return (
-    <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none flex flex-col font-sans">
+    <main className="relative w-screen h-screen overflow-hidden bg-sky-300 select-none font-sans">
       
-      {/* ── 1. Top HUD Bar (Scoreboard, Station Route, 5-Step Badges) ── */}
+      {/* ── 1. FULL-BLEED 3D CARTOON RAILWAY WORLD (100% Canvas Background) ── */}
+      <div className="absolute inset-0 z-0">
+        <RailwayScene />
+      </div>
+
+      {/* ── 2. Floating Top HUD Bar ── */}
       <RailwayHUD />
 
-      {/* ── 2. Live Step Loading Notification Toast ── */}
+      {/* ── 3. Live Step Loading Notification Toast ── */}
       <StepLoadingToast />
 
-      {/* ── 3. Overlays & Dialogs ── */}
+      {/* ── 4. Fullscreen Overlays & Modals ── */}
       <RailwayTitleScreen />
       <MissionBriefing />
       <StationArrivalOverlay />
       <NetworkCompleteOverlay />
 
-      {/* ── 4. Main 3-Column Screen Composition ── */}
-      <div className="flex-1 w-full h-full pt-16 flex flex-row overflow-hidden relative">
+      {/* ── 5. Floating Team Consoles (Bottom-Left & Bottom-Right) ── */}
+      <div className="absolute inset-x-0 bottom-4 top-18 pointer-events-none px-4 flex items-end justify-between z-20">
         
-        {/* ── LEFT: BLUE TEAM OPERATOR CONSOLE (21% Viewport - Compact & White) ── */}
-        <section className="w-[21%] min-w-[250px] max-w-[295px] h-full shrink-0 z-20 shadow-2xl">
+        {/* ── LEFT: BLUE TEAM OPERATOR CONSOLE ── */}
+        <div className="pointer-events-auto">
           <TeamConsole team="blue" />
-        </section>
+        </div>
 
-        {/* ── CENTER: SHARED 3D CARTOON RAILWAY WORLD (~58% Viewport) ── */}
-        <section className="flex-1 h-full relative z-10 overflow-hidden bg-sky-300">
-          <RailwayScene />
+        {/* ── CENTER: Fullscreen Toggle Button at Bottom ── */}
+        <button
+          onClick={toggleFullscreen}
+          className="pointer-events-auto px-3 py-1 rounded-xl bg-white/90 backdrop-blur-md border border-slate-200 text-slate-700 hover:text-slate-950 text-[10px] font-black uppercase tracking-wider hover:bg-white transition-all shadow-md cursor-pointer mb-1"
+        >
+          ⛶ FULLSCREEN
+        </button>
 
-          {/* Fullscreen Toggle Button at Bottom Center */}
-          <button
-            onClick={toggleFullscreen}
-            className="absolute bottom-3 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-xl bg-slate-900/80 backdrop-blur-md border border-white/20 text-white text-[9px] font-black uppercase tracking-wider hover:bg-slate-800 transition-all shadow-lg cursor-pointer"
-          >
-            ⛶ FULLSCREEN
-          </button>
-        </section>
-
-        {/* ── RIGHT: RED TEAM OPERATOR CONSOLE (21% Viewport - Compact & White) ── */}
-        <section className="w-[21%] min-w-[250px] max-w-[295px] h-full shrink-0 z-20 shadow-2xl">
+        {/* ── RIGHT: RED TEAM OPERATOR CONSOLE ── */}
+        <div className="pointer-events-auto">
           <TeamConsole team="red" />
-        </section>
+        </div>
       </div>
     </main>
   );
