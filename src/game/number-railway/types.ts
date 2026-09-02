@@ -1,12 +1,15 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Core Types
 // Grade 6 Mathematics: Place Value & Rounding
-// 5-Stage Station Journey System:
-// Step 1: 👥 Passengers Board from Skillizee Junction Platform
-// Step 2: 🚗 Vehicles (Realistic Sedan & Pickup) Loaded onto Flatbed
-// Step 3: 🪜 Materials (Ladders, Planks, Steel & Bricks) Loaded onto Cargo
-// Step 4: ⚙️ Locomotive Driver Charges Steam & Disengages Brakes
-// Step 5: 🚦 Green Signal & 15-Second Scenic Journey to CCIS Junction!
+//
+// GAME LOOP:
+//   5 challenges per ROUND  →  RAILWAY SHOWDOWN  →  next ROUND
+//   Q1–Q4 build the team's advantage.
+//   Q5 is the ROUTE AUTHORIZATION question (the climax).
+//   After Q5 the railway itself decides the winner:
+//     both signals RED → switch throws → winner signal R→Y→G →
+//     winner's train departs from its side → travels → destination → reward.
+// Blue Team = LEFT side.  Red Team = RIGHT side.
 // ============================================================
 
 export type BloomLevel =
@@ -29,33 +32,35 @@ export type ChallengeType =
 
 export type TeamId = 'blue' | 'red';
 
+// Signals now support the full three-aspect sequence RED → YELLOW → GREEN.
 export type SignalState = 'red' | 'yellow' | 'green';
 
-export type LoadingStepType =
-  | 'passengers'   // Step 1: Passengers board
-  | 'vehicles'     // Step 2: Vehicles loaded
-  | 'materials'    // Step 3: Materials (ladders, planks) loaded
-  | 'brakes'       // Step 4: Driver releases brakes & steam
-  | 'departure'    // Step 5: Green signal & 15s journey
-  | 'tie-breaker'; // Super Tie-Breaker
+// The central junction switch can route toward either team, or sit neutral.
+export type SwitchTarget = 'neutral' | 'blue' | 'red';
+
+// Sub-steps of the cinematic Railway Showdown sequence.
+export type ShowdownStep =
+  | 'idle'
+  | 'quiet'          // both signals red, world goes quiet, ROUTE DECISION board
+  | 'switching'      // the mechanical switch lever throws toward the winner
+  | 'signal-yellow'  // winner signal RED → YELLOW
+  | 'signal-green'   // winner signal YELLOW → GREEN
+  | 'departing'      // winner train accelerates and travels the route
+  | 'arrived';       // winner train reaches the destination station
 
 export type GamePhase =
   | 'title'
-  | 'train-approaching' // Train arriving at Skillizee Junction before Q1
-  | 'briefing'
-  | 'challenge'
-  | 'round-reveal'
-  | 'super-tie-breaker'
-  | 'item-loaded'
-  | 'train-journey'
-  | 'station-arrived'
-  | 'game-over'
-  | 'network-complete';
+  | 'round-intro'     // brief round title card
+  | 'challenge'       // the 5 questions
+  | 'question-reveal' // short, quiet per-question solution
+  | 'showdown'        // the railway showdown cinematic
+  | 'tie-break'       // draw → reasoning tie-break question
+  | 'winner-reveal'   // railway plaque + round points
+  | 'round-complete'  // pause before the next round begins
+  | 'network-complete'; // all rounds done — grand network restored
 
-export type TrainState =
+export type TrainMotionState =
   | 'idle'
-  | 'arriving-start'
-  | 'loading'
   | 'departing'
   | 'moving'
   | 'approaching'
@@ -67,30 +72,22 @@ export interface StationInfo {
   subtitle: string;
   position: [number, number, number];
   color: string;
+  // Which round activates (unlocks) this station on the network.
+  roundIndex: number;
 }
 
 export interface RailwayChallenge {
   id: string;
-  stationIndex: number;
-  stepIndex: number; // 1 to 5 (or 6 for tie breaker)
-  stepType: LoadingStepType;
-  stepTitle: string;
-  stepDescription: string;
-  stepIcon: string;
-  
-  missionTitle: string;
   bloomLevel: BloomLevel;
   challengeType: ChallengeType;
   difficulty: 'foundation' | 'core' | 'challenge';
   points: number;
   timeLimit: number;
 
-  context: {
-    originStation: string;
-    destinationStation: string;
-    narrative: string;
-  };
+  // Q5 of every round is the "route authorization" climax question.
+  isRouteAuthorization?: boolean;
 
+  missionTitle: string;
   prompt: string;
   number?: number;
   numberString?: string;
@@ -101,22 +98,29 @@ export interface RailwayChallenge {
   validation: (answer: number | string) => boolean;
   hints: string[];
   explanation: string;
+
+  // Short flavour describing the railway consequence of a correct answer.
+  railwayEffect: string;
 }
 
-export interface LoadedTrainItems {
-  passengers: boolean;    // Step 1: Passengers in coach
-  vehicles: boolean;      // Step 2: Cars on flatbed
-  materials: boolean;     // Step 3: Ladders/planks on cargo
-  brakesLifted: boolean;  // Step 4: Brakes released
-  signalGreen: boolean;   // Step 5: Signal green
+export interface RailwayRound {
+  index: number;         // 0-based
+  id: string;
+  name: string;          // e.g. "THE MOUNTAIN EXPRESS"
+  subtitle: string;
+  destinationStationId: string;
+  questions: RailwayChallenge[]; // exactly 5
 }
 
 export interface TeamState {
   id: TeamId;
   name: string;
-  score: number;
+  score: number;              // cumulative across all rounds
+  roundScore: number;         // points earned in the current round
   streak: number;
   correctAnswersCount: number;
+  roundCorrect: number;       // correct answers this round
+  roundsWon: number;
   selectedAnswer: number | string | null;
   isLocked: boolean;
   lastResult: 'correct' | 'wrong' | null;
@@ -126,50 +130,49 @@ export interface TeamState {
     isCorrect: boolean;
     pointsEarned: number;
   } | null;
-  attemptsOnCurrent: number;
 }
 
 export interface TrainAnimState {
-  position: [number, number, number];
-  rotation: [number, number, number];
-  progress: number;
-  speed: number;
-  state: TrainState;
-  wheelRotation: number;
+  progress: number;             // 0..1 along the team route curve
+  speed: number;                // 0..1 normalized speed (drives wheels/steam)
+  state: TrainMotionState;
   smokeActive: boolean;
   whistleActive: boolean;
+  headlampOn: boolean;
 }
 
-export type TotalQuestionsOption = 5 | 10 | 15;
+export type RoundWinner = TeamId | 'draw' | null;
 
 export interface RailwayGameState {
   phase: GamePhase;
-  totalQuestionsCount: TotalQuestionsOption;
-  questionsPerStep: number; // 1 for 5Q, 2 for 10Q, 3 for 15Q
-  stepQuestionsCompleted: number; // Counter within current step
 
-  currentStationIndex: number;
-  currentStepIndex: number; // 1..5
-  activeChallengeIndex: number;
-  challenges: RailwayChallenge[];
+  rounds: RailwayRound[];
+  currentRoundIndex: number;
+  questionIndexInRound: number;   // 0..4
   activeChallenge: RailwayChallenge | null;
-  isSuperTieBreaker: boolean;
-  winner: TeamId | 'draw' | 'busted' | null;
-  
+  isTieBreak: boolean;
+
   blueTeam: TeamState;
   redTeam: TeamState;
 
-  stations: StationInfo[];
-  loadedItems: LoadedTrainItems;
-  signalState: SignalState;
-  train: TrainAnimState;
+  roundWinner: RoundWinner;
+  matchWinner: RoundWinner;       // overall winner at network-complete
 
-  fromStationName: string;
-  toStationName: string;
-  totalJourneysCompleted: number;
+  // Railway hardware state
+  signalBlue: SignalState;
+  signalRed: SignalState;
+  switchTarget: SwitchTarget;
+  showdownStep: ShowdownStep;
+  activeRoute: TeamId | null;     // which team's route the camera/train follows
+
+  blueTrain: TrainAnimState;
+  redTrain: TrainAnimState;
+
+  stations: StationInfo[];
+  unlockedStationIds: string[];
 
   isMuted: boolean;
   timeRemaining: number;
   timerActive: boolean;
-  stepAnimationMessage: string | null;
+  toastMessage: string | null;
 }
