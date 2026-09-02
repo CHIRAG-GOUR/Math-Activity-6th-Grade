@@ -1,11 +1,10 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Overlays & Celebration Screens
-// Dynamic Red VS Blue Showdown Environment:
-// - Left: Team Blue Locomotive with Blue Energy Glow & Custom Naming
-// - Center: Fiery Animated VS Clash with Smoke & Fire Effects
-// - Right: Team Red Locomotive with Red Energy Glow & Custom Naming
-// - 5, 10, 15 Question Match Selector
-// - Solution Reveal & Victory Celebration Modals
+// Authentic Comic Red VS Blue Lightning Showdown Arena:
+// - Left: TEAM 1 (RED) in a compact Square Card with Original Image
+// - Center: Jagged Comic Lightning Bolt & Iconic 3D "VS" Emblem
+// - Right: TEAM 2 (BLUE) in a compact Square Card with Original Image
+// - Pure Graphic Red/Blue Sunburst Animated Background
 // ============================================================
 
 'use client';
@@ -13,10 +12,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
-import { Trophy, ArrowRight, Play, CheckCircle, Flame, Sparkles } from 'lucide-react';
-import Image from 'next/image';
+import { Trophy, ArrowRight, Play, CheckCircle, Sparkles } from 'lucide-react';
 
-// ── 1. Epic Red VS Blue Showdown Title Screen ──
+// ── 1. Comic Red VS Blue Lightning Showdown Title Screen ──
 export const RailwayTitleScreen: React.FC = () => {
   const startGame = useRailwayStore((s) => s.startGame);
   const phase = useRailwayStore((s) => s.phase);
@@ -33,143 +31,206 @@ export const RailwayTitleScreen: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-between bg-gradient-to-br from-sky-400 via-sky-300 to-amber-100 text-slate-900 select-none overflow-y-auto p-3 sm:p-5"
+      className="absolute inset-0 z-50 flex flex-col items-center justify-between select-none overflow-hidden p-3 sm:p-5"
     >
-      {/* Background Animated Railway Track Ties */}
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#94a3b8_0px,#94a3b8_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-400 opacity-25 pointer-events-none" />
-
-      {/* ── Header Title & Badge ── */}
-      <div className="flex flex-col items-center text-center mt-1 z-10">
-        <motion.div
-          initial={{ y: -10, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          className="px-4 py-1 rounded-full bg-white/95 border border-amber-400 text-amber-900 text-[10px] sm:text-xs font-black tracking-widest uppercase mb-1 shadow-sm flex items-center gap-1.5"
+      {/* ── Dynamic Comic Split Graphic Background (Red on Left, Blue on Right) ── */}
+      <div className="absolute inset-0 flex pointer-events-none z-0 overflow-hidden">
+        {/* Left Side: Comic Red Sunburst */}
+        <div
+          className="w-1/2 h-full relative"
+          style={{
+            background: 'radial-gradient(circle at 40% 50%, #ef4444 0%, #dc2626 55%, #991b1b 100%)',
+          }}
         >
-          <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+          {/* Comic Sunburst Lines */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: 'repeating-conic-gradient(from 0deg at 100% 50%, #ffffff 0deg 10deg, transparent 10deg 20deg)',
+            }}
+          />
+        </div>
+
+        {/* Right Side: Comic Blue Sunburst */}
+        <div
+          className="w-1/2 h-full relative"
+          style={{
+            background: 'radial-gradient(circle at 60% 50%, #3b82f6 0%, #2563eb 55%, #1e40af 100%)',
+          }}
+        >
+          {/* Comic Sunburst Lines */}
+          <div
+            className="absolute inset-0 opacity-20"
+            style={{
+              backgroundImage: 'repeating-conic-gradient(from 0deg at 0% 50%, #ffffff 0deg 10deg, transparent 10deg 20deg)',
+            }}
+          />
+        </div>
+
+        {/* Center Jagged Comic Lightning Divider */}
+        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 w-16 flex items-center justify-center">
+          <svg viewBox="0 0 100 1000" className="w-full h-full preserve-3d" preserveAspectRatio="none">
+            {/* White Glow / Outer Border */}
+            <polyline
+              points="50,0 25,220 70,390 30,580 75,760 40,920 50,1000"
+              fill="none"
+              stroke="#ffffff"
+              strokeWidth="24"
+              strokeLinecap="round"
+              strokeLinejoin="miter"
+            />
+            {/* Black Lightning Core */}
+            <polyline
+              points="50,0 25,220 70,390 30,580 75,760 40,920 50,1000"
+              fill="none"
+              stroke="#0f172a"
+              strokeWidth="14"
+              strokeLinecap="round"
+              strokeLinejoin="miter"
+            />
+          </svg>
+        </div>
+      </div>
+
+      {/* ── Header: Grade 6 Mathematics Pill ── */}
+      <div className="relative z-10 flex flex-col items-center text-center mt-1">
+        <motion.div
+          initial={{ y: -15, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          className="px-5 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[11px] sm:text-xs font-black tracking-widest uppercase shadow-xl flex items-center gap-2"
+        >
+          <Sparkles className="w-4 h-4 text-amber-500" />
           <span>GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING</span>
         </motion.div>
 
-        <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight text-slate-950 uppercase leading-none drop-shadow-sm">
+        <h1 className="text-3xl sm:text-5xl md:text-6xl font-black tracking-tight text-white uppercase leading-tight mt-1 drop-shadow-[0_4px_16px_rgba(0,0,0,0.9)]">
           THE GREAT NUMBER RAILWAY
         </h1>
-        <p className="text-slate-700 text-xs sm:text-sm font-bold mt-1 max-w-xl text-center">
-          Race across the junction, answer first to board passengers & clear green signals!
-        </p>
       </div>
 
-      {/* ── Central RED vs BLUE Showdown Environment ── */}
-      <div className="w-full max-w-6xl grid grid-cols-1 md:grid-cols-11 gap-3 my-auto items-center z-10 px-2">
-        {/* ── TEAM BLUE (Left Operator) ── */}
+      {/* ── Central Side-by-Side Square Team Cards & Comic VS ── */}
+      <div className="relative z-10 w-full max-w-5xl flex flex-row items-center justify-center gap-4 sm:gap-8 my-auto px-3">
+        {/* ── TEAM 1 (Left RED Square Card) ── */}
         <motion.div
-          initial={{ x: -40, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
+          initial={{ x: -50, scale: 0.9, opacity: 0 }}
+          animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ duration: 0.4 }}
-          className="md:col-span-5 p-4 rounded-3xl bg-white/95 backdrop-blur-md border-3 border-blue-400 shadow-2xl flex flex-col items-center relative overflow-hidden group"
-          style={{
-            boxShadow: '0 12px 35px rgba(37,99,235,0.25)',
-          }}
+          className="flex-1 max-w-[340px] aspect-[4/4.3] p-4 rounded-3xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_15px_40px_rgba(220,38,38,0.55)] flex flex-col items-center justify-between text-center relative overflow-hidden group"
         >
-          {/* Blue Ambient Smoke Glow */}
-          <div className="absolute -top-12 -left-12 w-44 h-44 rounded-full bg-blue-400/20 blur-2xl pointer-events-none" />
-
-          {/* Blue Train Illustration (Facing Right → Toward Center) */}
-          <div className="relative w-full h-32 sm:h-40 rounded-2xl overflow-hidden bg-gradient-to-b from-sky-100 to-blue-50 border border-blue-200 flex items-center justify-center mb-3">
-            <img
-              src="/images/blue_locomotive.png"
-              alt="Team Blue Locomotive"
-              className="w-full h-full object-contain scale-x-[-1] drop-shadow-md transition-transform duration-300 group-hover:scale-105"
-            />
-            <div className="absolute top-2 left-2 px-2.5 py-0.5 rounded-lg bg-blue-600 text-white text-[9px] font-black tracking-wider uppercase shadow-xs">
-              LEFT TRACK SIDING
-            </div>
-          </div>
-
-          {/* Blue Team Name Input */}
-          <div className="w-full text-left">
-            <label className="text-[10px] font-black uppercase tracking-wider text-blue-900 flex items-center justify-between mb-1">
-              <span>TEAM 1 (BLUE)</span>
-              <span className="text-[9px] text-blue-600 font-bold">LEFT OPERATOR</span>
-            </label>
-            <input
-              type="text"
-              value={blueTeam.name}
-              onChange={(e) => setTeamName('blue', e.target.value)}
-              placeholder="Enter Team Name"
-              maxLength={20}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-blue-50/70 border-2 border-blue-300 focus:border-blue-600 font-black text-xs text-blue-950 outline-none shadow-inner transition-all"
-            />
-          </div>
-        </motion.div>
-
-        {/* ── FIERY VS CLASH CENTER EMBLEM ── */}
-        <motion.div
-          initial={{ scale: 0.5, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ duration: 0.5, delay: 0.15 }}
-          className="md:col-span-1 flex flex-col items-center justify-center my-2 md:my-0 relative"
-        >
-          {/* Pulsing Fire & Smoke Aura */}
-          <div className="absolute w-24 h-24 rounded-full bg-gradient-to-r from-blue-500 via-amber-500 to-red-500 blur-xl opacity-60 animate-pulse pointer-events-none" />
-
-          {/* Golden Shield VS Emblem */}
-          <div className="relative w-16 h-16 sm:w-18 sm:h-18 rounded-2xl bg-gradient-to-br from-amber-300 via-orange-500 to-red-600 p-0.5 shadow-2xl flex items-center justify-center transform rotate-45 border-2 border-yellow-200">
-            <div className="w-full h-full bg-slate-950 rounded-2xl flex flex-col items-center justify-center transform -rotate-45">
-              <span className="text-xl sm:text-2xl font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-amber-400 drop-shadow-[0_2px_8px_rgba(251,191,36,0.8)]">
-                VS
+          {/* Top Label */}
+          <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-red-600 shadow-xs" />
+              <span className="text-sm font-black text-red-900 tracking-wider uppercase">
+                TEAM 1 (RED)
               </span>
-              <Flame className="w-3.5 h-3.5 text-orange-400 animate-bounce -mt-1" />
             </div>
+            <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-red-100 text-red-700 uppercase">
+              LEFT CONSOLE
+            </span>
           </div>
-        </motion.div>
 
-        {/* ── TEAM RED (Right Operator) ── */}
-        <motion.div
-          initial={{ x: 40, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ duration: 0.4 }}
-          className="md:col-span-5 p-4 rounded-3xl bg-white/95 backdrop-blur-md border-3 border-red-400 shadow-2xl flex flex-col items-center relative overflow-hidden group"
-          style={{
-            boxShadow: '0 12px 35px rgba(220,38,38,0.25)',
-          }}
-        >
-          {/* Red Ambient Smoke Glow */}
-          <div className="absolute -top-12 -right-12 w-44 h-44 rounded-full bg-red-400/20 blur-2xl pointer-events-none" />
-
-          {/* Red Train Illustration (Facing Left ← Toward Center) */}
-          <div className="relative w-full h-32 sm:h-40 rounded-2xl overflow-hidden bg-gradient-to-b from-rose-100 to-red-50 border border-red-200 flex items-center justify-center mb-3">
+          {/* Original Red Train Illustration (Facing Right → Toward Center) */}
+          <div className="relative w-full h-32 sm:h-38 rounded-2xl overflow-hidden border-2 border-red-200 shadow-xs flex items-center justify-center my-1">
             <img
               src="/images/red_locomotive.png"
-              alt="Team Red Locomotive"
-              className="w-full h-full object-contain drop-shadow-md transition-transform duration-300 group-hover:scale-105"
+              alt="Team 1 Red Train"
+              className="w-full h-full object-cover scale-x-[-1] transition-transform duration-300 group-hover:scale-105"
             />
-            <div className="absolute top-2 right-2 px-2.5 py-0.5 rounded-lg bg-red-600 text-white text-[9px] font-black tracking-wider uppercase shadow-xs">
-              RIGHT TRACK SIDING
-            </div>
           </div>
 
-          {/* Red Team Name Input */}
+          {/* Team 1 Name Input */}
           <div className="w-full text-left">
-            <label className="text-[10px] font-black uppercase tracking-wider text-red-900 flex items-center justify-between mb-1">
-              <span>TEAM 2 (RED)</span>
-              <span className="text-[9px] text-red-600 font-bold">RIGHT OPERATOR</span>
+            <label className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">
+              OPERATOR NAME
             </label>
             <input
               type="text"
               value={redTeam.name}
               onChange={(e) => setTeamName('red', e.target.value)}
-              placeholder="Enter Team Name"
+              placeholder="Team 1 Name"
               maxLength={20}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-red-50/70 border-2 border-red-300 focus:border-red-600 font-black text-xs text-red-950 outline-none shadow-inner transition-all"
+              className="w-full px-3 py-2 rounded-xl bg-red-50/80 border-2 border-red-300 focus:border-red-600 font-black text-xs text-red-950 text-center outline-none shadow-inner"
+            />
+          </div>
+        </motion.div>
+
+        {/* ── COMIC LIGHTNING & VS EMBLEM (Center) ── */}
+        <motion.div
+          initial={{ scale: 0.4, opacity: 0 }}
+          animate={{ scale: [1, 1.08, 1], opacity: 1 }}
+          transition={{ repeat: Infinity, duration: 2.2, ease: 'easeInOut' }}
+          className="relative flex flex-col items-center justify-center shrink-0 z-20"
+        >
+          {/* Comic Lightning Glow Aura */}
+          <div className="absolute w-28 h-28 rounded-full bg-amber-400/50 blur-2xl pointer-events-none" />
+
+          {/* Iconic Comic VS Emblem */}
+          <div className="relative flex items-center justify-center">
+            <span
+              className="font-display text-5xl sm:text-6xl md:text-7xl font-black italic tracking-tighter text-white select-none"
+              style={{
+                WebkitTextStroke: '4px #000000',
+                textShadow: '5px 5px 0px #000000, 0 0 25px rgba(255,255,255,0.9)',
+                filter: 'drop-shadow(0 10px 25px rgba(0,0,0,0.85))',
+              }}
+            >
+              VS
+            </span>
+          </div>
+        </motion.div>
+
+        {/* ── TEAM 2 (Right BLUE Square Card) ── */}
+        <motion.div
+          initial={{ x: 50, scale: 0.9, opacity: 0 }}
+          animate={{ x: 0, scale: 1, opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="flex-1 max-w-[340px] aspect-[4/4.3] p-4 rounded-3xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_15px_40px_rgba(37,99,235,0.55)] flex flex-col items-center justify-between text-center relative overflow-hidden group"
+        >
+          {/* Top Label */}
+          <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-full bg-blue-600 shadow-xs" />
+              <span className="text-sm font-black text-blue-900 tracking-wider uppercase">
+                TEAM 2 (BLUE)
+              </span>
+            </div>
+            <span className="text-[9px] font-black px-2 py-0.5 rounded-md bg-blue-100 text-blue-700 uppercase">
+              RIGHT CONSOLE
+            </span>
+          </div>
+
+          {/* Original Blue Train Illustration (Facing Left ← Toward Center) */}
+          <div className="relative w-full h-32 sm:h-38 rounded-2xl overflow-hidden border-2 border-blue-200 shadow-xs flex items-center justify-center my-1">
+            <img
+              src="/images/blue_locomotive.png"
+              alt="Team 2 Blue Train"
+              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+            />
+          </div>
+
+          {/* Team 2 Name Input */}
+          <div className="w-full text-left">
+            <label className="text-[9px] font-black uppercase tracking-wider text-slate-700 block mb-1">
+              OPERATOR NAME
+            </label>
+            <input
+              type="text"
+              value={blueTeam.name}
+              onChange={(e) => setTeamName('blue', e.target.value)}
+              placeholder="Team 2 Name"
+              maxLength={20}
+              className="w-full px-3 py-2 rounded-xl bg-blue-50/80 border-2 border-blue-300 focus:border-blue-600 font-black text-xs text-blue-950 text-center outline-none shadow-inner"
             />
           </div>
         </motion.div>
       </div>
 
       {/* ── Bottom Section: Question Selector & Action Start ── */}
-      <div className="w-full max-w-xl flex flex-col items-center gap-3 z-10 mb-1">
+      <div className="relative z-10 w-full max-w-xl flex flex-col items-center gap-2.5 mb-1">
         {/* Match Length Selector (5, 10, 15) */}
-        <div className="w-full p-2.5 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-md flex items-center justify-between gap-2">
-          <span className="text-[10px] font-black uppercase tracking-widest text-slate-700 ml-2">
+        <div className="w-full p-2 rounded-2xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl flex items-center justify-between gap-2">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-800 ml-2">
             🎯 QUESTIONS:
           </span>
           <div className="flex items-center gap-2">
@@ -180,7 +241,7 @@ export const RailwayTitleScreen: React.FC = () => {
                 <button
                   key={cnt}
                   onClick={() => setQuestionCountConfig(cnt)}
-                  className={`py-1.5 px-3 rounded-xl font-black text-xs transition-all border-2 cursor-pointer ${
+                  className={`py-1.5 px-3.5 rounded-xl font-black text-xs transition-all border-2 cursor-pointer ${
                     isSelected
                       ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-600 shadow-md scale-105'
                       : 'bg-slate-100 text-slate-700 border-slate-300 hover:border-amber-400'
@@ -193,12 +254,12 @@ export const RailwayTitleScreen: React.FC = () => {
           </div>
         </div>
 
-        {/* Start Game Button */}
+        {/* Start Game Action Button */}
         <motion.button
           whileHover={{ scale: 1.04 }}
           whileTap={{ scale: 0.96 }}
           onClick={startGame}
-          className="w-full py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base sm:text-lg tracking-wider uppercase shadow-2xl shadow-amber-500/40 border-2 border-amber-500 flex items-center justify-center gap-3 cursor-pointer"
+          className="w-full py-3.5 sm:py-4 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base sm:text-lg tracking-wider uppercase shadow-[0_10px_30px_rgba(245,158,11,0.5)] border-2 border-amber-500 flex items-center justify-center gap-3 cursor-pointer"
         >
           <Play className="w-5 h-5 fill-slate-950" />
           <span>ALL ABOARD • START SHOWDOWN 🚂</span>
@@ -236,7 +297,7 @@ export const RoundIntroModal: React.FC = () => {
         </h2>
 
         <div className="px-3.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 mb-3 flex items-center gap-2">
-          <span className="text-blue-700 font-black">🚉 Skillizee Junction</span>
+          <span className="text-red-700 font-black">🚉 Skillizee Junction</span>
           <span className="text-amber-500 font-bold">➔</span>
           <span className="text-emerald-700 font-black">🏁 {round?.subtitle}</span>
         </div>
@@ -312,16 +373,16 @@ export const QuestionRevealOverlay: React.FC = () => {
 
         {/* Performance Scores */}
         <div className="flex gap-3 w-full justify-center mb-3">
-          <div className={`flex-1 p-2 rounded-xl border ${blueTeam.lastResult === 'correct' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-            <span className="text-[9px] font-black uppercase">{blueTeam.name}</span>
-            <div className="text-xs font-black mt-0.5">
-              {blueTeam.lastResult === 'correct' ? `+${blueTeam.lastScoreGained} PTS` : '0 PTS'}
-            </div>
-          </div>
           <div className={`flex-1 p-2 rounded-xl border ${redTeam.lastResult === 'correct' ? 'bg-red-50 border-red-400 text-red-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
             <span className="text-[9px] font-black uppercase">{redTeam.name}</span>
             <div className="text-xs font-black mt-0.5">
               {redTeam.lastResult === 'correct' ? `+${redTeam.lastScoreGained} PTS` : '0 PTS'}
+            </div>
+          </div>
+          <div className={`flex-1 p-2 rounded-xl border ${blueTeam.lastResult === 'correct' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+            <span className="text-[9px] font-black uppercase">{blueTeam.name}</span>
+            <div className="text-xs font-black mt-0.5">
+              {blueTeam.lastResult === 'correct' ? `+${blueTeam.lastScoreGained} PTS` : '0 PTS'}
             </div>
           </div>
         </div>
@@ -373,7 +434,7 @@ export const WinnerPlaqueOverlay: React.FC = () => {
   const round = rounds[roundIndex];
   const isBlue = roundWinner === 'blue';
   const isRed = roundWinner === 'red';
-  const winnerName = isBlue ? blueTeam.name : isRed ? redTeam.name : 'PERFECT DRAW';
+  const winnerName = isRed ? redTeam.name : isBlue ? blueTeam.name : 'PERFECT DRAW';
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs select-none p-4">
@@ -420,7 +481,7 @@ export const NetworkCompleteOverlay: React.FC = () => {
 
   const isBlue = matchWinner === 'blue';
   const isRed = matchWinner === 'red';
-  const championName = isBlue ? blueTeam.name : isRed ? redTeam.name : 'PERFECT CHAMPIONSHIP DRAW';
+  const championName = isRed ? redTeam.name : isBlue ? blueTeam.name : 'PERFECT CHAMPIONSHIP DRAW';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-md select-none p-6 text-slate-900 text-center">
@@ -440,19 +501,19 @@ export const NetworkCompleteOverlay: React.FC = () => {
 
         {/* Scores */}
         <div className="flex gap-4 justify-center w-full my-4">
-          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
-            <span className="text-[11px] font-black text-blue-800 uppercase">{blueTeam.name}</span>
-            <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
-            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
-              {blueTeam.roundsWon} Routes Cleared
-            </div>
-          </div>
-
           <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isRed ? 'bg-red-50 border-red-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
             <span className="text-[11px] font-black text-red-800 uppercase">{redTeam.name}</span>
             <div className="text-3xl font-black text-slate-950 mt-1">{redTeam.score}</div>
             <div className="text-[9px] text-slate-600 font-bold mt-0.5">
               {redTeam.roundsWon} Routes Cleared
+            </div>
+          </div>
+
+          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
+            <span className="text-[11px] font-black text-blue-800 uppercase">{blueTeam.name}</span>
+            <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
+            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
+              {blueTeam.roundsWon} Routes Cleared
             </div>
           </div>
         </div>
