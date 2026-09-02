@@ -485,6 +485,8 @@ class SoundEngine {
   private trainRunningAudio: HTMLAudioElement | null = null;
   private trainHornAudio: HTMLAudioElement | null = null;
   private loudWhistleAudio: HTMLAudioElement | null = null;
+  private trainBellsAudio: HTMLAudioElement | null = null;
+  private bellsFadeInterval: ReturnType<typeof setInterval> | null = null;
 
   public playLoudWhistle() {
     if (this.isMuted) return;
@@ -503,6 +505,43 @@ class SoundEngine {
     } catch {
       this.playTrainWhistle();
     }
+  }
+
+  public playTrainBells(durationMs: number = 3000) {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (this.bellsFadeInterval) {
+          clearInterval(this.bellsFadeInterval);
+          this.bellsFadeInterval = null;
+        }
+        if (!this.trainBellsAudio) {
+          this.trainBellsAudio = new Audio('/audio/train_bells.mp3');
+        }
+        this.trainBellsAudio.currentTime = 0;
+        this.trainBellsAudio.volume = 0.8;
+        this.trainBellsAudio.play().catch(() => {});
+
+        // Fade out over the last 900ms
+        const fadeStartTime = Math.max(500, durationMs - 900);
+        setTimeout(() => {
+          let vol = 0.8;
+          this.bellsFadeInterval = setInterval(() => {
+            vol -= 0.1;
+            if (this.trainBellsAudio) {
+              if (vol <= 0.05) {
+                if (this.bellsFadeInterval) clearInterval(this.bellsFadeInterval);
+                this.trainBellsAudio.pause();
+                this.trainBellsAudio.currentTime = 0;
+                this.trainBellsAudio.volume = 0.8;
+              } else {
+                this.trainBellsAudio.volume = vol;
+              }
+            }
+          }, 90);
+        }, fadeStartTime);
+      }
+    } catch {}
   }
 
   public playTrainHorn() {
