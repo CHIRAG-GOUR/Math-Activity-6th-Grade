@@ -1,6 +1,6 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Zustand Game Store
-// Separate state for each team, railway world, and trains
+// THE GREAT NUMBER RAILWAY — Zustand Store
+// 5-Stage Station Journey State & Multi-Touch Team Architecture
 // ============================================================
 
 import { create } from 'zustand';
@@ -10,221 +10,118 @@ import {
   TeamId,
   TrainAnimState,
   GamePhase,
-  SignalState,
-  StationDef,
-  TrackSegment,
-  JunctionDef,
+  LoadedTrainItems,
 } from '../types';
-import { RAILWAY_CHALLENGES } from '../engine/challenges';
+import { RAILWAY_CHALLENGES, STATIONS_LIST } from '../engine/challenges';
+import { soundManager } from '@/utils/audio';
 
-// ── Default team state ──
 const createTeamState = (id: TeamId): TeamState => ({
   id,
   name: id === 'blue' ? 'BLUE ENGINEERS' : 'RED ENGINEERS',
   score: 0,
   streak: 0,
-  routesCompleted: 0,
-  deliveriesCount: 0,
+  correctAnswersCount: 0,
   currentAnswer: null,
   isLockedIn: false,
   hasAnswered: false,
   isCorrect: null,
   lastFeedback: null,
   attemptsOnCurrent: 0,
-  canSteal: false,
 });
 
-// ── Default train state ──
-const createTrainState = (): TrainAnimState => ({
+const DEFAULT_LOADED_ITEMS: LoadedTrainItems = {
+  vehicles: false,
+  materials: false,
+  passengers: false,
+  brakesLifted: false,
+  signalGreen: false,
+};
+
+const DEFAULT_TRAIN_STATE: TrainAnimState = {
   position: [0, 0, 0],
   rotation: [0, 0, 0],
   progress: 0,
   speed: 0,
   state: 'idle',
-  currentTrackId: null,
   wheelRotation: 0,
   smokeActive: false,
-});
-
-// ── Default stations ──
-const DEFAULT_STATIONS: Record<string, StationDef> = {
-  central: {
-    id: 'central',
-    name: 'Central Station',
-    position: [0, 0, 0],
-    type: 'central',
-    active: true,
-  },
-  'north-terminal': {
-    id: 'north-terminal',
-    name: 'North Terminal',
-    position: [0, 0, -20],
-    type: 'passenger',
-    active: false,
-  },
-  'east-depot': {
-    id: 'east-depot',
-    name: 'East Cargo Depot',
-    position: [18, 0, -5],
-    type: 'cargo',
-    active: false,
-  },
-  'south-yard': {
-    id: 'south-yard',
-    name: 'South Yard',
-    position: [-5, 0, 18],
-    type: 'maintenance',
-    active: false,
-  },
-};
-
-// ── Default tracks ──
-const DEFAULT_TRACKS: Record<string, TrackSegment> = {
-  'track-central-north': {
-    id: 'track-central-north',
-    from: 'central',
-    to: 'north-terminal',
-    controlPoints: [
-      [0, 0.1, 0],
-      [-2, 0.1, -6],
-      [1, 0.1, -13],
-      [0, 0.1, -20],
-    ],
-    hasBridge: true,
-    active: false,
-  },
-  'track-central-east': {
-    id: 'track-central-east',
-    from: 'central',
-    to: 'east-depot',
-    controlPoints: [
-      [0, 0.1, 0],
-      [5, 0.1, -1],
-      [12, 0.1, -3],
-      [18, 0.1, -5],
-    ],
-    hasTunnel: true,
-    active: false,
-  },
-  'track-central-south': {
-    id: 'track-central-south',
-    from: 'central',
-    to: 'south-yard',
-    controlPoints: [
-      [0, 0.1, 0],
-      [-2, 0.1, 6],
-      [-4, 0.1, 12],
-      [-5, 0.1, 18],
-    ],
-    active: false,
-  },
-};
-
-// ── Default junctions ──
-const DEFAULT_JUNCTIONS: Record<string, JunctionDef> = {
-  'junction-1': {
-    id: 'junction-1',
-    position: [0, 0.1, -3],
-    trackA: 'track-central-north',
-    trackB: 'track-central-east',
-    currentRoute: 'A',
-  },
-};
-
-// ── Default signals ──
-const DEFAULT_SIGNALS: Record<string, SignalState> = {
-  'signal-north': 'red',
-  'signal-east': 'red',
-  'signal-south': 'red',
+  whistleActive: false,
 };
 
 interface RailwayStoreActions {
-  // Phase
   setPhase: (phase: GamePhase) => void;
   startGame: () => void;
 
-  // Team answers
   setTeamAnswer: (team: TeamId, answer: number | string) => void;
   lockInTeam: (team: TeamId) => void;
   evaluateTeam: (team: TeamId) => void;
-  resetTeamAnswers: () => void;
+  resetTeamInputs: () => void;
 
-  // Railway world
-  setSignal: (signalId: string, state: SignalState) => void;
-  setSwitchRoute: (junctionId: string, route: 'A' | 'B') => void;
-  activateStation: (stationId: string) => void;
-  activateTrack: (trackId: string) => void;
+  nextStepOrDepart: () => void;
+  startTrainJourneyToNextStation: () => void;
+  setTrainProgress: (progress: number) => void;
+  completeStationArrival: () => void;
 
-  // Train
-  startTrainJourney: (team: TeamId, trackId: string) => void;
-  setTrainProgress: (team: TeamId, progress: number) => void;
-  completeTrainJourney: (team: TeamId) => void;
-
-  // Challenge progression
-  nextMission: () => void;
-  
-  // Audio
   toggleMute: () => void;
-
-  // Timer
   setTimeRemaining: (t: number) => void;
   setTimerActive: (active: boolean) => void;
-
-  // Steal
-  enableSteal: (team: TeamId) => void;
-  disableSteal: () => void;
+  clearAnimationMessage: () => void;
 }
 
 export type RailwayStore = RailwayGameState & RailwayStoreActions;
 
 export const useRailwayStore = create<RailwayStore>((set, get) => ({
-  // ── Initial state ──
   phase: 'title',
-  currentMission: 0,
-  totalMissions: RAILWAY_CHALLENGES.length,
+  currentStationIndex: 0,
+  currentStepIndex: 1,
+  activeChallengeIndex: 0,
   challenges: RAILWAY_CHALLENGES,
-  activeChallenge: null,
+  activeChallenge: RAILWAY_CHALLENGES[0] || null,
 
   blueTeam: createTeamState('blue'),
   redTeam: createTeamState('red'),
 
-  stations: DEFAULT_STATIONS,
-  tracks: DEFAULT_TRACKS,
-  junctions: DEFAULT_JUNCTIONS,
-  signals: DEFAULT_SIGNALS,
+  stations: STATIONS_LIST,
+  loadedItems: { ...DEFAULT_LOADED_ITEMS },
+  signalState: 'red',
+  train: { ...DEFAULT_TRAIN_STATE },
 
-  blueTrain: createTrainState(),
-  redTrain: createTrainState(),
-
-  networkProgress: 0,
-  unlockedRoutes: [],
+  fromStationName: STATIONS_LIST[0]?.name || 'Sunny Valley Central',
+  toStationName: STATIONS_LIST[1]?.name || 'Pine Ridge Terminal',
+  totalJourneysCompleted: 0,
 
   isMuted: false,
-
-  timeRemaining: 0,
+  timeRemaining: 45,
   timerActive: false,
+  stepAnimationMessage: null,
 
-  // ── Actions ──
   setPhase: (phase) => set({ phase }),
 
   startGame: () => {
-    const challenges = get().challenges;
+    const firstChallenge = RAILWAY_CHALLENGES[0];
     set({
       phase: 'briefing',
-      currentMission: 0,
-      activeChallenge: challenges[0] || null,
+      currentStationIndex: 0,
+      currentStepIndex: 1,
+      activeChallengeIndex: 0,
+      activeChallenge: firstChallenge,
       blueTeam: createTeamState('blue'),
       redTeam: createTeamState('red'),
-      signals: { ...DEFAULT_SIGNALS },
-      networkProgress: 0,
-      unlockedRoutes: [],
-      timeRemaining: challenges[0]?.timeLimit || 45,
+      loadedItems: { ...DEFAULT_LOADED_ITEMS },
+      signalState: 'red',
+      train: { ...DEFAULT_TRAIN_STATE, state: 'idle' },
+      fromStationName: STATIONS_LIST[0].name,
+      toStationName: STATIONS_LIST[1].name,
+      totalJourneysCompleted: 0,
+      timeRemaining: firstChallenge?.timeLimit || 45,
       timerActive: false,
+      stepAnimationMessage: null,
     });
   },
 
   setTeamAnswer: (team, answer) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    soundManager.playClick();
     set((s) => ({
       [key]: { ...s[key], currentAnswer: answer },
     }));
@@ -232,6 +129,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   lockInTeam: (team) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    soundManager.playClick();
     set((s) => ({
       [key]: { ...s[key], isLockedIn: true, hasAnswered: true },
     }));
@@ -250,44 +148,78 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const points = isCorrect ? challenge.points : 0;
     const newStreak = isCorrect ? teamState.streak + 1 : 0;
 
+    if (isCorrect) {
+      soundManager.playCorrect();
+    } else {
+      soundManager.playWrong();
+    }
+
     set((s) => ({
       [key]: {
         ...s[key],
         isCorrect,
         score: s[key].score + points,
         streak: newStreak,
-        routesCompleted: isCorrect ? s[key].routesCompleted + 1 : s[key].routesCompleted,
-        deliveriesCount: isCorrect ? s[key].deliveriesCount + 1 : s[key].deliveriesCount,
+        correctAnswersCount: isCorrect ? s[key].correctAnswersCount + 1 : s[key].correctAnswersCount,
         attemptsOnCurrent: s[key].attemptsOnCurrent + 1,
         lastFeedback: {
           message: isCorrect
-            ? `Route confirmed! +${points} points`
-            : challenge.hints[Math.min(s[key].attemptsOnCurrent, challenge.hints.length - 1)],
+            ? `✅ CORRECT! +${points} PTS — ${challenge.stepTitle}!`
+            : `🔍 ${challenge.hints[Math.min(s[key].attemptsOnCurrent, challenge.hints.length - 1)]}`,
           isCorrect,
           pointsEarned: points,
         },
       },
     }));
 
-    // If correct, activate railway
-    if (isCorrect && challenge.railwayAction) {
-      const action = challenge.railwayAction;
-      if (action.signalId) {
-        get().setSignal(action.signalId, 'green');
+    // If at least one team got it right, apply the physical loading consequence!
+    if (isCorrect) {
+      const step = challenge.stepIndex;
+      const updatedLoaded = { ...get().loadedItems };
+      let msg = '';
+
+      if (step === 1) {
+        updatedLoaded.vehicles = true;
+        msg = '🚗 STEP 1/5: VEHICLES LOADED ONTO FLATBED!';
+        soundManager.playKeypadBeep();
+      } else if (step === 2) {
+        updatedLoaded.materials = true;
+        msg = '🧱 STEP 2/5: BUILDING MATERIALS & TIMBER SECURED!';
+        soundManager.playKeypadBeep();
+      } else if (step === 3) {
+        updatedLoaded.passengers = true;
+        msg = '👥 STEP 3/5: ALL ABOARD! PASSENGERS ENTER COACH!';
+        soundManager.playTrainWhistle();
+      } else if (step === 4) {
+        updatedLoaded.brakesLifted = true;
+        msg = '⚙️ STEP 4/5: PNEUMATIC BRAKES LIFTED & STEAM FULLY CHARGED!';
+        soundManager.playKeypadBeep();
+      } else if (step === 5) {
+        updatedLoaded.signalGreen = true;
+        msg = '🚦 STEP 5/5: SIGNAL TURNS GREEN! TRAIN DEPARTS TO NEXT STATION!';
+        soundManager.playSignalChange();
       }
-      if (action.switchId && action.routeChoice) {
-        get().setSwitchRoute(action.switchId, action.routeChoice);
-      }
-      if (action.trackSegmentId) {
-        get().activateTrack(action.trackSegmentId);
-      }
-      if (action.destinationStation) {
-        get().activateStation(action.destinationStation);
+
+      set({
+        loadedItems: updatedLoaded,
+        stepAnimationMessage: msg,
+        signalState: step === 5 ? 'green' : 'red',
+      });
+
+      // If Step 5 is solved, start train journey! Otherwise advance to next step
+      if (step === 5) {
+        setTimeout(() => {
+          get().startTrainJourneyToNextStation();
+        }, 1200);
+      } else {
+        setTimeout(() => {
+          get().nextStepOrDepart();
+        }, 1800);
       }
     }
   },
 
-  resetTeamAnswers: () => {
+  resetTeamInputs: () => {
     set((s) => ({
       blueTeam: {
         ...s.blueTeam,
@@ -297,7 +229,6 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         isCorrect: null,
         lastFeedback: null,
         attemptsOnCurrent: 0,
-        canSteal: false,
       },
       redTeam: {
         ...s.redTeam,
@@ -307,127 +238,113 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         isCorrect: null,
         lastFeedback: null,
         attemptsOnCurrent: 0,
-        canSteal: false,
       },
     }));
   },
 
-  setSignal: (signalId, state) => {
-    set((s) => ({
-      signals: { ...s.signals, [signalId]: state },
-    }));
-  },
-
-  setSwitchRoute: (junctionId, route) => {
-    set((s) => ({
-      junctions: {
-        ...s.junctions,
-        [junctionId]: { ...s.junctions[junctionId], currentRoute: route },
-      },
-    }));
-  },
-
-  activateStation: (stationId) => {
-    set((s) => ({
-      stations: {
-        ...s.stations,
-        [stationId]: { ...s.stations[stationId], active: true },
-      },
-    }));
-  },
-
-  activateTrack: (trackId) => {
-    set((s) => ({
-      tracks: {
-        ...s.tracks,
-        [trackId]: { ...s.tracks[trackId], active: true },
-      },
-      unlockedRoutes: [...s.unlockedRoutes, trackId],
-    }));
-  },
-
-  startTrainJourney: (team, trackId) => {
-    const key = team === 'blue' ? 'blueTrain' : 'redTrain';
-    set({
-      [key]: {
-        ...get()[key],
-        state: 'departing' as const,
-        currentTrackId: trackId,
-        progress: 0,
-        speed: 0,
-        smokeActive: true,
-      },
-      phase: 'train-journey',
-    });
-  },
-
-  setTrainProgress: (team, progress) => {
-    const key = team === 'blue' ? 'blueTrain' : 'redTrain';
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        progress: Math.min(1, progress),
-        state: progress >= 0.95 ? 'approaching' : 'moving',
-        speed: progress < 0.1 ? progress * 10 : progress > 0.9 ? (1 - progress) * 10 : 1,
-      },
-    }));
-  },
-
-  completeTrainJourney: (team) => {
-    const key = team === 'blue' ? 'blueTrain' : 'redTrain';
+  nextStepOrDepart: () => {
     const state = get();
-    const completedRoutes = state.unlockedRoutes.length;
-    const totalTracks = Object.keys(state.tracks).length;
+    const nextIdx = state.activeChallengeIndex + 1;
 
-    set({
-      [key]: {
-        ...state[key],
-        state: 'arrived' as const,
-        progress: 1,
-        speed: 0,
-        smokeActive: false,
-      },
-      phase: 'delivery',
-      networkProgress: Math.round((completedRoutes / totalTracks) * 100),
-    });
-  },
-
-  nextMission: () => {
-    const state = get();
-    const next = state.currentMission + 1;
-
-    if (next >= state.totalMissions) {
+    if (nextIdx >= state.challenges.length) {
       set({ phase: 'network-complete' });
+      soundManager.playRailwayVictory();
       return;
     }
 
-    const nextChallenge = state.challenges[next];
+    const nextChallenge = state.challenges[nextIdx];
     set({
-      currentMission: next,
+      activeChallengeIndex: nextIdx,
       activeChallenge: nextChallenge,
-      phase: 'briefing',
+      currentStepIndex: nextChallenge.stepIndex,
       timeRemaining: nextChallenge.timeLimit,
-      timerActive: false,
-      blueTrain: createTrainState(),
-      redTrain: createTrainState(),
+      timerActive: true,
+      phase: 'challenge',
+      stepAnimationMessage: null,
     });
-    get().resetTeamAnswers();
+    get().resetTeamInputs();
   },
 
-  toggleMute: () => set((s) => ({ isMuted: !s.isMuted })),
+  startTrainJourneyToNextStation: () => {
+    soundManager.playTrainWhistle();
+    set({
+      phase: 'train-journey',
+      train: {
+        ...get().train,
+        state: 'departing',
+        progress: 0,
+        speed: 0,
+        smokeActive: true,
+        whistleActive: true,
+      },
+    });
+
+    // Run journey progression animation
+    let prog = 0;
+    const interval = setInterval(() => {
+      prog += 0.008; // Smooth journey (~6 seconds)
+      const currentSpeed = prog < 0.2 ? prog * 5 : prog > 0.8 ? (1 - prog) * 5 : 1;
+      
+      set((s) => ({
+        train: {
+          ...s.train,
+          progress: Math.min(1, prog),
+          speed: currentSpeed,
+          state: prog >= 0.9 ? 'approaching' : 'moving',
+        },
+      }));
+
+      if (prog >= 1) {
+        clearInterval(interval);
+        get().completeStationArrival();
+      }
+    }, 50);
+  },
+
+  setTrainProgress: (progress) => {
+    set((s) => ({
+      train: {
+        ...s.train,
+        progress: Math.min(1, progress),
+      },
+    }));
+  },
+
+  completeStationArrival: () => {
+    const state = get();
+    const nextStationIdx = (state.currentStationIndex + 1) % state.stations.length;
+    const fromName = state.stations[state.currentStationIndex].name;
+    const toName = state.stations[nextStationIdx].name;
+
+    soundManager.playTrainArrive();
+
+    set({
+      phase: 'station-arrived',
+      currentStationIndex: nextStationIdx,
+      fromStationName: fromName,
+      toStationName: toName,
+      totalJourneysCompleted: state.totalJourneysCompleted + 1,
+      train: {
+        ...state.train,
+        state: 'arrived',
+        progress: 0,
+        speed: 0,
+        smokeActive: false,
+        whistleActive: false,
+      },
+      loadedItems: { ...DEFAULT_LOADED_ITEMS }, // Reset loading for next station run!
+      signalState: 'red',
+    });
+  },
+
+  toggleMute: () => {
+    const current = get().isMuted;
+    const newMuted = !current;
+    soundManager.setMuted(newMuted);
+    set({ isMuted: newMuted });
+  },
 
   setTimeRemaining: (t) => set({ timeRemaining: Math.max(0, t) }),
   setTimerActive: (active) => set({ timerActive: active }),
-
-  enableSteal: (team) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    set((s) => ({ [key]: { ...s[key], canSteal: true } }));
-  },
-
-  disableSteal: () => {
-    set((s) => ({
-      blueTeam: { ...s.blueTeam, canSteal: false },
-      redTeam: { ...s.redTeam, canSteal: false },
-    }));
-  },
+  clearAnimationMessage: () => set({ stepAnimationMessage: null }),
 }));

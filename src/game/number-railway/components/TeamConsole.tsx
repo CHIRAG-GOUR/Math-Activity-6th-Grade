@@ -1,12 +1,15 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Team Control Console
-// Railway operator console for each team (Blue LEFT, Red RIGHT)
-// Touch-friendly, simultaneous multi-touch support
+// Dedicated Side-by-Side Consoles:
+// - Blue Team = Left 27%
+// - Red Team = Right 27%
+// - Isolated multi-touch interaction
+// - 5-Stage Step Indicators & Tactile Large Buttons
 // ============================================================
 
 'use client';
 
-import React, { useCallback, useRef } from 'react';
+import React, { useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
 import { TeamId } from '../types';
@@ -16,287 +19,151 @@ interface TeamConsoleProps {
 }
 
 export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
-  const teamState = useRailwayStore((s) =>
-    team === 'blue' ? s.blueTeam : s.redTeam
-  );
+  const teamState = useRailwayStore((s) => (team === 'blue' ? s.blueTeam : s.redTeam));
   const challenge = useRailwayStore((s) => s.activeChallenge);
   const phase = useRailwayStore((s) => s.phase);
   const setAnswer = useRailwayStore((s) => s.setTeamAnswer);
   const lockIn = useRailwayStore((s) => s.lockInTeam);
   const evaluate = useRailwayStore((s) => s.evaluateTeam);
-
-  const consoleRef = useRef<HTMLDivElement>(null);
+  const currentStep = useRailwayStore((s) => s.currentStepIndex);
 
   const isBlue = team === 'blue';
-  const teamLabel = isBlue ? 'BLUE ENGINEERS' : 'RED ENGINEERS';
+  const teamTitle = isBlue ? 'TEAM BLUE ENGINEERS' : 'TEAM RED ENGINEERS';
 
-  // Colors
-  const primary = isBlue ? '#1e40af' : '#991b1b';
-  const primaryLight = isBlue ? '#3b82f6' : '#ef4444';
-  const primaryBg = isBlue ? '#1e3a5f' : '#5f1e1e';
-  const primaryGlow = isBlue ? 'rgba(59,130,246,0.3)' : 'rgba(239,68,68,0.3)';
-  const accentBorder = isBlue ? '#60a5fa' : '#f87171';
+  // Team Theme Tokens
+  const theme = isBlue
+    ? {
+        bgHeader: 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700',
+        border: 'border-blue-500/40',
+        accentGlow: 'shadow-blue-500/20',
+        badgeBg: 'bg-blue-950/80 border-blue-400 text-blue-300',
+        buttonSelected: 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-300 text-white shadow-lg shadow-blue-500/30',
+        confirmBtn: 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/40',
+        numberColor: 'text-cyan-300',
+      }
+    : {
+        bgHeader: 'bg-gradient-to-r from-red-700 via-red-600 to-rose-700',
+        border: 'border-red-500/40',
+        accentGlow: 'shadow-red-500/20',
+        badgeBg: 'bg-red-950/80 border-red-400 text-red-300',
+        buttonSelected: 'bg-gradient-to-r from-red-600 to-rose-600 border-red-300 text-white shadow-lg shadow-red-500/30',
+        confirmBtn: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white shadow-lg shadow-red-600/40',
+        numberColor: 'text-amber-300',
+      };
 
-  // Handle option selection (pointer events for multi-touch)
-  const handleSelect = useCallback(
-    (value: number | string) => {
+  const handleSelectOption = useCallback(
+    (val: number | string) => {
       if (teamState.isLockedIn || phase !== 'challenge') return;
-      setAnswer(team, value);
+      setAnswer(team, val);
     },
     [team, teamState.isLockedIn, phase, setAnswer]
   );
 
-  // Handle lock-in
-  const handleLockIn = useCallback(() => {
-    if (teamState.isLockedIn || teamState.currentAnswer === null || phase !== 'challenge')
-      return;
+  const handleConfirmAnswer = useCallback(() => {
+    if (teamState.isLockedIn || teamState.currentAnswer === null || phase !== 'challenge') return;
     lockIn(team);
-    // Evaluate after small delay for drama
-    setTimeout(() => evaluate(team), 600);
-  }, [team, teamState, phase, lockIn, evaluate]);
+    setTimeout(() => {
+      evaluate(team);
+    }, 400);
+  }, [team, teamState.isLockedIn, teamState.currentAnswer, phase, lockIn, evaluate]);
 
-  const showChallenge = phase === 'challenge' && challenge;
+  const showQuestion = phase === 'challenge' && challenge;
 
   return (
     <div
-      ref={consoleRef}
-      className="team-console"
-      style={{
-        width: '100%',
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        background: `linear-gradient(180deg, ${primaryBg} 0%, #1a1a2e 100%)`,
-        borderLeft: isBlue ? 'none' : `3px solid ${accentBorder}`,
-        borderRight: isBlue ? `3px solid ${accentBorder}` : 'none',
-        color: '#fff',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        overflow: 'hidden',
-        touchAction: 'manipulation',
-        userSelect: 'none',
-      }}
-      // Prevent touch events from propagating to other team
-      onPointerDown={(e) => e.stopPropagation()}
+      className={`w-full h-full flex flex-col bg-slate-900 border-x ${theme.border} text-white select-none overflow-hidden`}
+      onPointerDown={(e) => e.stopPropagation()} // Multi-touch isolation
     >
-      {/* ── Team Header ── */}
-      <div
-        style={{
-          padding: '8px 12px',
-          background: `linear-gradient(135deg, ${primary}, ${primaryLight})`,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '8px',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {/* Team icon - engineer hat */}
-          <div
-            style={{
-              width: '28px',
-              height: '28px',
-              borderRadius: '50%',
-              background: 'rgba(255,255,255,0.2)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontSize: '14px',
-            }}
-          >
-            🚂
-          </div>
+      {/* ── 1. Team Header Bar ── */}
+      <div className={`px-4 py-3 ${theme.bgHeader} flex items-center justify-between shadow-md`}>
+        <div className="flex items-center gap-2">
+          <span className="text-xl">🚂</span>
           <div>
-            <div
-              style={{
-                fontSize: '11px',
-                fontWeight: 800,
-                letterSpacing: '2px',
-                opacity: 0.9,
-              }}
-            >
-              {teamLabel}
-            </div>
-            <div style={{ fontSize: '9px', opacity: 0.7, letterSpacing: '1px' }}>
-              RAILWAY OPERATOR
-            </div>
+            <h2 className="text-xs font-black tracking-wider uppercase text-white leading-none">
+              {teamTitle}
+            </h2>
+            <p className="text-[10px] font-semibold text-white/80 mt-0.5 tracking-wide">
+              RAILWAY OPERATOR STATION
+            </p>
           </div>
         </div>
 
-        {/* Score */}
-        <div
-          style={{
-            background: 'rgba(0,0,0,0.3)',
-            borderRadius: '8px',
-            padding: '4px 12px',
-            textAlign: 'center',
-          }}
-        >
-          <div style={{ fontSize: '18px', fontWeight: 800 }}>{teamState.score}</div>
-          <div style={{ fontSize: '8px', opacity: 0.7, letterSpacing: '1px' }}>POINTS</div>
+        {/* Individual Team Score */}
+        <div className="px-3 py-1 bg-black/30 rounded-lg border border-white/20 text-center">
+          <div className="text-xs font-black text-amber-300 leading-none">
+            {teamState.score}
+          </div>
+          <div className="text-[8px] font-bold text-slate-300 uppercase">SCORE</div>
         </div>
       </div>
 
-      {/* ── Stats Bar ── */}
-      <div
-        style={{
-          display: 'flex',
-          gap: '4px',
-          padding: '6px 10px',
-          background: 'rgba(0,0,0,0.2)',
-          fontSize: '9px',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ flex: 1, textAlign: 'center', opacity: 0.8 }}>
-          <div style={{ fontWeight: 700 }}>{teamState.routesCompleted}</div>
-          <div>ROUTES</div>
+      {/* ── 2. Current 5-Step Stage Indicator ── */}
+      {challenge && (
+        <div className="px-4 py-2 bg-slate-950/80 border-b border-white/10 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-2 font-bold text-amber-300">
+            <span className="text-base">{challenge.stepIcon}</span>
+            <span className="text-[11px] uppercase tracking-wide font-black">
+              {challenge.stepTitle}
+            </span>
+          </div>
+          <div className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 font-bold border border-slate-700">
+            +{challenge.points} PTS
+          </div>
         </div>
-        <div
-          style={{ width: '1px', background: 'rgba(255,255,255,0.15)' }}
-        />
-        <div style={{ flex: 1, textAlign: 'center', opacity: 0.8 }}>
-          <div style={{ fontWeight: 700 }}>{teamState.deliveriesCount}</div>
-          <div>DELIVERIES</div>
-        </div>
-        <div
-          style={{ width: '1px', background: 'rgba(255,255,255,0.15)' }}
-        />
-        <div style={{ flex: 1, textAlign: 'center', opacity: 0.8 }}>
-          <div style={{ fontWeight: 700 }}>×{teamState.streak}</div>
-          <div>STREAK</div>
-        </div>
-      </div>
+      )}
 
-      {/* ── Challenge Area ── */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          padding: '10px',
-          gap: '8px',
-          overflow: 'auto',
-        }}
-      >
-        {showChallenge ? (
-          <>
-            {/* Mission context */}
-            <div
-              style={{
-                background: 'rgba(0,0,0,0.25)',
-                borderRadius: '8px',
-                padding: '8px 10px',
-                borderLeft: `3px solid ${accentBorder}`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '9px',
-                  opacity: 0.7,
-                  letterSpacing: '1.5px',
-                  fontWeight: 700,
-                  marginBottom: '4px',
-                }}
-              >
-                MISSION BRIEFING
+      {/* ── 3. Interactive Challenge & Console Controls ── */}
+      <div className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
+        {showQuestion ? (
+          <div className="flex flex-col gap-3">
+            {/* Context Box */}
+            <div className="p-3 bg-slate-800/80 rounded-xl border border-white/10 shadow-sm">
+              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
+                DISPATCH OBJECTIVE
               </div>
-              <div style={{ fontSize: '11px', lineHeight: 1.4, opacity: 0.9 }}>
+              <p className="text-xs text-slate-200 leading-relaxed font-medium">
                 {challenge.context.narrative}
-              </div>
+              </p>
             </div>
 
-            {/* Question */}
-            <div
-              style={{
-                background: `linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03))`,
-                borderRadius: '10px',
-                padding: '12px',
-                border: `1px solid rgba(255,255,255,0.1)`,
-              }}
-            >
-              <div
-                style={{
-                  fontSize: '10px',
-                  opacity: 0.6,
-                  letterSpacing: '1.5px',
-                  fontWeight: 700,
-                  marginBottom: '6px',
-                }}
-              >
-                SOLVE
+            {/* Question Card */}
+            <div className="p-4 bg-slate-800/90 rounded-2xl border border-white/15 shadow-md">
+              <div className="text-[10px] font-black uppercase tracking-wider text-amber-400 mb-1">
+                MATHEMATICAL PROBLEM
               </div>
-              <div
-                style={{
-                  fontSize: '15px',
-                  fontWeight: 700,
-                  lineHeight: 1.4,
-                }}
-              >
+              <h3 className="text-base font-extrabold text-white leading-snug">
                 {challenge.prompt}
-              </div>
+              </h3>
 
-              {/* Number display */}
+              {/* High-Contrast Large Number Display */}
               {challenge.numberString && (
-                <div
-                  style={{
-                    marginTop: '8px',
-                    fontSize: '28px',
-                    fontWeight: 800,
-                    fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-                    letterSpacing: '3px',
-                    color: primaryLight,
-                    textAlign: 'center',
-                    padding: '8px',
-                    background: 'rgba(0,0,0,0.3)',
-                    borderRadius: '8px',
-                  }}
-                >
-                  {challenge.numberString}
+                <div className="mt-3 p-3 bg-slate-950 rounded-xl border border-slate-700 text-center">
+                  <div
+                    className={`font-mono text-3xl font-black tracking-widest ${theme.numberColor}`}
+                  >
+                    {challenge.numberString}
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* Answer Options */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '6px',
-              }}
-            >
-              {challenge.options?.map((opt, idx) => {
+            {/* Answer Options Grid */}
+            <div className="flex flex-col gap-2.5 mt-1">
+              {challenge.options.map((opt, i) => {
                 const isSelected = teamState.currentAnswer === opt.value;
                 const isLocked = teamState.isLockedIn;
 
                 return (
                   <motion.button
-                    key={idx}
-                    whileTap={!isLocked ? { scale: 0.96 } : {}}
-                    onPointerDown={(e) => {
-                      e.stopPropagation();
-                      handleSelect(opt.value);
-                    }}
-                    style={{
-                      width: '100%',
-                      padding: '14px 16px',
-                      border: isSelected
-                        ? `2px solid ${primaryLight}`
-                        : '2px solid rgba(255,255,255,0.15)',
-                      borderRadius: '10px',
-                      background: isSelected
-                        ? `linear-gradient(135deg, ${primaryGlow}, rgba(0,0,0,0.3))`
-                        : 'rgba(255,255,255,0.05)',
-                      color: '#fff',
-                      fontSize: '18px',
-                      fontWeight: 700,
-                      fontFamily: "'JetBrains Mono', 'Courier New', monospace",
-                      cursor: isLocked ? 'default' : 'pointer',
-                      opacity: isLocked && !isSelected ? 0.4 : 1,
-                      textAlign: 'center',
-                      letterSpacing: '1px',
-                      transition: 'all 0.15s ease',
-                    }}
+                    key={i}
+                    whileTap={!isLocked ? { scale: 0.97 } : {}}
+                    onClick={() => handleSelectOption(opt.value)}
+                    disabled={isLocked}
+                    className={`w-full py-3.5 px-4 rounded-xl font-mono text-lg font-black text-center border-2 transition-all duration-200 ${
+                      isSelected
+                        ? theme.buttonSelected
+                        : 'bg-slate-800/90 border-slate-700 text-slate-200 hover:border-slate-500 hover:bg-slate-800'
+                    } ${isLocked && !isSelected ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     {opt.label}
                   </motion.button>
@@ -304,122 +171,62 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
               })}
             </div>
 
-            {/* Lock-in Button */}
-            {!teamState.isLockedIn && (
+            {/* Lock In / Confirm Route Button */}
+            {!teamState.isLockedIn ? (
               <motion.button
-                whileTap={{ scale: 0.95 }}
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                  handleLockIn();
-                }}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  border: 'none',
-                  borderRadius: '10px',
-                  background:
-                    teamState.currentAnswer !== null
-                      ? `linear-gradient(135deg, ${primary}, ${primaryLight})`
-                      : 'rgba(255,255,255,0.08)',
-                  color: '#fff',
-                  fontSize: '14px',
-                  fontWeight: 800,
-                  letterSpacing: '2px',
-                  cursor:
-                    teamState.currentAnswer !== null ? 'pointer' : 'default',
-                  opacity: teamState.currentAnswer !== null ? 1 : 0.4,
-                  textTransform: 'uppercase',
-                }}
+                whileTap={{ scale: 0.96 }}
+                onClick={handleConfirmAnswer}
+                disabled={teamState.currentAnswer === null}
+                className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-200 mt-2 ${
+                  teamState.currentAnswer !== null
+                    ? theme.confirmBtn
+                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                }`}
               >
-                ⚡ CONFIRM ROUTE
+                ⚡ CONFIRM DISPATCH
               </motion.button>
+            ) : (
+              <div className="w-full py-3 rounded-xl bg-slate-950 border border-amber-500/40 text-center font-bold text-xs text-amber-300 animate-pulse">
+                ⏳ ROUTE LOCKED IN — VALIDATING...
+              </div>
             )}
 
-            {/* Feedback */}
+            {/* Live Feedback Toast */}
             <AnimatePresence>
               {teamState.lastFeedback && (
                 <motion.div
-                  initial={{ opacity: 0, y: 10 }}
+                  initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  style={{
-                    padding: '12px',
-                    borderRadius: '10px',
-                    background: teamState.lastFeedback.isCorrect
-                      ? 'rgba(34,197,94,0.2)'
-                      : 'rgba(239,68,68,0.15)',
-                    border: `1px solid ${
-                      teamState.lastFeedback.isCorrect
-                        ? 'rgba(34,197,94,0.4)'
-                        : 'rgba(239,68,68,0.3)'
-                    }`,
-                    textAlign: 'center',
-                  }}
+                  className={`p-3 rounded-xl border text-xs font-bold leading-relaxed ${
+                    teamState.lastFeedback.isCorrect
+                      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
+                      : 'bg-red-950/90 border-red-500/50 text-red-200'
+                  }`}
                 >
-                  <div
-                    style={{
-                      fontSize: '20px',
-                      marginBottom: '4px',
-                    }}
-                  >
-                    {teamState.lastFeedback.isCorrect ? '✅' : '🔍'}
-                  </div>
-                  <div
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      lineHeight: 1.4,
-                    }}
-                  >
-                    {teamState.lastFeedback.message}
-                  </div>
-                  {teamState.lastFeedback.isCorrect && (
-                    <div
-                      style={{
-                        fontSize: '10px',
-                        marginTop: '4px',
-                        opacity: 0.7,
-                      }}
-                    >
-                      Signal → GREEN | Train departing...
-                    </div>
-                  )}
+                  {teamState.lastFeedback.message}
                 </motion.div>
               )}
             </AnimatePresence>
-          </>
+          </div>
         ) : (
-          /* Waiting state */
-          <div
-            style={{
-              flex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '12px',
-              opacity: 0.6,
-            }}
-          >
-            <div style={{ fontSize: '36px' }}>🚂</div>
-            <div
-              style={{
-                fontSize: '12px',
-                fontWeight: 700,
-                letterSpacing: '2px',
-                textAlign: 'center',
-              }}
-            >
-              {phase === 'title'
-                ? 'WAITING FOR DEPARTURE'
-                : phase === 'train-journey'
-                  ? 'TRAIN EN ROUTE...'
-                  : phase === 'delivery'
-                    ? 'DELIVERY COMPLETE!'
-                    : phase === 'network-complete'
-                      ? '🎉 NETWORK RESTORED!'
-                      : 'STAND BY'}
+          /* Waiting / Journey View */
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-3">
+            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl animate-bounce">
+              {phase === 'train-journey' ? '🚂' : phase === 'station-arrived' ? '🏁' : '⚙️'}
             </div>
+            <h4 className="text-sm font-black text-white uppercase tracking-wider">
+              {phase === 'train-journey'
+                ? 'TRAIN JOURNEYING TO NEXT STATION!'
+                : phase === 'station-arrived'
+                  ? 'ARRIVED AT DESTINATION!'
+                  : 'STANDBY FOR DISPATCH'}
+            </h4>
+            <p className="text-xs text-slate-400 max-w-[200px]">
+              {phase === 'train-journey'
+                ? 'Watch the train travel across the scenic railway network.'
+                : 'Preparing next station departure manifest...'}
+            </p>
           </div>
         )}
       </div>

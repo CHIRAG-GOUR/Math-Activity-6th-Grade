@@ -1,6 +1,7 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Core Types
 // Grade 6 Mathematics: Place Value & Rounding
+// 5-Stage Station Journey System
 // ============================================================
 
 export type BloomLevel =
@@ -25,54 +26,47 @@ export type TeamId = 'blue' | 'red';
 
 export type SignalState = 'red' | 'yellow' | 'green';
 
+export type LoadingStepType =
+  | 'vehicles'     // Q1: Load Vehicles onto flatbed
+  | 'materials'    // Q2: Load Building materials (logs, steel, bricks)
+  | 'passengers'   // Q3: Board passengers into passenger car
+  | 'brakes'       // Q4: Release brakes & build boiler steam
+  | 'departure';   // Q5: Green signal & high-graphics journey to next station
+
 export type GamePhase =
   | 'title'
   | 'briefing'
   | 'challenge'
-  | 'route-animation'
+  | 'item-loaded'
   | 'train-journey'
-  | 'delivery'
-  | 'steal-opportunity'
-  | 'mission-summary'
+  | 'station-arrived'
   | 'network-complete';
 
 export type TrainState =
   | 'idle'
+  | 'loading'
   | 'departing'
   | 'moving'
   | 'approaching'
-  | 'arrived'
-  | 'unloading';
+  | 'arrived';
 
-// Railway topology
-export interface StationDef {
+export interface StationInfo {
   id: string;
   name: string;
+  subtitle: string;
   position: [number, number, number];
-  type: 'central' | 'passenger' | 'cargo' | 'maintenance';
-  active: boolean;
-}
-
-export interface TrackSegment {
-  id: string;
-  from: string; // station id
-  to: string;   // station id
-  controlPoints: [number, number, number][]; // spline control points
-  hasBridge?: boolean;
-  hasTunnel?: boolean;
-  active: boolean;
-}
-
-export interface JunctionDef {
-  id: string;
-  position: [number, number, number];
-  trackA: string; // track segment id
-  trackB: string; // track segment id
-  currentRoute: 'A' | 'B';
+  color: string;
 }
 
 export interface RailwayChallenge {
   id: string;
+  stationIndex: number;
+  stepIndex: number; // 1 to 5
+  stepType: LoadingStepType;
+  stepTitle: string;
+  stepDescription: string;
+  stepIcon: string;
+  
   missionTitle: string;
   bloomLevel: BloomLevel;
   challengeType: ChallengeType;
@@ -80,38 +74,30 @@ export interface RailwayChallenge {
   points: number;
   timeLimit: number; // seconds
 
-  // The railway context
   context: {
-    cargoType: 'passengers' | 'cargo' | 'construction' | 'messages';
     originStation: string;
-    destinationOptions: string[];
-    narrative: string; // "A passenger train needs to reach North Terminal..."
+    destinationStation: string;
+    narrative: string;
   };
 
-  // The math problem
   prompt: string;
   number?: number;
   numberString?: string;
-  options?: Array<{ value: number | string; label: string }>;
+  highlightDigitIndex?: number;
+  options: Array<{ value: number | string; label: string }>;
 
-  // Validation
   correctAnswer: number | string;
   validation: (answer: number | string) => boolean;
-
-  // Hints for wrong answers
   hints: string[];
-  highlightDigitIndex?: number; // index of digit to emphasise on wrong answer
-
-  // Railway consequence
-  railwayAction: {
-    switchId?: string;
-    routeChoice?: 'A' | 'B';
-    signalId?: string;
-    destinationStation: string;
-    trackSegmentId: string;
-  };
-
   explanation: string;
+}
+
+export interface LoadedTrainItems {
+  vehicles: boolean;      // Step 1
+  materials: boolean;     // Step 2
+  passengers: boolean;    // Step 3
+  brakesLifted: boolean;  // Step 4
+  signalGreen: boolean;   // Step 5
 }
 
 export interface TeamState {
@@ -119,8 +105,7 @@ export interface TeamState {
   name: string;
   score: number;
   streak: number;
-  routesCompleted: number;
-  deliveriesCount: number;
+  correctAnswersCount: number;
   currentAnswer: number | string | null;
   isLockedIn: boolean;
   hasAnswered: boolean;
@@ -131,48 +116,42 @@ export interface TeamState {
     pointsEarned: number;
   } | null;
   attemptsOnCurrent: number;
-  canSteal: boolean;
 }
 
 export interface TrainAnimState {
   position: [number, number, number];
   rotation: [number, number, number];
-  progress: number; // 0..1 along current spline
+  progress: number; // 0..1 along journey track
   speed: number;
   state: TrainState;
-  currentTrackId: string | null;
   wheelRotation: number;
   smokeActive: boolean;
+  whistleActive: boolean;
 }
 
 export interface RailwayGameState {
   phase: GamePhase;
-  currentMission: number;
-  totalMissions: number;
+  currentStationIndex: number; // 0, 1, 2...
+  currentStepIndex: number;    // 1..5
+  activeChallengeIndex: number;
   challenges: RailwayChallenge[];
   activeChallenge: RailwayChallenge | null;
   
   blueTeam: TeamState;
   redTeam: TeamState;
 
-  // Railway world state
-  stations: Record<string, StationDef>;
-  tracks: Record<string, TrackSegment>;
-  junctions: Record<string, JunctionDef>;
-  signals: Record<string, SignalState>;
+  stations: StationInfo[];
+  loadedItems: LoadedTrainItems;
+  signalState: SignalState;
+  train: TrainAnimState;
 
-  // Train
-  blueTrain: TrainAnimState;
-  redTrain: TrainAnimState;
+  // Journey tracking
+  fromStationName: string;
+  toStationName: string;
+  totalJourneysCompleted: number;
 
-  // Network progression
-  networkProgress: number; // 0..100
-  unlockedRoutes: string[];
-
-  // Audio
   isMuted: boolean;
-
-  // Timer
   timeRemaining: number;
   timerActive: boolean;
+  stepAnimationMessage: string | null;
 }

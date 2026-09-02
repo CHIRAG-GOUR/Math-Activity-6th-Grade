@@ -1,5 +1,10 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Title Screen & Mission Briefing
+// THE GREAT NUMBER RAILWAY — Overlays & Celebration Screens
+// - Title Screen (Storybook Adventure Style)
+// - Mission Briefing & Step Checklist
+// - Next Station Arrival Celebration (Journey Payoff)
+// - Live Step Loading Notification Toast
+// - Network Complete Grand Victory
 // ============================================================
 
 'use client';
@@ -7,8 +12,9 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
+import { Trophy, ArrowRight, Play, CheckCircle } from 'lucide-react';
 
-// ── Title Screen ──
+// ── 1. Storybook Title Screen ──
 export const RailwayTitleScreen: React.FC = () => {
   const startGame = useRailwayStore((s) => s.startGame);
   const phase = useRailwayStore((s) => s.phase);
@@ -20,209 +26,76 @@ export const RailwayTitleScreen: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background:
-          'linear-gradient(135deg, #0f172a 0%, #1e3a5f 30%, #1a1a2e 70%, #5f1e1e 100%)',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        color: '#fff',
-        gap: '20px',
-      }}
+      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-sky-950 via-slate-900 to-indigo-950 text-white select-none overflow-hidden p-6"
     >
-      {/* Railway tracks decoration */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: 0,
-          left: 0,
-          right: 0,
-          height: '4px',
-          background:
-            'repeating-linear-gradient(90deg, #6b7280 0px, #6b7280 20px, transparent 20px, transparent 30px)',
-        }}
-      />
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '8px',
-          left: 0,
-          right: 0,
-          height: '4px',
-          background:
-            'repeating-linear-gradient(90deg, #6b7280 0px, #6b7280 20px, transparent 20px, transparent 30px)',
-        }}
-      />
+      {/* Decorative Track Stripes */}
+      <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#475569_0px,#475569_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-600 opacity-30" />
+
+      {/* Hero Badge */}
+      <motion.div
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.1 }}
+        className="px-4 py-1.5 rounded-full bg-amber-500/20 border border-amber-400 text-amber-300 text-xs font-black tracking-widest uppercase mb-4"
+      >
+        GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING
+      </motion.div>
 
       {/* Title */}
-      <motion.div
-        initial={{ y: -30, opacity: 0 }}
+      <motion.h1
+        initial={{ y: -20, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2, duration: 0.6 }}
-        style={{ textAlign: 'center' }}
+        transition={{ delay: 0.2 }}
+        className="text-5xl sm:text-6xl font-black tracking-tight text-center max-w-4xl text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-200 to-orange-400 drop-shadow-lg"
       >
-        <div
-          style={{
-            fontSize: '12px',
-            letterSpacing: '6px',
-            opacity: 0.5,
-            fontWeight: 700,
-            marginBottom: '8px',
-          }}
-        >
-          GRADE 6 MATHEMATICS
-        </div>
-        <div
-          style={{
-            fontSize: '48px',
-            fontWeight: 900,
-            letterSpacing: '4px',
-            lineHeight: 1.1,
-            textShadow: '0 4px 20px rgba(0,0,0,0.5)',
-          }}
-        >
-          THE GREAT
-          <br />
-          NUMBER RAILWAY
-        </div>
-        <div
-          style={{
-            marginTop: '12px',
-            fontSize: '14px',
-            letterSpacing: '3px',
-            opacity: 0.6,
-            fontWeight: 600,
-          }}
-        >
-          PLACE VALUE & ROUNDING
-        </div>
-      </motion.div>
+        THE GREAT NUMBER RAILWAY
+      </motion.h1>
 
-      {/* Locomotive emoji */}
-      <motion.div
-        initial={{ x: -100, opacity: 0 }}
-        animate={{ x: 0, opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.8 }}
-        style={{ fontSize: '64px' }}
-      >
-        🚂
-      </motion.div>
+      <p className="text-slate-300 text-sm sm:text-base font-medium max-w-xl text-center mt-3 leading-relaxed">
+        Operate a 3D railway! Solve place value & rounding to load <strong className="text-amber-300">Vehicles</strong>, <strong className="text-amber-300">Building Materials</strong>, and <strong className="text-amber-300">Passengers</strong>, lift brakes, turn the signal <strong className="text-emerald-400">GREEN</strong>, and cruise to the next station!
+      </p>
 
-      {/* Team indicators */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.8 }}
-        style={{
-          display: 'flex',
-          gap: '40px',
-          alignItems: 'center',
-        }}
-      >
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #1e40af, #3b82f6)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px',
-              fontSize: '20px',
-              boxShadow: '0 0 20px rgba(59,130,246,0.4)',
-            }}
-          >
+      {/* Dual Team Preview */}
+      <div className="flex items-center gap-8 my-8">
+        <div className="flex flex-col items-center p-4 rounded-2xl bg-blue-950/80 border border-blue-500/50 shadow-xl shadow-blue-500/20 w-44">
+          <div className="w-14 h-14 rounded-2xl bg-blue-600 flex items-center justify-center text-3xl shadow-lg mb-2">
             🔵
           </div>
-          <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '2px' }}>
-            BLUE ENGINEERS
-          </div>
-          <div style={{ fontSize: '8px', opacity: 0.5 }}>LEFT SIDE</div>
+          <span className="font-black text-xs text-blue-300 tracking-wider">TEAM BLUE</span>
+          <span className="text-[10px] text-slate-400 font-bold mt-0.5">LEFT CONSOLE</span>
         </div>
 
-        <div style={{ fontSize: '16px', fontWeight: 800, opacity: 0.4, letterSpacing: '3px' }}>
-          VS
-        </div>
+        <div className="text-2xl font-black text-amber-400">VS</div>
 
-        <div style={{ textAlign: 'center' }}>
-          <div
-            style={{
-              width: '50px',
-              height: '50px',
-              borderRadius: '50%',
-              background: 'linear-gradient(135deg, #991b1b, #ef4444)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              margin: '0 auto 8px',
-              fontSize: '20px',
-              boxShadow: '0 0 20px rgba(239,68,68,0.4)',
-            }}
-          >
+        <div className="flex flex-col items-center p-4 rounded-2xl bg-red-950/80 border border-red-500/50 shadow-xl shadow-red-500/20 w-44">
+          <div className="w-14 h-14 rounded-2xl bg-red-600 flex items-center justify-center text-3xl shadow-lg mb-2">
             🔴
           </div>
-          <div style={{ fontSize: '10px', fontWeight: 800, letterSpacing: '2px' }}>
-            RED ENGINEERS
-          </div>
-          <div style={{ fontSize: '8px', opacity: 0.5 }}>RIGHT SIDE</div>
+          <span className="font-black text-xs text-red-300 tracking-wider">TEAM RED</span>
+          <span className="text-[10px] text-slate-400 font-bold mt-0.5">RIGHT CONSOLE</span>
         </div>
-      </motion.div>
+      </div>
 
-      {/* Start button */}
+      {/* Start Button */}
       <motion.button
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 1.2 }}
         whileHover={{ scale: 1.05 }}
         whileTap={{ scale: 0.95 }}
         onClick={startGame}
-        style={{
-          marginTop: '20px',
-          padding: '16px 48px',
-          background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-          border: 'none',
-          borderRadius: '12px',
-          color: '#1f2937',
-          fontSize: '16px',
-          fontWeight: 900,
-          letterSpacing: '3px',
-          cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(217,119,6,0.4)',
-          textTransform: 'uppercase',
-        }}
+        className="px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-orange-500 text-slate-950 font-black text-lg tracking-wider uppercase shadow-2xl shadow-amber-500/40 border border-amber-300 flex items-center gap-3 cursor-pointer"
       >
-        🚂 ALL ABOARD
+        <Play className="w-6 h-6 fill-slate-950" />
+        <span>ALL ABOARD • START RUN</span>
       </motion.button>
-
-      {/* Bottom info */}
-      <div
-        style={{
-          position: 'absolute',
-          bottom: '20px',
-          fontSize: '9px',
-          opacity: 0.3,
-          letterSpacing: '2px',
-        }}
-      >
-        OPTIMIZED FOR CLASSROOM TOUCHSCREEN TVS • 1920×1080
-      </div>
     </motion.div>
   );
 };
 
-// ── Mission Briefing Overlay ──
+// ── 2. Mission Briefing Overlay ──
 export const MissionBriefing: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const challenge = useRailwayStore((s) => s.activeChallenge);
-  const currentMission = useRailwayStore((s) => s.currentMission);
-  const totalMissions = useRailwayStore((s) => s.totalMissions);
+  const fromStation = useRailwayStore((s) => s.fromStationName);
+  const toStation = useRailwayStore((s) => s.toStationName);
   const setPhase = useRailwayStore((s) => s.setPhase);
   const setTimerActive = useRailwayStore((s) => s.setTimerActive);
   const setTimeRemaining = useRailwayStore((s) => s.setTimeRemaining);
@@ -235,330 +108,124 @@ export const MissionBriefing: React.FC = () => {
     setPhase('challenge');
   };
 
-  const cargoIcon =
-    challenge.context.cargoType === 'passengers'
-      ? '👥'
-      : challenge.context.cargoType === 'cargo'
-        ? '📦'
-        : challenge.context.cargoType === 'construction'
-          ? '🏗️'
-          : '📨';
-
   return (
-    <AnimatePresence>
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/80 backdrop-blur-sm select-none p-4">
       <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        style={{
-          position: 'absolute',
-          inset: 0,
-          zIndex: 40,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: 'rgba(15,23,42,0.85)',
-          backdropFilter: 'blur(4px)',
-          fontFamily: "'Inter', 'Segoe UI', sans-serif",
-          color: '#fff',
-        }}
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        className="max-w-md w-full bg-slate-900 border border-white/20 rounded-3xl p-6 shadow-2xl text-white text-center flex flex-col items-center"
       >
-        <motion.div
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.1 }}
-          style={{
-            maxWidth: '520px',
-            width: '90%',
-            background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-            borderRadius: '16px',
-            padding: '28px',
-            border: '1px solid rgba(255,255,255,0.1)',
-            textAlign: 'center',
-            boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-          }}
+        <div className="text-4xl mb-2">{challenge.stepIcon}</div>
+        <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
+          {challenge.stepTitle}
+        </span>
+        <h2 className="text-2xl font-black mt-1 mb-2 text-white">
+          {challenge.missionTitle}
+        </h2>
+
+        {/* Station Path */}
+        <div className="px-4 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold text-slate-300 mb-4 flex items-center gap-2">
+          <span>🚉 {fromStation}</span>
+          <span className="text-amber-400">➔</span>
+          <span className="text-emerald-400">🏁 {toStation}</span>
+        </div>
+
+        <p className="text-xs text-slate-300 leading-relaxed font-medium mb-6">
+          {challenge.context.narrative}
+        </p>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={handleStartMission}
+          className="w-full py-4 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 cursor-pointer"
         >
-          {/* Mission number */}
-          <div
-            style={{
-              fontSize: '10px',
-              letterSpacing: '3px',
-              opacity: 0.5,
-              fontWeight: 700,
-            }}
-          >
-            MISSION {currentMission + 1} OF {totalMissions}
-          </div>
-
-          {/* Mission title */}
-          <div
-            style={{
-              fontSize: '28px',
-              fontWeight: 900,
-              letterSpacing: '2px',
-              marginTop: '8px',
-              marginBottom: '16px',
-            }}
-          >
-            {challenge.missionTitle}
-          </div>
-
-          {/* Cargo type */}
-          <div
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '8px',
-              padding: '6px 16px',
-              background: 'rgba(255,255,255,0.06)',
-              borderRadius: '20px',
-              fontSize: '11px',
-              fontWeight: 600,
-              letterSpacing: '1px',
-              marginBottom: '16px',
-            }}
-          >
-            <span>{cargoIcon}</span>
-            {challenge.context.cargoType.toUpperCase()} TRANSPORT
-          </div>
-
-          {/* Narrative */}
-          <div
-            style={{
-              fontSize: '13px',
-              lineHeight: 1.6,
-              opacity: 0.8,
-              marginBottom: '20px',
-              padding: '0 10px',
-            }}
-          >
-            {challenge.context.narrative}
-          </div>
-
-          {/* Difficulty badge */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'center',
-              gap: '12px',
-              marginBottom: '20px',
-              fontSize: '9px',
-              letterSpacing: '1.5px',
-              fontWeight: 700,
-            }}
-          >
-            <span
-              style={{
-                padding: '4px 12px',
-                background: 'rgba(34,197,94,0.15)',
-                borderRadius: '12px',
-                color: '#4ade80',
-              }}
-            >
-              {challenge.difficulty.toUpperCase()}
-            </span>
-            <span
-              style={{
-                padding: '4px 12px',
-                background: 'rgba(59,130,246,0.15)',
-                borderRadius: '12px',
-                color: '#60a5fa',
-              }}
-            >
-              {challenge.bloomLevel.toUpperCase()}
-            </span>
-            <span
-              style={{
-                padding: '4px 12px',
-                background: 'rgba(251,191,36,0.15)',
-                borderRadius: '12px',
-                color: '#fbbf24',
-              }}
-            >
-              +{challenge.points} PTS
-            </span>
-          </div>
-
-          {/* Start button */}
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            onClick={handleStartMission}
-            style={{
-              padding: '14px 40px',
-              background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-              border: 'none',
-              borderRadius: '10px',
-              color: '#1f2937',
-              fontSize: '14px',
-              fontWeight: 900,
-              letterSpacing: '2px',
-              cursor: 'pointer',
-              boxShadow: '0 4px 20px rgba(217,119,6,0.3)',
-            }}
-          >
-            🚂 START MISSION
-          </motion.button>
-        </motion.div>
+          <span>BEGIN STEP 1 • LOAD VEHICLES</span>
+          <ArrowRight className="w-4 h-4" />
+        </motion.button>
       </motion.div>
-    </AnimatePresence>
+    </div>
   );
 };
 
-// ── Delivery Complete Overlay ──
-export const DeliveryOverlay: React.FC = () => {
+// ── 3. Next Station Arrival Celebration (Journey Payoff) ──
+export const StationArrivalOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
-  const challenge = useRailwayStore((s) => s.activeChallenge);
-  const blueTeam = useRailwayStore((s) => s.blueTeam);
-  const redTeam = useRailwayStore((s) => s.redTeam);
-  const nextMission = useRailwayStore((s) => s.nextMission);
+  const currentStationIdx = useRailwayStore((s) => s.currentStationIndex);
+  const stations = useRailwayStore((s) => s.stations);
+  const fromStation = useRailwayStore((s) => s.fromStationName);
+  const nextStepOrDepart = useRailwayStore((s) => s.nextStepOrDepart);
 
-  if (phase !== 'delivery' || !challenge) return null;
+  if (phase !== 'station-arrived') return null;
+
+  const arrivedStation = stations[currentStationIdx]?.name || 'Pine Ridge Terminal';
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 35,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background: 'rgba(15,23,42,0.7)',
-        backdropFilter: 'blur(3px)',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        color: '#fff',
-      }}
-    >
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-950/85 backdrop-blur-md select-none p-4">
       <motion.div
-        initial={{ scale: 0.85, opacity: 0 }}
+        initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        style={{
-          maxWidth: '480px',
-          width: '90%',
-          background: 'linear-gradient(135deg, #1e293b, #0f172a)',
-          borderRadius: '16px',
-          padding: '28px',
-          border: '1px solid rgba(34,197,94,0.3)',
-          textAlign: 'center',
-          boxShadow: '0 20px 60px rgba(0,0,0,0.5)',
-        }}
+        className="max-w-lg w-full bg-slate-900 border-2 border-emerald-500/50 rounded-3xl p-8 shadow-2xl text-white text-center flex flex-col items-center"
       >
-        <div style={{ fontSize: '40px', marginBottom: '8px' }}>✅</div>
-        <div
-          style={{
-            fontSize: '22px',
-            fontWeight: 900,
-            letterSpacing: '2px',
-            marginBottom: '8px',
-          }}
-        >
-          DELIVERY COMPLETE
+        <div className="w-20 h-20 rounded-3xl bg-emerald-600/30 border border-emerald-400 flex items-center justify-center text-4xl shadow-xl shadow-emerald-500/20 mb-4 animate-bounce">
+          🏁
         </div>
 
-        {/* Explanation */}
-        <div
-          style={{
-            fontSize: '12px',
-            lineHeight: 1.6,
-            opacity: 0.8,
-            marginBottom: '20px',
-            padding: '12px',
-            background: 'rgba(255,255,255,0.05)',
-            borderRadius: '8px',
-            borderLeft: '3px solid #22c55e',
-            textAlign: 'left',
-          }}
-        >
-          {challenge.explanation}
-        </div>
+        <span className="text-xs font-black tracking-widest text-emerald-400 uppercase">
+          SUCCESSFUL RAILWAY DELIVERY
+        </span>
+        <h2 className="text-3xl font-black mt-1 mb-2 text-white">
+          WELCOME TO {arrivedStation.toUpperCase()}!
+        </h2>
 
-        {/* Team results */}
-        <div style={{ display: 'flex', gap: '12px', marginBottom: '20px' }}>
-          <div
-            style={{
-              flex: 1,
-              padding: '12px',
-              background: blueTeam.isCorrect
-                ? 'rgba(59,130,246,0.15)'
-                : 'rgba(255,255,255,0.03)',
-              borderRadius: '8px',
-              border: `1px solid ${blueTeam.isCorrect ? 'rgba(59,130,246,0.3)' : 'rgba(255,255,255,0.05)'}`,
-            }}
-          >
-            <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.6 }}>
-              BLUE ENGINEERS
-            </div>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                marginTop: '4px',
-                color: blueTeam.isCorrect ? '#60a5fa' : '#6b7280',
-              }}
-            >
-              {blueTeam.isCorrect ? `+${challenge.points}` : '—'}
-            </div>
-          </div>
-          <div
-            style={{
-              flex: 1,
-              padding: '12px',
-              background: redTeam.isCorrect
-                ? 'rgba(239,68,68,0.15)'
-                : 'rgba(255,255,255,0.03)',
-              borderRadius: '8px',
-              border: `1px solid ${redTeam.isCorrect ? 'rgba(239,68,68,0.3)' : 'rgba(255,255,255,0.05)'}`,
-            }}
-          >
-            <div style={{ fontSize: '9px', fontWeight: 700, letterSpacing: '1.5px', opacity: 0.6 }}>
-              RED ENGINEERS
-            </div>
-            <div
-              style={{
-                fontSize: '18px',
-                fontWeight: 800,
-                marginTop: '4px',
-                color: redTeam.isCorrect ? '#f87171' : '#6b7280',
-              }}
-            >
-              {redTeam.isCorrect ? `+${challenge.points}` : '—'}
-            </div>
-          </div>
+        <p className="text-xs text-slate-300 leading-relaxed font-medium mb-4">
+          All 5 stages completed: Vehicles, Building Materials, and Passengers have arrived safely from {fromStation}!
+        </p>
+
+        <div className="px-5 py-2.5 rounded-2xl bg-emerald-950 border border-emerald-400/40 text-emerald-300 text-sm font-black mb-6">
+          🎉 +500 BONUS POINTS AWARDED TO BOTH TEAMS!
         </div>
 
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          onClick={nextMission}
-          style={{
-            padding: '12px 36px',
-            background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-            border: 'none',
-            borderRadius: '10px',
-            color: '#1f2937',
-            fontSize: '13px',
-            fontWeight: 900,
-            letterSpacing: '2px',
-            cursor: 'pointer',
-          }}
+          onClick={nextStepOrDepart}
+          className="w-full py-4 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 font-black text-sm uppercase tracking-wider shadow-lg shadow-emerald-500/30 flex items-center justify-center gap-2 cursor-pointer"
         >
-          NEXT MISSION →
+          <span>CONTINUE TO NEXT STATION ADVENTURE</span>
+          <ArrowRight className="w-4 h-4" />
         </motion.button>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };
 
-// ── Network Complete (Victory) Overlay ──
-export const NetworkComplete: React.FC = () => {
+// ── 4. Live Step Loading Toast Notification ──
+export const StepLoadingToast: React.FC = () => {
+  const stepMsg = useRailwayStore((s) => s.stepAnimationMessage);
+
+  return (
+    <AnimatePresence>
+      {stepMsg && (
+        <motion.div
+          initial={{ opacity: 0, y: -20, scale: 0.95 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: -20, scale: 0.95 }}
+          className="absolute top-20 left-1/2 -translate-x-1/2 z-40 px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-700 border-2 border-emerald-300 text-white font-black text-sm tracking-wide shadow-2xl shadow-emerald-500/50 flex items-center gap-3 select-none pointer-events-none"
+        >
+          <CheckCircle className="w-5 h-5 text-emerald-200 shrink-0" />
+          <span>{stepMsg}</span>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+};
+
+// ── 5. Network Complete Victory Screen ──
+export const NetworkCompleteOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const blueTeam = useRailwayStore((s) => s.blueTeam);
   const redTeam = useRailwayStore((s) => s.redTeam);
-  const networkProgress = useRailwayStore((s) => s.networkProgress);
 
   if (phase !== 'network-complete') return null;
 
@@ -570,131 +237,43 @@ export const NetworkComplete: React.FC = () => {
         : 'DRAW';
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        zIndex: 50,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        background:
-          'linear-gradient(135deg, rgba(15,23,42,0.95), rgba(30,58,95,0.95), rgba(95,30,30,0.95))',
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        color: '#fff',
-      }}
-    >
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/90 backdrop-blur-lg select-none p-6 text-white text-center">
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.3 }}
-        style={{ textAlign: 'center', maxWidth: '600px' }}
+        className="max-w-xl w-full flex flex-col items-center"
       >
-        <div style={{ fontSize: '60px', marginBottom: '16px' }}>🏆</div>
-        <div
-          style={{
-            fontSize: '36px',
-            fontWeight: 900,
-            letterSpacing: '4px',
-            marginBottom: '8px',
-          }}
-        >
-          NETWORK RESTORED
-        </div>
-        <div
-          style={{
-            fontSize: '14px',
-            letterSpacing: '3px',
-            opacity: 0.6,
-            marginBottom: '32px',
-          }}
-        >
-          THE GREAT NUMBER RAILWAY IS OPERATIONAL
-        </div>
+        <Trophy className="w-24 h-24 text-amber-400 drop-shadow-lg mb-4 animate-bounce" />
+        <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
+          RAILWAY NETWORK FULLY OPERATIONAL
+        </span>
+        <h2 className="text-4xl font-black mt-1 mb-6 text-white">
+          THE GRAND EXPEDITION COMPLETE!
+        </h2>
 
         {/* Scores */}
-        <div style={{ display: 'flex', gap: '24px', justifyContent: 'center', marginBottom: '24px' }}>
-          <div
-            style={{
-              padding: '20px 32px',
-              background: 'rgba(59,130,246,0.15)',
-              borderRadius: '12px',
-              border: '1px solid rgba(59,130,246,0.3)',
-            }}
-          >
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', opacity: 0.6 }}>
-              BLUE ENGINEERS
-            </div>
-            <div
-              style={{
-                fontSize: '36px',
-                fontWeight: 900,
-                color: '#60a5fa',
-              }}
-            >
-              {blueTeam.score}
-            </div>
+        <div className="flex gap-6 justify-center w-full mb-8">
+          <div className="flex-1 p-6 rounded-3xl bg-blue-950/80 border border-blue-500/50 shadow-xl">
+            <span className="text-xs font-black text-blue-400 uppercase">TEAM BLUE</span>
+            <div className="text-4xl font-black text-white mt-2">{blueTeam.score}</div>
           </div>
-          <div
-            style={{
-              padding: '20px 32px',
-              background: 'rgba(239,68,68,0.15)',
-              borderRadius: '12px',
-              border: '1px solid rgba(239,68,68,0.3)',
-            }}
-          >
-            <div style={{ fontSize: '10px', fontWeight: 700, letterSpacing: '2px', opacity: 0.6 }}>
-              RED ENGINEERS
-            </div>
-            <div
-              style={{
-                fontSize: '36px',
-                fontWeight: 900,
-                color: '#f87171',
-              }}
-            >
-              {redTeam.score}
-            </div>
+          <div className="flex-1 p-6 rounded-3xl bg-red-950/80 border border-red-500/50 shadow-xl">
+            <span className="text-xs font-black text-red-400 uppercase">TEAM RED</span>
+            <div className="text-4xl font-black text-white mt-2">{redTeam.score}</div>
           </div>
         </div>
 
-        {/* Winner */}
-        <div
-          style={{
-            fontSize: '20px',
-            fontWeight: 900,
-            letterSpacing: '3px',
-            color: '#fbbf24',
-          }}
-        >
-          {winner === 'DRAW'
-            ? '🤝 PERFECT COOPERATION — IT\'S A DRAW!'
-            : `🎉 WINNER: ${winner}`}
+        <div className="text-2xl font-black text-amber-300 mb-8">
+          {winner === 'DRAW' ? '🤝 IT\'S A DRAW! PERFECT COOPERATION!' : `🏆 WINNER: ${winner}!`}
         </div>
 
-        {/* Back button */}
-        <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => window.location.href = '/'}
-          style={{
-            marginTop: '24px',
-            padding: '12px 36px',
-            background: 'linear-gradient(135deg, #d97706, #f59e0b)',
-            border: 'none',
-            borderRadius: '10px',
-            color: '#1f2937',
-            fontSize: '13px',
-            fontWeight: 900,
-            letterSpacing: '2px',
-            cursor: 'pointer',
-          }}
+        <button
+          onClick={() => (window.location.href = '/')}
+          className="px-10 py-4 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-base uppercase tracking-wider shadow-xl shadow-amber-500/40 cursor-pointer"
         >
-          RETURN TO ARCADE
-        </motion.button>
+          RETURN TO ARCADE HUB
+        </button>
       </motion.div>
-    </motion.div>
+    </div>
   );
 };

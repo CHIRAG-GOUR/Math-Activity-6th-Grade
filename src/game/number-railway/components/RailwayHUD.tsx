@@ -1,6 +1,10 @@
 // ============================================================
-// THE GREAT NUMBER RAILWAY — Top HUD Bar
-// Mission title, timer, stage indicator, network progress
+// THE GREAT NUMBER RAILWAY — Top HUD Component
+// Displays:
+// - Blue Team Score (Left)
+// - Current Station ➔ Next Station Journey Banner & 5-Step Loading Progress
+// - Red Team Score (Right)
+// - Timer & Mute Controls
 // ============================================================
 
 'use client';
@@ -8,22 +12,32 @@
 import React, { useEffect, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
+import { Volume2, VolumeX } from 'lucide-react';
+
+const LOADING_STEP_BADGES = [
+  { step: 1, icon: '🚗', name: 'Vehicles' },
+  { step: 2, icon: '🧱', name: 'Materials' },
+  { step: 3, icon: '👥', name: 'Passengers' },
+  { step: 4, icon: '⚙️', name: 'Brakes' },
+  { step: 5, icon: '🚦', name: 'Departure' },
+];
 
 export const RailwayHUD: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
-  const currentMission = useRailwayStore((s) => s.currentMission);
-  const totalMissions = useRailwayStore((s) => s.totalMissions);
+  const currentStep = useRailwayStore((s) => s.currentStepIndex);
   const challenge = useRailwayStore((s) => s.activeChallenge);
-  const blueScore = useRailwayStore((s) => s.blueTeam.score);
-  const redScore = useRailwayStore((s) => s.redTeam.score);
-  const networkProgress = useRailwayStore((s) => s.networkProgress);
+  const blueTeam = useRailwayStore((s) => s.blueTeam);
+  const redTeam = useRailwayStore((s) => s.redTeam);
+  const loadedItems = useRailwayStore((s) => s.loadedItems);
+  const fromStation = useRailwayStore((s) => s.fromStationName);
+  const toStation = useRailwayStore((s) => s.toStationName);
   const timeRemaining = useRailwayStore((s) => s.timeRemaining);
   const timerActive = useRailwayStore((s) => s.timerActive);
   const setTime = useRailwayStore((s) => s.setTimeRemaining);
   const isMuted = useRailwayStore((s) => s.isMuted);
   const toggleMute = useRailwayStore((s) => s.toggleMute);
+  const signalState = useRailwayStore((s) => s.signalState);
 
-  // Timer countdown
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
@@ -37,176 +51,109 @@ export const RailwayHUD: React.FC = () => {
     };
   }, [timerActive, setTime]);
 
-  // Stop timer when it hits 0
-  useEffect(() => {
-    if (timeRemaining <= 0 && timerActive) {
-      useRailwayStore.getState().setTimerActive(false);
-    }
-  }, [timeRemaining, timerActive]);
-
   const timerColor =
-    timeRemaining <= 10
-      ? '#ef4444'
-      : timeRemaining <= 20
-        ? '#f59e0b'
-        : '#22c55e';
-
-  const missionTitle = challenge?.missionTitle || 'THE GREAT NUMBER RAILWAY';
+    timeRemaining <= 10 ? '#ef4444' : timeRemaining <= 20 ? '#f59e0b' : '#22c55e';
 
   if (phase === 'title') return null;
 
   return (
-    <div
-      style={{
-        position: 'absolute',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: '52px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        padding: '0 12px',
-        background: 'linear-gradient(180deg, rgba(15,23,42,0.92) 0%, rgba(15,23,42,0.8) 100%)',
-        borderBottom: '2px solid rgba(255,255,255,0.08)',
-        zIndex: 20,
-        fontFamily: "'Inter', 'Segoe UI', sans-serif",
-        color: '#fff',
-        pointerEvents: 'none',
-      }}
-    >
-      {/* Blue Score */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: '140px' }}>
-        <div
-          style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            background: '#3b82f6',
-            boxShadow: '0 0 8px rgba(59,130,246,0.6)',
-          }}
-        />
+    <header className="absolute top-0 left-0 right-0 h-16 z-30 px-4 bg-slate-900/95 backdrop-blur-md border-b border-white/10 flex items-center justify-between text-white select-none">
+      
+      {/* ── BLUE TEAM SCORE (LEFT) ── */}
+      <div className="flex items-center gap-3 min-w-[170px]">
+        <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center font-black text-xl shadow-lg shadow-blue-500/30 border border-blue-400">
+          🔵
+        </div>
         <div>
-          <div style={{ fontSize: '9px', opacity: 0.6, letterSpacing: '1.5px', fontWeight: 700 }}>
+          <div className="text-[10px] font-black uppercase tracking-wider text-blue-400">
             BLUE ENGINEERS
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800 }}>{blueScore}</div>
+          <div className="text-2xl font-black tracking-tight text-white leading-none">
+            {blueTeam.score}{' '}
+            <span className="text-[10px] font-bold text-slate-400">PTS</span>
+          </div>
         </div>
       </div>
 
-      {/* Center: Mission info */}
-      <div style={{ textAlign: 'center', flex: 1 }}>
-        <div style={{ fontSize: '8px', opacity: 0.5, letterSpacing: '2px', fontWeight: 700 }}>
-          MISSION {currentMission + 1} / {totalMissions}
-        </div>
-        <div style={{ fontSize: '13px', fontWeight: 800, letterSpacing: '1.5px' }}>
-          {missionTitle}
+      {/* ── CENTER: STATION ROUTE & 5-STAGE LOADING PROGRESS BAR ── */}
+      <div className="flex-1 max-w-2xl mx-auto flex flex-col items-center">
+        {/* Route Banner */}
+        <div className="flex items-center gap-2 text-xs font-black tracking-wider text-amber-300">
+          <span>🚉 {fromStation}</span>
+          <span className="text-amber-400 font-bold">➔</span>
+          <span className="text-emerald-400">🏁 {toStation}</span>
         </div>
 
-        {/* Timer & progress */}
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            gap: '12px',
-            marginTop: '2px',
-          }}
-        >
+        {/* 5-Step Visual Loading Badges */}
+        <div className="flex items-center gap-2 mt-1">
+          {LOADING_STEP_BADGES.map((b) => {
+            const isCompleted =
+              b.step === 1
+                ? loadedItems.vehicles
+                : b.step === 2
+                  ? loadedItems.materials
+                  : b.step === 3
+                    ? loadedItems.passengers
+                    : b.step === 4
+                      ? loadedItems.brakesLifted
+                      : loadedItems.signalGreen;
+
+            const isCurrent = currentStep === b.step;
+
+            return (
+              <div
+                key={b.step}
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-black border transition-all duration-300 ${
+                  isCompleted
+                    ? 'bg-emerald-600/90 border-emerald-400 text-white shadow-sm'
+                    : isCurrent
+                      ? 'bg-amber-500 border-amber-300 text-slate-950 scale-105 shadow-md animate-pulse'
+                      : 'bg-slate-800/80 border-slate-700 text-slate-400'
+                }`}
+              >
+                <span>{b.icon}</span>
+                <span>{b.name}</span>
+                {isCompleted && <span>✓</span>}
+              </div>
+            );
+          })}
+
+          {/* Timer Display */}
           {timerActive && (
             <div
-              style={{
-                fontSize: '12px',
-                fontWeight: 800,
-                fontFamily: "'JetBrains Mono', monospace",
-                color: timerColor,
-              }}
+              className="ml-2 font-mono font-black text-xs px-2 py-0.5 rounded bg-slate-950 border border-white/10"
+              style={{ color: timerColor }}
             >
               ⏱ {timeRemaining}s
             </div>
           )}
-
-          {/* Network progress bar */}
-          <div
-            style={{
-              width: '80px',
-              height: '4px',
-              background: 'rgba(255,255,255,0.1)',
-              borderRadius: '2px',
-              overflow: 'hidden',
-            }}
-          >
-            <motion.div
-              style={{
-                height: '100%',
-                background: 'linear-gradient(90deg, #22c55e, #86efac)',
-                borderRadius: '2px',
-              }}
-              animate={{ width: `${networkProgress}%` }}
-              transition={{ duration: 0.5 }}
-            />
-          </div>
-          <div style={{ fontSize: '8px', opacity: 0.5 }}>{networkProgress}% NETWORK</div>
         </div>
       </div>
 
-      {/* Red Score */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          minWidth: '140px',
-          justifyContent: 'flex-end',
-        }}
-      >
-        <div>
-          <div
-            style={{
-              fontSize: '9px',
-              opacity: 0.6,
-              letterSpacing: '1.5px',
-              fontWeight: 700,
-              textAlign: 'right',
-            }}
-          >
+      {/* ── RED TEAM SCORE (RIGHT) ── */}
+      <div className="flex items-center gap-3 min-w-[170px] justify-end">
+        <div className="text-right">
+          <div className="text-[10px] font-black uppercase tracking-wider text-red-400">
             RED ENGINEERS
           </div>
-          <div style={{ fontSize: '18px', fontWeight: 800, textAlign: 'right' }}>{redScore}</div>
+          <div className="text-2xl font-black tracking-tight text-white leading-none">
+            {redTeam.score}{' '}
+            <span className="text-[10px] font-bold text-slate-400">PTS</span>
+          </div>
         </div>
-        <div
-          style={{
-            width: '10px',
-            height: '10px',
-            borderRadius: '50%',
-            background: '#ef4444',
-            boxShadow: '0 0 8px rgba(239,68,68,0.6)',
-          }}
-        />
-      </div>
+        <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center font-black text-xl shadow-lg shadow-red-500/30 border border-red-400">
+          🔴
+        </div>
 
-      {/* Mute button */}
-      <button
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          toggleMute();
-        }}
-        style={{
-          position: 'absolute',
-          right: '8px',
-          top: '4px',
-          background: 'none',
-          border: 'none',
-          color: '#fff',
-          fontSize: '14px',
-          cursor: 'pointer',
-          opacity: 0.5,
-          pointerEvents: 'auto',
-          padding: '4px',
-        }}
-      >
-        {isMuted ? '🔇' : '🔊'}
-      </button>
-    </div>
+        {/* Sound Toggle */}
+        <button
+          onClick={toggleMute}
+          className="ml-2 p-1.5 rounded-lg bg-slate-800 text-slate-300 hover:text-white border border-slate-700"
+          title="Toggle Sound"
+        >
+          {isMuted ? <VolumeX className="w-4 h-4 text-red-400" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
+        </button>
+      </div>
+    </header>
   );
 };
