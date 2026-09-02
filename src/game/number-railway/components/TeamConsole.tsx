@@ -1,10 +1,10 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Team Control Console
-// Dedicated Side-by-Side Consoles:
-// - Blue Team = Left 27%
-// - Red Team = Right 27%
-// - Isolated multi-touch interaction
-// - 5-Stage Step Indicators & Tactile Large Buttons
+// Clean, Bright, White-Themed Aesthetic with High Contrast:
+// - Blue Team = Left side (Porcelain White + Royal Blue Accents)
+// - Red Team = Right side (Porcelain White + Crimson Red Accents)
+// - Compact sizing for 16:9 touchscreen TVs
+// - Ultra-sharp typography & large tactile answer buttons
 // ============================================================
 
 'use client';
@@ -25,30 +25,33 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
   const setAnswer = useRailwayStore((s) => s.setTeamAnswer);
   const lockIn = useRailwayStore((s) => s.lockInTeam);
   const evaluate = useRailwayStore((s) => s.evaluateTeam);
-  const currentStep = useRailwayStore((s) => s.currentStepIndex);
 
   const isBlue = team === 'blue';
-  const teamTitle = isBlue ? 'TEAM BLUE ENGINEERS' : 'TEAM RED ENGINEERS';
+  const teamTitle = isBlue ? 'TEAM BLUE' : 'TEAM RED';
 
-  // Team Theme Tokens
+  // Crisp, Bright, High-Contrast White Theme Tokens
   const theme = isBlue
     ? {
-        bgHeader: 'bg-gradient-to-r from-blue-700 via-blue-600 to-indigo-700',
-        border: 'border-blue-500/40',
-        accentGlow: 'shadow-blue-500/20',
-        badgeBg: 'bg-blue-950/80 border-blue-400 text-blue-300',
-        buttonSelected: 'bg-gradient-to-r from-blue-600 to-indigo-600 border-blue-300 text-white shadow-lg shadow-blue-500/30',
-        confirmBtn: 'bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-indigo-500 text-white shadow-lg shadow-blue-600/40',
-        numberColor: 'text-cyan-300',
+        headerBg: 'bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-700',
+        borderColor: 'border-blue-300',
+        badgeBg: 'bg-blue-50 text-blue-800 border-blue-200',
+        cardBg: 'bg-blue-50/60 border-blue-100',
+        numberBoxBg: 'bg-white border-2 border-blue-500 shadow-sm',
+        numberText: 'text-blue-700',
+        optionDefault: 'bg-white border-2 border-slate-300 text-slate-900 hover:border-blue-500 hover:bg-blue-50 shadow-sm',
+        optionSelected: 'bg-blue-600 border-2 border-blue-700 text-white shadow-md shadow-blue-500/30',
+        confirmBtn: 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-md shadow-blue-600/30',
       }
     : {
-        bgHeader: 'bg-gradient-to-r from-red-700 via-red-600 to-rose-700',
-        border: 'border-red-500/40',
-        accentGlow: 'shadow-red-500/20',
-        badgeBg: 'bg-red-950/80 border-red-400 text-red-300',
-        buttonSelected: 'bg-gradient-to-r from-red-600 to-rose-600 border-red-300 text-white shadow-lg shadow-red-500/30',
-        confirmBtn: 'bg-gradient-to-r from-red-500 to-rose-600 hover:from-red-400 hover:to-rose-500 text-white shadow-lg shadow-red-600/40',
-        numberColor: 'text-amber-300',
+        headerBg: 'bg-gradient-to-r from-red-600 via-red-700 to-rose-700',
+        borderColor: 'border-red-300',
+        badgeBg: 'bg-red-50 text-red-800 border-red-200',
+        cardBg: 'bg-red-50/60 border-red-100',
+        numberBoxBg: 'bg-white border-2 border-red-500 shadow-sm',
+        numberText: 'text-red-700',
+        optionDefault: 'bg-white border-2 border-slate-300 text-slate-900 hover:border-red-500 hover:bg-red-50 shadow-sm',
+        optionSelected: 'bg-red-600 border-2 border-red-700 text-white shadow-md shadow-red-500/30',
+        confirmBtn: 'bg-gradient-to-r from-red-600 to-rose-600 hover:from-red-500 hover:to-rose-500 text-white shadow-md shadow-red-600/30',
       };
 
   const handleSelectOption = useCallback(
@@ -71,84 +74,83 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
 
   return (
     <div
-      className={`w-full h-full flex flex-col bg-slate-900 border-x ${theme.border} text-white select-none overflow-hidden`}
+      className={`w-full h-full flex flex-col bg-white border-x-2 ${theme.borderColor} shadow-xl select-none overflow-hidden font-sans`}
       onPointerDown={(e) => e.stopPropagation()} // Multi-touch isolation
     >
       {/* ── 1. Team Header Bar ── */}
-      <div className={`px-4 py-3 ${theme.bgHeader} flex items-center justify-between shadow-md`}>
+      <div className={`px-3 py-2.5 ${theme.headerBg} flex items-center justify-between text-white shadow-sm`}>
         <div className="flex items-center gap-2">
-          <span className="text-xl">🚂</span>
+          <span className="text-lg">🚂</span>
           <div>
-            <h2 className="text-xs font-black tracking-wider uppercase text-white leading-none">
+            <h2 className="text-[11px] font-black tracking-wider uppercase text-white leading-tight">
               {teamTitle}
             </h2>
-            <p className="text-[10px] font-semibold text-white/80 mt-0.5 tracking-wide">
-              RAILWAY OPERATOR STATION
+            <p className="text-[9px] font-semibold text-white/85 tracking-wide">
+              OPERATOR CONSOLE
             </p>
           </div>
         </div>
 
-        {/* Individual Team Score */}
-        <div className="px-3 py-1 bg-black/30 rounded-lg border border-white/20 text-center">
-          <div className="text-xs font-black text-amber-300 leading-none">
+        {/* Score Badge */}
+        <div className="px-2.5 py-0.5 bg-black/25 rounded-lg border border-white/30 text-center">
+          <div className="text-xs font-black text-amber-300 leading-tight">
             {teamState.score}
           </div>
-          <div className="text-[8px] font-bold text-slate-300 uppercase">SCORE</div>
+          <div className="text-[7px] font-bold text-slate-200 uppercase">SCORE</div>
         </div>
       </div>
 
       {/* ── 2. Current 5-Step Stage Indicator ── */}
       {challenge && (
-        <div className="px-4 py-2 bg-slate-950/80 border-b border-white/10 flex items-center justify-between text-xs">
-          <div className="flex items-center gap-2 font-bold text-amber-300">
-            <span className="text-base">{challenge.stepIcon}</span>
-            <span className="text-[11px] uppercase tracking-wide font-black">
+        <div className={`px-3 py-1.5 ${theme.badgeBg} border-b flex items-center justify-between`}>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm">{challenge.stepIcon}</span>
+            <span className="text-[10px] font-black uppercase tracking-tight">
               {challenge.stepTitle}
             </span>
           </div>
-          <div className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono text-slate-300 font-bold border border-slate-700">
-            +{challenge.points} PTS
-          </div>
+          <span className="text-[9px] font-black px-1.5 py-0.5 rounded bg-white border border-slate-300 text-slate-800 shadow-xs">
+            +{challenge.points}P
+          </span>
         </div>
       )}
 
-      {/* ── 3. Interactive Challenge & Console Controls ── */}
-      <div className="flex-1 p-4 flex flex-col justify-between overflow-y-auto">
+      {/* ── 3. Interactive Challenge Area ── */}
+      <div className="flex-1 p-3 flex flex-col justify-between overflow-y-auto bg-slate-50/70">
         {showQuestion ? (
-          <div className="flex flex-col gap-3">
-            {/* Context Box */}
-            <div className="p-3 bg-slate-800/80 rounded-xl border border-white/10 shadow-sm">
-              <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1">
-                DISPATCH OBJECTIVE
+          <div className="flex flex-col gap-2.5">
+            
+            {/* Objective Narrative (Compact) */}
+            <div className={`p-2.5 rounded-xl border ${theme.cardBg}`}>
+              <div className="text-[8px] font-black uppercase tracking-wider text-slate-500 mb-0.5">
+                MISSION OBJECTIVE
               </div>
-              <p className="text-xs text-slate-200 leading-relaxed font-medium">
+              <p className="text-[11px] text-slate-700 leading-snug font-medium">
                 {challenge.context.narrative}
               </p>
             </div>
 
-            {/* Question Card */}
-            <div className="p-4 bg-slate-800/90 rounded-2xl border border-white/15 shadow-md">
-              <div className="text-[10px] font-black uppercase tracking-wider text-amber-400 mb-1">
-                MATHEMATICAL PROBLEM
+            {/* Question Card (White with Crisp Typography) */}
+            <div className="p-3 bg-white rounded-2xl border-2 border-slate-200 shadow-sm">
+              <div className="text-[9px] font-black uppercase tracking-wider text-amber-600 mb-0.5">
+                SOLVE MATH QUESTION
               </div>
-              <h3 className="text-base font-extrabold text-white leading-snug">
+              <h3 className="text-xs sm:text-sm font-extrabold text-slate-900 leading-snug">
                 {challenge.prompt}
               </h3>
 
-              {/* High-Contrast Large Number Display */}
+              {/* Large High-Contrast Number Box */}
               {challenge.numberString && (
-                <div className="mt-3 p-3 bg-slate-950 rounded-xl border border-slate-700 text-center">
-                  <div
-                    className={`font-mono text-3xl font-black tracking-widest ${theme.numberColor}`}
-                  >
+                <div className={`mt-2 p-2 rounded-xl text-center ${theme.numberBoxBg}`}>
+                  <div className={`font-mono text-xl sm:text-2xl font-black tracking-wider ${theme.numberText}`}>
                     {challenge.numberString}
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Answer Options Grid */}
-            <div className="flex flex-col gap-2.5 mt-1">
+            {/* Tactile Answer Options */}
+            <div className="flex flex-col gap-2 mt-0.5">
               {challenge.options.map((opt, i) => {
                 const isSelected = teamState.currentAnswer === opt.value;
                 const isLocked = teamState.isLockedIn;
@@ -159,10 +161,10 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                     whileTap={!isLocked ? { scale: 0.97 } : {}}
                     onClick={() => handleSelectOption(opt.value)}
                     disabled={isLocked}
-                    className={`w-full py-3.5 px-4 rounded-xl font-mono text-lg font-black text-center border-2 transition-all duration-200 ${
+                    className={`w-full py-2.5 px-3 rounded-xl font-mono text-sm sm:text-base font-black text-center transition-all duration-150 ${
                       isSelected
-                        ? theme.buttonSelected
-                        : 'bg-slate-800/90 border-slate-700 text-slate-200 hover:border-slate-500 hover:bg-slate-800'
+                        ? theme.optionSelected
+                        : theme.optionDefault
                     } ${isLocked && !isSelected ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer'}`}
                   >
                     {opt.label}
@@ -177,17 +179,17 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
                 whileTap={{ scale: 0.96 }}
                 onClick={handleConfirmAnswer}
                 disabled={teamState.currentAnswer === null}
-                className={`w-full py-3.5 rounded-xl font-black text-sm uppercase tracking-wider transition-all duration-200 mt-2 ${
+                className={`w-full py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all duration-200 mt-1 cursor-pointer ${
                   teamState.currentAnswer !== null
                     ? theme.confirmBtn
-                    : 'bg-slate-800 text-slate-500 border border-slate-700 cursor-not-allowed'
+                    : 'bg-slate-200 text-slate-400 border border-slate-300 cursor-not-allowed'
                 }`}
               >
-                ⚡ CONFIRM DISPATCH
+                ⚡ CONFIRM ROUTE
               </motion.button>
             ) : (
-              <div className="w-full py-3 rounded-xl bg-slate-950 border border-amber-500/40 text-center font-bold text-xs text-amber-300 animate-pulse">
-                ⏳ ROUTE LOCKED IN — VALIDATING...
+              <div className="w-full py-2 rounded-xl bg-amber-50 border border-amber-400 text-center font-black text-[11px] text-amber-800 animate-pulse shadow-xs">
+                ⏳ ROUTE CONFIRMED...
               </div>
             )}
 
@@ -195,13 +197,13 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
             <AnimatePresence>
               {teamState.lastFeedback && (
                 <motion.div
-                  initial={{ opacity: 0, y: 8 }}
+                  initial={{ opacity: 0, y: 6 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className={`p-3 rounded-xl border text-xs font-bold leading-relaxed ${
+                  className={`p-2 rounded-xl border text-[10px] font-bold leading-tight shadow-xs ${
                     teamState.lastFeedback.isCorrect
-                      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200'
-                      : 'bg-red-950/90 border-red-500/50 text-red-200'
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
+                      : 'bg-red-50 border-red-300 text-red-900'
                   }`}
                 >
                   {teamState.lastFeedback.message}
@@ -210,22 +212,22 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
             </AnimatePresence>
           </div>
         ) : (
-          /* Waiting / Journey View */
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-6 gap-3">
-            <div className="w-16 h-16 rounded-2xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl animate-bounce">
+          /* Waiting / Journey State */
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-4 gap-2">
+            <div className="w-12 h-12 rounded-2xl bg-white border border-slate-200 shadow-sm flex items-center justify-center text-2xl animate-bounce">
               {phase === 'train-journey' ? '🚂' : phase === 'station-arrived' ? '🏁' : '⚙️'}
             </div>
-            <h4 className="text-sm font-black text-white uppercase tracking-wider">
+            <h4 className="text-xs font-black text-slate-800 uppercase tracking-tight">
               {phase === 'train-journey'
-                ? 'TRAIN JOURNEYING TO NEXT STATION!'
+                ? 'TRAIN EN ROUTE!'
                 : phase === 'station-arrived'
-                  ? 'ARRIVED AT DESTINATION!'
-                  : 'STANDBY FOR DISPATCH'}
+                  ? 'ARRIVED AT STATION!'
+                  : 'STANDBY'}
             </h4>
-            <p className="text-xs text-slate-400 max-w-[200px]">
+            <p className="text-[10px] text-slate-500 max-w-[170px] leading-snug">
               {phase === 'train-journey'
-                ? 'Watch the train travel across the scenic railway network.'
-                : 'Preparing next station departure manifest...'}
+                ? 'Watching train travel along the scenic railway...'
+                : 'Preparing next station departure manifest.'}
             </p>
           </div>
         )}
