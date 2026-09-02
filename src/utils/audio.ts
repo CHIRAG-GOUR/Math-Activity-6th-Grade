@@ -418,6 +418,23 @@ class SoundEngine {
       osc.stop(now + n.t + n.d);
     });
   }
+
+  // Number Forge / Keypad Helper Aliases
+  public playKeypadBeep() {
+    this.playClick();
+  }
+
+  public playLockout() {
+    this.playWrong();
+  }
+
+  public playVictory() {
+    this.playVaultCracked();
+  }
+
+  public playTimerWarning() {
+    this.playClick();
+  }
 }
 
 export const soundManager = new SoundEngine();
