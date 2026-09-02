@@ -151,7 +151,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   startGame: () => {
     clearTravel();
     const firstRound = get().rounds[0];
-    soundManager.playTrainWhistle();
+    soundManager.playTrainHorn();
 
     set((s) => ({
       phase: 'round-intro',
@@ -452,7 +452,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     // 3. Winner signal turns GREEN & Whistle blows (after 3.8s)
     setTimeout(() => {
       soundManager.playSignalChange();
-      soundManager.playTrainWhistle();
+      soundManager.playTrainHorn();
       set({
         showdownStep: 'signal-green',
         [isBlue ? 'signalBlue' : 'signalRed']: 'green',
@@ -462,6 +462,9 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
     // 4. Train departs & travels down the scenic line (after 5.0s)
     setTimeout(() => {
+      soundManager.playTrainRunningAudio();
+      soundManager.playTrainHorn();
+
       set({
         showdownStep: 'departing',
         toastMessage: `🚂 ${winner.toUpperCase()} STEAM TRAIN EN ROUTE!`,
@@ -481,11 +484,9 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         tick++;
         prog += 1 / 180; // ~9 second cinematic ride
 
-        if (tick % 7 === 0 && prog < 0.92) {
-          soundManager.playTrainChug();
-        }
-        if (tick === 90) {
-          soundManager.playTrainWhistle();
+        // Horn blasts 2 times spaced out during the run (at ~3s and ~6s)
+        if (tick === 60 || tick === 120) {
+          soundManager.playTrainHorn();
         }
 
         const spd = prog < 0.15 ? prog * 6.6 : prog > 0.85 ? (1 - prog) * 6.6 : 1;
@@ -501,6 +502,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
         if (prog >= 1) {
           clearTravel();
+          soundManager.stopTrainRunningAudio();
           soundManager.playTrainArrive();
 
           // 5. Arrived at destination station!

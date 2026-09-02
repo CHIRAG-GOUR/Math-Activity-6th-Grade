@@ -151,6 +151,11 @@ export const QuestionRevealOverlay: React.FC = () => {
 
   if (phase !== 'question-reveal' || !challenge) return null;
 
+  const correctOption = challenge.options.find(
+    (o) => String(o.value) === String(challenge.correctAnswer)
+  );
+  const answerDisplay = correctOption ? correctOption.label : String(challenge.correctAnswer);
+
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/30 backdrop-blur-xs select-none p-4 pointer-events-auto">
       <motion.div
@@ -166,13 +171,24 @@ export const QuestionRevealOverlay: React.FC = () => {
           {challenge.prompt}
         </h3>
 
-        {/* Correct Answer */}
-        <div className="px-5 py-1.5 rounded-xl bg-emerald-600 border border-emerald-700 text-white font-mono text-xl font-black shadow-md mb-2.5">
-          CORRECT: {String(challenge.correctAnswer)}
+        {/* Correct Answer Display */}
+        <div
+          className="w-full py-3 px-4 rounded-2xl text-center font-black shadow-sm mb-3 border-2"
+          style={{
+            backgroundColor: '#ecfdf5',
+            borderColor: '#10b981',
+          }}
+        >
+          <span className="text-[10px] uppercase font-black tracking-widest text-emerald-700 block mb-0.5">
+            CORRECT ANSWER
+          </span>
+          <div className="font-mono text-xl font-black text-emerald-950">
+            {answerDisplay}
+          </div>
         </div>
 
         {/* Mathematical Explanation */}
-        <p className="text-[11px] text-slate-700 leading-snug font-medium mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left">
+        <p className="text-[11px] text-slate-700 leading-snug font-medium mb-3 bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-left w-full">
           💡 {challenge.explanation}
         </p>
 

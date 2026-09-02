@@ -482,6 +482,52 @@ class SoundEngine {
     osc.stop(now + 0.08);
   }
 
+  private trainRunningAudio: HTMLAudioElement | null = null;
+  private trainHornAudio: HTMLAudioElement | null = null;
+
+  public playTrainHorn() {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (!this.trainHornAudio) {
+          this.trainHornAudio = new Audio('/audio/train_horn.mp3');
+        }
+        this.trainHornAudio.currentTime = 0;
+        this.trainHornAudio.volume = 0.85;
+        this.trainHornAudio.play().catch(() => {
+          this.playTrainWhistle();
+        });
+        return;
+      }
+    } catch {
+      this.playTrainWhistle();
+    }
+  }
+
+  public playTrainRunningAudio() {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (!this.trainRunningAudio) {
+          this.trainRunningAudio = new Audio('/audio/train_running.mp3');
+          this.trainRunningAudio.loop = true;
+        }
+        this.trainRunningAudio.currentTime = 0;
+        this.trainRunningAudio.volume = 0.75;
+        this.trainRunningAudio.play().catch(() => {});
+      }
+    } catch {}
+  }
+
+  public stopTrainRunningAudio() {
+    try {
+      if (this.trainRunningAudio) {
+        this.trainRunningAudio.pause();
+        this.trainRunningAudio.currentTime = 0;
+      }
+    } catch {}
+  }
+
   public playSignalChange() {
     this.playCorrect();
   }
@@ -491,14 +537,16 @@ class SoundEngine {
   }
 
   public playTrainDepart() {
-    this.playTrainWhistle();
+    this.playTrainHorn();
   }
 
   public playTrainArrive() {
+    this.stopTrainRunningAudio();
     this.playVaultCracked();
   }
 
   public playRailwayVictory() {
+    this.stopTrainRunningAudio();
     this.playVaultCracked();
   }
 }
