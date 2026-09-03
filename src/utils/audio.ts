@@ -48,8 +48,8 @@ class SoundEngine {
     }
   }
 
-  // 30% Volume Train Background Music (On Loop)
-  public startRailwayBgm(volume = 0.3) {
+  // Gentle Train Background Music (On Loop) - Kept low (0.18) so it stays quiet even at 100% volume
+  public startRailwayBgm(volume = 0.18) {
     if (typeof window === 'undefined') return;
     try {
       if (!this.railwayBgmAudio) {
@@ -76,7 +76,7 @@ class SoundEngine {
       this.bgmAudio.volume = muted ? 0 : 0.4;
     }
     if (this.railwayBgmAudio) {
-      this.railwayBgmAudio.volume = muted ? 0 : 0.3;
+      this.railwayBgmAudio.volume = muted ? 0 : 0.18;
     }
   }
 
@@ -93,7 +93,7 @@ class SoundEngine {
       }
     }
     if (this.railwayBgmAudio) {
-      this.railwayBgmAudio.volume = this.isMuted ? 0 : 0.3;
+      this.railwayBgmAudio.volume = this.isMuted ? 0 : 0.18;
       if (!this.isMuted && this.railwayBgmAudio.paused && this.isRailwayBgmStarted) {
         this.railwayBgmAudio.play().catch(() => {});
       }

@@ -34,48 +34,48 @@ export const RailwayTitleScreen: React.FC = () => {
       exit={{ opacity: 0 }}
       className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-6"
     >
-      {/* ── 1. Animated HD Comic Background with Soft Blur Overlay & Brightness Comfort ── */}
-      <motion.img
-        initial={{ scale: 1.15, opacity: 0 }}
-        animate={{ scale: 1.04, opacity: 1 }}
-        transition={{ duration: 0.8, ease: 'easeOut' }}
-        src="/images/comic_vs_bg_hd.png"
-        alt="Comic Red vs Blue Background HD"
-        className="absolute inset-0 w-full h-full object-cover z-0 pointer-events-none blur-[4.5px] scale-105 brightness-85"
-      />
-      {/* Dark Comfort Blur Tint Overlay */}
-      <div className="absolute inset-0 bg-slate-950/25 backdrop-blur-[2px] pointer-events-none z-0" />
+      {/* ── 1. Animated HD Comic Background with Blur Overlay & Brightness Comfort ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <motion.img
+          initial={{ scale: 1.12, opacity: 0 }}
+          animate={{ scale: 1.05, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          src="/images/comic_vs_bg_hd.png"
+          alt="Comic Red vs Blue Background HD"
+          className="w-full h-full object-cover"
+          style={{ filter: 'blur(3.5px) brightness(0.86) contrast(1.05)' }}
+        />
+        {/* Soft Blur Comfort Tint Overlay */}
+        <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1.5px]" />
+      </div>
 
-      {/* ── 2. Top Header Title & Badge with Opening Spring Animation ── */}
+      {/* ── 2. Top Header Title in Yellow with Crisp Outside Black Border ── */}
       <motion.div
         initial={{ y: -50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', damping: 15, stiffness: 120, delay: 0.1 }}
-        className="relative z-10 flex flex-col items-center text-center mt-1 sm:mt-2 shrink-0"
+        className="relative z-10 flex flex-col items-center text-center mt-2 sm:mt-4 shrink-0"
       >
-        <motion.div
-          initial={{ scale: 0.8, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.4 }}
-          className="px-4 sm:px-6 py-1 sm:py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-slate-950 text-[10px] sm:text-xs font-black tracking-widest uppercase shadow-xl flex items-center gap-1.5"
+        <h1
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider text-yellow-400 uppercase leading-tight px-3 drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
+          style={{
+            WebkitTextStroke: '2.5px #000000',
+            textShadow:
+              '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 0 #000, 0 8px 18px rgba(0,0,0,0.9)',
+          }}
         >
-          <Sparkles className="w-4 h-4 text-amber-500 shrink-0" />
-          <span>GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING</span>
-        </motion.div>
-
-        <h1 className="text-2xl sm:text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-white uppercase leading-tight mt-1 sm:mt-1.5 drop-shadow-[0_4px_18px_rgba(0,0,0,0.95)] px-2">
           THE GREAT NUMBER RAILWAY
         </h1>
       </motion.div>
 
-      {/* ── 3. Central Side-by-Side Team Cards (Prominent Size with Clear Name Inputs) ── */}
-      <div className="relative z-10 w-full max-w-6xl flex flex-row items-center justify-center sm:justify-between my-auto px-2 sm:px-6 gap-3 sm:gap-6">
-        {/* ── TEAM 1 (Left RED Square Card) ── */}
+      {/* ── 3. Central Side-by-Side Team Cards (Spaced Apart to Reveal Background VS, Full Trains) ── */}
+      <div className="relative z-10 w-full max-w-7xl flex flex-row items-center justify-between my-auto px-4 sm:px-8 md:px-12 lg:px-16">
+        {/* ── TEAM 1 (Left RED Card) ── */}
         <motion.div
           initial={{ x: -90, scale: 0.85, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
-          className="flex-1 max-w-[280px] xs:max-w-[310px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[400px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_20px_45px_rgba(220,38,38,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="w-[280px] xs:w-[310px] sm:w-[340px] md:w-[370px] lg:w-[390px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_20px_45px_rgba(220,38,38,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
           <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1.5">
@@ -90,16 +90,16 @@ export const RailwayTitleScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Original Red Train Illustration (Animated Engine Rumble) */}
+          {/* Red Train Illustration (Full View via object-contain + Engine Rumble) */}
           <motion.div
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
-            className="relative w-full h-28 xs:h-32 sm:h-40 md:h-46 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-red-200 shadow-xs flex items-center justify-center my-2 bg-slate-50"
+            className="relative w-full h-28 xs:h-32 sm:h-36 md:h-44 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-red-200 shadow-xs flex items-center justify-center my-2 bg-gradient-to-b from-sky-100 to-sky-50"
           >
             <img
               src="/images/red_locomotive.png"
               alt="Team 1 Red Train"
-              className="w-full h-full object-cover scale-x-[-1] transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-contain p-1.5 scale-x-[-1] transition-transform duration-300 group-hover:scale-105"
             />
           </motion.div>
 
@@ -119,15 +119,15 @@ export const RailwayTitleScreen: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* ── Empty Center Gap Letting the Background's Built-In VS Shine Through ── */}
-        <div className="w-12 xs:w-16 sm:w-28 md:w-36 lg:w-48 shrink-0 pointer-events-none" />
+        {/* ── Wide Center Space Letting the Background's Built-In 3D VS Shine Through Unobscured ── */}
+        <div className="flex-1 min-w-[100px] sm:min-w-[180px] md:min-w-[260px] lg:min-w-[340px] shrink-0 pointer-events-none" />
 
-        {/* ── TEAM 2 (Right BLUE Square Card) ── */}
+        {/* ── TEAM 2 (Right BLUE Card) ── */}
         <motion.div
           initial={{ x: 90, scale: 0.85, opacity: 0 }}
           animate={{ x: 0, scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
-          className="flex-1 max-w-[280px] xs:max-w-[310px] sm:max-w-[350px] md:max-w-[380px] lg:max-w-[400px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_20px_45px_rgba(37,99,235,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+          className="w-[280px] xs:w-[310px] sm:w-[340px] md:w-[370px] lg:w-[390px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_20px_45px_rgba(37,99,235,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
         >
           {/* Top Label */}
           <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1.5">
@@ -142,16 +142,16 @@ export const RailwayTitleScreen: React.FC = () => {
             </span>
           </div>
 
-          {/* Original Blue Train Illustration (Animated Engine Rumble) */}
+          {/* Blue Train Illustration (Full View via object-contain + Engine Rumble) */}
           <motion.div
             animate={{ y: [0, -3, 0] }}
             transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut', delay: 0.4 }}
-            className="relative w-full h-28 xs:h-32 sm:h-40 md:h-46 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-blue-200 shadow-xs flex items-center justify-center my-2 bg-slate-50"
+            className="relative w-full h-28 xs:h-32 sm:h-36 md:h-44 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-blue-200 shadow-xs flex items-center justify-center my-2 bg-gradient-to-b from-sky-100 to-sky-50"
           >
             <img
               src="/images/blue_locomotive.png"
               alt="Team 2 Blue Train"
-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+              className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
             />
           </motion.div>
 
@@ -172,19 +172,19 @@ export const RailwayTitleScreen: React.FC = () => {
         </motion.div>
       </div>
 
-      {/* ── 4. Bottom Controls: Animated Opening & Fully Responsive ── */}
+      {/* ── 4. Bottom Controls: Match Length Selector & Bigger Start Button ── */}
       <motion.div
         initial={{ y: 50, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: 'spring', damping: 16, stiffness: 120, delay: 0.4 }}
-        className="relative z-10 flex flex-col items-center gap-1.5 sm:gap-2 mb-1 sm:mb-2 shrink-0"
+        className="relative z-10 flex flex-col items-center gap-2 sm:gap-2.5 mb-2 sm:mb-4 shrink-0"
       >
         {/* Match Length Selector (5, 10, 15) - Responsive Inline Pill */}
-        <div className="px-2.5 sm:px-3.5 py-1 sm:py-1.5 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl flex items-center gap-1.5 sm:gap-2">
-          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-widest text-slate-800">
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl flex items-center gap-2">
+          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-800">
             🎯 QUESTIONS:
           </span>
-          <div className="flex items-center gap-1 sm:gap-1.5">
+          <div className="flex items-center gap-1.5 sm:gap-2">
             {([5, 10, 15] as const).map((cnt) => {
               const isSelected = questionCountConfig === cnt;
               const stageText = cnt === 5 ? '1 STAGE' : cnt === 10 ? '2 STAGES' : '3 STAGES';
@@ -192,27 +192,27 @@ export const RailwayTitleScreen: React.FC = () => {
                 <button
                   key={cnt}
                   onClick={() => setQuestionCountConfig(cnt)}
-                  className={`py-0.5 sm:py-1 px-2 sm:px-3 rounded-lg font-black text-[10px] sm:text-[11px] transition-all border cursor-pointer ${
+                  className={`py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-lg font-black text-[11px] sm:text-xs transition-all border cursor-pointer ${
                     isSelected
                       ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-600 shadow-sm scale-105'
                       : 'bg-slate-100 text-slate-700 border-slate-300 hover:border-amber-400'
                   }`}
                 >
-                  {cnt} Qs <span className="text-[7px] sm:text-[8px] font-bold opacity-80 hidden xs:inline">({stageText})</span>
+                  {cnt} Qs <span className="text-[8px] sm:text-[9px] font-bold opacity-80 hidden xs:inline">({stageText})</span>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Start Game Action Button */}
+        {/* Bigger, Punchy Start Showdown Button */}
         <motion.button
-          whileHover={{ scale: 1.05 }}
-          whileTap={{ scale: 0.95 }}
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
           onClick={startGame}
-          className="w-56 sm:w-64 max-w-xs py-2 sm:py-2.5 px-4 sm:px-5 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-xs sm:text-sm tracking-wider uppercase shadow-[0_8px_25px_rgba(245,158,11,0.6)] border-2 border-amber-500 flex items-center justify-center gap-2 cursor-pointer"
+          className="w-auto min-w-[280px] sm:min-w-[340px] md:min-w-[380px] py-3.5 sm:py-4 px-8 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base sm:text-lg md:text-xl tracking-wider uppercase shadow-[0_12px_35px_rgba(245,158,11,0.7)] border-3 border-amber-500 flex items-center justify-center gap-3 cursor-pointer hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
         >
-          <Play className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-slate-950 shrink-0" />
+          <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 shrink-0" />
           <span>START SHOWDOWN 🚂</span>
         </motion.button>
       </motion.div>
