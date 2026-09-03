@@ -189,6 +189,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   startGame: () => {
     clearTravel();
     const firstRound = get().rounds[0];
+    soundManager.startRailwayBgm(0.3);
     soundManager.playTrainHorn();
     setTimeout(() => {
       soundManager.playTrainBells(3000);

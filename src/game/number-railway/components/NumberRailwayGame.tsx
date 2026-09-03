@@ -39,6 +39,7 @@ export const NumberRailwayGame: React.FC = () => {
     soundManager.stopBgm();
     return () => {
       soundManager.stopBgm();
+      soundManager.stopRailwayBgm();
       soundManager.stopTrainRunningAudio();
     };
   }, []);

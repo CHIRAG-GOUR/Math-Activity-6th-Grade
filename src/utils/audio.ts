@@ -6,6 +6,8 @@ class SoundEngine {
   private isMuted: boolean = false;
   private bgmAudio: HTMLAudioElement | null = null;
   private isBgmStarted: boolean = false;
+  private railwayBgmAudio: HTMLAudioElement | null = null;
+  private isRailwayBgmStarted: boolean = false;
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -46,10 +48,35 @@ class SoundEngine {
     }
   }
 
+  // 30% Volume Train Background Music (On Loop)
+  public startRailwayBgm(volume = 0.3) {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!this.railwayBgmAudio) {
+        this.railwayBgmAudio = new Audio('/audio/train_bg.mp3');
+        this.railwayBgmAudio.loop = true;
+      }
+      this.railwayBgmAudio.volume = this.isMuted ? 0 : volume;
+      this.isRailwayBgmStarted = true;
+      this.railwayBgmAudio.play().catch(() => {});
+    } catch {}
+  }
+
+  public stopRailwayBgm() {
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.pause();
+      this.railwayBgmAudio.currentTime = 0;
+      this.isRailwayBgmStarted = false;
+    }
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.bgmAudio) {
       this.bgmAudio.volume = muted ? 0 : 0.4;
+    }
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.volume = muted ? 0 : 0.3;
     }
   }
 
@@ -63,6 +90,12 @@ class SoundEngine {
       this.bgmAudio.volume = this.isMuted ? 0 : 0.4;
       if (!this.isMuted && this.bgmAudio.paused && this.isBgmStarted) {
         this.bgmAudio.play().catch(() => {});
+      }
+    }
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.volume = this.isMuted ? 0 : 0.3;
+      if (!this.isMuted && this.railwayBgmAudio.paused && this.isRailwayBgmStarted) {
+        this.railwayBgmAudio.play().catch(() => {});
       }
     }
     if (!this.isMuted) {
