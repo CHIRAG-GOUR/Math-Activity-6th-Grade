@@ -174,6 +174,8 @@ export interface RailwayGameState {
   stations: StationInfo[];
   unlockedStationIds: string[];
   totalRounds: number;
+  questionCountConfig: 5 | 10 | 15;
+  zoomLevel: number; // 0.7 .. 1.5
 
   isMuted: boolean;
   timeRemaining: number;

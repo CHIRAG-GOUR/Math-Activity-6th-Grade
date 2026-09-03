@@ -707,11 +707,34 @@ function generateRound(index: number): RailwayRound {
   };
 }
 
+import { getNonRepeatingQuestions } from './questionPool';
+
+const STAGE_NAMES = [
+  { name: 'CENTRAL STATION EXPRESS', subtitle: 'Open the heart of the network' },
+  { name: 'CARGO DEPOT BYPASS', subtitle: 'Clear the freight sidings' },
+  { name: 'MOUNTAIN PASS SUMMIT', subtitle: 'Climb the high trestle' },
+  { name: 'BRIDGE ROUTE CROSSING', subtitle: 'Cross the great chasm' },
+  { name: 'GRAND EXPRESS TERMINUS', subtitle: 'CCIS Junction highlands' },
+];
+
 export function buildRounds(total: number): RailwayRound[] {
+  const totalQuestionsNeeded = Math.max(5, total * 5);
+  const questions = getNonRepeatingQuestions(totalQuestionsNeeded);
+
   const out: RailwayRound[] = [];
   for (let i = 0; i < total; i++) {
-    if (i < ROUNDS.length) out.push({ ...ROUNDS[i], index: i });
-    else out.push(generateRound(i));
+    const stageInfo = STAGE_NAMES[i % STAGE_NAMES.length];
+    const station = NETWORK_STATIONS[i % NETWORK_STATIONS.length];
+    const roundQuestions = questions.slice(i * 5, (i + 1) * 5);
+
+    out.push({
+      index: i,
+      id: `stage-round-${i + 1}`,
+      name: stageInfo.name,
+      subtitle: stageInfo.subtitle,
+      destinationStationId: station.id,
+      questions: roundQuestions,
+    });
   }
   return out;
 }

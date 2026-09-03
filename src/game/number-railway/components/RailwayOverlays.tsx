@@ -1,11 +1,11 @@
 // ============================================================
 // THE GREAT NUMBER RAILWAY — Overlays & Celebration Screens
-// Light-Themed Porcelain Storybook Modals:
-// - Title Screen (Sunny Sky + Team Setup)
-// - Round Intro Card
-// - Question Solution Reveal Card
-// - Route Decision Board during Showdown
-// - Winner Plaque & Network Restoration Grand Ceremony
+// Authentic Comic Red VS Blue Lightning Showdown Arena:
+// - Left: TEAM 1 (RED) in a compact Square Card with Original Image
+// - Center: Jagged Comic Lightning Bolt & Iconic 3D "VS" Emblem
+// - Right: TEAM 2 (BLUE) in a compact Square Card with Original Image
+// - Pure Solid Graphic Red/Blue Sunburst Background (No 3D bleed)
+// - Compact Start Button & Questions Bar (Not stretched)
 // ============================================================
 
 'use client';
@@ -13,12 +13,17 @@
 import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useRailwayStore } from '../store/railwayStore';
-import { Trophy, ArrowRight, Play, CheckCircle } from 'lucide-react';
+import { Trophy, ArrowRight, Play, CheckCircle, Sparkles } from 'lucide-react';
 
-// ── 1. Storybook Title Screen ──
+// ── 1. Comic Red VS Blue Lightning Showdown Title Screen ──
 export const RailwayTitleScreen: React.FC = () => {
   const startGame = useRailwayStore((s) => s.startGame);
   const phase = useRailwayStore((s) => s.phase);
+  const blueTeam = useRailwayStore((s) => s.blueTeam);
+  const redTeam = useRailwayStore((s) => s.redTeam);
+  const setTeamName = useRailwayStore((s) => s.setTeamName);
+  const questionCountConfig = useRailwayStore((s) => s.questionCountConfig);
+  const setQuestionCountConfig = useRailwayStore((s) => s.setQuestionCountConfig);
 
   if (phase !== 'title') return null;
 
@@ -27,65 +32,190 @@ export const RailwayTitleScreen: React.FC = () => {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-gradient-to-br from-sky-400 via-sky-300 to-amber-100 text-slate-900 select-none overflow-hidden p-6"
+      className="fixed inset-0 z-50 flex flex-col items-center justify-between select-none overflow-y-auto overflow-x-hidden p-2 sm:p-4 md:p-6"
     >
-      <div className="absolute inset-x-0 bottom-0 h-16 bg-[repeating-linear-gradient(90deg,#94a3b8_0px,#94a3b8_24px,transparent_24px,transparent_36px)] border-t-4 border-slate-400 opacity-40" />
-
-      {/* Grade 6 Badge */}
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="px-4 py-1.5 rounded-full bg-white/95 border-2 border-amber-400 text-amber-800 text-xs font-black tracking-widest uppercase mb-2 shadow-md"
-      >
-        GRADE 6 MATHEMATICS • PLACE VALUE & ROUNDING
-      </motion.div>
-
-      {/* Title */}
-      <motion.h1
-        initial={{ y: -20, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.2 }}
-        className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tight text-center max-w-4xl text-slate-950 drop-shadow-sm"
-      >
-        THE GREAT NUMBER RAILWAY
-      </motion.h1>
-
-      <p className="text-slate-800 text-xs sm:text-sm font-bold max-w-xl text-center mt-2 leading-relaxed">
-        Answer place value & rounding questions to <strong className="text-purple-700">board passengers inside the train</strong>, turn signals <strong className="text-emerald-700">GREEN</strong>, and throw the junction switch to claim the route!
-      </p>
-
-      {/* Dual Team Preview Cards */}
-      <div className="flex items-center gap-6 my-6">
-        <div className="flex flex-col items-center p-3.5 rounded-2xl bg-white border-2 border-blue-400 shadow-lg w-40">
-          <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
-            🔵
-          </div>
-          <span className="font-black text-xs text-blue-800 tracking-wider">TEAM BLUE</span>
-          <span className="text-[9px] text-slate-500 font-bold mt-0.5">LEFT CONSOLE</span>
-        </div>
-
-        <div className="text-xl font-black text-amber-600">VS</div>
-
-        <div className="flex flex-col items-center p-3.5 rounded-2xl bg-white border-2 border-red-400 shadow-lg w-40">
-          <div className="w-10 h-10 rounded-xl bg-red-600 flex items-center justify-center text-xl shadow-md mb-1 text-white">
-            🔴
-          </div>
-          <span className="font-black text-xs text-red-800 tracking-wider">TEAM RED</span>
-          <span className="text-[9px] text-slate-500 font-bold mt-0.5">RIGHT CONSOLE</span>
-        </div>
+      {/* ── 1. Animated HD Comic Background with Blur Overlay & Brightness Comfort ── */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <motion.img
+          initial={{ scale: 1.12, opacity: 0 }}
+          animate={{ scale: 1.05, opacity: 1 }}
+          transition={{ duration: 0.8, ease: 'easeOut' }}
+          src="/images/comic_vs_bg_hd.png"
+          alt="Comic Red vs Blue Background HD"
+          className="w-full h-full object-cover"
+          style={{ filter: 'blur(3.5px) brightness(0.86) contrast(1.05)' }}
+        />
+        {/* Soft Blur Comfort Tint Overlay */}
+        <div className="absolute inset-0 bg-slate-950/20 backdrop-blur-[1.5px]" />
       </div>
 
-      {/* Start Button */}
-      <motion.button
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        onClick={startGame}
-        className="px-10 py-3.5 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base tracking-wider uppercase shadow-xl shadow-amber-500/30 border-2 border-amber-500 flex items-center gap-3 cursor-pointer"
+      {/* ── 2. Top Header Title in Yellow with Crisp Outside Black Border ── */}
+      <motion.div
+        initial={{ y: -50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 15, stiffness: 120, delay: 0.1 }}
+        className="relative z-10 flex flex-col items-center text-center mt-2 sm:mt-4 shrink-0"
       >
-        <Play className="w-5 h-5 fill-slate-950" />
-        <span>ALL ABOARD • START RUN</span>
-      </motion.button>
+        <h1
+          className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black tracking-wider text-yellow-400 uppercase leading-tight px-3 drop-shadow-[0_6px_14px_rgba(0,0,0,0.95)]"
+          style={{
+            WebkitTextStroke: '2.5px #000000',
+            textShadow:
+              '2px 2px 0 #000, -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 0 4px 0 #000, 0 8px 18px rgba(0,0,0,0.9)',
+          }}
+        >
+          THE GREAT NUMBER RAILWAY
+        </h1>
+      </motion.div>
+
+      {/* ── 3. Central Side-by-Side Team Cards (Spaced Apart to Reveal Background VS, Full Trains) ── */}
+      <div className="relative z-10 w-full max-w-7xl flex flex-row items-center justify-between my-auto px-4 sm:px-8 md:px-12 lg:px-16">
+        {/* ── TEAM 1 (Left RED Card) ── */}
+        <motion.div
+          initial={{ x: -90, scale: 0.85, opacity: 0 }}
+          animate={{ x: 0, scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
+          className="w-[280px] xs:w-[310px] sm:w-[340px] md:w-[370px] lg:w-[390px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-red-500 shadow-[0_20px_45px_rgba(220,38,38,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+        >
+          {/* Top Label */}
+          <div className="w-full flex items-center justify-between border-b-2 border-red-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-600 shadow-xs" />
+              <span className="text-xs sm:text-sm md:text-base font-black text-red-900 tracking-wider uppercase truncate">
+                TEAM 1 (RED)
+              </span>
+            </div>
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded bg-red-100 text-red-700 uppercase">
+              LEFT CONSOLE
+            </span>
+          </div>
+
+          {/* Red Train Illustration (Full View via object-contain + Engine Rumble) */}
+          <motion.div
+            animate={{ y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut' }}
+            className="relative w-full h-28 xs:h-32 sm:h-36 md:h-44 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-red-200 shadow-xs flex items-center justify-center my-2 bg-gradient-to-b from-sky-100 to-sky-50"
+          >
+            <img
+              src="/images/red_locomotive.png"
+              alt="Team 1 Red Train"
+              className="w-full h-full object-contain p-1.5 scale-x-[-1] transition-transform duration-300 group-hover:scale-105"
+            />
+          </motion.div>
+
+          {/* Team 1 Name Input */}
+          <div className="w-full text-left">
+            <label className="text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider text-slate-800 block mb-1">
+              OPERATOR NAME:
+            </label>
+            <input
+              type="text"
+              value={redTeam.name}
+              onChange={(e) => setTeamName('red', e.target.value)}
+              placeholder="Team 1 Name"
+              maxLength={20}
+              className="w-full px-3 py-2 sm:py-2.5 rounded-xl bg-red-50/90 border-2 border-red-300 focus:border-red-600 font-black text-xs sm:text-sm md:text-base text-red-950 text-center outline-none shadow-inner"
+            />
+          </div>
+        </motion.div>
+
+        {/* ── Wide Center Space Letting the Background's Built-In 3D VS Shine Through Unobscured ── */}
+        <div className="flex-1 min-w-[100px] sm:min-w-[180px] md:min-w-[260px] lg:min-w-[340px] shrink-0 pointer-events-none" />
+
+        {/* ── TEAM 2 (Right BLUE Card) ── */}
+        <motion.div
+          initial={{ x: 90, scale: 0.85, opacity: 0 }}
+          animate={{ x: 0, scale: 1, opacity: 1 }}
+          transition={{ type: 'spring', damping: 15, stiffness: 110, delay: 0.2 }}
+          className="w-[280px] xs:w-[310px] sm:w-[340px] md:w-[370px] lg:w-[390px] p-3 sm:p-4 rounded-2xl sm:rounded-3xl bg-white/95 backdrop-blur-md border-4 border-blue-500 shadow-[0_20px_45px_rgba(37,99,235,0.65)] flex flex-col items-center justify-between text-center relative overflow-hidden group shrink-0"
+        >
+          {/* Top Label */}
+          <div className="w-full flex items-center justify-between border-b-2 border-blue-200 pb-1.5">
+            <div className="flex items-center gap-1.5">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-blue-600 shadow-xs" />
+              <span className="text-xs sm:text-sm md:text-base font-black text-blue-900 tracking-wider uppercase truncate">
+                TEAM 2 (BLUE)
+              </span>
+            </div>
+            <span className="text-[8px] sm:text-[9px] md:text-[10px] font-black px-1.5 sm:px-2 py-0.5 rounded bg-blue-100 text-blue-700 uppercase">
+              RIGHT CONSOLE
+            </span>
+          </div>
+
+          {/* Blue Train Illustration (Full View via object-contain + Engine Rumble) */}
+          <motion.div
+            animate={{ y: [0, -3, 0] }}
+            transition={{ repeat: Infinity, duration: 3.2, ease: 'easeInOut', delay: 0.4 }}
+            className="relative w-full h-28 xs:h-32 sm:h-36 md:h-44 rounded-xl sm:rounded-2xl overflow-hidden border-2 border-blue-200 shadow-xs flex items-center justify-center my-2 bg-gradient-to-b from-sky-100 to-sky-50"
+          >
+            <img
+              src="/images/blue_locomotive.png"
+              alt="Team 2 Blue Train"
+              className="w-full h-full object-contain p-1.5 transition-transform duration-300 group-hover:scale-105"
+            />
+          </motion.div>
+
+          {/* Team 2 Name Input */}
+          <div className="w-full text-left">
+            <label className="text-[9px] sm:text-[10px] md:text-xs font-black uppercase tracking-wider text-slate-800 block mb-1">
+              OPERATOR NAME:
+            </label>
+            <input
+              type="text"
+              value={blueTeam.name}
+              onChange={(e) => setTeamName('blue', e.target.value)}
+              placeholder="Team 2 Name"
+              maxLength={20}
+              className="w-full px-3 py-2 sm:py-2.5 rounded-xl bg-blue-50/90 border-2 border-blue-300 focus:border-blue-600 font-black text-xs sm:text-sm md:text-base text-blue-950 text-center outline-none shadow-inner"
+            />
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ── 4. Bottom Controls: Match Length Selector & Bigger Start Button ── */}
+      <motion.div
+        initial={{ y: 50, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ type: 'spring', damping: 16, stiffness: 120, delay: 0.4 }}
+        className="relative z-10 flex flex-col items-center gap-2 sm:gap-2.5 mb-2 sm:mb-4 shrink-0"
+      >
+        {/* Match Length Selector (5, 10, 15) - Responsive Inline Pill */}
+        <div className="px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl bg-white/95 backdrop-blur-md border border-slate-300 shadow-xl flex items-center gap-2">
+          <span className="text-[9px] sm:text-[10px] font-black uppercase tracking-widest text-slate-800">
+            🎯 QUESTIONS:
+          </span>
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {([5, 10, 15] as const).map((cnt) => {
+              const isSelected = questionCountConfig === cnt;
+              const stageText = cnt === 5 ? '1 STAGE' : cnt === 10 ? '2 STAGES' : '3 STAGES';
+              return (
+                <button
+                  key={cnt}
+                  onClick={() => setQuestionCountConfig(cnt)}
+                  className={`py-1 sm:py-1.5 px-2.5 sm:px-3.5 rounded-lg font-black text-[11px] sm:text-xs transition-all border cursor-pointer ${
+                    isSelected
+                      ? 'bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 border-amber-600 shadow-sm scale-105'
+                      : 'bg-slate-100 text-slate-700 border-slate-300 hover:border-amber-400'
+                  }`}
+                >
+                  {cnt} Qs <span className="text-[8px] sm:text-[9px] font-bold opacity-80 hidden xs:inline">({stageText})</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Bigger, Punchy Start Showdown Button */}
+        <motion.button
+          whileHover={{ scale: 1.04 }}
+          whileTap={{ scale: 0.96 }}
+          onClick={startGame}
+          className="w-auto min-w-[280px] sm:min-w-[340px] md:min-w-[380px] py-3.5 sm:py-4 px-8 rounded-2xl bg-gradient-to-r from-amber-400 via-yellow-400 to-orange-400 text-slate-950 font-black text-base sm:text-lg md:text-xl tracking-wider uppercase shadow-[0_12px_35px_rgba(245,158,11,0.7)] border-3 border-amber-500 flex items-center justify-center gap-3 cursor-pointer hover:brightness-110 active:scale-95 transition-all whitespace-nowrap"
+        >
+          <Play className="w-5 h-5 sm:w-6 sm:h-6 fill-slate-950 shrink-0" />
+          <span>START SHOWDOWN 🚂</span>
+        </motion.button>
+      </motion.div>
     </motion.div>
   );
 };
@@ -118,7 +248,7 @@ export const RoundIntroModal: React.FC = () => {
         </h2>
 
         <div className="px-3.5 py-1 rounded-xl bg-slate-100 border border-slate-200 text-xs font-bold text-slate-700 mb-3 flex items-center gap-2">
-          <span className="text-blue-700 font-black">🚉 Skillizee Junction</span>
+          <span className="text-red-700 font-black">🚉 Skillizee Junction</span>
           <span className="text-amber-500 font-bold">➔</span>
           <span className="text-emerald-700 font-black">🏁 {round?.subtitle}</span>
         </div>
@@ -194,16 +324,16 @@ export const QuestionRevealOverlay: React.FC = () => {
 
         {/* Performance Scores */}
         <div className="flex gap-3 w-full justify-center mb-3">
-          <div className={`flex-1 p-2 rounded-xl border ${blueTeam.lastResult === 'correct' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-            <span className="text-[9px] font-black uppercase">TEAM BLUE</span>
-            <div className="text-xs font-black mt-0.5">
-              {blueTeam.lastResult === 'correct' ? `+${blueTeam.lastScoreGained} PTS` : '0 PTS'}
-            </div>
-          </div>
           <div className={`flex-1 p-2 rounded-xl border ${redTeam.lastResult === 'correct' ? 'bg-red-50 border-red-400 text-red-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
-            <span className="text-[9px] font-black uppercase">TEAM RED</span>
+            <span className="text-[9px] font-black uppercase">{redTeam.name}</span>
             <div className="text-xs font-black mt-0.5">
               {redTeam.lastResult === 'correct' ? `+${redTeam.lastScoreGained} PTS` : '0 PTS'}
+            </div>
+          </div>
+          <div className={`flex-1 p-2 rounded-xl border ${blueTeam.lastResult === 'correct' ? 'bg-blue-50 border-blue-400 text-blue-900' : 'bg-slate-100 border-slate-200 text-slate-500'}`}>
+            <span className="text-[9px] font-black uppercase">{blueTeam.name}</span>
+            <div className="text-xs font-black mt-0.5">
+              {blueTeam.lastResult === 'correct' ? `+${blueTeam.lastScoreGained} PTS` : '0 PTS'}
             </div>
           </div>
         </div>
@@ -246,6 +376,8 @@ export const WinnerPlaqueOverlay: React.FC = () => {
   const roundWinner = useRailwayStore((s) => s.roundWinner);
   const roundIndex = useRailwayStore((s) => s.currentRoundIndex);
   const rounds = useRailwayStore((s) => s.rounds);
+  const blueTeam = useRailwayStore((s) => s.blueTeam);
+  const redTeam = useRailwayStore((s) => s.redTeam);
   const proceed = useRailwayStore((s) => s.proceedToNextRound);
 
   if (phase !== 'winner-reveal') return null;
@@ -253,6 +385,7 @@ export const WinnerPlaqueOverlay: React.FC = () => {
   const round = rounds[roundIndex];
   const isBlue = roundWinner === 'blue';
   const isRed = roundWinner === 'red';
+  const winnerName = isRed ? redTeam.name : isBlue ? blueTeam.name : 'PERFECT DRAW';
 
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs select-none p-4">
@@ -266,7 +399,7 @@ export const WinnerPlaqueOverlay: React.FC = () => {
           ROUTE CLEARED • STAGE {roundIndex + 1}
         </span>
         <h2 className="text-3xl font-black mt-0.5 mb-2 text-slate-950">
-          {isBlue ? 'TEAM BLUE WINS ROUTE!' : isRed ? 'TEAM RED WINS ROUTE!' : 'PERFECT DRAW!'}
+          {winnerName} WINS ROUTE!
         </h2>
 
         <p className="text-xs text-slate-700 leading-relaxed font-semibold mb-4 bg-slate-50 p-3 rounded-xl border border-slate-200">
@@ -299,6 +432,7 @@ export const NetworkCompleteOverlay: React.FC = () => {
 
   const isBlue = matchWinner === 'blue';
   const isRed = matchWinner === 'red';
+  const championName = isRed ? redTeam.name : isBlue ? blueTeam.name : 'PERFECT CHAMPIONSHIP DRAW';
 
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-md select-none p-6 text-slate-900 text-center">
@@ -313,24 +447,24 @@ export const NetworkCompleteOverlay: React.FC = () => {
         </span>
 
         <h2 className="text-3xl sm:text-4xl font-black mt-1 mb-4 text-slate-950">
-          {isBlue ? '🏆 TEAM BLUE WINS CHAMPIONSHIP!' : isRed ? '🏆 TEAM RED WINS CHAMPIONSHIP!' : '🤝 PERFECT CHAMPIONSHIP DRAW!'}
+          🏆 {championName} WINS CHAMPIONSHIP!
         </h2>
 
         {/* Scores */}
         <div className="flex gap-4 justify-center w-full my-4">
-          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
-            <span className="text-[11px] font-black text-blue-800 uppercase">TEAM BLUE</span>
-            <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
-            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
-              {blueTeam.roundsWon} Routes Cleared
-            </div>
-          </div>
-
           <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isRed ? 'bg-red-50 border-red-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
-            <span className="text-[11px] font-black text-red-800 uppercase">TEAM RED</span>
+            <span className="text-[11px] font-black text-red-800 uppercase">{redTeam.name}</span>
             <div className="text-3xl font-black text-slate-950 mt-1">{redTeam.score}</div>
             <div className="text-[9px] text-slate-600 font-bold mt-0.5">
               {redTeam.roundsWon} Routes Cleared
+            </div>
+          </div>
+
+          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
+            <span className="text-[11px] font-black text-blue-800 uppercase">{blueTeam.name}</span>
+            <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
+            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
+              {blueTeam.roundsWon} Routes Cleared
             </div>
           </div>
         </div>

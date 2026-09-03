@@ -6,6 +6,8 @@ class SoundEngine {
   private isMuted: boolean = false;
   private bgmAudio: HTMLAudioElement | null = null;
   private isBgmStarted: boolean = false;
+  private railwayBgmAudio: HTMLAudioElement | null = null;
+  private isRailwayBgmStarted: boolean = false;
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -46,10 +48,35 @@ class SoundEngine {
     }
   }
 
+  // Gentle Train Background Music (On Loop) - Kept low (0.18) so it stays quiet even at 100% volume
+  public startRailwayBgm(volume = 0.18) {
+    if (typeof window === 'undefined') return;
+    try {
+      if (!this.railwayBgmAudio) {
+        this.railwayBgmAudio = new Audio('/audio/train_bg.mp3');
+        this.railwayBgmAudio.loop = true;
+      }
+      this.railwayBgmAudio.volume = this.isMuted ? 0 : volume;
+      this.isRailwayBgmStarted = true;
+      this.railwayBgmAudio.play().catch(() => {});
+    } catch {}
+  }
+
+  public stopRailwayBgm() {
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.pause();
+      this.railwayBgmAudio.currentTime = 0;
+      this.isRailwayBgmStarted = false;
+    }
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.bgmAudio) {
       this.bgmAudio.volume = muted ? 0 : 0.4;
+    }
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.volume = muted ? 0 : 0.18;
     }
   }
 
@@ -63,6 +90,12 @@ class SoundEngine {
       this.bgmAudio.volume = this.isMuted ? 0 : 0.4;
       if (!this.isMuted && this.bgmAudio.paused && this.isBgmStarted) {
         this.bgmAudio.play().catch(() => {});
+      }
+    }
+    if (this.railwayBgmAudio) {
+      this.railwayBgmAudio.volume = this.isMuted ? 0 : 0.18;
+      if (!this.isMuted && this.railwayBgmAudio.paused && this.isRailwayBgmStarted) {
+        this.railwayBgmAudio.play().catch(() => {});
       }
     }
     if (!this.isMuted) {
@@ -484,6 +517,65 @@ class SoundEngine {
 
   private trainRunningAudio: HTMLAudioElement | null = null;
   private trainHornAudio: HTMLAudioElement | null = null;
+  private loudWhistleAudio: HTMLAudioElement | null = null;
+  private trainBellsAudio: HTMLAudioElement | null = null;
+  private bellsFadeInterval: ReturnType<typeof setInterval> | null = null;
+
+  public playLoudWhistle() {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (!this.loudWhistleAudio) {
+          this.loudWhistleAudio = new Audio('/audio/train_whistle_loud.mp3');
+        }
+        this.loudWhistleAudio.currentTime = 0;
+        this.loudWhistleAudio.volume = 0.9;
+        this.loudWhistleAudio.play().catch(() => {
+          this.playTrainWhistle();
+        });
+        return;
+      }
+    } catch {
+      this.playTrainWhistle();
+    }
+  }
+
+  public playTrainBells(durationMs: number = 3000) {
+    if (this.isMuted) return;
+    try {
+      if (typeof window !== 'undefined') {
+        if (this.bellsFadeInterval) {
+          clearInterval(this.bellsFadeInterval);
+          this.bellsFadeInterval = null;
+        }
+        if (!this.trainBellsAudio) {
+          this.trainBellsAudio = new Audio('/audio/train_bells.mp3');
+        }
+        this.trainBellsAudio.currentTime = 0;
+        this.trainBellsAudio.volume = 0.8;
+        this.trainBellsAudio.play().catch(() => {});
+
+        // Fade out over the last 900ms
+        const fadeStartTime = Math.max(500, durationMs - 900);
+        setTimeout(() => {
+          let vol = 0.8;
+          this.bellsFadeInterval = setInterval(() => {
+            vol -= 0.1;
+            if (this.trainBellsAudio) {
+              if (vol <= 0.05) {
+                if (this.bellsFadeInterval) clearInterval(this.bellsFadeInterval);
+                this.trainBellsAudio.pause();
+                this.trainBellsAudio.currentTime = 0;
+                this.trainBellsAudio.volume = 0.8;
+              } else {
+                this.trainBellsAudio.volume = vol;
+              }
+            }
+          }, 90);
+        }, fadeStartTime);
+      }
+    } catch {}
+  }
 
   public playTrainHorn() {
     if (this.isMuted) return;

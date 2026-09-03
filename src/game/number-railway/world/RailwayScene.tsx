@@ -79,6 +79,15 @@ const CameraController: React.FC = () => {
       camLook.set(0, 0.9, 2.0);
     }
 
+    const targetZoom = s.zoomLevel || 1.0;
+    if ('zoom' in camera) {
+      const pCam = camera as THREE.PerspectiveCamera;
+      if (Math.abs(pCam.zoom - targetZoom) > 0.005) {
+        pCam.zoom = THREE.MathUtils.lerp(pCam.zoom, targetZoom, 0.1);
+        pCam.updateProjectionMatrix();
+      }
+    }
+
     camera.position.lerp(camPos, 0.045);
     camera.lookAt(camLook);
   });

@@ -115,13 +115,12 @@ export const ArcadeHubDashboard: React.FC = () => {
   const [showAddModal, setShowAddModal] = useState<boolean>(false);
 
   useEffect(() => {
-    soundManager.startBgm(0.35);
-
     const handleFullscreenChange = () => {
       setIsFullscreen(!!document.fullscreenElement);
     };
     document.addEventListener('fullscreenchange', handleFullscreenChange);
     return () => {
+      soundManager.stopBgm();
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
   }, []);
