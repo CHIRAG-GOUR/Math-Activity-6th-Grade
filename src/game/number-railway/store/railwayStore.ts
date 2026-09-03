@@ -188,7 +188,10 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   startGame: () => {
     clearTravel();
-    const firstRound = get().rounds[0];
+    const count = get().questionCountConfig;
+    const roundsNeeded = count === 15 ? 3 : count === 10 ? 2 : 1;
+    const freshRounds = buildRounds(roundsNeeded);
+    const firstRound = freshRounds[0];
     soundManager.startRailwayBgm(0.3);
     soundManager.playTrainHorn();
     setTimeout(() => {
@@ -197,6 +200,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
     set((s) => ({
       phase: 'round-intro',
+      totalRounds: roundsNeeded,
+      rounds: freshRounds,
       currentRoundIndex: 0,
       questionIndexInRound: 0,
       activeChallenge: firstRound.questions[0],
