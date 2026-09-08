@@ -1,8 +1,10 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Mystery Chests & Bag 3D Physical Machine
-// Ornate Victorian Carnival Stage with 3 glowing treasure chests,
-// genuine 3D cloth sack holding real physical probability spheres,
-// mechanical brass grabber scoop, and spotlight prize tray
+// THE GREAT CARNIVAL OF CHANCE — Dynamic Mystery Chests 3D Machine
+// Pure 3D Treasure Chests Mechanism (No Giant Sack Blob):
+// - Dynamically renders 3, 4, or 5 Ornate 3D Treasure Chests
+// - Individual Animated Hinged Lids with Brass Clasp & Lockplates
+// - Physical 3D Probability Balls emerge from the active chest
+// - Smooth trajectory onto the Front Golden Spotlight Platter
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
@@ -10,18 +12,26 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCarnivalStore } from '../../store/carnivalStore';
 
+interface ChestData {
+  id: string;
+  label: string;
+  color: string;
+  x: number;
+  isTarget: boolean;
+  balls: { id: number; color: string; colorName: string }[];
+}
+
 export const MysteryBagMachine3D: React.FC = () => {
   const phase = useCarnivalStore((s) => s.phase);
   const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
   const drawnOutcome = useCarnivalStore((s) => s.drawnOutcome);
+  const blueTeam = useCarnivalStore((s) => s.blueTeam);
+  const redTeam = useCarnivalStore((s) => s.redTeam);
 
-  const bagNeckRef = useRef<THREE.Group>(null);
-  const grabberArmRef = useRef<THREE.Group>(null);
   const rollingBallRef = useRef<THREE.Mesh>(null);
   const spotlightRef = useRef<THREE.SpotLight>(null);
-  const chestLidRef = useRef<THREE.Group>(null);
 
-  // Challenge setup items (e.g. 5 Red, 4 Blue = 9 total)
+  // Challenge setup items & chests
   const setup = activeChallenge?.setup || {
     totalItems: 9,
     items: [
@@ -32,84 +42,123 @@ export const MysteryBagMachine3D: React.FC = () => {
     theoreticalFraction: { numerator: 5, denominator: 9 },
   };
 
-  // Generate the actual physical 3D spheres distributed inside the bag opening
-  const ballsInBag = useMemo(() => {
-    const list: { id: number; color: string; pos: [number, number, number] }[] = [];
-    let id = 0;
-    setup.items.forEach((item) => {
-      for (let i = 0; i < item.count; i++) {
-        const angle = (id / setup.totalItems) * Math.PI * 2;
-        const radius = 0.35 + (id % 3) * 0.15;
-        list.push({
-          id: id++,
-          color: item.color,
-          pos: [Math.cos(angle) * radius, 1.45 + (id % 2) * 0.18, Math.sin(angle) * radius],
+  const isRoundCorrect = useMemo(() => {
+    return (
+      blueTeam.lastResult === 'correct' ||
+      redTeam.lastResult === 'correct' ||
+      (drawnOutcome &&
+        activeChallenge?.setup.targetColor &&
+        drawnOutcome.color === activeChallenge.setup.targetColor)
+    );
+  }, [blueTeam.lastResult, redTeam.lastResult, drawnOutcome, activeChallenge]);
+
+  // Compute 3, 4, or 5 dynamic chests based on setup
+  const chests = useMemo<ChestData[]>(() => {
+    if (setup.chests && setup.chests.length > 0) {
+      const count = setup.chests.length;
+      return setup.chests.map((c, idx) => {
+        const spread = count === 3 ? 1.9 : count === 4 ? 1.5 : 1.25;
+        const half = ((count - 1) * spread) / 2;
+        const x = -half + idx * spread;
+        const balls: { id: number; color: string; colorName: string }[] = [];
+        let bId = 0;
+        c.items.forEach((it) => {
+          for (let i = 0; i < it.count; i++) {
+            balls.push({ id: bId++, color: it.color, colorName: it.colorName });
+          }
         });
+        return {
+          id: c.id,
+          label: c.label || `CHEST ${idx + 1}`,
+          color: c.color || '#92400e',
+          x,
+          isTarget: !!c.isTarget || idx === 0,
+          balls,
+        };
+      });
+    }
+
+    // Default 3 dynamic chests layout based on challenge items
+    const defaultChests = [
+      { id: 'chest-1', label: 'CHEST 1', color: '#92400e', x: -1.9, isTarget: false },
+      { id: 'chest-2', label: 'CHEST 2', color: '#b45309', x: 0, isTarget: true },
+      { id: 'chest-3', label: 'CHEST 3', color: '#78350f', x: 1.9, isTarget: false },
+    ];
+
+    const ballsList: { id: number; color: string; colorName: string }[] = [];
+    let bId = 0;
+    setup.items.forEach((it) => {
+      for (let i = 0; i < it.count; i++) {
+        ballsList.push({ id: bId++, color: it.color, colorName: it.colorName });
       }
     });
-    return list;
+
+    return defaultChests.map((c, i) => ({
+      ...c,
+      balls: ballsList.slice(i * 2, i * 2 + 3),
+    }));
   }, [setup]);
 
-  const activeColor = drawnOutcome?.color || setup.items[0].color;
+  // Find target chest that should open
+  const activeChest = useMemo(() => {
+    const target = chests.find((c) => c.isTarget);
+    return target || chests[1] || chests[0];
+  }, [chests]);
+
+  const activeColor = drawnOutcome?.color || setup.items[0]?.color || '#dc2626';
 
   useFrame((state, delta) => {
-    // 1. Drawstring / Bag Neck breathing & opening animation
-    if (bagNeckRef.current) {
-      if (phase === 'operating') {
-        bagNeckRef.current.scale.lerp(new THREE.Vector3(1.35, 0.9, 1.35), delta * 4);
-      } else if (phase === 'observation' || phase === 'batch-trials') {
-        bagNeckRef.current.scale.lerp(new THREE.Vector3(1.2, 1.0, 1.2), delta * 3);
-      } else {
-        const s = 1 + Math.sin(state.clock.getElapsedTime() * 2) * 0.04;
-        bagNeckRef.current.scale.set(s, 1, s);
-      }
-    }
+    const tClock = state.clock.getElapsedTime();
 
-    // 2. Chest Lid opening animation during observation
-    if (chestLidRef.current) {
-      if (phase === 'observation' || phase === 'batch-trials') {
-        chestLidRef.current.rotation.x = THREE.MathUtils.lerp(chestLidRef.current.rotation.x, -1.1, delta * 4);
-      } else {
-        chestLidRef.current.rotation.x = THREE.MathUtils.lerp(chestLidRef.current.rotation.x, 0, delta * 4);
-      }
-    }
-
-    // 3. Mechanical Grabber Scoop Animation
-    if (grabberArmRef.current) {
-      if (phase === 'operating') {
-        const t = (state.clock.getElapsedTime() * 2.2) % 3;
-        if (t < 1.0) {
-          grabberArmRef.current.position.y = THREE.MathUtils.lerp(grabberArmRef.current.position.y, 1.5, delta * 6);
-        } else if (t < 2.0) {
-          grabberArmRef.current.position.y = 1.4;
-          grabberArmRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 12) * 0.15;
-        } else {
-          grabberArmRef.current.position.y = THREE.MathUtils.lerp(grabberArmRef.current.position.y, 2.9, delta * 5);
-        }
-      } else {
-        grabberArmRef.current.position.y = THREE.MathUtils.lerp(grabberArmRef.current.position.y, 3.4, delta * 4);
-      }
-    }
-
-    // 4. Physical Drawn Ball Rolling & Tray Landing
+    // 1. Dynamic Ball Draw & Flight Animation out of active chest
     if (rollingBallRef.current) {
       if (phase === 'operating') {
-        const t = (state.clock.getElapsedTime() * 1.5) % 2.5;
-        const progress = Math.min(1, t / 1.8);
-        rollingBallRef.current.position.set(
-          Math.sin(progress * Math.PI) * 0.3,
-          1.9 - progress * 1.35,
-          -0.2 + progress * 2.1
-        );
-        rollingBallRef.current.rotation.x += delta * 8;
+        const cycle = 2.0;
+        const t = (tClock * 1.0) % (cycle + 0.5);
+        const progress = Math.min(1, t / cycle);
+
+        const startX = activeChest.x;
+        const targetX = 0;
+
+        let x = startX;
+        let y = 1.2;
+        let z = -0.3;
+
+        if (progress < 0.3) {
+          // Stage 1: Ball rises out of the opening chest
+          const p = progress / 0.3;
+          x = startX;
+          y = 0.9 + p * 1.2; // 0.9 -> 2.1
+          z = -0.3 + p * 0.4; // -0.3 -> 0.1
+        } else if (progress < 0.75) {
+          // Stage 2: Parabolic arc from chest toward center spotlight tray
+          const p = (progress - 0.3) / 0.45;
+          x = THREE.MathUtils.lerp(startX, targetX, p);
+          y = 2.1 - p * 1.5 + Math.sin(p * Math.PI) * 0.4; // 2.1 -> 0.6
+          z = 0.1 + p * 1.7; // 0.1 -> 1.8
+        } else {
+          // Stage 3: Damped settling bounce onto the golden platter
+          const p = (progress - 0.75) / 0.25;
+          x = 0;
+          z = 1.8;
+          const bounce = Math.sin(p * Math.PI * 2) * Math.exp(-p * 4) * 0.18;
+          y = 0.55 + Math.max(0, bounce);
+        }
+
+        rollingBallRef.current.position.set(x, y, z);
         rollingBallRef.current.scale.setScalar(1);
+        rollingBallRef.current.rotation.x += delta * 12;
+        rollingBallRef.current.rotation.y += delta * 10;
       } else if (phase === 'observation' || phase === 'batch-trials') {
-        rollingBallRef.current.position.set(0, 0.55, 1.9);
+        // Settled comfortably on the center platter with celebratory glow
+        const bob = Math.sin(tClock * 3) * 0.03;
+        rollingBallRef.current.position.set(0, 0.58 + bob, 1.8);
         rollingBallRef.current.scale.setScalar(1.2);
         rollingBallRef.current.rotation.y += delta * 1.2;
       } else {
-        rollingBallRef.current.position.set(0, 1.5, 0);
-        rollingBallRef.current.scale.setScalar(0);
+        // Stored inside the target chest waiting to be drawn
+        rollingBallRef.current.position.set(activeChest.x, 0.95, -0.3);
+        rollingBallRef.current.scale.setScalar(1);
       }
     }
   });
@@ -120,148 +169,59 @@ export const MysteryBagMachine3D: React.FC = () => {
       <spotLight
         ref={spotlightRef}
         position={[0, 9, 4]}
-        target-position={[0, 0.5, 1.9]}
-        intensity={phase === 'observation' ? 4.5 : 2.0}
-        angle={0.55}
-        penumbra={0.6}
+        target-position={[0, 0.5, 1.8]}
+        intensity={phase === 'observation' ? 4.5 : 2.2}
+        angle={0.6}
+        penumbra={0.5}
         color="#fffbeb"
         castShadow
       />
 
-      {/* ── Ornate Wooden Carnival Stage Base ── */}
+      {/* ── Ornate Mahogany Stage Base ── */}
       <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
-        <cylinderGeometry args={[4.2, 4.6, 0.3, 36]} />
+        <cylinderGeometry args={[4.4, 4.8, 0.3, 36]} />
         <meshStandardMaterial color="#78350f" roughness={0.7} />
       </mesh>
       {/* Red Velvet Table Runner */}
       <mesh position={[0, 0.32, 0]} receiveShadow castShadow>
-        <cylinderGeometry args={[3.8, 4.1, 0.08, 36]} />
+        <cylinderGeometry args={[4.0, 4.3, 0.08, 36]} />
         <meshStandardMaterial color="#991b1b" roughness={0.8} />
       </mesh>
-      {/* Gold Trim */}
+      {/* Brass Table Rim */}
       <mesh position={[0, 0.38, 0]}>
-        <cylinderGeometry args={[3.82, 3.82, 0.04, 36]} />
+        <cylinderGeometry args={[4.02, 4.02, 0.04, 36]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.85} roughness={0.2} />
       </mesh>
 
       {/* ═════════════════════════════════════════════════════════════
-          ORNATE 3D TREASURE CHESTS ON STAGE
+          DYNAMIC 3D TREASURE CHESTS ROW (3, 4, or 5 CHESTS)
           ═════════════════════════════════════════════════════════════ */}
-      {/* Left Treasure Chest */}
-      <group position={[-2.1, 0.65, -0.4]} rotation={[0, 0.25, 0]}>
-        {/* Chest Base Box */}
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[1.2, 0.65, 0.8]} />
-          <meshStandardMaterial color="#92400e" roughness={0.6} />
-        </mesh>
-        {/* Brass corner brackets & bands */}
-        {[-0.45, 0.45].map((x, i) => (
-          <mesh key={i} position={[x, 0, 0]} castShadow>
-            <boxGeometry args={[0.08, 0.67, 0.82]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.15} />
-          </mesh>
-        ))}
-        {/* Keyhole Plate */}
-        <mesh position={[0, 0, 0.42]} castShadow>
-          <boxGeometry args={[0.18, 0.2, 0.02]} />
-          <meshStandardMaterial color="#fef08a" metalness={0.95} />
-        </mesh>
-        {/* Chest Lid */}
-        <mesh position={[0, 0.36, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-          <cylinderGeometry args={[0.4, 0.4, 1.2, 16, 1, false, 0, Math.PI]} />
-          <meshStandardMaterial color="#b45309" roughness={0.5} />
-        </mesh>
-      </group>
+      {chests.map((chest) => (
+        <Chest3D
+          key={chest.id}
+          chest={chest}
+          isOpen={phase === 'operating' || phase === 'observation' || phase === 'batch-trials'}
+          isWinningChest={chest.id === activeChest.id}
+        />
+      ))}
 
-      {/* Right Treasure Chest (Opens on Observation!) */}
-      <group position={[2.1, 0.65, -0.4]} rotation={[0, -0.25, 0]}>
-        {/* Chest Base Box */}
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[1.2, 0.65, 0.8]} />
-          <meshStandardMaterial color="#92400e" roughness={0.6} />
-        </mesh>
-        {[-0.45, 0.45].map((x, i) => (
-          <mesh key={i} position={[x, 0, 0]} castShadow>
-            <boxGeometry args={[0.08, 0.67, 0.82]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.15} />
-          </mesh>
-        ))}
-        {/* Keyhole */}
-        <mesh position={[0, 0, 0.42]} castShadow>
-          <boxGeometry args={[0.18, 0.2, 0.02]} />
-          <meshStandardMaterial color="#fef08a" metalness={0.95} />
-        </mesh>
-        {/* Animated Hinged Lid */}
-        <group ref={chestLidRef} position={[0, 0.32, -0.4]}>
-          <mesh position={[0, 0.15, 0.4]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.4, 0.4, 1.2, 16, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color="#b45309" roughness={0.5} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* ═════════════════════════════════════════════════════════════
-          CENTRAL 3D CLOTH SACK HOLDING PHYSICAL BALLS
-          ═════════════════════════════════════════════════════════════ */}
-      <group position={[0, 0.35, 0]}>
-        {/* Sack Velvet Pedestal Base */}
-        <mesh position={[0, 0.1, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[1.5, 1.7, 0.2, 24]} />
-          <meshStandardMaterial color="#7f1d1d" roughness={0.8} />
-        </mesh>
-
-        {/* Sack Bulbous Body */}
-        <mesh position={[0, 0.9, 0]} castShadow receiveShadow>
-          <sphereGeometry args={[1.35, 32, 24]} />
-          <meshStandardMaterial color="#9a3412" roughness={0.85} metalness={0.05} />
-        </mesh>
-
-        {/* Sack Neck & Opening Rim */}
-        <group ref={bagNeckRef} position={[0, 1.5, 0]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.9, 1.25, 0.8, 28, 1, true]} />
-            <meshStandardMaterial color="#c2410c" roughness={0.8} />
-          </mesh>
-          {/* Gold Drawstring Cord */}
-          <mesh position={[0, 0.1, 0]} castShadow>
-            <torusGeometry args={[0.95, 0.08, 16, 32]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.85} roughness={0.2} />
-          </mesh>
-          {/* Gold Grommets */}
-          {Array.from({ length: 8 }).map((_, i) => (
-            <mesh
-              key={i}
-              position={[Math.cos((i * Math.PI) / 4) * 0.96, 0.1, Math.sin((i * Math.PI) / 4) * 0.96]}
-              castShadow
-            >
-              <sphereGeometry args={[0.07, 12, 12]} />
-              <meshStandardMaterial color="#fef08a" metalness={0.95} roughness={0.1} />
-            </mesh>
-          ))}
-        </group>
-
-        {/* The Actual 3D Probability Spheres Inside Bag */}
-        {ballsInBag.map((b) => (
-          <mesh key={b.id} position={b.pos} castShadow>
-            <sphereGeometry args={[0.2, 24, 24]} />
-            <meshStandardMaterial color={b.color} roughness={0.25} metalness={0.2} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* ── Front Wooden Collection Tray / Spotlight Platter ── */}
-      <group position={[0, 0.35, 1.9]}>
+      {/* ── Front Golden Spotlight Prize Platter ── */}
+      <group position={[0, 0.35, 1.8]}>
         <mesh position={[0, 0.08, 0]} castShadow receiveShadow>
-          <cylinderGeometry args={[0.85, 0.95, 0.16, 24]} />
+          <cylinderGeometry args={[0.9, 1.0, 0.16, 28]} />
           <meshStandardMaterial color="#451a03" roughness={0.5} />
         </mesh>
         <mesh position={[0, 0.17, 0]} receiveShadow>
-          <cylinderGeometry args={[0.75, 0.75, 0.04, 24]} />
-          <meshStandardMaterial color="#fef08a" roughness={0.3} metalness={0.6} />
+          <cylinderGeometry args={[0.8, 0.8, 0.04, 28]} />
+          <meshStandardMaterial color="#fed500" roughness={0.3} metalness={0.6} />
+        </mesh>
+        <mesh position={[0, 0.19, 0]}>
+          <torusGeometry args={[0.8, 0.03, 12, 28]} />
+          <meshStandardMaterial color="#ca8a04" metalness={0.9} />
         </mesh>
       </group>
 
-      {/* ── Active Rolling / Drawn Ball (Spotlight Winner) ── */}
+      {/* ── Active Drawn Probability Ball ── */}
       <mesh ref={rollingBallRef} castShadow>
         <sphereGeometry args={[0.26, 32, 32]} />
         <meshStandardMaterial
@@ -269,21 +229,94 @@ export const MysteryBagMachine3D: React.FC = () => {
           roughness={0.2}
           metalness={0.25}
           emissive={activeColor}
-          emissiveIntensity={phase === 'observation' ? 0.35 : 0}
+          emissiveIntensity={phase === 'observation' ? 0.4 : 0.05}
         />
       </mesh>
+    </group>
+  );
+};
 
-      {/* ── Mechanical Scoop Grabber Arm ── */}
-      <group ref={grabberArmRef} position={[0, 3.4, 0]}>
-        <mesh position={[0, 0.8, 0]} castShadow>
-          <cylinderGeometry args={[0.06, 0.06, 1.6, 12]} />
-          <meshStandardMaterial color="#ca8a04" metalness={0.8} />
+// ═══════════════════════════════════════════════════════════════
+// INDIVIDUAL 3D TREASURE CHEST COMPONENT
+// ═══════════════════════════════════════════════════════════════
+const Chest3D: React.FC<{
+  chest: ChestData;
+  isOpen: boolean;
+  isWinningChest: boolean;
+}> = ({ chest, isOpen, isWinningChest }) => {
+  const lidRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (lidRef.current) {
+      const targetAngle = isOpen && isWinningChest ? -1.35 : 0;
+      lidRef.current.rotation.x = THREE.MathUtils.lerp(
+        lidRef.current.rotation.x,
+        targetAngle,
+        delta * 6
+      );
+    }
+  });
+
+  return (
+    <group position={[chest.x, 0.72, -0.3]}>
+      {/* Main Chest Box Base */}
+      <mesh castShadow receiveShadow>
+        <boxGeometry args={[1.1, 0.65, 0.75]} />
+        <meshStandardMaterial color={chest.color} roughness={0.6} />
+      </mesh>
+
+      {/* Brass Corner Braces & Bands */}
+      {[-0.42, 0.42].map((x, i) => (
+        <mesh key={`band-${i}`} position={[x, 0, 0]} castShadow>
+          <boxGeometry args={[0.07, 0.67, 0.77]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.15} />
         </mesh>
-        <mesh position={[0, 0, 0]} rotation={[Math.PI, 0, 0]} castShadow>
-          <sphereGeometry args={[0.38, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#eab308" metalness={0.9} roughness={0.15} />
+      ))}
+
+      {/* Front Gold Keyhole / Lock Plate */}
+      <mesh position={[0, 0, 0.39]} castShadow>
+        <boxGeometry args={[0.18, 0.22, 0.02]} />
+        <meshStandardMaterial color="#fef08a" metalness={0.95} />
+      </mesh>
+
+      {/* Neo-Brutalist Label Badge on Chest Front */}
+      <group position={[0, 0.15, 0.4]}>
+        <mesh castShadow>
+          <boxGeometry args={[0.65, 0.16, 0.03]} />
+          <meshStandardMaterial color="#000000" />
+        </mesh>
+        <mesh position={[0, 0, 0.02]}>
+          <planeGeometry args={[0.6, 0.12]} />
+          <meshStandardMaterial color="#fed500" />
         </mesh>
       </group>
+
+      {/* Animated Hinged Lid (Pivot at back `z = -0.375`) */}
+      <group ref={lidRef} position={[0, 0.325, -0.375]}>
+        <mesh position={[0, 0.16, 0.375]} castShadow>
+          <cylinderGeometry args={[0.38, 0.38, 1.1, 16, 1, false, 0, Math.PI]} />
+          <meshStandardMaterial color="#b45309" roughness={0.5} />
+        </mesh>
+        {/* Brass Lid Trim Band */}
+        {[-0.42, 0.42].map((x, i) => (
+          <mesh key={`lid-band-${i}`} position={[x, 0.16, 0.375]} castShadow>
+            <cylinderGeometry args={[0.39, 0.39, 0.07, 16, 1, false, 0, Math.PI]} />
+            <meshStandardMaterial color="#fbbf24" metalness={0.9} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* 3D Probability Balls Visible Inside Chest */}
+      {chest.balls.map((b, idx) => (
+        <mesh
+          key={b.id}
+          position={[-0.25 + (idx % 3) * 0.25, 0.18, -0.15 + Math.floor(idx / 3) * 0.2]}
+          castShadow
+        >
+          <sphereGeometry args={[0.12, 16, 16]} />
+          <meshStandardMaterial color={b.color} roughness={0.3} metalness={0.2} />
+        </mesh>
+      ))}
     </group>
   );
 };

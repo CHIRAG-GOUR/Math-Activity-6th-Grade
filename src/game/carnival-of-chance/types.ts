@@ -51,6 +51,14 @@ export interface AnswerChoice {
   feedbackText: string;
 }
 
+export interface ChestSetup {
+  id: string;
+  label: string;
+  color: string;
+  items: { color: string; colorName: string; count: number }[];
+  isTarget?: boolean;
+}
+
 export interface ProbabilityChallenge {
   id: string;
   activityId: ActivityId;
@@ -63,6 +71,7 @@ export interface ProbabilityChallenge {
   setup: {
     totalItems: number;
     items: { color: string; colorName: string; count: number }[];
+    chests?: ChestSetup[];
     targetColor: string;
     theoreticalFraction: MathFraction;
   };

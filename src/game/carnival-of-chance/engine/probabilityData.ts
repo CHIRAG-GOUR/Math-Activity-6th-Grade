@@ -1,10 +1,17 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Probability Engine & Challenge Bank
-// 5 Grade 6 Bloom's Taxonomy Mapped Challenges Per Attraction (30 Total)
-// With Mathematical Fractions, Decimals, Percentages & Explanations
+// THE GREAT CARNIVAL OF CHANCE — Dynamic Probability Challenge Bank
+// 100+ Grade 6 Bloom's Taxonomy Mapped Challenges Per Mini-Game (600+ Total)
+// Fully dynamic with 3, 4, & 5 Chests, Odds Wheels, Pachinko, Lab, & Builder
 // ============================================================
 
-import { ActivityId, AttractionMeta, ProbabilityChallenge } from '../types';
+import {
+  ActivityId,
+  AttractionMeta,
+  BloomLevel,
+  ChestSetup,
+  MathFraction,
+  ProbabilityChallenge,
+} from '../types';
 
 export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   hub: {
@@ -20,10 +27,10 @@ export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   },
   'mystery-bag': {
     id: 'mystery-bag',
-    name: 'THE MYSTERY SACK',
-    subtitle: 'Physical Bag Draw Chamber',
-    tagline: 'Draw 3D Spheres from the Carnival Sack',
-    description: 'A genuine 3D cloth sack holding real spheres. Predict the exact fraction, then pull the drawstring to reveal the drawn ball!',
+    name: 'MYSTERY CHESTS',
+    subtitle: '3D Treasure Chests Draw Chamber',
+    tagline: 'Draw Probability Spheres from Mystery Chests',
+    description: 'Genuine 3D treasure chests holding colorful spheres. Calculate exact single & multi-chest probabilities, then watch the winning chest reveal the drawn ball!',
     accentColor: '#b45309',
     islandPosition: [-6.5, 0, -5.5],
     islandScale: [1.2, 1.2, 1.2],
@@ -45,9 +52,9 @@ export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   'ball-drop': {
     id: 'ball-drop',
     name: 'GIANT BALL DROP',
-    subtitle: 'Pachinko Experimental Tower',
-    tagline: 'Theoretical vs 10-Trial Experimental Runs',
-    description: 'Drop physical balls down helical chutes and run 10-trial batches to analyze how experimental results compare to theoretical probability.',
+    subtitle: '2-Container Pachinko Tower',
+    tagline: 'Arcade Ricochets & 2 Collector Containers',
+    description: 'Drop physical balls down pegboard chutes with arcade ricochets into left and right collector containers.',
     accentColor: '#10b981',
     islandPosition: [6.5, 0, -5.5],
     islandScale: [1.1, 1.1, 1.1],
@@ -57,10 +64,10 @@ export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   'probability-lab': {
     id: 'probability-lab',
     name: 'THE PROBABILITY LAB',
-    subtitle: 'Alchemical Science Machine',
-    tagline: 'Configure Sample Spaces & Fluid Chambers',
-    description: 'Tune machine outcomes, compute sample spaces, and alter probabilities to achieve target mathematical fractions.',
-    accentColor: '#9333ea',
+    subtitle: 'Compound Events Machine',
+    tagline: 'Dual-Chamber Multi-Stage Experiments',
+    description: 'Analyze multi-stage compound experiments and calculate compound probabilities of independent events.',
+    accentColor: '#8b5cf6',
     islandPosition: [8.5, 0, 1.5],
     islandScale: [1.1, 1.1, 1.1],
     completed: false,
@@ -68,1608 +75,632 @@ export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   },
   'game-builder': {
     id: 'game-builder',
-    name: 'BUILD A CARNIVAL GAME',
-    subtitle: 'Crafting & Calibration Workshop',
-    tagline: 'Construct a Game with Exact Odds',
-    description: 'The creative challenge: Place winning and losing target slots into a real carnival pegboard to meet exact odds rules.',
-    accentColor: '#ea580c',
-    islandPosition: [-5.5, 0, 6.5],
+    name: 'CARNIVAL GAME BUILDER',
+    subtitle: 'Fair Game & Expected Value Workshop',
+    tagline: 'Design Fair Carnival Booth Games',
+    description: 'Evaluate fair vs unfair game mechanics, token payouts, and expected value ratios.',
+    accentColor: '#ec4899',
+    islandPosition: [-4.0, 0, 7.5],
     islandScale: [1.1, 1.1, 1.1],
     completed: false,
     unlocked: true,
   },
   'grand-carnival': {
     id: 'grand-carnival',
-    name: 'GRAND CARNIVAL FINALE',
-    subtitle: 'The Ultimate Probability Showdown',
-    tagline: 'Claim the Grand Master Championship Trophy',
-    description: 'Compare competing carnival machines, justify the highest winning probability, and claim the championship!',
-    accentColor: '#dc2626',
-    islandPosition: [0, 0, 8.5],
-    islandScale: [1.2, 1.2, 1.2],
+    name: 'GRAND SHOWDOWN',
+    subtitle: 'Championship Tournament',
+    tagline: 'The Ultimate Probability Grand Finale',
+    description: 'Test all probability skills in a high-stakes championship showdown across the carnival.',
+    accentColor: '#f59e0b',
+    islandPosition: [4.0, 0, 7.5],
+    islandScale: [1.3, 1.3, 1.3],
     completed: false,
     unlocked: false,
   },
 };
 
+// Helper: Greatest Common Divisor to simplify fractions
+const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
+
+const makeFraction = (num: number, den: number): MathFraction => {
+  const g = gcd(num, den);
+  const sNum = num / g;
+  const sDen = den / g;
+  const pct = ((num / den) * 100).toFixed(1) + '%';
+  const dec = parseFloat((num / den).toFixed(3));
+  return {
+    numerator: sNum,
+    denominator: sDen,
+    percentage: pct,
+    decimal: dec,
+  };
+};
+
+const COLOR_PALETTE = [
+  { name: 'Red', hex: '#dc2626' },
+  { name: 'Blue', hex: '#2563eb' },
+  { name: 'Gold', hex: '#f59e0b' },
+  { name: 'Green', hex: '#16a34a' },
+  { name: 'Purple', hex: '#9333ea' },
+  { name: 'Orange', hex: '#ea580c' },
+  { name: 'Teal', hex: '#0d9488' },
+];
+
+const BLOOM_LEVELS: BloomLevel[] = [
+  'remember',
+  'understand',
+  'apply',
+  'analyze',
+  'evaluate',
+  'create',
+];
+
+// ═══════════════════════════════════════════════════════════════
+// 1. DYNAMIC GENERATOR: MYSTERY CHESTS (100+ QUESTIONS)
+// Supports 3, 4, and 5 Chests dynamically
+// ═══════════════════════════════════════════════════════════════
+function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const numChests = i % 3 === 0 ? 3 : i % 3 === 1 ? 4 : 5; // Rotate 3, 4, 5 chests
+    const c1 = COLOR_PALETTE[i % COLOR_PALETTE.length];
+    const c2 = COLOR_PALETTE[(i + 1) % COLOR_PALETTE.length];
+    const c3 = COLOR_PALETTE[(i + 2) % COLOR_PALETTE.length];
+
+    // Generate dynamic chest configs
+    const chests: ChestSetup[] = [];
+    let totalTargetBalls = 0;
+    let totalAllBalls = 0;
+
+    for (let c = 0; c < numChests; c++) {
+      const count1 = ((i + c * 2) % 4) + 1; // 1-4 balls
+      const count2 = ((i + c + 1) % 3) + 2; // 2-4 balls
+      const isTargetChest = c === (i % numChests);
+
+      chests.push({
+        id: `chest-${c + 1}`,
+        label: `CHEST ${c + 1}`,
+        color: c === 0 ? '#92400e' : c === 1 ? '#b45309' : c === 2 ? '#78350f' : c === 3 ? '#a16207' : '#854d0e',
+        isTarget: isTargetChest,
+        items: [
+          { color: c1.hex, colorName: c1.name, count: count1 },
+          { color: c2.hex, colorName: c2.name, count: count2 },
+        ],
+      });
+
+      if (isTargetChest) {
+        totalTargetBalls = count1;
+        totalAllBalls = count1 + count2;
+      }
+    }
+
+    const questionType = i % 4;
+    let prompt = '';
+    let targetNum = totalTargetBalls;
+    let targetDen = totalAllBalls;
+    let targetColor = c1.hex;
+    let explanation = '';
+    let missionTitle = '';
+
+    if (questionType === 0) {
+      // Single Chest Direct Probability
+      missionTitle = `${numChests} CHESTS: SINGLE DRAW`;
+      prompt = `There are ${numChests} Mystery Chests on the table. In CHEST ${(i % numChests) + 1}, there are ${totalTargetBalls} ${c1.name.toUpperCase()} balls and ${totalAllBalls - totalTargetBalls} ${c2.name.toUpperCase()} balls (${totalAllBalls} total). What is the probability of drawing a ${c1.name.toUpperCase()} ball from this chest?`;
+      targetNum = totalTargetBalls;
+      targetDen = totalAllBalls;
+      targetColor = c1.hex;
+      explanation = `Probability = (Favorable Outcomes) / (Total Outcomes) = ${targetNum}/${targetDen}.`;
+    } else if (questionType === 1) {
+      // Complementary Event (NOT Event)
+      missionTitle = `${numChests} CHESTS: COMPLEMENTARY NOT EVENT`;
+      const notCount = totalAllBalls - totalTargetBalls;
+      prompt = `In CHEST ${(i % numChests) + 1}, there are ${totalTargetBalls} ${c1.name.toUpperCase()} balls and ${notCount} ${c2.name.toUpperCase()} balls (${totalAllBalls} total). What is the probability of drawing a ball that is NOT ${c1.name.toUpperCase()}?`;
+      targetNum = notCount;
+      targetDen = totalAllBalls;
+      targetColor = c2.hex;
+      explanation = `P(NOT ${c1.name}) = 1 - P(${c1.name}) = 1 - ${totalTargetBalls}/${totalAllBalls} = ${targetNum}/${targetDen}.`;
+    } else if (questionType === 2) {
+      // Chest Selection Probability (1 in N chests)
+      missionTitle = `SELECTING FROM ${numChests} CHESTS`;
+      prompt = `A player randomly chooses 1 of the ${numChests} distinct Mystery Chests shown on the table. What is the theoretical probability of picking CHEST ${(i % numChests) + 1}?`;
+      targetNum = 1;
+      targetDen = numChests;
+      targetColor = '#f59e0b';
+      explanation = `Since each of the ${numChests} chests is equally likely, P(Chest ${(i % numChests) + 1}) = 1/${numChests}.`;
+    } else {
+      // Two-color sum probability
+      missionTitle = `${numChests} CHESTS: COMBINED PROBABILITY`;
+      prompt = `CHEST ${(i % numChests) + 1} contains ${totalTargetBalls} ${c1.name.toUpperCase()} balls, ${totalAllBalls - totalTargetBalls} ${c2.name.toUpperCase()} balls, and 1 ${c3.name.toUpperCase()} ball (${totalAllBalls + 1} total). What is the probability of drawing either a ${c1.name.toUpperCase()} OR a ${c2.name.toUpperCase()} ball?`;
+      targetNum = totalAllBalls;
+      targetDen = totalAllBalls + 1;
+      targetColor = c1.hex;
+      explanation = `P(${c1.name} OR ${c2.name}) = (${totalTargetBalls} + ${totalAllBalls - totalTargetBalls}) / ${totalAllBalls + 1} = ${targetNum}/${targetDen}.`;
+    }
+
+    const correctFrac = makeFraction(targetNum, targetDen);
+    const correctChoiceId = `mc-${i}-opt-0`;
+
+    // Distractor fractions
+    const d1 = makeFraction(Math.max(1, targetDen - targetNum), targetDen);
+    const d2 = makeFraction(Math.min(targetNum + 1, targetDen), targetDen + 1);
+    const d3 = makeFraction(1, targetDen);
+
+    const choices = [
+      {
+        id: correctChoiceId,
+        fraction: correctFrac,
+        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `mc-${i}-opt-1`,
+        fraction: d1,
+        label: `${d1.numerator}/${d1.denominator} (${d1.percentage})`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Remember to place favorable outcomes over total outcomes.`,
+      },
+      {
+        id: `mc-${i}-opt-2`,
+        fraction: d2,
+        label: `${d2.numerator}/${d2.denominator} (${d2.percentage})`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Make sure not to add extra balls to the denominator.`,
+      },
+      {
+        id: `mc-${i}-opt-3`,
+        fraction: d3,
+        label: `${d3.numerator}/${d3.denominator} (${d3.percentage})`,
+        isCorrect: false,
+        feedbackText: `Incorrect. This only accounts for a single item.`,
+      },
+    ];
+
+    // Shuffle choices deterministically
+    const shuffledChoices = [choices[0], choices[1], choices[2], choices[3]].sort(
+      (a, b) => ((a.fraction.numerator * 7 + i) % 5) - ((b.fraction.numerator * 7 + i) % 5)
+    );
+
+    list.push({
+      id: `mystery-chest-${i + 1}`,
+      activityId: 'mystery-bag',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle,
+      prompt,
+      helperNote: `P(Event) = Number of Favorable Outcomes / Total Possible Outcomes`,
+      setup: {
+        totalItems: targetDen,
+        items: chests[i % numChests].items,
+        chests,
+        targetColor,
+        theoreticalFraction: correctFrac,
+      },
+      choices: shuffledChoices,
+      correctAnswerId: correctChoiceId,
+      explanation,
+      points: 100 + (i % 5) * 10,
+      goldTickets: 1,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 2. DYNAMIC GENERATOR: ODDS WHEEL (100+ QUESTIONS)
+// ═══════════════════════════════════════════════════════════════
+function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const totalSectors = i % 4 === 0 ? 8 : i % 4 === 1 ? 10 : i % 4 === 2 ? 12 : 6;
+    const qType = i % 5;
+    let targetCount = 2;
+    let prompt = '';
+    let missionTitle = '';
+    let explanation = '';
+    const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
+
+    if (qType === 0) {
+      targetCount = totalSectors / 2; // Even / Odd
+      missionTitle = `${totalSectors}-SECTOR WHEEL: EVEN NUMBERS`;
+      prompt = `A mechanical carnival wheel is numbered 1 through ${totalSectors}. What is the probability that the pointer lands on an EVEN number?`;
+      explanation = `Even numbers from 1 to ${totalSectors} account for exactly half (${targetCount}/${totalSectors} = 1/2) of the sectors.`;
+    } else if (qType === 1) {
+      targetCount = (i % 3) + 2; // Prime / Multiples
+      missionTitle = `${totalSectors}-SECTOR WHEEL: COLOR SECTORS`;
+      prompt = `A carnival wheel has ${totalSectors} equal sectors, with exactly ${targetCount} painted ${color.name.toUpperCase()} and the rest WHITE. What is P(${color.name.toUpperCase()})?`;
+      explanation = `P(${color.name}) = ${targetCount} / ${totalSectors}.`;
+    } else if (qType === 2) {
+      targetCount = Math.floor(totalSectors / 3); // Multiples of 3
+      missionTitle = `${totalSectors}-SECTOR WHEEL: MULTIPLES OF 3`;
+      prompt = `On a wheel numbered 1 to ${totalSectors}, what is the probability of spinning a MULTIPLE OF 3?`;
+      explanation = `Multiples of 3 up to ${totalSectors} give ${targetCount} favorable sectors out of ${totalSectors}.`;
+    } else if (qType === 3) {
+      targetCount = totalSectors - 2; // Probability > X
+      missionTitle = `${totalSectors}-SECTOR WHEEL: NUMBER GREATER THAN 2`;
+      prompt = `A wheel has ${totalSectors} numbered sectors (1 to ${totalSectors}). What is the probability of landing on a number GREATER THAN 2?`;
+      explanation = `Numbers 3 through ${totalSectors} represent ${targetCount} out of ${totalSectors} sectors.`;
+    } else {
+      targetCount = 1; // Single sector jackpot
+      missionTitle = `${totalSectors}-SECTOR WHEEL: GOLDEN JACKPOT`;
+      prompt = `A wheel has ${totalSectors} sectors, with exactly 1 GOLDEN JACKPOT sector. What is the theoretical probability of winning the jackpot in 1 spin?`;
+      explanation = `1 jackpot sector out of ${totalSectors} equal sectors = 1/${totalSectors}.`;
+    }
+
+    const correctFrac = makeFraction(targetCount, totalSectors);
+    const correctId = `ow-${i}-opt-0`;
+
+    const choices = [
+      {
+        id: correctId,
+        fraction: correctFrac,
+        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `ow-${i}-opt-1`,
+        fraction: makeFraction(Math.max(1, totalSectors - targetCount), totalSectors),
+        label: `${totalSectors - targetCount}/${totalSectors}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. This is the complementary probability.`,
+      },
+      {
+        id: `ow-${i}-opt-2`,
+        fraction: makeFraction(1, totalSectors),
+        label: `1/${totalSectors}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Multiple sectors satisfy this condition.`,
+      },
+      {
+        id: `ow-${i}-opt-3`,
+        fraction: makeFraction(Math.min(targetCount + 1, totalSectors), totalSectors),
+        label: `${targetCount + 1}/${totalSectors}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Double-check your count of matching sectors.`,
+      },
+    ];
+
+    list.push({
+      id: `odds-wheel-${i + 1}`,
+      activityId: 'odds-wheel',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle,
+      prompt,
+      helperNote: `P(Sector) = Favorable Sectors / Total Sectors (${totalSectors})`,
+      setup: {
+        totalItems: totalSectors,
+        items: [
+          { color: color.hex, colorName: color.name, count: targetCount },
+          { color: '#ffffff', colorName: 'White', count: totalSectors - targetCount },
+        ],
+        targetColor: color.hex,
+        theoreticalFraction: correctFrac,
+      },
+      choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
+      correctAnswerId: correctId,
+      explanation,
+      points: 100 + (i % 4) * 15,
+      goldTickets: 1,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 3. DYNAMIC GENERATOR: GIANT BALL DROP (100+ QUESTIONS)
+// ═══════════════════════════════════════════════════════════════
+function generateBallDropChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const totalBalls = ((i % 5) + 3) * 2; // 6, 8, 10, 12, 14 balls
+    const greenCount = ((i * 2) % (totalBalls - 2)) + 2;
+    const redCount = totalBalls - greenCount;
+
+    const correctFrac = makeFraction(greenCount, totalBalls);
+    const correctId = `bd-${i}-opt-0`;
+
+    const prompt = `The Pachinko Hopper contains ${greenCount} GREEN balls and ${redCount} RED balls (${totalBalls} total). If 1 ball drops through the pegboard, what is the probability it lands in the RIGHT CONTAINER (Green)?`;
+    const explanation = `P(Right Container / Green) = ${greenCount}/${totalBalls} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+
+    const choices = [
+      {
+        id: correctId,
+        fraction: correctFrac,
+        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `bd-${i}-opt-1`,
+        fraction: makeFraction(redCount, totalBalls),
+        label: `${redCount}/${totalBalls}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. This is the probability of the Left Container (Red).`,
+      },
+      {
+        id: `bd-${i}-opt-2`,
+        fraction: makeFraction(1, totalBalls),
+        label: `1/${totalBalls}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. There are multiple green balls in the hopper.`,
+      },
+      {
+        id: `bd-${i}-opt-3`,
+        fraction: makeFraction(greenCount, greenCount + 1),
+        label: `${greenCount}/${greenCount + 1}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Total outcomes must equal total balls in the hopper.`,
+      },
+    ];
+
+    list.push({
+      id: `ball-drop-${i + 1}`,
+      activityId: 'ball-drop',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle: `PACHINKO DROP #${i + 1}`,
+      prompt,
+      helperNote: `P(Right Bucket) = Green Balls / Total Balls in Hopper`,
+      setup: {
+        totalItems: totalBalls,
+        items: [
+          { color: '#10b981', colorName: 'Green', count: greenCount },
+          { color: '#ef4444', colorName: 'Red', count: redCount },
+        ],
+        targetColor: '#10b981',
+        theoreticalFraction: correctFrac,
+      },
+      choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
+      correctAnswerId: correctId,
+      explanation,
+      points: 100 + (i % 4) * 15,
+      goldTickets: 1,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 4. DYNAMIC GENERATOR: PROBABILITY LAB (100+ QUESTIONS)
+// ═══════════════════════════════════════════════════════════════
+function generateProbabilityLabChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const den1 = (i % 3) + 2; // 2, 3, 4
+    const den2 = ((i + 1) % 3) + 2; // 2, 3, 4
+    const totalOutcomes = den1 * den2; // Compound outcomes
+
+    const correctFrac = makeFraction(1, totalOutcomes);
+    const correctId = `pl-${i}-opt-0`;
+
+    const prompt = `In the science chamber, Flask A has a 1/${den1} chance of success and Flask B has a 1/${den2} chance of success. What is the probability that BOTH independent chambers succeed simultaneously (P(A and B))?`;
+    const explanation = `For independent compound events: P(A and B) = P(A) × P(B) = (1/${den1}) × (1/${den2}) = 1/${totalOutcomes} (${correctFrac.percentage}).`;
+
+    const choices = [
+      {
+        id: correctId,
+        fraction: correctFrac,
+        label: `1/${totalOutcomes} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `pl-${i}-opt-1`,
+        fraction: makeFraction(1, den1 + den2),
+        label: `1/${den1 + den2}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Compound probabilities multiply denominators, not add them.`,
+      },
+      {
+        id: `pl-${i}-opt-2`,
+        fraction: makeFraction(2, totalOutcomes),
+        label: `2/${totalOutcomes}`,
+        isCorrect: false,
+        feedbackText: `Incorrect.`,
+      },
+      {
+        id: `pl-${i}-opt-3`,
+        fraction: makeFraction(1, den1),
+        label: `1/${den1}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. You must account for both flasks.`,
+      },
+    ];
+
+    list.push({
+      id: `probability-lab-${i + 1}`,
+      activityId: 'probability-lab',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle: `COMPOUND CHAMBER #${i + 1}`,
+      prompt,
+      helperNote: `P(A and B) = P(A) × P(B)`,
+      setup: {
+        totalItems: totalOutcomes,
+        items: [
+          { color: '#8b5cf6', colorName: 'Purple', count: 1 },
+          { color: '#38bdf8', colorName: 'Blue', count: totalOutcomes - 1 },
+        ],
+        targetColor: '#8b5cf6',
+        theoreticalFraction: correctFrac,
+      },
+      choices: choices.sort((a, b) => a.fraction.denominator - b.fraction.denominator),
+      correctAnswerId: correctId,
+      explanation,
+      points: 120 + (i % 5) * 10,
+      goldTickets: 1,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 5. DYNAMIC GENERATOR: GAME BUILDER (100+ QUESTIONS)
+// ═══════════════════════════════════════════════════════════════
+function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const totalSlots = (i % 4) + 6; // 6 to 9 slots
+    const winSlots = Math.floor(totalSlots / 2);
+    const isFair = totalSlots % 2 === 0 && winSlots * 2 === totalSlots;
+
+    const correctFrac = makeFraction(winSlots, totalSlots);
+    const correctId = `gb-${i}-opt-0`;
+
+    const prompt = `A carnival booth designer builds a game with ${totalSlots} equal token slots: ${winSlots} WIN slots and ${totalSlots - winSlots} LOSE slots. What is the exact winning probability?`;
+    const explanation = `P(Win) = ${winSlots} / ${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+
+    const choices = [
+      {
+        id: correctId,
+        fraction: correctFrac,
+        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `gb-${i}-opt-1`,
+        fraction: makeFraction(totalSlots - winSlots, totalSlots),
+        label: `${totalSlots - winSlots}/${totalSlots}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. This is the losing probability.`,
+      },
+      {
+        id: `gb-${i}-opt-2`,
+        fraction: makeFraction(1, totalSlots),
+        label: `1/${totalSlots}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. There are ${winSlots} winning slots.`,
+      },
+      {
+        id: `gb-${i}-opt-3`,
+        fraction: makeFraction(1, 2),
+        label: `1/2 (50.0%)`,
+        isCorrect: isFair,
+        feedbackText: isFair ? `Correct!` : `Incorrect. Total slots is not an even 50/50 split.`,
+      },
+    ];
+
+    list.push({
+      id: `game-builder-${i + 1}`,
+      activityId: 'game-builder',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle: `BOOTH DESIGN #${i + 1}`,
+      prompt,
+      helperNote: `P(Win) = Win Slots / Total Slots (${totalSlots})`,
+      setup: {
+        totalItems: totalSlots,
+        items: [
+          { color: '#10b981', colorName: 'Win', count: winSlots },
+          { color: '#ef4444', colorName: 'Loss', count: totalSlots - winSlots },
+        ],
+        targetColor: '#10b981',
+        theoreticalFraction: correctFrac,
+      },
+      choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
+      correctAnswerId: correctId,
+      explanation,
+      points: 110 + (i % 4) * 15,
+      goldTickets: 1,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// 6. DYNAMIC GENERATOR: GRAND CARNIVAL SHOWDOWN (100+ QUESTIONS)
+// ═══════════════════════════════════════════════════════════════
+function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
+  const list: ProbabilityChallenge[] = [];
+
+  for (let i = 0; i < count; i++) {
+    const totalOutcomes = (i % 6) + 10; // 10 to 15 outcomes
+    const targetA = (i % 4) + 3;
+    const targetB = (i % 3) + 2;
+    const totalTarget = targetA + targetB;
+
+    const correctFrac = makeFraction(totalTarget, totalOutcomes);
+    const correctId = `gc-${i}-opt-0`;
+
+    const prompt = `CHAMPIONSHIP ROUND #${i + 1}: A tournament prize vault holds ${targetA} Gold Tokens, ${targetB} Diamond Tokens, and ${totalOutcomes - totalTarget} Silver Tokens (${totalOutcomes} total). What is the probability of drawing either a GOLD OR DIAMOND token?`;
+    const explanation = `P(Gold OR Diamond) = (${targetA} + ${targetB}) / ${totalOutcomes} = ${totalTarget}/${totalOutcomes} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+
+    const choices = [
+      {
+        id: correctId,
+        fraction: correctFrac,
+        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        isCorrect: true,
+        feedbackText: `Correct! ${explanation}`,
+      },
+      {
+        id: `gc-${i}-opt-1`,
+        fraction: makeFraction(targetA, totalOutcomes),
+        label: `${targetA}/${totalOutcomes}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. You must also include the diamond tokens.`,
+      },
+      {
+        id: `gc-${i}-opt-2`,
+        fraction: makeFraction(totalOutcomes - totalTarget, totalOutcomes),
+        label: `${totalOutcomes - totalTarget}/${totalOutcomes}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. This is the silver token probability.`,
+      },
+      {
+        id: `gc-${i}-opt-3`,
+        fraction: makeFraction(1, totalOutcomes),
+        label: `1/${totalOutcomes}`,
+        isCorrect: false,
+        feedbackText: `Incorrect. Multiple prize tokens qualify.`,
+      },
+    ];
+
+    list.push({
+      id: `grand-carnival-${i + 1}`,
+      activityId: 'grand-carnival',
+      bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
+      missionTitle: `GRAND TOURNAMENT #${i + 1}`,
+      prompt,
+      helperNote: `P(A or B) = (Count A + Count B) / Total`,
+      setup: {
+        totalItems: totalOutcomes,
+        items: [
+          { color: '#f59e0b', colorName: 'Gold', count: targetA },
+          { color: '#38bdf8', colorName: 'Diamond', count: targetB },
+          { color: '#94a3b8', colorName: 'Silver', count: totalOutcomes - totalTarget },
+        ],
+        targetColor: '#f59e0b',
+        theoreticalFraction: correctFrac,
+      },
+      choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
+      correctAnswerId: correctId,
+      explanation,
+      points: 150 + (i % 5) * 10,
+      goldTickets: 2,
+    });
+  }
+
+  return list;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// EXPORTED COMPREHENSIVE CHALLENGE BANK (100+ QUESTIONS PER GAME)
+// ═══════════════════════════════════════════════════════════════
 export const CARNIVAL_CHALLENGES: Record<ActivityId, ProbabilityChallenge[]> = {
   hub: [],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 1. THE ODDS WHEEL (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'odds-wheel': [
-    {
-      id: 'wheel_01',
-      activityId: 'odds-wheel',
-      bloomLevel: 'understand',
-      missionTitle: 'THE GOLDEN SECTOR',
-      prompt: 'The Odds Wheel has 10 equal sectors: 6 BLUE, 3 RED, and 1 GOLD. What is the probability that the spinning flapper stops on the GOLD sector?',
-      helperNote: 'Each sector has equal width (1/10 of the circumference).',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#2563eb', colorName: 'Blue', count: 6 },
-          { color: '#dc2626', colorName: 'Red', count: 3 },
-          { color: '#f59e0b', colorName: 'Gold', count: 1 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 1, denominator: 10, percentage: '10.0%', decimal: 0.1 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 1, denominator: 10, percentage: '10.0%' },
-          label: '1 / 10 (10% Chance)',
-          isCorrect: true,
-          feedbackText: '1 Gold sector out of 10 equal sectors = 1/10 = 10%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 3, percentage: '33.3%' },
-          label: '1 / 3 (33.3% Chance)',
-          isCorrect: false,
-          feedbackText: 'Colors are not distributed equally; there are 10 sectors, not 3.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 10, percentage: '30.0%' },
-          label: '3 / 10 (30% Chance)',
-          isCorrect: false,
-          feedbackText: '3/10 is the probability of landing on Red.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 10, percentage: '60.0%' },
-          label: '6 / 10 (60% Chance)',
-          isCorrect: false,
-          feedbackText: '6/10 is the probability of landing on Blue.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'There is 1 Gold sector out of 10 equal sectors. P(Gold) = 1/10 = 10%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'wheel_02',
-      activityId: 'odds-wheel',
-      bloomLevel: 'apply',
-      missionTitle: 'MAJORITY SPIN ODDS',
-      prompt: 'A carnival spinner is divided into 8 equal parts: 5 RED and 3 BLUE. What is the probability of spinning a RED sector?',
-      helperNote: 'Red occupies 5 out of the 8 total sections.',
-      setup: {
-        totalItems: 8,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 5 },
-          { color: '#2563eb', colorName: 'Blue', count: 3 },
-        ],
-        targetColor: '#dc2626',
-        theoreticalFraction: { numerator: 5, denominator: 8, percentage: '62.5%', decimal: 0.625 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 8, percentage: '62.5%' },
-          label: '5 / 8 (62.5% Majority Chance)',
-          isCorrect: true,
-          feedbackText: '5 Red sectors out of 8 = 5/8 = 62.5%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 3, denominator: 8, percentage: '37.5%' },
-          label: '3 / 8 (37.5% Chance)',
-          isCorrect: false,
-          feedbackText: '3/8 is the probability of Blue, not Red.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 5, denominator: 3, percentage: '166%' },
-          label: '5 / 3 (Odds Ratio)',
-          isCorrect: false,
-          feedbackText: '5/3 is the ratio of Red to Blue, not the probability.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 2, percentage: '50.0%' },
-          label: '1 / 2 (50% Chance)',
-          isCorrect: false,
-          feedbackText: 'Red occupies more than half of the wheel.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '5 favorable sectors out of 8 total sectors gives P(Red) = 5/8 = 62.5%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'wheel_03',
-      activityId: 'odds-wheel',
-      bloomLevel: 'analyze',
-      missionTitle: 'PRIME NUMBER SECTORS',
-      prompt: 'A 12-sector wheel is numbered 1 through 12. What is the probability that the pointer lands on a PRIME number? (Primes: 2, 3, 5, 7, 11)',
-      helperNote: 'Count the prime numbers between 1 and 12 (Note: 1 is neither prime nor composite).',
-      setup: {
-        totalItems: 12,
-        items: [
-          { color: '#f59e0b', colorName: 'Prime (2,3,5,7,11)', count: 5 },
-          { color: '#64748b', colorName: 'Composite / One', count: 7 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 5, denominator: 12, percentage: '41.7%', decimal: 0.417 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 12, percentage: '41.7%' },
-          label: '5 / 12 (5 Primes: 2, 3, 5, 7, 11)',
-          isCorrect: true,
-          feedbackText: '5 prime numbers out of 12 numbers = 5/12 ≈ 41.7%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 6, denominator: 12, percentage: '50.0%' },
-          label: '6 / 12 = 1 / 2 (Half)',
-          isCorrect: false,
-          feedbackText: '1 is not a prime number.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 4, denominator: 12, percentage: '33.3%' },
-          label: '4 / 12 = 1 / 3',
-          isCorrect: false,
-          feedbackText: 'There are 5 prime numbers: 2, 3, 5, 7, and 11.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 7, denominator: 12, percentage: '58.3%' },
-          label: '7 / 12 (Non-Primes)',
-          isCorrect: false,
-          feedbackText: '7/12 is the probability of non-prime sectors.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'The prime numbers are 2, 3, 5, 7, 11 (5 primes). P(Prime) = 5/12 ≈ 41.7%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'wheel_04',
-      activityId: 'odds-wheel',
-      bloomLevel: 'apply',
-      missionTitle: 'THE COMPLEMENT SPIN',
-      prompt: 'A wheel has 10 sectors: 2 BLACK, 4 YELLOW, and 4 GREEN. What is the probability of NOT landing on a BLACK sector?',
-      helperNote: 'P(Not Black) = 1 - P(Black) = (Total - Black) ÷ Total',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#eab308', colorName: 'Yellow', count: 4 },
-          { color: '#16a34a', colorName: 'Green', count: 4 },
-          { color: '#1e293b', colorName: 'Black', count: 2 },
-        ],
-        targetColor: '#eab308',
-        theoreticalFraction: { numerator: 8, denominator: 10, percentage: '80.0%', decimal: 0.8 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 8, denominator: 10, percentage: '80.0%' },
-          label: '8 / 10 = 4 / 5 (80% Not Black)',
-          isCorrect: true,
-          feedbackText: '4 Yellow + 4 Green = 8 non-black sectors out of 10 = 8/10 = 80%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 2, denominator: 10, percentage: '20.0%' },
-          label: '2 / 10 = 1 / 5 (20% Black)',
-          isCorrect: false,
-          feedbackText: '2/10 is the probability of landing on Black.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 4, denominator: 10, percentage: '40.0%' },
-          label: '4 / 10 = 2 / 5 (Yellow only)',
-          isCorrect: false,
-          feedbackText: 'Green sectors are also not black.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 10, percentage: '60.0%' },
-          label: '6 / 10 (60% Chance)',
-          isCorrect: false,
-          feedbackText: 'There are 8 non-black sectors, not 6.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Non-black sectors = 4 Yellow + 4 Green = 8 sectors. P(Not Black) = 8/10 = 4/5 = 80%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'wheel_05',
-      activityId: 'odds-wheel',
-      bloomLevel: 'evaluate',
-      missionTitle: 'CERTAIN VS IMPOSSIBLE',
-      prompt: 'A carnival spinner has 6 sectors: 3 RED and 3 BLUE. What is the probability of landing on a PURPLE sector?',
-      helperNote: 'An event that has 0 favorable outcomes in the sample space is Impossible.',
-      setup: {
-        totalItems: 6,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 3 },
-          { color: '#2563eb', colorName: 'Blue', count: 3 },
-        ],
-        targetColor: '#a855f7',
-        theoreticalFraction: { numerator: 0, denominator: 6, percentage: '0.0%', decimal: 0.0 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 0, denominator: 6, percentage: '0.0%' },
-          label: '0 / 6 = 0 (Impossible Event)',
-          isCorrect: true,
-          feedbackText: 'There are 0 purple sectors on the wheel, so P(Purple) = 0 (0%).',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 3, denominator: 6, percentage: '50.0%' },
-          label: '3 / 6 = 1 / 2 (50% Chance)',
-          isCorrect: false,
-          feedbackText: '3/6 is the probability of Red or Blue, but not Purple.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 1, denominator: 6, percentage: '16.7%' },
-          label: '1 / 6 (16.7% Chance)',
-          isCorrect: false,
-          feedbackText: 'There is no purple sector on this wheel.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 6, percentage: '100%' },
-          label: '6 / 6 = 1 (Certain Event)',
-          isCorrect: false,
-          feedbackText: 'Landing on Purple is impossible, not certain.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Because purple is not in the sample space, P(Purple) = 0/6 = 0% (Impossible event).',
-      points: 150,
-      goldTickets: 2,
-    },
-  ],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 2. THE MYSTERY SACK (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'mystery-bag': [
-    {
-      id: 'bag_01',
-      activityId: 'mystery-bag',
-      bloomLevel: 'apply',
-      missionTitle: 'THE RED BALL MYSTERY',
-      prompt: 'A carnival sack holds 5 RED balls and 4 BLUE balls (9 total). If you draw one ball at random, what is the probability of picking a RED ball?',
-      helperNote: 'Probability = (Favorable Outcomes) ÷ (Total Possible Outcomes)',
-      setup: {
-        totalItems: 9,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 5 },
-          { color: '#2563eb', colorName: 'Blue', count: 4 },
-        ],
-        targetColor: '#dc2626',
-        theoreticalFraction: { numerator: 5, denominator: 9, percentage: '55.6%', decimal: 0.556 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 9, percentage: '55.6%' },
-          label: '5 / 9 (55.6% Chance of Red)',
-          isCorrect: true,
-          feedbackText: '5 Red balls out of 9 Total = 5/9 ≈ 55.6%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 4, denominator: 9, percentage: '44.4%' },
-          label: '4 / 9 (44.4% Chance of Blue)',
-          isCorrect: false,
-          feedbackText: '4/9 is the probability of drawing Blue, not Red.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 5, denominator: 4, percentage: '125%' },
-          label: '5 / 4 (Ratio of Red to Blue)',
-          isCorrect: false,
-          feedbackText: '5/4 is the ratio, but probability requires dividing by Total (9).',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 9, percentage: '11.1%' },
-          label: '1 / 9 (Single Ball Chance)',
-          isCorrect: false,
-          feedbackText: '1/9 is the probability of 1 specific ball.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Since there are 5 Red balls out of 9 total, P(Red) = 5/9 ≈ 55.6%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'bag_02',
-      activityId: 'mystery-bag',
-      bloomLevel: 'analyze',
-      missionTitle: 'THE COMPLEMENT RULE',
-      prompt: 'A carnival sack holds 3 YELLOW, 4 GREEN, and 5 PURPLE balls (12 total). What is the probability of drawing a ball that is NOT PURPLE?',
-      helperNote: 'Complementary Events: P(Not Purple) = 1 - P(Purple)',
-      setup: {
-        totalItems: 12,
-        items: [
-          { color: '#eab308', colorName: 'Yellow', count: 3 },
-          { color: '#16a34a', colorName: 'Green', count: 4 },
-          { color: '#9333ea', colorName: 'Purple', count: 5 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 7, denominator: 12, percentage: '58.3%', decimal: 0.583 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 7, denominator: 12, percentage: '58.3%' },
-          label: '7 / 12 (Yellow + Green = 7)',
-          isCorrect: true,
-          feedbackText: '3 Yellow + 4 Green = 7 non-purple balls out of 12 = 7/12 ≈ 58.3%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 5, denominator: 12, percentage: '41.7%' },
-          label: '5 / 12 (Purple balls only)',
-          isCorrect: false,
-          feedbackText: '5/12 is the probability of drawing Purple.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 12, percentage: '25.0%' },
-          label: '3 / 12 (Yellow balls only)',
-          isCorrect: false,
-          feedbackText: '3/12 only counts Yellow, but Green is also not purple.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 4, denominator: 12, percentage: '33.3%' },
-          label: '4 / 12 (Green balls only)',
-          isCorrect: false,
-          feedbackText: '4/12 only counts Green, but Yellow is also not purple.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Non-purple balls = 3 Yellow + 4 Green = 7. Total = 12. P(Not Purple) = 7/12 ≈ 58.3%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'bag_03',
-      activityId: 'mystery-bag',
-      bloomLevel: 'apply',
-      missionTitle: 'SIMPLIFYING PROBABILITY FRACTIONS',
-      prompt: 'A sack contains 6 GOLD prize spheres and 18 SILVER spheres (24 total). What is the simplified probability of drawing a GOLD prize sphere?',
-      helperNote: 'Simplify 6/24 by dividing numerator and denominator by their greatest common divisor (6).',
-      setup: {
-        totalItems: 24,
-        items: [
-          { color: '#f59e0b', colorName: 'Gold', count: 6 },
-          { color: '#94a3b8', colorName: 'Silver', count: 18 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 1, denominator: 4, percentage: '25.0%', decimal: 0.25 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 1, denominator: 4, percentage: '25.0%' },
-          label: '1 / 4 (Simplified from 6/24 = 25%)',
-          isCorrect: true,
-          feedbackText: '6/24 reduces to 1/4 = 25%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 3, percentage: '33.3%' },
-          label: '1 / 3 (6 / 18)',
-          isCorrect: false,
-          feedbackText: '6/18 is the ratio of Gold to Silver, not divided by Total (24).',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 4, percentage: '75.0%' },
-          label: '3 / 4 (75% Silver)',
-          isCorrect: false,
-          feedbackText: '3/4 is the probability of Silver.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 6, percentage: '16.7%' },
-          label: '1 / 6 (16.7% Chance)',
-          isCorrect: false,
-          feedbackText: '6 / 24 simplifies to 1/4, not 1/6.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '6 Gold / 24 Total = 6/24. Divide top and bottom by 6 gives 1/4 = 25%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'bag_04',
-      activityId: 'mystery-bag',
-      bloomLevel: 'understand',
-      missionTitle: 'COMPARING BAG ODDS',
-      prompt: 'In a sack with 8 BLUE spheres and 6 ORANGE spheres (14 total), which statement is mathematically TRUE?',
-      helperNote: 'Compare P(Blue) = 8/14 with P(Orange) = 6/14.',
-      setup: {
-        totalItems: 14,
-        items: [
-          { color: '#2563eb', colorName: 'Blue', count: 8 },
-          { color: '#ea580c', colorName: 'Orange', count: 6 },
-        ],
-        targetColor: '#2563eb',
-        theoreticalFraction: { numerator: 8, denominator: 14, percentage: '57.1%', decimal: 0.571 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 8, denominator: 14, percentage: '57.1%' },
-          label: 'Drawing Blue is LIKELY (> 50%)',
-          isCorrect: true,
-          feedbackText: '8/14 ≈ 57.1% which is greater than 50% (Likely).',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 6, denominator: 14, percentage: '42.9%' },
-          label: 'Drawing Orange is EQUALLY LIKELY as Blue',
-          isCorrect: false,
-          feedbackText: '8 is greater than 6, so outcomes are not equally likely.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 14, denominator: 14, percentage: '100%' },
-          label: 'Drawing Blue is CERTAIN (100%)',
-          isCorrect: false,
-          feedbackText: 'It is possible to draw an Orange ball.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 0, denominator: 14, percentage: '0%' },
-          label: 'Drawing Orange is IMPOSSIBLE',
-          isCorrect: false,
-          feedbackText: 'There are 6 orange balls, so drawing orange is possible.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'P(Blue) = 8/14 ≈ 57.1% > 50%, which makes drawing Blue a Likely event.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'bag_05',
-      activityId: 'mystery-bag',
-      bloomLevel: 'apply',
-      missionTitle: 'COMPOUND "OR" EVENT',
-      prompt: 'A sack holds 2 RED, 3 GREEN, and 5 WHITE balls (10 total). What is the probability of drawing a RED OR GREEN ball?',
-      helperNote: 'For mutually exclusive outcomes: P(Red OR Green) = P(Red) + P(Green)',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 2 },
-          { color: '#16a34a', colorName: 'Green', count: 3 },
-          { color: '#f8fafc', colorName: 'White', count: 5 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 5, denominator: 10, percentage: '50.0%', decimal: 0.5 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 10, percentage: '50.0%' },
-          label: '5 / 10 = 1 / 2 (50% Chance: Red or Green)',
-          isCorrect: true,
-          feedbackText: '2 Red + 3 Green = 5 favorable balls out of 10 = 5/10 = 50%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 2, denominator: 10, percentage: '20.0%' },
-          label: '2 / 10 (Red only)',
-          isCorrect: false,
-          feedbackText: 'This ignores the 3 green balls.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 10, percentage: '30.0%' },
-          label: '3 / 10 (Green only)',
-          isCorrect: false,
-          feedbackText: 'This ignores the 2 red balls.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 10, percentage: '60.0%' },
-          label: '6 / 10 (60% Chance)',
-          isCorrect: false,
-          feedbackText: '2 + 3 = 5 favorable balls, not 6.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Favorable balls = 2 Red + 3 Green = 5. P(Red or Green) = 5/10 = 1/2 = 50%.',
-      points: 150,
-      goldTickets: 2,
-    },
-  ],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 3. GIANT BALL DROP / PLINKO (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'ball-drop': [
-    {
-      id: 'drop_01',
-      activityId: 'ball-drop',
-      bloomLevel: 'evaluate',
-      missionTitle: 'THEORETICAL VS EXPERIMENTAL DROP',
-      prompt: 'The transparent tower is loaded with 8 GREEN balls and 2 YELLOW balls (10 total). What is the theoretical probability of a YELLOW ball dropping?',
-      helperNote: 'After predicting, we will drop a ball, then run a batch of 10 trials!',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#16a34a', colorName: 'Green', count: 8 },
-          { color: '#eab308', colorName: 'Yellow', count: 2 },
-        ],
-        targetColor: '#eab308',
-        theoreticalFraction: { numerator: 2, denominator: 10, percentage: '20.0%', decimal: 0.2 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 2, denominator: 10, percentage: '20.0%' },
-          label: '2 / 10 = 1 / 5 (20% Yellow)',
-          isCorrect: true,
-          feedbackText: '2 Yellow balls out of 10 = 2/10 = 20%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 8, denominator: 10, percentage: '80.0%' },
-          label: '8 / 10 = 4 / 5 (80% Green)',
-          isCorrect: false,
-          feedbackText: '8/10 is the probability of Green.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 2, denominator: 8, percentage: '25.0%' },
-          label: '2 / 8 (Ratio of Yellow to Green)',
-          isCorrect: false,
-          feedbackText: '2/8 is the ratio, but probability requires dividing by total (10).',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 10, percentage: '10.0%' },
-          label: '1 / 10 (Single Ball Chance)',
-          isCorrect: false,
-          feedbackText: 'There are 2 yellow balls, not 1.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '2 Yellow out of 10 Total = 2/10 = 1/5 = 20%. In 10 trials, experimental results will cluster around 20%!',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'drop_02',
-      activityId: 'ball-drop',
-      bloomLevel: 'apply',
-      missionTitle: 'LAW OF LARGE NUMBERS',
-      prompt: 'If a carnival chute has a winning probability of P(Win) = 1/4 (25%), how many wins would you EXPECT if you drop 40 balls down the tower?',
-      helperNote: 'Expected Value = Total Drops × Probability of Winning',
-      setup: {
-        totalItems: 4,
-        items: [
-          { color: '#f59e0b', colorName: 'Win', count: 1 },
-          { color: '#64748b', colorName: 'Loss', count: 3 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 10, denominator: 40, percentage: '25.0%', decimal: 0.25 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 10, denominator: 40, percentage: '25.0%' },
-          label: '10 Expected Wins (40 × 1/4)',
-          isCorrect: true,
-          feedbackText: '40 drops × 1/4 = 10 expected wins.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 4, denominator: 40, percentage: '10.0%' },
-          label: '4 Expected Wins',
-          isCorrect: false,
-          feedbackText: '4 wins would be 4/40 = 10%, which is too low.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 20, denominator: 40, percentage: '50.0%' },
-          label: '20 Expected Wins (Half)',
-          isCorrect: false,
-          feedbackText: '20 wins would require a 50% probability.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 40, percentage: '2.5%' },
-          label: '1 Expected Win',
-          isCorrect: false,
-          feedbackText: '1/4 of 40 is 10.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Expected Wins = 40 × (1/4) = 10 wins. As the number of trials increases, experimental results match expected value!',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'drop_03',
-      activityId: 'ball-drop',
-      bloomLevel: 'analyze',
-      missionTitle: 'CENTER VS EDGE CHUTES',
-      prompt: 'A Galton board peg tower funnels balls into 8 exit chutes: 6 CENTER chutes and 2 EDGE chutes. What is the probability of a ball landing in a CENTER chute?',
-      helperNote: 'Center chutes = 6. Total chutes = 8.',
-      setup: {
-        totalItems: 8,
-        items: [
-          { color: '#2563eb', colorName: 'Center Chute', count: 6 },
-          { color: '#dc2626', colorName: 'Edge Chute', count: 2 },
-        ],
-        targetColor: '#2563eb',
-        theoreticalFraction: { numerator: 3, denominator: 4, percentage: '75.0%', decimal: 0.75 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 3, denominator: 4, percentage: '75.0%' },
-          label: '6 / 8 = 3 / 4 (75% Center Chutes)',
-          isCorrect: true,
-          feedbackText: '6 Center chutes out of 8 = 6/8 = 3/4 = 75%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 4, percentage: '25.0%' },
-          label: '2 / 8 = 1 / 4 (25% Edge Chutes)',
-          isCorrect: false,
-          feedbackText: '2/8 is the probability of edge chutes.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 1, denominator: 2, percentage: '50.0%' },
-          label: '1 / 2 (Equal Chance)',
-          isCorrect: false,
-          feedbackText: 'Center chutes have more paths than edge chutes.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 2, percentage: '300%' },
-          label: '6 / 2 (Chute Ratio)',
-          isCorrect: false,
-          feedbackText: '6/2 is the ratio, not the probability fraction.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'P(Center Chute) = 6/8 = 3/4 = 75%. Balls are 3 times more likely to drop into center bins!',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'drop_04',
-      activityId: 'ball-drop',
-      bloomLevel: 'understand',
-      missionTitle: 'EVEN NUMBERED BINS',
-      prompt: 'The ball drop tower has 6 collector bins numbered 1, 2, 3, 4, 5, 6. If a ball has an equal chance of landing in any bin, what is P(EVEN BIN)?',
-      helperNote: 'Even bins: 2, 4, 6 (3 favorable bins out of 6).',
-      setup: {
-        totalItems: 6,
-        items: [
-          { color: '#16a34a', colorName: 'Even (2,4,6)', count: 3 },
-          { color: '#f59e0b', colorName: 'Odd (1,3,5)', count: 3 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 1, denominator: 2, percentage: '50.0%', decimal: 0.5 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 1, denominator: 2, percentage: '50.0%' },
-          label: '3 / 6 = 1 / 2 (50% Even Bins)',
-          isCorrect: true,
-          feedbackText: '3 Even bins (2, 4, 6) out of 6 Total = 3/6 = 1/2 = 50%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 3, percentage: '33.3%' },
-          label: '2 / 6 = 1 / 3',
-          isCorrect: false,
-          feedbackText: 'There are 3 even numbers (2, 4, 6), not 2.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 2, denominator: 3, percentage: '66.7%' },
-          label: '4 / 6 = 2 / 3',
-          isCorrect: false,
-          feedbackText: 'Only 3 of the 6 bins are even.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 6, percentage: '16.7%' },
-          label: '1 / 6 (Single Bin)',
-          isCorrect: false,
-          feedbackText: '1/6 is the chance of one specific number.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Bins 2, 4, and 6 are even (3 bins). P(Even) = 3/6 = 1/2 = 50%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'drop_05',
-      activityId: 'ball-drop',
-      bloomLevel: 'evaluate',
-      missionTitle: 'EXPERIMENTAL VARIANCE ANALYSIS',
-      prompt: 'A machine has theoretical P(Gold) = 2/10 (20%). In 10 experimental trials, 4 Gold balls dropped (40%). What explains this result?',
-      helperNote: 'Think about sample size and random fluctuation.',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#f59e0b', colorName: 'Gold', count: 4 },
-          { color: '#64748b', colorName: 'Silver', count: 6 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 2, denominator: 10, percentage: '20.0%', decimal: 0.2 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 2, denominator: 10, percentage: '20.0%' },
-          label: 'Small sample size causes short-term random variance',
-          isCorrect: true,
-          feedbackText: 'With only 10 trials, random variation is normal. Over 1,000 trials, it converges to 20%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 4, denominator: 10, percentage: '40.0%' },
-          label: 'The theoretical probability was calculated wrong',
-          isCorrect: false,
-          feedbackText: 'The machine still has 2/10 theoretical odds.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 10, denominator: 10, percentage: '100%' },
-          label: 'Every 10-trial test will always result in 4 Gold balls',
-          isCorrect: false,
-          feedbackText: 'Each set of 10 trials will have different random outcomes.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 0, denominator: 10, percentage: '0%' },
-          label: 'Theoretical probability only applies to coins',
-          isCorrect: false,
-          feedbackText: 'Theoretical probability applies to all random experiments.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'In small samples (like 10 trials), natural variance occurs. Over hundreds of drops, experimental frequency approaches theoretical probability (Law of Large Numbers).',
-      points: 150,
-      goldTickets: 2,
-    },
-  ],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 4. THE PROBABILITY LAB (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'probability-lab': [
-    {
-      id: 'lab_01',
-      activityId: 'probability-lab',
-      bloomLevel: 'create',
-      missionTitle: 'CHAMBER CALIBRATION: 3/5 PROBABILITY',
-      prompt: 'The laboratory chamber needs exactly 5 balls loaded so that P(BLUE) = 3/5 (60%). Which combination of 3D balls satisfies this condition?',
-      helperNote: 'Target: 3 Blue balls out of 5 total.',
-      setup: {
-        totalItems: 5,
-        items: [
-          { color: '#2563eb', colorName: 'Blue', count: 3 },
-          { color: '#dc2626', colorName: 'Red', count: 2 },
-        ],
-        targetColor: '#2563eb',
-        theoreticalFraction: { numerator: 3, denominator: 5, percentage: '60.0%', decimal: 0.6 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 3, denominator: 5, percentage: '60.0%' },
-          label: '3 Blue Balls + 2 Red Balls (5 Total)',
-          isCorrect: true,
-          feedbackText: '3 Blue out of 5 Total gives P(Blue) = 3/5 = 60%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 2, denominator: 5, percentage: '40.0%' },
-          label: '2 Blue Balls + 3 Red Balls (5 Total)',
-          isCorrect: false,
-          feedbackText: 'This would give P(Blue) = 2/5 = 40%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 8, percentage: '37.5%' },
-          label: '3 Blue Balls + 5 Red Balls (8 Total)',
-          isCorrect: false,
-          feedbackText: 'This gives 8 total balls, so P(Blue) = 3/8.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 5, percentage: '20.0%' },
-          label: '1 Blue Ball + 4 Red Balls (5 Total)',
-          isCorrect: false,
-          feedbackText: 'This gives P(Blue) = 1/5 = 20%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'To achieve P(Blue) = 3/5, 3 out of every 5 items in the chamber must be Blue.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'lab_02',
-      activityId: 'probability-lab',
-      bloomLevel: 'apply',
-      missionTitle: 'SCALING TO 16 SAMPLES',
-      prompt: 'You need to configure a 16-ball chamber such that P(GREEN) = 25% (1/4). How many GREEN balls must be loaded?',
-      helperNote: 'Calculate 1/4 of 16 balls: 16 × (1/4) = ?',
-      setup: {
-        totalItems: 16,
-        items: [
-          { color: '#16a34a', colorName: 'Green', count: 4 },
-          { color: '#64748b', colorName: 'Other', count: 12 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 4, denominator: 16, percentage: '25.0%', decimal: 0.25 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 4, denominator: 16, percentage: '25.0%' },
-          label: '4 Green Balls (4 / 16 = 25%)',
-          isCorrect: true,
-          feedbackText: '4 Green balls out of 16 = 4/16 = 1/4 = 25%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 8, denominator: 16, percentage: '50.0%' },
-          label: '8 Green Balls (50%)',
-          isCorrect: false,
-          feedbackText: '8/16 = 50%, which is double the target of 25%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 2, denominator: 16, percentage: '12.5%' },
-          label: '2 Green Balls (12.5%)',
-          isCorrect: false,
-          feedbackText: '2/16 = 12.5%, which is too low.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 6, denominator: 16, percentage: '37.5%' },
-          label: '6 Green Balls (37.5%)',
-          isCorrect: false,
-          feedbackText: '6/16 = 3/8 = 37.5%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '1/4 of 16 = 4 Green balls. Therefore, loading 4 Green balls gives exactly P(Green) = 4/16 = 25%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'lab_03',
-      activityId: 'probability-lab',
-      bloomLevel: 'analyze',
-      missionTitle: 'ALTERING SAMPLE RATIOS',
-      prompt: 'A chamber currently has 4 RED and 4 BLUE balls (8 total, 50% Red). How many RED balls must you ADD so that P(Red) becomes 60% (6/10)?',
-      helperNote: 'If you add 2 Red balls: Total becomes 8 + 2 = 10 balls. Red becomes 4 + 2 = 6 balls.',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 6 },
-          { color: '#2563eb', colorName: 'Blue', count: 4 },
-        ],
-        targetColor: '#dc2626',
-        theoreticalFraction: { numerator: 6, denominator: 10, percentage: '60.0%', decimal: 0.6 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 6, denominator: 10, percentage: '60.0%' },
-          label: 'Add 2 Red Balls (6 Red out of 10 Total = 60%)',
-          isCorrect: true,
-          feedbackText: '4 + 2 = 6 Red balls. 8 + 2 = 10 total. 6/10 = 60%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 5, denominator: 9, percentage: '55.6%' },
-          label: 'Add 1 Red Ball (5/9 ≈ 55.6%)',
-          isCorrect: false,
-          feedbackText: 'Adding 1 Red ball gives 5/9 ≈ 55.6%, not 60%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 7, denominator: 11, percentage: '63.6%' },
-          label: 'Add 3 Red Balls (7/11 ≈ 63.6%)',
-          isCorrect: false,
-          feedbackText: 'Adding 3 Red balls gives 7/11 ≈ 63.6%.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 8, denominator: 12, percentage: '66.7%' },
-          label: 'Add 4 Red Balls (8/12 = 66.7%)',
-          isCorrect: false,
-          feedbackText: 'Adding 4 Red balls gives 8/12 = 66.7%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Adding 2 Red balls gives 6 Red out of 10 total balls: P(Red) = 6/10 = 60%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'lab_04',
-      activityId: 'probability-lab',
-      bloomLevel: 'understand',
-      missionTitle: 'EQUAL LIKELIHOOD BALANCE',
-      prompt: 'To make 3 colors (RED, GREEN, YELLOW) equally likely in a 15-ball alchemical vessel, how many of EACH color must be present?',
-      helperNote: 'Equally likely with 3 colors: 15 ÷ 3 = ?',
-      setup: {
-        totalItems: 15,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 5 },
-          { color: '#16a34a', colorName: 'Green', count: 5 },
-          { color: '#eab308', colorName: 'Yellow', count: 5 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 1, denominator: 3, percentage: '33.3%', decimal: 0.333 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 15, percentage: '33.3%' },
-          label: '5 of each color (P = 5/15 = 1/3)',
-          isCorrect: true,
-          feedbackText: '5 Red, 5 Green, 5 Yellow gives P = 1/3 for each color.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 6, denominator: 15, percentage: '40.0%' },
-          label: '6 Red, 5 Green, 4 Yellow',
-          isCorrect: false,
-          feedbackText: 'Red would have a higher probability than Yellow.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 7, denominator: 15, percentage: '46.7%' },
-          label: '7 Red, 7 Green, 1 Yellow',
-          isCorrect: false,
-          feedbackText: 'Yellow would be much less likely.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 3, denominator: 15, percentage: '20.0%' },
-          label: '3 of each color (9 Total)',
-          isCorrect: false,
-          feedbackText: '3 of each would only be 9 total balls, not 15.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '15 / 3 colors = 5 balls each. Every color has P = 5/15 = 1/3 ≈ 33.3%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'lab_05',
-      activityId: 'probability-lab',
-      bloomLevel: 'apply',
-      missionTitle: 'COMPOUND SAMPLE SPACES',
-      prompt: 'The alchemical condenser contains 7 CRYSTAL, 3 EMBER, and 10 VOID elements (20 total). What is P(NOT VOID)?',
-      helperNote: 'Non-Void elements = Crystal (7) + Ember (3) = 10.',
-      setup: {
-        totalItems: 20,
-        items: [
-          { color: '#38bdf8', colorName: 'Crystal', count: 7 },
-          { color: '#f97316', colorName: 'Ember', count: 3 },
-          { color: '#1e1b4b', colorName: 'Void', count: 10 },
-        ],
-        targetColor: '#38bdf8',
-        theoreticalFraction: { numerator: 1, denominator: 2, percentage: '50.0%', decimal: 0.5 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 10, denominator: 20, percentage: '50.0%' },
-          label: '10 / 20 = 1 / 2 (50% Not Void)',
-          isCorrect: true,
-          feedbackText: '7 Crystal + 3 Ember = 10 non-void elements out of 20 = 10/20 = 50%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 10, denominator: 20, percentage: '50.0%' },
-          label: '7 / 20 = 35% (Crystal only)',
-          isCorrect: false,
-          feedbackText: 'Ember is also not void.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 3, denominator: 20, percentage: '15.0%' },
-          label: '3 / 20 = 15% (Ember only)',
-          isCorrect: false,
-          feedbackText: 'Crystal is also not void.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 17, denominator: 20, percentage: '85.0%' },
-          label: '17 / 20 = 85%',
-          isCorrect: false,
-          feedbackText: 'There are 10 non-void elements, not 17.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Non-void items = 7 + 3 = 10. P(Not Void) = 10/20 = 1/2 = 50%.',
-      points: 150,
-      goldTickets: 2,
-    },
-  ],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 5. CARNIVAL GAME BUILDER (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'game-builder': [
-    {
-      id: 'build_01',
-      activityId: 'game-builder',
-      bloomLevel: 'create',
-      missionTitle: 'CONSTRUCT A WINNING GAME: 3/10',
-      prompt: 'Construct a carnival pegboard game with 10 slots where the probability of a player winning a prize is exactly 3/10 (30%). How many WINNING slots must be placed?',
-      helperNote: 'Total slots = 10. Winning slots = ?',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#16a34a', colorName: 'Win', count: 3 },
-          { color: '#dc2626', colorName: 'Try Again', count: 7 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 3, denominator: 10, percentage: '30.0%', decimal: 0.3 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 3, denominator: 10, percentage: '30.0%' },
-          label: '3 Winning Slots + 7 Losing Slots (10 Total)',
-          isCorrect: true,
-          feedbackText: '3 Winning slots out of 10 = 3/10 = 30%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 4, denominator: 10, percentage: '40.0%' },
-          label: '4 Winning Slots + 6 Losing Slots (10 Total)',
-          isCorrect: false,
-          feedbackText: 'This gives P(Win) = 4/10 = 40%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 1, denominator: 3, percentage: '33.3%' },
-          label: '1 Winning Slot + 2 Losing Slots (3 Total)',
-          isCorrect: false,
-          feedbackText: 'The board requires 10 slots in total.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 7, denominator: 10, percentage: '70.0%' },
-          label: '7 Winning Slots + 3 Losing Slots (10 Total)',
-          isCorrect: false,
-          feedbackText: 'This gives 70% win chance, which is too high.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '3 winning slots out of 10 total slots satisfies P(Win) = 3/10 = 30%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'build_02',
-      activityId: 'game-builder',
-      bloomLevel: 'apply',
-      missionTitle: 'DESIGNING A 1/6 ODDS BOARD',
-      prompt: 'You are building a 12-slot prize board. To make the probability of winning a plush bear exactly 1/6, how many WINNING slots should you build?',
-      helperNote: 'Calculate 1/6 of 12 slots: 12 × (1/6) = ?',
-      setup: {
-        totalItems: 12,
-        items: [
-          { color: '#16a34a', colorName: 'Win Plush Bear', count: 2 },
-          { color: '#dc2626', colorName: 'No Prize', count: 10 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 1, denominator: 6, percentage: '16.7%', decimal: 0.167 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 2, denominator: 12, percentage: '16.7%' },
-          label: '2 Winning Slots (2 / 12 = 1 / 6)',
-          isCorrect: true,
-          feedbackText: '2 winning slots out of 12 = 2/12 = 1/6 ≈ 16.7%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 12, percentage: '8.3%' },
-          label: '1 Winning Slot (1 / 12)',
-          isCorrect: false,
-          feedbackText: '1/12 is half of 1/6.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 6, denominator: 12, percentage: '50.0%' },
-          label: '6 Winning Slots (1 / 2)',
-          isCorrect: false,
-          feedbackText: '6/12 is 50%, not 1/6.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 3, denominator: 12, percentage: '25.0%' },
-          label: '3 Winning Slots (1 / 4)',
-          isCorrect: false,
-          feedbackText: '3/12 = 1/4 = 25%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '1/6 of 12 slots = 2 winning slots. P(Win) = 2/12 = 1/6 ≈ 16.7%.',
-      points: 100,
-      goldTickets: 1,
-    },
-    {
-      id: 'build_03',
-      activityId: 'game-builder',
-      bloomLevel: 'analyze',
-      missionTitle: 'JACKPOT VS MINOR PRIZE SLOTS',
-      prompt: 'A carnival wheel has 20 slots: 1 GRAND JACKPOT, 4 MINOR PRIZES, and 15 NO PRIZE. What is the probability that a player wins ANY prize?',
-      helperNote: 'Total prize slots = 1 (Grand) + 4 (Minor) = 5 prize slots out of 20 total.',
-      setup: {
-        totalItems: 20,
-        items: [
-          { color: '#f59e0b', colorName: 'Grand Jackpot', count: 1 },
-          { color: '#3b82f6', colorName: 'Minor Prize', count: 4 },
-          { color: '#64748b', colorName: 'No Prize', count: 15 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 1, denominator: 4, percentage: '25.0%', decimal: 0.25 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 20, percentage: '25.0%' },
-          label: '5 / 20 = 1 / 4 (25% Any Prize)',
-          isCorrect: true,
-          feedbackText: '1 Jackpot + 4 Minor = 5 winning slots out of 20 = 5/20 = 25%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 20, percentage: '5.0%' },
-          label: '1 / 20 = 5% (Grand Jackpot only)',
-          isCorrect: false,
-          feedbackText: 'This ignores the 4 minor prizes.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 4, denominator: 20, percentage: '20.0%' },
-          label: '4 / 20 = 20% (Minor Prize only)',
-          isCorrect: false,
-          feedbackText: 'This ignores the grand jackpot.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 15, denominator: 20, percentage: '75.0%' },
-          label: '15 / 20 = 75% (No Prize)',
-          isCorrect: false,
-          feedbackText: '15/20 is the probability of winning nothing.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Total winning slots = 1 + 4 = 5. P(Any Prize) = 5/20 = 1/4 = 25%.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'build_04',
-      activityId: 'game-builder',
-      bloomLevel: 'apply',
-      missionTitle: 'DOUBLING WINNING CHANCES',
-      prompt: 'A game currently has 2 winning slots out of 10 (20%). To DOUBLE the probability of winning to 40% while keeping 10 total slots, what change is needed?',
-      helperNote: 'Target: 40% of 10 slots = 4 winning slots.',
-      setup: {
-        totalItems: 10,
-        items: [
-          { color: '#16a34a', colorName: 'Win', count: 4 },
-          { color: '#dc2626', colorName: 'Loss', count: 6 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 4, denominator: 10, percentage: '40.0%', decimal: 0.4 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 4, denominator: 10, percentage: '40.0%' },
-          label: 'Replace 2 losing slots with 2 winning slots (4 Wins / 10)',
-          isCorrect: true,
-          feedbackText: 'Changing to 4 winning slots out of 10 gives 4/10 = 40%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 3, denominator: 10, percentage: '30.0%' },
-          label: 'Add 1 winning slot (3 Wins / 10 = 30%)',
-          isCorrect: false,
-          feedbackText: '3/10 is only 30%, not double (40%).',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 5, denominator: 10, percentage: '50.0%' },
-          label: 'Make 5 winning slots (50%)',
-          isCorrect: false,
-          feedbackText: '5/10 is 50%, not 40%.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 2, denominator: 5, percentage: '40.0%' },
-          label: 'Remove 5 losing slots (2 Wins / 5 Total)',
-          isCorrect: false,
-          feedbackText: 'The board must keep 10 total slots.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '40% of 10 slots = 4 winning slots. Replace 2 losing slots to have 4 winning slots total.',
-      points: 120,
-      goldTickets: 1,
-    },
-    {
-      id: 'build_05',
-      activityId: 'game-builder',
-      bloomLevel: 'create',
-      missionTitle: 'EQUALIZING A BIASED BOARD',
-      prompt: 'A carnival board has 9 losing slots and only 1 winning slot (10 total). To transform this into a FAIR 50/50 game without removing slots, how many winning slots must be ADDED?',
-      helperNote: 'If you have 9 losing slots, you need 9 winning slots for a 50/50 chance! 9 - 1 = ?',
-      setup: {
-        totalItems: 18,
-        items: [
-          { color: '#16a34a', colorName: 'Win', count: 9 },
-          { color: '#dc2626', colorName: 'Loss', count: 9 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 1, denominator: 2, percentage: '50.0%', decimal: 0.5 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 9, denominator: 18, percentage: '50.0%' },
-          label: 'Add 8 Winning Slots (9 Wins + 9 Losses = 18 Total = 50%)',
-          isCorrect: true,
-          feedbackText: '1 + 8 = 9 winning slots. 9 wins out of 18 slots = 50% (Fair Game).',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 5, denominator: 14, percentage: '35.7%' },
-          label: 'Add 4 Winning Slots (5 Wins / 14 Total)',
-          isCorrect: false,
-          feedbackText: '5/14 is only 35.7%, not 50%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 9, denominator: 10, percentage: '90.0%' },
-          label: 'Add 9 Winning Slots (10 Wins / 19 Total)',
-          isCorrect: false,
-          feedbackText: '10/19 ≈ 52.6%, not exactly 50%.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 2, percentage: '50.0%' },
-          label: 'Add 1 Winning Slot',
-          isCorrect: false,
-          feedbackText: '2 wins out of 11 is only 18.2%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'There are 9 losing slots, so we need 9 winning slots. Since 1 already exists, add 8 winning slots (9/18 = 50%).',
-      points: 150,
-      goldTickets: 2,
-    },
-  ],
-
-  // ═══════════════════════════════════════════════════════════════════
-  // 6. GRAND CARNIVAL FINALE (5 Challenges)
-  // ═══════════════════════════════════════════════════════════════════
-  'grand-carnival': [
-    {
-      id: 'grand_01',
-      activityId: 'grand-carnival',
-      bloomLevel: 'evaluate',
-      missionTitle: 'THE GRAND CARNIVAL COMPARISON',
-      prompt:
-        'Compare three carnival prize games:\n• Game A: 4 wins out of 10 (4/10)\n• Game B: 1 win out of 3 (1/3)\n• Game C: 2 wins out of 5 (2/5)\nWhich game gives you the LOWEST probability of winning?',
-      helperNote: 'Convert all fractions to percentages to compare accurately!',
-      setup: {
-        totalItems: 3,
-        items: [
-          { color: '#dc2626', colorName: 'Game B (1/3)', count: 1 },
-          { color: '#2563eb', colorName: 'Game A (4/10)', count: 1 },
-          { color: '#16a34a', colorName: 'Game C (2/5)', count: 1 },
-        ],
-        targetColor: '#dc2626',
-        theoreticalFraction: { numerator: 1, denominator: 3, percentage: '33.3%', decimal: 0.333 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 1, denominator: 3, percentage: '33.3%' },
-          label: 'Game B (1/3 ≈ 33.3% is lower than 40%)',
-          isCorrect: true,
-          feedbackText: 'Game A = 40%, Game C = 40%, but Game B = 33.3% (Lowest!).',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 4, denominator: 10, percentage: '40.0%' },
-          label: 'Game A (4/10 = 40%)',
-          isCorrect: false,
-          feedbackText: '4/10 = 40%, which is higher than Game B (33.3%).',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 2, denominator: 5, percentage: '40.0%' },
-          label: 'Game C (2/5 = 40%)',
-          isCorrect: false,
-          feedbackText: '2/5 = 40%, which is tied with Game A.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 3, denominator: 3, percentage: '100%' },
-          label: 'All games have equal winning chances',
-          isCorrect: false,
-          feedbackText: 'Game B is 33.3% while Games A & C are 40%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '4/10 = 40% and 2/5 = 40%. Game B is 1/3 ≈ 33.3%, which is the lowest probability of winning.',
-      points: 150,
-      goldTickets: 2,
-    },
-    {
-      id: 'grand_02',
-      activityId: 'grand-carnival',
-      bloomLevel: 'apply',
-      missionTitle: 'TICKET VALUE EXPECTATION',
-      prompt: 'A carnival attraction costs 1 token to play. You have a 1/5 (20%) chance of winning 10 tokens, and 4/5 (80%) chance of winning 0 tokens. What is the expected token payout per play?',
-      helperNote: 'Expected Value = (1/5 × 10) + (4/5 × 0) = ?',
-      setup: {
-        totalItems: 5,
-        items: [
-          { color: '#f59e0b', colorName: '10 Tokens Win', count: 1 },
-          { color: '#64748b', colorName: '0 Tokens', count: 4 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 2, denominator: 1, percentage: '200%', decimal: 2.0 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 2, denominator: 1, percentage: '2 Tokens' },
-          label: '2 Tokens Expected Payout ((1/5 × 10) = 2)',
-          isCorrect: true,
-          feedbackText: '1/5 of 10 tokens = 2 tokens average payout per play.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 1, denominator: 1, percentage: '1 Token' },
-          label: '1 Token Expected Payout',
-          isCorrect: false,
-          feedbackText: '1/5 × 10 = 2, not 1.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 10, denominator: 1, percentage: '10 Tokens' },
-          label: '10 Tokens Expected Payout',
-          isCorrect: false,
-          feedbackText: 'You do not win 10 tokens on every play.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 0, denominator: 1, percentage: '0 Tokens' },
-          label: '0 Tokens Expected Payout',
-          isCorrect: false,
-          feedbackText: 'The average payout is positive.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Expected Value = (1/5 × 10) + (4/5 × 0) = 2 + 0 = 2 tokens per play.',
-      points: 150,
-      goldTickets: 2,
-    },
-    {
-      id: 'grand_03',
-      activityId: 'grand-carnival',
-      bloomLevel: 'analyze',
-      missionTitle: 'INDEPENDENT DUAL SPINNER',
-      prompt: 'In a 2-stage carnival challenge, you spin Spinner A (1/2 chance of Gold) and Spinner B (1/3 chance of Star). What is the probability of winning BOTH (Gold AND Star)?',
-      helperNote: 'For independent events: P(A and B) = P(A) × P(B)',
-      setup: {
-        totalItems: 6,
-        items: [
-          { color: '#f59e0b', colorName: 'Both Gold & Star', count: 1 },
-          { color: '#64748b', colorName: 'Other Outcomes', count: 5 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 1, denominator: 6, percentage: '16.7%', decimal: 0.167 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 1, denominator: 6, percentage: '16.7%' },
-          label: '1 / 6 (1/2 × 1/3 = 1/6 ≈ 16.7%)',
-          isCorrect: true,
-          feedbackText: 'Multiply probabilities: 1/2 × 1/3 = 1/6 ≈ 16.7%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 5, denominator: 6, percentage: '83.3%' },
-          label: '5 / 6 (1/2 + 1/3)',
-          isCorrect: false,
-          feedbackText: 'Probabilities of independent compound events multiply, not add.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 1, denominator: 5, percentage: '20.0%' },
-          label: '1 / 5 (2 + 3 = 5)',
-          isCorrect: false,
-          feedbackText: 'Sample space is 2 × 3 = 6 possible outcomes.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 2, denominator: 3, percentage: '66.7%' },
-          label: '2 / 3 (66.7% Chance)',
-          isCorrect: false,
-          feedbackText: 'Winning both is less likely than winning either one alone.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'P(Gold AND Star) = P(Gold) × P(Star) = (1/2) × (1/3) = 1/6 ≈ 16.7%.',
-      points: 180,
-      goldTickets: 2,
-    },
-    {
-      id: 'grand_04',
-      activityId: 'grand-carnival',
-      bloomLevel: 'evaluate',
-      missionTitle: 'HIGHEST CHANCE ATTRACTION',
-      prompt: 'You have only one gold ticket remaining! Which attraction gives the HIGHEST probability of winning:\n• Attraction X: 7 wins in 12 plays (7/12 ≈ 58.3%)\n• Attraction Y: 3 wins in 5 plays (3/5 = 60.0%)\n• Attraction Z: 5 wins in 8 plays (5/8 = 62.5%)',
-      helperNote: 'Compare: 58.3% vs 60.0% vs 62.5%',
-      setup: {
-        totalItems: 3,
-        items: [
-          { color: '#16a34a', colorName: 'Attraction Z (5/8)', count: 1 },
-          { color: '#2563eb', colorName: 'Attraction Y (3/5)', count: 1 },
-          { color: '#ea580c', colorName: 'Attraction X (7/12)', count: 1 },
-        ],
-        targetColor: '#16a34a',
-        theoreticalFraction: { numerator: 5, denominator: 8, percentage: '62.5%', decimal: 0.625 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 5, denominator: 8, percentage: '62.5%' },
-          label: 'Attraction Z (5/8 = 62.5% is the Highest)',
-          isCorrect: true,
-          feedbackText: '5/8 = 62.5% > 3/5 (60%) > 7/12 (58.3%). Attraction Z is the best!',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 3, denominator: 5, percentage: '60.0%' },
-          label: 'Attraction Y (3/5 = 60%)',
-          isCorrect: false,
-          feedbackText: '60.0% is less than 62.5%.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 7, denominator: 12, percentage: '58.3%' },
-          label: 'Attraction X (7/12 ≈ 58.3%)',
-          isCorrect: false,
-          feedbackText: '58.3% is the lowest of the three.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 1, denominator: 1, percentage: '100%' },
-          label: 'All attractions have identical winning odds',
-          isCorrect: false,
-          feedbackText: 'The probabilities are 58.3%, 60.0%, and 62.5%.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: '7/12 ≈ 58.3%, 3/5 = 60.0%, and 5/8 = 62.5%. Attraction Z offers the highest probability.',
-      points: 180,
-      goldTickets: 2,
-    },
-    {
-      id: 'grand_05',
-      activityId: 'grand-carnival',
-      bloomLevel: 'create',
-      missionTitle: 'CARNIVAL GRAND MASTER RIDDLE',
-      prompt: 'A master bag contains 30 balls in 4 colors. P(Red) = 1/3, P(Blue) = 2/5, P(Green) = 1/6, and the remaining balls are GOLD. What is the probability of drawing a GOLD ball?',
-      helperNote: 'Find common denominator (30): Red = 10/30, Blue = 12/30, Green = 5/30. Gold = ?',
-      setup: {
-        totalItems: 30,
-        items: [
-          { color: '#dc2626', colorName: 'Red', count: 10 },
-          { color: '#2563eb', colorName: 'Blue', count: 12 },
-          { color: '#16a34a', colorName: 'Green', count: 5 },
-          { color: '#f59e0b', colorName: 'Gold', count: 3 },
-        ],
-        targetColor: '#f59e0b',
-        theoreticalFraction: { numerator: 1, denominator: 10, percentage: '10.0%', decimal: 0.1 },
-      },
-      choices: [
-        {
-          id: 'a',
-          fraction: { numerator: 3, denominator: 30, percentage: '10.0%' },
-          label: '3 / 30 = 1 / 10 (10% Gold Balls)',
-          isCorrect: true,
-          feedbackText: '10 (Red) + 12 (Blue) + 5 (Green) = 27 balls. 30 - 27 = 3 Gold balls = 3/30 = 10%.',
-        },
-        {
-          id: 'b',
-          fraction: { numerator: 5, denominator: 30, percentage: '16.7%' },
-          label: '5 / 30 = 1 / 6 (Green chance)',
-          isCorrect: false,
-          feedbackText: '5/30 is the probability of Green.',
-        },
-        {
-          id: 'c',
-          fraction: { numerator: 2, denominator: 30, percentage: '6.7%' },
-          label: '2 / 30 (6.7% Chance)',
-          isCorrect: false,
-          feedbackText: '30 - (10 + 12 + 5) = 3 Gold balls, not 2.',
-        },
-        {
-          id: 'd',
-          fraction: { numerator: 4, denominator: 30, percentage: '13.3%' },
-          label: '4 / 30 (13.3% Chance)',
-          isCorrect: false,
-          feedbackText: '30 - 27 = 3 balls.',
-        },
-      ],
-      correctAnswerId: 'a',
-      explanation: 'Red = 10, Blue = 12, Green = 5. Total = 27 balls. Remaining Gold = 30 - 27 = 3 balls. P(Gold) = 3/30 = 1/10 = 10%.',
-      points: 200,
-      goldTickets: 3,
-    },
-  ],
+  'mystery-bag': generateMysteryChestChallenges(110),
+  'odds-wheel': generateOddsWheelChallenges(110),
+  'ball-drop': generateBallDropChallenges(110),
+  'probability-lab': generateProbabilityLabChallenges(110),
+  'game-builder': generateGameBuilderChallenges(110),
+  'grand-carnival': generateGrandCarnivalChallenges(110),
 };
