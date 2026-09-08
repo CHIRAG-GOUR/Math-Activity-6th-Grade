@@ -20,12 +20,7 @@ export const ActivityShell: React.FC<{ children?: React.ReactNode }> = ({ childr
   return (
     <>
       {/* ── Strict Two-Team Operator Consoles & Center Overlay ── */}
-      <TwoTeamLayout>
-        {/* Step Guidance Marquee Banner at bottom center */}
-        <div className="w-full flex justify-center mt-auto">
-          <ActivityStatus />
-        </div>
-      </TwoTeamLayout>
+      <TwoTeamLayout />
 
       {/* ── Observation, Reasoning & Flow Modals ── */}
       <FeedbackBanner />
