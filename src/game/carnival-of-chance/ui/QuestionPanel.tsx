@@ -1,12 +1,12 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST QUESTION CARD
-// 100% Solid Yellow Card, 4px Black Outline, 5px Hard Shadow
-// Yellow with Black, Red with White & Black Carnival Palette
+// Compact, Non-Scrolling Layout for 720p - 1080p Viewports
+// 100% Solid Yellow Card, 3.5px Black Outline, 4px Hard Shadow
 // ============================================================
 
 import React from 'react';
 import { ProbabilityChallenge } from '../types';
-import { Star } from 'lucide-react';
+import { Star, Target } from 'lucide-react';
 
 interface QuestionPanelProps {
   challenge: ProbabilityChallenge;
@@ -22,29 +22,29 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
     <div
       style={{
         backgroundColor: '#FED500',
-        border: '4px solid #000000',
-        boxShadow: '5px 5px 0px #000000',
-        borderRadius: '16px',
+        border: '3.5px solid #000000',
+        boxShadow: '4px 4px 0px #000000',
+        borderRadius: '14px',
         color: '#000000',
       }}
-      className="w-full p-2.5 sm:p-3 text-left flex flex-col gap-2 select-none shrink-0"
+      className="w-full p-2 sm:p-2.5 text-left flex flex-col gap-1 sm:gap-1.5 select-none shrink-0"
     >
-      {/* ── Top Strip: Red Challenge Badge & White Points Stamp ── */}
-      <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1.5">
+      {/* ── Top Strip: Challenge Badge & Points Stamp ── */}
+      <div className="flex items-center justify-between gap-1.5 border-b-2 border-black pb-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <div
             style={{
               backgroundColor: '#FF2A6D',
               border: '2px solid #000000',
-              boxShadow: '2px 2px 0px #000000',
-              borderRadius: '8px',
+              boxShadow: '1.5px 1.5px 0px #000000',
+              borderRadius: '6px',
               color: '#FFFFFF',
             }}
-            className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0"
+            className="px-1.5 py-0.2 text-[9px] font-black uppercase tracking-wider shrink-0"
           >
             CHALLENGE
           </div>
-          <span className="text-[11px] sm:text-xs font-black uppercase tracking-wide text-black truncate">
+          <span className="text-[10px] sm:text-[11px] font-black uppercase tracking-wide text-black truncate">
             {challenge.missionTitle}
           </span>
         </div>
@@ -53,27 +53,27 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
           style={{
             backgroundColor: '#FFFFFF',
             border: '2px solid #000000',
-            boxShadow: '2px 2px 0px #000000',
-            borderRadius: '8px',
+            boxShadow: '1.5px 1.5px 0px #000000',
+            borderRadius: '6px',
           }}
-          className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-black text-black shrink-0"
+          className="flex items-center gap-1 px-1.5 py-0.2 text-[9px] font-black text-black shrink-0"
         >
-          <Star className="w-3 h-3 fill-[#FED500] text-black" />
+          <Star className="w-2.5 h-2.5 fill-[#FED500] text-black" />
           <span>+{challenge.points} PTS</span>
         </div>
       </div>
 
-      {/* ── Setup Counts Breakdown Ribbon (White card with black outlines) ── */}
+      {/* ── Setup Counts Breakdown Ribbon ── */}
       {setup && setup.items && setup.items.length > 0 && (
         <div
           style={{
             backgroundColor: '#FFFFFF',
-            border: '2px solid #000000',
-            borderRadius: '10px',
+            border: '1.5px solid #000000',
+            borderRadius: '8px',
           }}
-          className="flex items-center gap-1.5 flex-wrap py-1 px-2"
+          className="flex items-center gap-1 flex-wrap py-0.5 px-1.5"
         >
-          <span className="text-[9px] font-black uppercase tracking-wider text-black mr-1">
+          <span className="text-[8px] sm:text-[9px] font-black uppercase tracking-wider text-black mr-0.5">
             TOTAL {setup.totalItems}:
           </span>
           {setup.items.map((it, idx) => (
@@ -81,13 +81,13 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
               key={idx}
               style={{
                 backgroundColor: '#FFF7E5',
-                border: '1.5px solid #000000',
-                borderRadius: '6px',
+                border: '1px solid #000000',
+                borderRadius: '5px',
               }}
-              className="flex items-center gap-1 px-1.5 py-0.5 text-[9px] font-black text-black"
+              className="flex items-center gap-1 px-1 py-0.2 text-[8px] font-black text-black"
             >
               <div
-                className="w-2.5 h-2.5 rounded-full border border-black"
+                className="w-2 h-2 rounded-full border border-black"
                 style={{ backgroundColor: it.color }}
               />
               <span>
@@ -98,25 +98,27 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
         </div>
       )}
 
-      {/* ── Main Problem Narration with Pre-Line Multi-Line Support ── */}
-      <div className="text-[12px] sm:text-[13px] font-black text-black leading-snug whitespace-pre-line">
+      {/* ── Main Problem Narration ── */}
+      <div className="text-[11px] sm:text-xs font-black text-black leading-tight">
         {formattedPrompt}
       </div>
 
-      {/* ── Optional Helper Hint (Red with White) ── */}
-      {challenge.helperNote && (
-        <div
-          style={{
-            backgroundColor: '#FFF7E5',
-            border: '2px solid #000000',
-            boxShadow: '2px 2px 0px #000000',
-            borderRadius: '8px',
-          }}
-          className="text-[10px] font-black text-black px-2 py-1 leading-tight"
-        >
-          💡 {challenge.helperNote}
-        </div>
-      )}
+      {/* ── Direct Operator Action Banner ── */}
+      <div
+        style={{
+          backgroundColor: '#FFFFFF',
+          border: '1.5px solid #000000',
+          borderRadius: '6px',
+          boxShadow: '1.5px 1.5px 0px #000000',
+        }}
+        className="flex items-center gap-1 px-1.5 py-0.5 text-[8.5px] sm:text-[9px] font-black text-black"
+      >
+        <Target className="w-3 h-3 text-[#FF2A6D] shrink-0" />
+        <span className="tracking-tight text-black truncate">
+          Answer correctly and find the ball from correct box!
+        </span>
+      </div>
     </div>
   );
 };
+

@@ -1,6 +1,6 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST OPERATOR CONSOLE
-// Clean, Non-Colliding Layout with Guaranteed Solid Colors & 4-5px Outlines
+// Clean, Zero-Scrollbar Layout with Guaranteed Solid Colors & 4-5px Outlines
 // Phase-Aware Dynamic Flow:
 // - PREDICTING: Shows Question Card, Answer Push Buttons & Submit Actuator
 // - OPERATING (Action): HIDES Questions & Choices to give 100% unobstructed 3D machine view!
@@ -26,7 +26,7 @@ interface TeamConsoleProps {
 const ACTION_LABELS: Record<ActivityId, string> = {
   hub: 'LOCK IN PREDICTION',
   'odds-wheel': 'SPIN THE 3D WHEEL',
-  'mystery-bag': 'PULL DRAWSTRING & DRAW',
+  'mystery-bag': 'OPEN CHEST & DRAW BALL',
   'ball-drop': 'RELEASE PACHINKO BALL',
   'probability-lab': 'TEST LABORATORY CHAMBER',
   'game-builder': 'LAUNCH TEST TOKEN',
@@ -79,45 +79,45 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
     <div
       style={{
         backgroundColor: isBlue ? '#2563EB' : '#FF2A6D',
-        border: '4.5px solid #000000',
-        boxShadow: '6px 6px 0px #000000',
-        borderRadius: '22px',
+        border: '4px solid #000000',
+        boxShadow: '5px 5px 0px #000000',
+        borderRadius: '20px',
       }}
-      className="w-full h-full p-2 sm:p-2.5 select-none flex flex-col justify-between overflow-hidden"
+      className="w-full h-full p-1.5 sm:p-2 select-none flex flex-col justify-between overflow-hidden"
     >
       {/* ── LAYER 2: SOLID OPAQUE CREAM INNER CONTAINER (3.5px Black Outline) ── */}
       <div
         style={{
           backgroundColor: '#FFF7E5',
-          border: '3.5px solid #000000',
-          boxShadow: '3px 3px 0px #000000',
-          borderRadius: '16px',
+          border: '3px solid #000000',
+          boxShadow: '2.5px 2.5px 0px #000000',
+          borderRadius: '14px',
         }}
-        className="w-full h-full p-2.5 sm:p-3 flex flex-col justify-between overflow-y-auto"
+        className="w-full h-full p-1.5 sm:p-2 flex flex-col justify-between overflow-hidden"
       >
         {/* ── HEADER STRIP: TEAM BADGE & TICKETS (Yellow with Black Card) ── */}
         <div
           style={{
             backgroundColor: '#FED500',
-            border: '3px solid #000000',
-            boxShadow: '3px 3px 0px #000000',
-            borderRadius: '12px',
+            border: '2.5px solid #000000',
+            boxShadow: '2px 2px 0px #000000',
+            borderRadius: '10px',
           }}
-          className="w-full py-1.5 px-2.5 flex items-center justify-between shrink-0"
+          className="w-full h-[32px] sm:h-[36px] px-2 flex items-center justify-between shrink-0"
         >
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-center gap-1.5 min-w-0">
             <div
               style={{
                 backgroundColor: isBlue ? '#2563EB' : '#FF2A6D',
-                border: '2px solid #000000',
-                boxShadow: '1.5px 1.5px 0px #000000',
-                borderRadius: '8px',
+                border: '1.5px solid #000000',
+                boxShadow: '1px 1px 0px #000000',
+                borderRadius: '6px',
               }}
-              className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center font-black text-xs sm:text-sm text-white shrink-0"
+              className="w-5 h-5 sm:w-6 sm:h-6 flex items-center justify-center font-black text-[11px] sm:text-xs text-white shrink-0"
             >
               {isBlue ? 'B' : 'R'}
             </div>
-            <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-black truncate">
+            <span className="text-[11px] sm:text-xs font-black uppercase tracking-wider text-black truncate">
               {isBlue ? 'BLUE OPERATOR' : 'RED OPERATOR'}
             </span>
           </div>
@@ -126,13 +126,13 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
           <div
             style={{
               backgroundColor: '#FFFFFF',
-              border: '2px solid #000000',
-              boxShadow: '1.5px 1.5px 0px #000000',
-              borderRadius: '8px',
+              border: '1.5px solid #000000',
+              boxShadow: '1px 1px 0px #000000',
+              borderRadius: '6px',
             }}
-            className="flex items-center gap-1 px-2 py-0.5 font-black text-xs text-black shrink-0"
+            className="flex items-center gap-1 px-1.5 py-0.2 font-black text-[10px] sm:text-xs text-black shrink-0"
           >
-            <Ticket className="w-3.5 h-3.5 fill-[#FED500] text-black" />
+            <Ticket className="w-3 h-3 fill-[#FED500] text-black" />
             <span>{teamState.goldTickets}</span>
           </div>
         </div>
@@ -141,7 +141,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             PHASE 1: PREDICTING — QUESTION + ANSWER CARDS + SUBMIT ACTUATOR
             ═════════════════════════════════════════════════════════════ */}
         {isPredicting && (
-          <div className="flex-1 flex flex-col justify-between gap-2 my-2 min-h-0">
+          <div className="flex-1 flex flex-col justify-between gap-1 sm:gap-1.5 my-1 min-h-0 overflow-hidden">
             {/* Question Panel Card (Yellow with Black) */}
             {activeChallenge && <QuestionPanel challenge={activeChallenge} />}
 
@@ -153,13 +153,13 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                 transition={{ repeat: Infinity, duration: 1 }}
                 style={{
                   backgroundColor: '#FED500',
-                  border: '2.5px solid #000000',
-                  boxShadow: '2px 2px 0px #000000',
-                  borderRadius: '10px',
+                  border: '2px solid #000000',
+                  boxShadow: '1.5px 1.5px 0px #000000',
+                  borderRadius: '8px',
                 }}
-                className="py-1 px-2 text-center shrink-0"
+                className="py-0.5 px-1.5 text-center shrink-0"
               >
-                <span className="text-[10px] font-black uppercase tracking-wider text-black">
+                <span className="text-[9px] font-black uppercase tracking-wider text-black">
                   ⚡ REBOUND CHANCE — ANSWER FIRST TO STEAL!
                 </span>
               </motion.div>
@@ -170,21 +170,21 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               <div
                 style={{
                   backgroundColor: '#FF2A6D',
-                  border: '2.5px solid #000000',
-                  boxShadow: '2px 2px 0px #000000',
-                  borderRadius: '10px',
+                  border: '2px solid #000000',
+                  boxShadow: '1.5px 1.5px 0px #000000',
+                  borderRadius: '8px',
                   color: '#FFFFFF',
                 }}
-                className="py-1 px-2 text-center shrink-0"
+                className="py-0.5 px-1.5 text-center shrink-0"
               >
-                <span className="text-[10px] font-black uppercase tracking-wider text-white">
+                <span className="text-[9px] font-black uppercase tracking-wider text-white">
                   ❌ LOCKED OUT — REBOUND ACTIVE FOR 2ND PLAYER
                 </span>
               </div>
             )}
 
             {/* Answer Options Push Cards Stack */}
-            <div className="flex flex-col gap-1.5 my-auto shrink-0">
+            <div className="flex flex-col gap-1 my-auto shrink-0">
               {activeChallenge?.choices.map((choice) => (
                 <AnswerButton
                   key={choice.id}
@@ -220,20 +220,20 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex-1 flex flex-col justify-center items-center text-center p-3 gap-3 my-auto"
+            className="flex-1 flex flex-col justify-center items-center text-center p-2 gap-2 my-auto overflow-hidden"
           >
             {/* Prediction Locked Preview Card (Yellow with Black) */}
             <div
               style={{
                 backgroundColor: '#FED500',
-                border: '3.5px solid #000000',
-                boxShadow: '4px 4px 0px #000000',
-                borderRadius: '16px',
+                border: '3px solid #000000',
+                boxShadow: '3px 3px 0px #000000',
+                borderRadius: '12px',
                 color: '#000000',
               }}
-              className="w-full p-3.5 flex flex-col items-center gap-1.5"
+              className="w-full p-2.5 flex flex-col items-center gap-1"
             >
-              <span className="text-[10px] font-black uppercase tracking-wider text-black opacity-75">
+              <span className="text-[9px] font-black uppercase tracking-wider text-black opacity-75">
                 LOCKED PREDICTION
               </span>
               {selectedChoice && (
@@ -241,14 +241,14 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                   <div
                     style={{
                       backgroundColor: '#FFFFFF',
-                      border: '2px solid #000000',
-                      borderRadius: '8px',
-                      padding: '2px 6px',
+                      border: '1.5px solid #000000',
+                      borderRadius: '6px',
+                      padding: '1px 5px',
                     }}
                   >
                     <MathFractionDisplay fraction={selectedChoice.fraction} size="sm" />
                   </div>
-                  <span className="text-xs font-black text-black">
+                  <span className="text-[11px] font-black text-black">
                     {selectedChoice.label}
                   </span>
                 </div>
@@ -259,21 +259,21 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             <div
               style={{
                 backgroundColor: '#FF2A6D',
-                border: '3.5px solid #000000',
-                boxShadow: '4px 4px 0px #000000',
-                borderRadius: '16px',
+                border: '3px solid #000000',
+                boxShadow: '3px 3px 0px #000000',
+                borderRadius: '12px',
                 color: '#FFFFFF',
               }}
-              className="w-full p-4 flex flex-col items-center gap-1.5 animate-pulse"
+              className="w-full p-3 flex flex-col items-center gap-1 animate-pulse"
             >
-              <div className="flex items-center gap-2">
-                <Eye className="w-5 h-5 stroke-[3] text-white" />
+              <div className="flex items-center gap-1.5">
+                <Eye className="w-4 h-4 stroke-[3] text-white" />
                 <span className="text-xs font-black uppercase tracking-wider text-white">
                   WATCH THE 3D MACHINE
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-white opacity-90">
-                Physical random experiment in progress...
+              <span className="text-[9px] font-bold text-white opacity-90">
+                Opening winning box & revealing ball...
               </span>
             </div>
           </motion.div>
@@ -286,36 +286,36 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="flex-1 flex flex-col justify-center items-center text-center p-3 gap-3 my-auto"
+            className="flex-1 flex flex-col justify-center items-center text-center p-2 gap-2 my-auto overflow-hidden"
           >
             {/* Correct or Incorrect Team Badge */}
             <div
               style={{
                 backgroundColor: teamState.isCorrect ? '#00F0A8' : '#FF2A6D',
-                border: '4px solid #000000',
-                boxShadow: '5px 5px 0px #000000',
-                borderRadius: '18px',
+                border: '3.5px solid #000000',
+                boxShadow: '4px 4px 0px #000000',
+                borderRadius: '14px',
                 color: teamState.isCorrect ? '#000000' : '#FFFFFF',
               }}
-              className="w-full p-4 flex flex-col items-center gap-2"
+              className="w-full p-3 flex flex-col items-center gap-1.5"
             >
               {teamState.isCorrect ? (
                 <>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle2 className="w-6 h-6 stroke-[3.5] text-black" />
-                    <span className="text-sm font-black uppercase tracking-wider">
+                  <div className="flex items-center gap-1">
+                    <CheckCircle2 className="w-5 h-5 stroke-[3.5] text-black" />
+                    <span className="text-xs font-black uppercase tracking-wider">
                       PREDICTION ACCURATE!
                     </span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1.5">
                     <div
                       style={{
                         backgroundColor: '#FED500',
-                        border: '2px solid #000000',
-                        boxShadow: '2px 2px 0px #000000',
-                        borderRadius: '8px',
+                        border: '1.5px solid #000000',
+                        boxShadow: '1.5px 1.5px 0px #000000',
+                        borderRadius: '6px',
                       }}
-                      className="px-2.5 py-0.5 text-xs font-black text-black"
+                      className="px-2 py-0.2 text-[10px] font-black text-black"
                     >
                       +{teamState.scoreGained} PTS
                     </div>
@@ -323,12 +323,12 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                       <div
                         style={{
                           backgroundColor: '#FED500',
-                          border: '2px solid #000000',
-                          borderRadius: '8px',
+                          border: '1.5px solid #000000',
+                          borderRadius: '6px',
                         }}
-                        className="flex items-center gap-1 px-2 py-0.5 text-xs font-black text-black"
+                        className="flex items-center gap-0.5 px-1.5 py-0.2 text-[10px] font-black text-black"
                       >
-                        <Flame className="w-3.5 h-3.5 fill-[#FF2A6D] text-[#FF2A6D]" />
+                        <Flame className="w-3 h-3 fill-[#FF2A6D] text-[#FF2A6D]" />
                         <span>{teamState.streak}X STREAK</span>
                       </div>
                     )}
@@ -336,13 +336,13 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                 </>
               ) : (
                 <>
-                  <div className="flex items-center gap-1.5">
-                    <XCircle className="w-6 h-6 stroke-[3.5] text-white" />
-                    <span className="text-sm font-black uppercase tracking-wider">
+                  <div className="flex items-center gap-1">
+                    <XCircle className="w-5 h-5 stroke-[3.5] text-white" />
+                    <span className="text-xs font-black uppercase tracking-wider">
                       TRY AGAIN NEXT TRIAL
                     </span>
                   </div>
-                  <span className="text-[10px] font-bold text-white opacity-90">
+                  <span className="text-[9px] font-bold text-white opacity-90">
                     Review the center reasoning card!
                   </span>
                 </>
@@ -353,17 +353,17 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             <div
               style={{
                 backgroundColor: '#FED500',
-                border: '3.5px solid #000000',
-                boxShadow: '4px 4px 0px #000000',
-                borderRadius: '14px',
+                border: '2.5px solid #000000',
+                boxShadow: '3px 3px 0px #000000',
+                borderRadius: '12px',
                 color: '#000000',
               }}
-              className="w-full p-3 flex items-center justify-between"
+              className="w-full p-2 flex items-center justify-between"
             >
-              <span className="text-xs font-black uppercase text-black">
+              <span className="text-[10px] font-black uppercase text-black">
                 TOTAL SCORE
               </span>
-              <span className="text-base font-black font-mono text-black">
+              <span className="text-sm font-black font-mono text-black">
                 {teamState.score.toLocaleString()} PTS
               </span>
             </div>
@@ -374,18 +374,18 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             PHASE 4: COMPLETED — MASTERED BADGE
             ═════════════════════════════════════════════════════════════ */}
         {isCompleted && (
-          <div className="flex-1 flex flex-col justify-center items-center text-center p-3 gap-2 my-auto">
+          <div className="flex-1 flex flex-col justify-center items-center text-center p-2 gap-1.5 my-auto overflow-hidden">
             <div
               style={{
                 backgroundColor: '#FED500',
-                border: '4px solid #000000',
-                boxShadow: '5px 5px 0px #000000',
-                borderRadius: '18px',
+                border: '3px solid #000000',
+                boxShadow: '4px 4px 0px #000000',
+                borderRadius: '14px',
                 color: '#000000',
               }}
-              className="w-full p-4 flex flex-col items-center gap-1"
+              className="w-full p-3 flex flex-col items-center gap-1"
             >
-              <Sparkles className="w-6 h-6 text-black stroke-[3]" />
+              <Sparkles className="w-5 h-5 text-black stroke-[3]" />
               <span className="text-xs font-black uppercase text-black">
                 ATTRACTION MASTERED!
               </span>
@@ -396,3 +396,4 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
     </div>
   );
 };
+

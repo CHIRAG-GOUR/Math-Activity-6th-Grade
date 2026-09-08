@@ -1,7 +1,6 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST SUBMIT ACTUATOR
-// Massive Physical Action Push Button with Activity-Specific Text & Icons
-// Yellow Active, Mint Green Locked, 4px Black Outlines & 6px Hard Shadows
+// Compact Physical Action Push Button for Zero-Overflow Viewports
 // ============================================================
 
 'use client';
@@ -34,14 +33,14 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
       <div
         style={{
           backgroundColor: '#00F0A8',
-          border: '4px solid #000000',
-          boxShadow: '5px 5px 0px #000000',
-          borderRadius: '16px',
+          border: '3px solid #000000',
+          boxShadow: '3px 3px 0px #000000',
+          borderRadius: '12px',
           color: '#000000',
         }}
-        className="w-full h-[54px] sm:h-[60px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0"
+        className="w-full h-[38px] sm:h-[42px] flex items-center justify-center gap-1.5 font-black text-xs uppercase tracking-wider select-none shrink-0"
       >
-        <CheckCircle2 className="w-5 h-5 stroke-[3.5] text-black" />
+        <CheckCircle2 className="w-4 h-4 stroke-[3.5] text-black" />
         <span>PREDICTION LOCKED!</span>
       </div>
     );
@@ -50,17 +49,17 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
   const activeStyle: React.CSSProperties = isReady && isPredicting
     ? {
         backgroundColor: '#FED500',
-        border: '4px solid #000000',
-        boxShadow: '6px 6px 0px #000000',
-        borderRadius: '16px',
+        border: '3px solid #000000',
+        boxShadow: '3px 3px 0px #000000',
+        borderRadius: '12px',
         color: '#000000',
         cursor: 'pointer',
       }
     : {
         backgroundColor: '#FFF7E5',
-        border: '3px solid #000000',
-        boxShadow: '3px 3px 0px #000000',
-        borderRadius: '16px',
+        border: '2px solid #000000',
+        boxShadow: '2px 2px 0px #000000',
+        borderRadius: '12px',
         color: '#94A3B8',
         cursor: 'not-allowed',
       };
@@ -73,12 +72,13 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
       onPointerDown={onConfirm}
       disabled={disabled}
       style={activeStyle}
-      whileTap={!disabled ? { scale: 0.97, x: 2, y: 2 } : {}}
-      className="w-full h-[54px] sm:h-[60px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
+      whileTap={!disabled ? { scale: 0.98, x: 1, y: 1 } : {}}
+      className="w-full h-[38px] sm:h-[42px] px-3 flex items-center justify-center gap-1.5 font-black text-xs uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
     >
-      <Lock className={`w-4 h-4 stroke-[3] ${isReady ? 'text-black' : 'text-[#94A3B8]'}`} />
+      <Lock className={`w-3.5 h-3.5 stroke-[3] ${isReady ? 'text-black' : 'text-[#94A3B8]'}`} />
       <span className="truncate">{isReady ? actionText : 'CHOOSE AN OPTION'}</span>
-      {isReady && <ArrowRight className="w-4 h-4 stroke-[3.5] text-black shrink-0" />}
+      {isReady && <ArrowRight className="w-3.5 h-3.5 stroke-[3.5] text-black shrink-0" />}
     </motion.button>
   );
 };
+

@@ -66,9 +66,9 @@ export const CARNIVAL_THEME = {
       secondary: '#FFF8E7',
       accent: '#FFC928',
       name: 'MYSTERY CHESTS',
-      subtitle: '3D TREASURE CHEST DRAW',
+      subtitle: '3D MINECRAFT CHEST DRAW',
       tagline: 'DRAW • CALCULATE • OBSERVE',
-      instruction: 'COUNT BALLS IN CHESTS → PREDICT FRACTION → OPEN CHEST → REVEAL BALL',
+      instruction: 'Answer correctly and find the ball from correct box',
     },
     'ball-drop': {
       primary: '#2463EB',

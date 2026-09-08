@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST ANSWER BUTTON
-// 100% Solid Push Cards with Green for Correct and Red for Wrong
-// Turn-based Rebound Support with Instant Visual Feedback
+// Compact Responsive Push Card for Zero-Overflow Viewports
+// Green for Correct, Red for Wrong, Yellow for Selected
 // ============================================================
 
 'use client';
@@ -43,34 +43,34 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
 
   let buttonStyle: React.CSSProperties = {
     backgroundColor: '#FFFFFF',
-    border: '3.5px solid #000000',
-    boxShadow: '4px 4px 0px #000000',
-    borderRadius: '14px',
+    border: '2.5px solid #000000',
+    boxShadow: '2.5px 2.5px 0px #000000',
+    borderRadius: '10px',
     color: '#000000',
   };
 
   if (showCorrect) {
     buttonStyle = {
       backgroundColor: '#00F0A8',
-      border: '4px solid #000000',
-      boxShadow: '5px 5px 0px #000000',
-      borderRadius: '14px',
+      border: '3px solid #000000',
+      boxShadow: '3px 3px 0px #000000',
+      borderRadius: '10px',
       color: '#000000',
     };
   } else if (showWrong) {
     buttonStyle = {
       backgroundColor: '#FF2A6D',
-      border: '4px solid #000000',
-      boxShadow: '5px 5px 0px #000000',
-      borderRadius: '14px',
+      border: '3px solid #000000',
+      boxShadow: '3px 3px 0px #000000',
+      borderRadius: '10px',
       color: '#FFFFFF',
     };
   } else if (isSelected && !isLocked) {
     buttonStyle = {
       backgroundColor: '#FED500',
-      border: '4px solid #000000',
-      boxShadow: '5px 5px 0px #000000',
-      borderRadius: '14px',
+      border: '3px solid #000000',
+      boxShadow: '3px 3px 0px #000000',
+      borderRadius: '10px',
       color: '#000000',
     };
   }
@@ -83,27 +83,33 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       onPointerDown={onSelect}
       disabled={disabled}
       style={buttonStyle}
-      whileTap={!disabled ? { scale: 0.98, x: 2, y: 2 } : {}}
+      whileTap={!disabled ? { scale: 0.98, x: 1, y: 1 } : {}}
       animate={
         showCorrect
-          ? { scale: [1, 0.96, 1.03, 1], transition: { duration: 0.4 } }
+          ? { scale: [1, 0.97, 1.02, 1], transition: { duration: 0.35 } }
           : showWrong
-          ? { x: [0, -4, 4, -4, 4, 0], transition: { duration: 0.35 } }
+          ? { x: [0, -3, 3, -3, 3, 0], transition: { duration: 0.3 } }
           : {}
       }
-      className={`relative w-full h-[52px] sm:h-[58px] px-3 py-1.5 flex items-center justify-between gap-2.5 select-none cursor-pointer touch-manipulation transition-colors ${
+      className={`relative w-full h-[38px] sm:h-[42px] px-2 sm:px-2.5 py-1 flex items-center justify-between gap-1.5 select-none cursor-pointer touch-manipulation transition-colors shrink-0 ${
         disabled && !showCorrect && !showWrong ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
       {/* ── Left: Stacked Fraction Display & Choice Text ── */}
-      <div className="flex-1 min-w-0 text-left flex items-center gap-2.5">
+      <div className="flex-1 min-w-0 text-left flex items-center gap-1.5 sm:gap-2">
         <div
           style={{
-            backgroundColor: showCorrect ? '#FFFFFF' : showWrong ? 'rgba(0,0,0,0.25)' : isSelected ? '#FFFFFF' : '#FED500',
-            border: '2px solid #000000',
-            boxShadow: '1.5px 1.5px 0px #000000',
-            borderRadius: '8px',
-            padding: '2px 6px',
+            backgroundColor: showCorrect
+              ? '#FFFFFF'
+              : showWrong
+              ? 'rgba(0,0,0,0.25)'
+              : isSelected
+              ? '#FFFFFF'
+              : '#FED500',
+            border: '1.5px solid #000000',
+            boxShadow: '1px 1px 0px #000000',
+            borderRadius: '6px',
+            padding: '1px 4px',
           }}
           className="shrink-0"
         >
@@ -111,7 +117,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         </div>
 
         <span
-          className={`text-[11px] sm:text-xs font-black truncate ${
+          className={`text-[10px] sm:text-[11px] font-black truncate ${
             showWrong ? 'text-white' : 'text-black'
           }`}
         >
@@ -125,13 +131,13 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           style={{
             backgroundColor: '#000000',
             color: '#00F0A8',
-            border: '2px solid #000000',
-            borderRadius: '10px',
+            border: '1.5px solid #000000',
+            borderRadius: '6px',
           }}
-          className="flex items-center gap-1 px-2 py-0.5 shrink-0"
+          className="flex items-center gap-0.5 px-1.5 py-0.2 shrink-0"
         >
-          <Check className="w-3.5 h-3.5 text-[#00F0A8] stroke-[3.5]" />
-          <span className="text-[9px] font-black uppercase tracking-wider text-[#00F0A8]">
+          <Check className="w-3 h-3 text-[#00F0A8] stroke-[3.5]" />
+          <span className="text-[8px] font-black uppercase tracking-wider text-[#00F0A8]">
             CORRECT!
           </span>
         </div>
@@ -142,13 +148,13 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           style={{
             backgroundColor: '#000000',
             color: '#FFFFFF',
-            border: '2px solid #000000',
-            borderRadius: '10px',
+            border: '1.5px solid #000000',
+            borderRadius: '6px',
           }}
-          className="flex items-center gap-1 px-2 py-0.5 shrink-0"
+          className="flex items-center gap-0.5 px-1.5 py-0.2 shrink-0"
         >
-          <X className="w-3.5 h-3.5 text-[#FF2A6D] stroke-[3.5]" />
-          <span className="text-[9px] font-black uppercase tracking-wider text-white">
+          <X className="w-3 h-3 text-[#FF2A6D] stroke-[3.5]" />
+          <span className="text-[8px] font-black uppercase tracking-wider text-white">
             WRONG
           </span>
         </div>
@@ -159,14 +165,15 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         <div
           style={{
             backgroundColor: isSelected ? (isBlue ? '#2563EB' : '#FF2A6D') : '#FFFFFF',
-            border: '2.5px solid #000000',
+            border: '2px solid #000000',
             boxShadow: '1px 1px 0px #000000',
           }}
-          className="w-5 h-5 rounded-full flex items-center justify-center shrink-0"
+          className="w-4 h-4 rounded-full flex items-center justify-center shrink-0"
         >
-          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+          {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
         </div>
       )}
     </motion.button>
   );
 };
+
