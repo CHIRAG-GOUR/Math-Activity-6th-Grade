@@ -93,10 +93,14 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
         </div>
       </div>
 
-      {/* ── 2. Rebound Notice or Step Pill ── */}
+      {/* ── 2. Rebound Notice or Attempts Status Pill ── */}
       {isReboundOpportunity ? (
         <div className="px-2.5 py-1 bg-amber-100 border-b border-amber-300 flex items-center justify-center text-[9px] font-black text-amber-900 animate-pulse">
           ⚡ REBOUND CHANCE — ANSWER TO STEAL!
+        </div>
+      ) : !teamState.isLocked && teamState.attemptsLeft === 1 ? (
+        <div className="px-2.5 py-1 bg-amber-100 border-b border-amber-300 flex items-center justify-center text-[9px] font-black text-amber-900 animate-pulse">
+          ⚠️ 1 ATTEMPT REMAINING — TRY AGAIN!
         </div>
       ) : challenge ? (
         <div
@@ -111,9 +115,14 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
             <span>{isTieBreak ? '⚡' : '🚂'}</span>
             <span>{challenge.missionTitle}</span>
           </div>
-          <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-white border border-slate-300 text-slate-800">
-            +{challenge.points}P
-          </span>
+          <div className="flex items-center gap-1">
+            <span className="text-[7.5px] font-black px-1 py-0.2 rounded bg-slate-100 border border-slate-300 text-slate-700">
+              {teamState.attemptsLeft}/2 TRIES
+            </span>
+            <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-white border border-slate-300 text-slate-800">
+              +{challenge.points}P
+            </span>
+          </div>
         </div>
       ) : null}
 

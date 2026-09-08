@@ -1,0 +1,193 @@
+/* ============================================================
+   THE GREAT CARNIVAL OF CHANCE — NEUBRUTALISM DESIGN SYSTEM
+   Exact Match to Reference Images:
+   - 100% Solid Opaque Colors (Yellow #FED500, White #FFFFFF, Blue #3B82F6, Pink #FF2A6D, Mint #00F0A8, Lavender #C4A1FF)
+   - Heavy 4-5px Solid Black Outlines (#000000)
+   - Hard Offset Printed Shadows (box-shadow: 8px 8px 0px #000000)
+   - Zero Transparency, Zero Blur, Zero Washed-out Elements
+   ============================================================ */
+
+/* ── 1. Neubrutalism Card Bases ── */
+.nb-card-white {
+  background-color: #FFFFFF !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+  border-radius: 20px !important;
+  color: #000000 !important;
+}
+
+.nb-card-yellow {
+  background-color: #FED500 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+  border-radius: 20px !important;
+  color: #000000 !important;
+}
+
+.nb-card-blue {
+  background-color: #3B82F6 !important;
+  border: 5px solid #000000 !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+  border-radius: 24px !important;
+  color: #000000 !important;
+}
+
+.nb-card-red {
+  background-color: #FF2A6D !important;
+  border: 5px solid #000000 !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+  border-radius: 24px !important;
+  color: #000000 !important;
+}
+
+.nb-card-cream {
+  background-color: #FFF7E5 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 5px 5px 0px #000000 !important;
+  border-radius: 18px !important;
+  color: #000000 !important;
+}
+
+.nb-card-mint {
+  background-color: #00F0A8 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
+  border-radius: 16px !important;
+  color: #000000 !important;
+}
+
+.nb-card-lavender {
+  background-color: #C4A1FF !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px #000000 !important;
+  border-radius: 16px !important;
+  color: #000000 !important;
+}
+
+/* ── 2. Answer Push Cards ── */
+.nb-btn-option {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 4px 4px 0px #000000 !important;
+  border-radius: 14px !important;
+  font-weight: 900 !important;
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.1s ease !important;
+}
+
+.nb-btn-option:hover {
+  background-color: #FFF59D !important;
+}
+
+.nb-btn-option:active {
+  transform: translate(2px, 2px) !important;
+  box-shadow: 1px 1px 0px #000000 !important;
+}
+
+.nb-option-selected-blue {
+  background-color: #BFDBFE !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #2563EB !important;
+  outline: 3px solid #2563EB !important;
+  transform: scale(1.01) !important;
+}
+
+.nb-option-selected-red {
+  background-color: #FECDD3 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #E11D48 !important;
+  outline: 3px solid #E11D48 !important;
+  transform: scale(1.01) !important;
+}
+
+.nb-option-correct {
+  background-color: #00F0A8 !important;
+  color: #000000 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
+  transform: scale(1.02) !important;
+}
+
+.nb-option-wrong {
+  background-color: #FF4081 !important;
+  color: #FFFFFF !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 5px 5px 0px #000000 !important;
+}
+
+/* ── 3. Action Actuators (72px+ Primary Push Buttons) ── */
+.nb-btn-submit-active {
+  background-color: #FED500 !important;
+  color: #000000 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
+  border-radius: 18px !important;
+  font-weight: 900 !important;
+  transition: transform 0.08s ease, box-shadow 0.08s ease !important;
+  cursor: pointer !important;
+}
+
+.nb-btn-submit-active:hover {
+  background-color: #FFE600 !important;
+}
+
+.nb-btn-submit-active:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+}
+
+.nb-btn-submit-disabled {
+  background-color: #E2E8F0 !important;
+  color: #64748B !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 18px !important;
+  cursor: not-allowed !important;
+}
+
+.nb-btn-locked {
+  background-color: #00F0A8 !important;
+  color: #000000 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 5px 5px 0px #000000 !important;
+  border-radius: 18px !important;
+  font-weight: 900 !important;
+}
+
+/* ── 4. Badges & Contrast Ribbons ── */
+.nb-badge-lavender {
+  background-color: #C4A1FF !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 12px !important;
+  font-weight: 900 !important;
+}
+
+.nb-badge-yellow {
+  background-color: #FED500 !important;
+  color: #000000 !important;
+  border: 3px solid #000000 !important;
+  box-shadow: 3px 3px 0px #000000 !important;
+  border-radius: 12px !important;
+  font-weight: 900 !important;
+}
+
+.nb-badge-white {
+  background-color: #FFFFFF !important;
+  color: #000000 !important;
+  border: 2px solid #000000 !important;
+  box-shadow: 2px 2px 0px #000000 !important;
+  border-radius: 10px !important;
+  font-weight: 900 !important;
+}
+
+.nb-speech-bubble {
+  position: relative;
+  background-color: #FED500 !important;
+  color: #000000 !important;
+  border: 4px solid #000000 !important;
+  box-shadow: 6px 6px 0px #000000 !important;
+  border-radius: 18px !important;
+  font-weight: 900 !important;
+}

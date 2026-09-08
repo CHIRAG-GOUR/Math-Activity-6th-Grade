@@ -32,6 +32,7 @@ const createTeamState = (id: TeamId, customName?: string): TeamState => ({
   isLocked: false,
   lastResult: null,
   lastScoreGained: 0,
+  attemptsLeft: 2,
   lastFeedback: null,
 });
 
@@ -53,6 +54,7 @@ const resetTeamForRound = (t: TeamState): TeamState => ({
   isLocked: false,
   lastResult: null,
   lastScoreGained: 0,
+  attemptsLeft: 2,
   lastFeedback: null,
 });
 
@@ -61,6 +63,7 @@ const clearTeamForQuestion = (t: TeamState): TeamState => ({
   selectedAnswer: null,
   isLocked: false,
   lastResult: null,
+  attemptsLeft: 2,
   lastFeedback: null,
 });
 
@@ -206,8 +209,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       questionIndexInRound: 0,
       activeChallenge: firstRound.questions[0],
       isTieBreak: false,
-      blueTeam: { ...s.blueTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
-      redTeam: { ...s.redTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null },
+      blueTeam: { ...s.blueTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null, attemptsLeft: 2 },
+      redTeam: { ...s.redTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null, attemptsLeft: 2 },
       roundWinner: null,
       matchWinner: null,
       signalsGreenCount: 0,
@@ -343,29 +346,49 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       }, 500);
 
     } else {
-      // ── WRONG ANSWER: LOCK OUT THIS TEAM & GIVE 2ND TEAM REBOUND ──
+      // ── WRONG ANSWER: CHECK ATTEMPTS REMAINING (2 ATTEMPTS PER TEAM) ──
       soundManager.playWrong();
 
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'wrong',
-          lastFeedback: {
-            message: `❌ WRONG ANSWER`,
-            isCorrect: false,
-            pointsEarned: 0,
+      if (teamState.attemptsLeft > 1) {
+        // 1st Mistake: Allow 2nd Attempt Retry!
+        set((s) => ({
+          [key]: {
+            ...s[key],
+            attemptsLeft: 1,
+            selectedAnswer: null,
+            isLocked: false,
+            lastFeedback: {
+              message: `⚠️ INCORRECT — 1 TRY REMAINING!`,
+              isCorrect: false,
+              pointsEarned: 0,
+            },
           },
-        },
-        toastMessage: `${s[key].name} INCORRECT! ${s[otherKey].name} CAN REBOUND!`,
-      }));
+          toastMessage: `⚠️ ${s[key].name} INCORRECT — 1 ATTEMPT REMAINING!`,
+        }));
+      } else {
+        // 2nd Mistake: Full Lockout & Rebound Opportunity for 2nd Team!
+        set((s) => ({
+          [key]: {
+            ...s[key],
+            attemptsLeft: 0,
+            isLocked: true,
+            lastResult: 'wrong',
+            lastFeedback: {
+              message: `❌ WRONG ANSWER — LOCKED OUT`,
+              isCorrect: false,
+              pointsEarned: 0,
+            },
+          },
+          toastMessage: `❌ ${s[key].name} OUT OF ATTEMPTS! ${s[otherKey].name} CAN REBOUND!`,
+        }));
 
-      // If the other team was ALREADY locked out (both answered wrong), end question!
-      if (otherTeamState.isLocked) {
-        set({ timerActive: false });
-        setTimeout(() => {
-          set({ phase: 'question-reveal', timerActive: false });
-        }, 600);
+        // If the other team was ALREADY locked out (both exhausted turns), end question!
+        if (otherTeamState.isLocked) {
+          set({ timerActive: false });
+          setTimeout(() => {
+            set({ phase: 'question-reveal', timerActive: false });
+          }, 600);
+        }
       }
     }
   },
