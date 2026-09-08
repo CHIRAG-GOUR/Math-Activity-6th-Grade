@@ -1,112 +1,131 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — RESPONSIVE NEUBRUTALIST TWO-TEAM LAYOUT
-// Fully Responsive Across 1080p Classroom TVs, Desktops, Tablets & Mobile
-// Exact Mirrored Side Consoles, Non-Overlapping Central 3D Machine Viewport
+// THE GREAT CARNIVAL OF CHANCE — DUAL-CONSOLE CARNIVAL LAYOUT
+// Left: Team Blue Console (360px) | Center: Wide 3D Machine Viewport | Right: Team Red Console (360px)
+// Perfect Fixed Bounds, Zero Overlap, Full 3D Visibility
 // ============================================================
 
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { TeamConsole } from './TeamConsole';
-import { useCarnivalStore } from '../store/carnivalStore';
 
 export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
-  const [mobileTab, setMobileTab] = useState<'both' | 'blue' | '3d' | 'red'>('both');
-  const phase = useCarnivalStore((s) => s.phase);
+  const [isMobileScreen, setIsMobileScreen] = useState(false);
+  const [mobileActiveTab, setMobileActiveTab] = useState<'blue' | '3d' | 'red'>('blue');
 
-  const isActionPhase = phase === 'operating';
+  useEffect(() => {
+    const checkScreen = () => {
+      setIsMobileScreen(window.innerWidth < 960);
+    };
+    checkScreen();
+    window.addEventListener('resize', checkScreen);
+    return () => window.removeEventListener('resize', checkScreen);
+  }, []);
 
   return (
     <div className="fixed inset-0 pointer-events-none z-30 select-none">
-      {/* ── 1. Tablet/Mobile Responsive Tab Switcher (<1024px only) ── */}
-      <div className="lg:hidden fixed top-[80px] inset-x-4 z-40 flex justify-center pointer-events-auto">
-        <div
-          style={{
-            backgroundColor: '#FFFFFF',
-            border: '4px solid #000000',
-            boxShadow: '4px 4px 0px #000000',
-            borderRadius: '16px',
-          }}
-          className="flex items-center gap-1.5 p-1.5"
-        >
-          <button
-            type="button"
-            onClick={() => setMobileTab('blue')}
+      {/* ── 1. Tablet/Mobile Switcher (Only visible when screen width < 960px) ── */}
+      {isMobileScreen && (
+        <div className="fixed top-[76px] inset-x-4 z-50 flex justify-center pointer-events-auto">
+          <div
             style={{
-              backgroundColor: mobileTab === 'blue' ? '#3B82F6' : '#FFFFFF',
-              color: mobileTab === 'blue' ? '#FFFFFF' : '#000000',
-              border: '2px solid #000000',
-              borderRadius: '10px',
+              backgroundColor: '#FFFFFF',
+              border: '3.5px solid #000000',
+              boxShadow: '4px 4px 0px #000000',
+              borderRadius: '16px',
             }}
-            className="px-3 py-1 font-black text-xs transition-transform active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 p-1.5"
           >
-            TEAM BLUE
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab('3d')}
-            style={{
-              backgroundColor: mobileTab === '3d' ? '#FED500' : '#FFFFFF',
-              color: '#000000',
-              border: '2px solid #000000',
-              borderRadius: '10px',
-            }}
-            className="px-3 py-1 font-black text-xs transition-transform active:scale-95 cursor-pointer"
-          >
-            3D MACHINE
-          </button>
-          <button
-            type="button"
-            onClick={() => setMobileTab('red')}
-            style={{
-              backgroundColor: mobileTab === 'red' ? '#FF2A6D' : '#FFFFFF',
-              color: mobileTab === 'red' ? '#FFFFFF' : '#000000',
-              border: '2px solid #000000',
-              borderRadius: '10px',
-            }}
-            className="px-3 py-1 font-black text-xs transition-transform active:scale-95 cursor-pointer"
-          >
-            TEAM RED
-          </button>
+            <button
+              type="button"
+              onClick={() => setMobileActiveTab('blue')}
+              style={{
+                backgroundColor: mobileActiveTab === 'blue' ? '#3B82F6' : '#FFFFFF',
+                color: mobileActiveTab === 'blue' ? '#FFFFFF' : '#000000',
+                border: '2px solid #000000',
+                borderRadius: '10px',
+              }}
+              className="px-3 py-1 font-black text-xs cursor-pointer active:scale-95"
+            >
+              TEAM BLUE
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileActiveTab('3d')}
+              style={{
+                backgroundColor: mobileActiveTab === '3d' ? '#FED500' : '#FFFFFF',
+                color: '#000000',
+                border: '2px solid #000000',
+                borderRadius: '10px',
+              }}
+              className="px-3 py-1 font-black text-xs cursor-pointer active:scale-95"
+            >
+              3D MACHINE
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileActiveTab('red')}
+              style={{
+                backgroundColor: mobileActiveTab === 'red' ? '#FF2A6D' : '#FFFFFF',
+                color: mobileActiveTab === 'red' ? '#FFFFFF' : '#000000',
+                border: '2px solid #000000',
+                borderRadius: '10px',
+              }}
+              className="px-3 py-1 font-black text-xs cursor-pointer active:scale-95"
+            >
+              TEAM RED
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
-      {/* ── 2. Main Responsive Two-Team Container ── */}
-      <div className="w-full h-full pt-[82px] sm:pt-[86px] pb-2 sm:pb-3 px-3 sm:px-5 md:px-6 flex items-stretch justify-between gap-3 lg:gap-5">
+      {/* ── 2. Main Two-Team Layout Container ── */}
+      <div className="w-full h-full pt-[80px] pb-3 px-4 sm:px-6 flex items-stretch justify-between gap-4">
         
-        {/* ── LEFT CONSOLE: TEAM BLUE ── */}
-        <motion.aside
-          initial={{ x: -240, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ type: 'spring', damping: 24, stiffness: 160 }}
-          className={`h-full pointer-events-auto shrink-0 flex flex-col ${
-            mobileTab === 'red' || mobileTab === '3d' ? 'hidden lg:flex' : 'flex'
-          } w-full sm:w-[310px] md:w-[330px] lg:w-[340px] xl:w-[360px]`}
-        >
-          <TeamConsole teamId="blue" />
-        </motion.aside>
+        {/* ── LEFT CONSOLE: TEAM BLUE (Strictly 350px-370px wide) ── */}
+        {(!isMobileScreen || mobileActiveTab === 'blue') && (
+          <motion.aside
+            initial={{ x: -160, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              width: isMobileScreen ? '100%' : '360px',
+              maxWidth: isMobileScreen ? '420px' : '370px',
+              minWidth: isMobileScreen ? 'auto' : '320px',
+            }}
+            className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
+          >
+            <TeamConsole teamId="blue" />
+          </motion.aside>
+        )}
 
-        {/* ── CENTER: 3D MACHINE VIEWPORT OVERLAY ── */}
-        <div
-          className={`flex-1 h-full relative pointer-events-none flex flex-col justify-between items-center py-1 ${
-            mobileTab === 'blue' || mobileTab === 'red' ? 'hidden lg:flex' : 'flex'
-          }`}
-        >
-          {children}
-        </div>
+        {/* ── CENTER: WIDE 3D MACHINE VIEWPORT (Always flex-1, fully open) ── */}
+        {(!isMobileScreen || mobileActiveTab === '3d') && (
+          <div
+            style={{ minWidth: isMobileScreen ? '100%' : '360px' }}
+            className="flex-1 h-full relative pointer-events-none flex flex-col justify-between items-center py-1"
+          >
+            {children}
+          </div>
+        )}
 
-        {/* ── RIGHT CONSOLE: TEAM RED ── */}
-        <motion.aside
-          initial={{ x: 240, opacity: 0 }}
-          animate={{ x: 0, opacity: 1 }}
-          transition={{ type: 'spring', damping: 24, stiffness: 160 }}
-          className={`h-full pointer-events-auto shrink-0 flex flex-col ${
-            mobileTab === 'blue' || mobileTab === '3d' ? 'hidden lg:flex' : 'flex'
-          } w-full sm:w-[310px] md:w-[330px] lg:w-[340px] xl:w-[360px]`}
-        >
-          <TeamConsole teamId="red" />
-        </motion.aside>
+        {/* ── RIGHT CONSOLE: TEAM RED (Strictly 350px-370px wide) ── */}
+        {(!isMobileScreen || mobileActiveTab === 'red') && (
+          <motion.aside
+            initial={{ x: 160, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+            style={{
+              width: isMobileScreen ? '100%' : '360px',
+              maxWidth: isMobileScreen ? '420px' : '370px',
+              minWidth: isMobileScreen ? 'auto' : '320px',
+            }}
+            className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
+          >
+            <TeamConsole teamId="red" />
+          </motion.aside>
+        )}
 
       </div>
     </div>
