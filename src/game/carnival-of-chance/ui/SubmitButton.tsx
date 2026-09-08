@@ -1,7 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — COMIC-BOOK SUBMIT ACTUATOR
-// Massive 74px Physical Button, 4px Black Outline, 6px Hard Shadow
-// High-Contrast Carnival Yellow, Never Hidden, Guaranteed Safe Space
+// THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST SUBMIT ACTUATOR
+// Massive Physical Action Push Button with Guaranteed Inline Styles
+// Yellow Active, Mint Green Locked, 4px Black Outlines & 6px Hard Shadows
 // ============================================================
 
 'use client';
@@ -29,28 +29,52 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
 
   if (isConfirmed) {
     return (
-      <div className="w-full h-[70px] sm:h-[74px] rounded-[18px] bg-[#2E9B57] text-[#FFFFFF] border-[4px] border-[#111111] shadow-[5px_5px_0px_#111111] flex items-center justify-center gap-2.5 font-black text-sm sm:text-base uppercase tracking-wider select-none shrink-0">
-        <CheckCircle2 className="w-6 h-6 stroke-[3.5] text-white" />
-        <span>PREDICTION LOCKED</span>
+      <div
+        style={{
+          backgroundColor: '#00F0A8',
+          border: '4px solid #000000',
+          boxShadow: '5px 5px 0px #000000',
+          borderRadius: '16px',
+          color: '#000000',
+        }}
+        className="w-full h-[58px] sm:h-[64px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0"
+      >
+        <CheckCircle2 className="w-5 h-5 stroke-[3.5] text-black" />
+        <span>PREDICTION LOCKED!</span>
       </div>
     );
   }
+
+  const activeStyle: React.CSSProperties = isReady && isPredicting
+    ? {
+        backgroundColor: '#FED500',
+        border: '4px solid #000000',
+        boxShadow: '6px 6px 0px #000000',
+        borderRadius: '16px',
+        color: '#000000',
+        cursor: 'pointer',
+      }
+    : {
+        backgroundColor: '#E2E8F0',
+        border: '3px solid #000000',
+        boxShadow: '3px 3px 0px #000000',
+        borderRadius: '16px',
+        color: '#64748B',
+        cursor: 'not-allowed',
+      };
 
   return (
     <motion.button
       type="button"
       onPointerDown={onConfirm}
       disabled={disabled}
+      style={activeStyle}
       whileTap={!disabled ? { scale: 0.97, x: 2, y: 2 } : {}}
-      className={`w-full h-[70px] sm:h-[74px] rounded-[18px] border-[4px] border-[#111111] flex items-center justify-center gap-3 font-black text-sm sm:text-base uppercase tracking-wider transition-all select-none shrink-0 cursor-pointer touch-manipulation ${
-        isReady && isPredicting
-          ? 'bg-[#FFC928] hover:bg-[#FFE58F] text-[#111111] shadow-[6px_6px_0px_#111111] active:shadow-[2px_2px_0px_#111111]'
-          : 'bg-[#E9E2D3] text-[#78716C] shadow-[3px_3px_0px_#111111] cursor-not-allowed opacity-70'
-      }`}
+      className="w-full h-[58px] sm:h-[64px] flex items-center justify-center gap-2.5 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
     >
-      <Lock className={`w-5 h-5 stroke-[3] ${isReady ? 'text-[#111111]' : 'text-[#78716C]'}`} />
+      <Lock className={`w-4 h-4 stroke-[3] ${isReady ? 'text-black' : 'text-[#64748B]'}`} />
       <span>{isReady ? 'LOCK IN PREDICTION' : 'CHOOSE AN OPTION'}</span>
-      {isReady && <ArrowRight className="w-5 h-5 stroke-[3.5] text-[#111111]" />}
+      {isReady && <ArrowRight className="w-4 h-4 stroke-[3.5] text-black" />}
     </motion.button>
   );
 };

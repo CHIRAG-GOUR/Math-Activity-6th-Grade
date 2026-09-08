@@ -26,14 +26,14 @@ export const ActivityStudioScene: React.FC = () => {
     <div className="w-full h-full">
       <Canvas
         shadows
-        camera={{ position: [0, 2.7, 7.2], fov: 46 }}
+        camera={{ position: [0, 2.0, 10.5], fov: 40 }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
           gl.toneMappingExposure = 1.18;
         }}
       >
-        <color attach="background" args={['#e0f2fe']} />
+        <color attach="background" args={['#BAE6FD']} />
 
         {/* Studio Lighting */}
         <ambientLight intensity={0.8} color="#ffffff" />

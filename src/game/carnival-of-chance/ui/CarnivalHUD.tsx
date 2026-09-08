@@ -1,7 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — COMIC-BOOK CARNIVAL MARQUEE HUD
-// 100% Solid Opaque Signboards, 5px Black Outlines, 6px Hard Shadows
-// Left: Home + Blue Score | Center: Marquee Sign | Right: Red Score + Audio
+// THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST TOP MARQUEE HUD
+// Solid Yellow & Red Signboards with 4px Black Outlines & 6px Hard Shadows
+// Left: Home + Blue Score | Center: Marquee Sign | Right: Red Score + Controls
 // ============================================================
 
 'use client';
@@ -33,26 +33,40 @@ export const CarnivalHUD: React.FC = () => {
   const isInsideActivity = activeActivity !== 'hub';
 
   return (
-    <header className="fixed top-3 inset-x-4 sm:inset-x-8 z-40 h-[80px] flex items-center justify-between pointer-events-none select-none">
+    <header className="fixed top-2.5 inset-x-3 sm:inset-x-6 md:inset-x-8 z-40 h-[72px] flex items-center justify-between pointer-events-none select-none">
       {/* ── 1. LEFT: HOME / MAP BUTTON + TEAM BLUE SCORE ── */}
-      <div className="pointer-events-auto flex items-center gap-2.5">
+      <div className="pointer-events-auto flex items-center gap-2">
         {/* Navigation Button */}
         {isInsideActivity ? (
           <button
             onClick={returnToHub}
             title="Return to Carnival Island Map"
-            className="h-14 px-3.5 rounded-[18px] bg-[#FFF7E5] hover:bg-[#FFE58F] text-[#111111] border-[5px] border-[#111111] shadow-[6px_6px_0px_#111111] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#111111] flex items-center gap-2 font-black text-xs cursor-pointer transition-transform"
+            style={{
+              backgroundColor: '#FED500',
+              border: '3.5px solid #000000',
+              boxShadow: '4px 4px 0px #000000',
+              borderRadius: '14px',
+              color: '#000000',
+            }}
+            className="h-11 sm:h-12 px-3 sm:px-3.5 flex items-center gap-1.5 font-black text-xs cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-transform"
           >
-            <MapPin className="w-5 h-5 text-[#E53935] stroke-[3]" />
-            <span className="hidden sm:inline font-black uppercase">ISLAND MAP</span>
+            <MapPin className="w-4 h-4 text-black stroke-[3]" />
+            <span className="hidden md:inline font-black uppercase">MAP</span>
           </button>
         ) : (
           <Link
             href="/"
             title="Return to Skillizee Arcade"
-            className="w-14 h-14 rounded-[18px] bg-[#FFC928] hover:bg-[#FFE58F] text-[#111111] border-[5px] border-[#111111] shadow-[6px_6px_0px_#111111] active:translate-x-[2px] active:translate-y-[2px] active:shadow-[2px_2px_0px_#111111] flex items-center justify-center cursor-pointer transition-transform"
+            style={{
+              backgroundColor: '#FED500',
+              border: '3.5px solid #000000',
+              boxShadow: '4px 4px 0px #000000',
+              borderRadius: '14px',
+              color: '#000000',
+            }}
+            className="w-11 h-11 sm:w-12 sm:h-12 flex items-center justify-center cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-transform"
           >
-            <Home className="w-6 h-6 stroke-[3]" />
+            <Home className="w-5 h-5 stroke-[3]" />
           </Link>
         )}
 
@@ -60,27 +74,32 @@ export const CarnivalHUD: React.FC = () => {
         <TeamScoreBadge team={blueTeam} side="blue" />
       </div>
 
-      {/* ── 2. CENTER: COMIC-BOOK CARNIVAL MARQUEE SIGNBOARD ── */}
+      {/* ── 2. CENTER: NEUBRUTALIST CARNIVAL MARQUEE SIGN ── */}
       <div className="pointer-events-auto flex flex-col items-center">
         <div
-          className={`px-6 sm:px-8 py-2 rounded-[20px] border-[5px] border-[#111111] shadow-[6px_6px_0px_#111111] text-center flex flex-col items-center ${
-            isInsideActivity ? 'bg-[#FFC928]' : 'bg-[#E53935]'
-          }`}
+          style={{
+            backgroundColor: isInsideActivity ? '#FED500' : '#FF2A6D',
+            border: '4px solid #000000',
+            boxShadow: '6px 6px 0px #000000',
+            borderRadius: '18px',
+            color: '#000000',
+          }}
+          className="px-4 sm:px-6 py-1 sm:py-1.5 text-center flex flex-col items-center"
         >
           {/* Main Title */}
-          <h1
-            className={`text-sm sm:text-base md:text-lg font-black uppercase tracking-wider ${
-              isInsideActivity ? 'text-[#111111]' : 'text-[#FFC928]'
-            }`}
-          >
+          <h1 className="text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-black">
             {isInsideActivity ? meta.name : 'THE GREAT CARNIVAL OF CHANCE'}
           </h1>
 
           {/* Subtitle Ribbon */}
           <div
-            className={`px-3 py-0.5 rounded-lg border-2 border-[#111111] text-[9px] sm:text-[10px] font-black tracking-widest uppercase mt-0.5 shadow-[2px_2px_0px_#111111] ${
-              isInsideActivity ? 'bg-[#E53935] text-[#FFF7E5]' : 'bg-[#FFC928] text-[#111111]'
-            }`}
+            style={{
+              backgroundColor: '#C4A1FF',
+              border: '2px solid #000000',
+              borderRadius: '8px',
+              color: '#000000',
+            }}
+            className="px-2.5 py-0.5 text-[8px] sm:text-[9px] font-black uppercase tracking-wider mt-0.5"
           >
             {isInsideActivity ? meta.tagline : 'EXPLORE • PREDICT • DISCOVER'}
           </div>
@@ -88,25 +107,33 @@ export const CarnivalHUD: React.FC = () => {
       </div>
 
       {/* ── 3. RIGHT: TEAM RED SCORE + AUDIO & FULLSCREEN CONTROLS ── */}
-      <div className="pointer-events-auto flex items-center gap-2.5">
+      <div className="pointer-events-auto flex items-center gap-2">
         {/* Team Red Score Signboard */}
         <TeamScoreBadge team={redTeam} side="red" />
 
         {/* Tactile Control Buttons Box */}
-        <div className="flex items-center gap-1 bg-[#FFC928] border-[5px] border-[#111111] rounded-[18px] p-1 shadow-[6px_6px_0px_#111111] h-14">
+        <div
+          style={{
+            backgroundColor: '#FED500',
+            border: '3.5px solid #000000',
+            boxShadow: '4px 4px 0px #000000',
+            borderRadius: '14px',
+          }}
+          className="flex items-center gap-0.5 p-1 h-11 sm:h-12"
+        >
           <button
             onClick={toggleMute}
             title={isMuted ? 'Unmute Audio' : 'Mute Audio'}
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-[#111111] hover:bg-[#FFE58F] font-black cursor-pointer transition-transform active:translate-x-0.5 active:translate-y-0.5"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-black hover:bg-[#FFF59D] font-black cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-transform"
           >
-            {isMuted ? <VolumeX className="w-5 h-5 text-[#E53935] stroke-[3]" /> : <Volume2 className="w-5 h-5 stroke-[3]" />}
+            {isMuted ? <VolumeX className="w-4 h-4 text-[#FF2A6D] stroke-[3]" /> : <Volume2 className="w-4 h-4 stroke-[3]" />}
           </button>
           <button
             onClick={toggleFullscreen}
             title="Toggle Fullscreen"
-            className="w-10 h-10 rounded-xl flex items-center justify-center text-[#111111] hover:bg-[#FFE58F] font-black cursor-pointer transition-transform active:translate-x-0.5 active:translate-y-0.5"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-black hover:bg-[#FFF59D] font-black cursor-pointer active:translate-x-0.5 active:translate-y-0.5 transition-transform"
           >
-            <Maximize className="w-5 h-5 stroke-[3]" />
+            <Maximize className="w-4 h-4 stroke-[3]" />
           </button>
         </div>
       </div>

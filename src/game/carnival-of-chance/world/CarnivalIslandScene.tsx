@@ -23,24 +23,46 @@ const NeoBrutalistNameCard: React.FC<{
   tagColor?: string;
   position: [number, number, number];
   onClick?: () => void;
-}> = ({ name, subtitle, tagColor = '#facc15', position, onClick }) => {
+}> = ({ name, subtitle, tagColor = '#FED500', position, onClick }) => {
   return (
     <group position={position}>
       <Html
         center
-        distanceFactor={28}
+        distanceFactor={26}
         position={[0, 0, 0]}
         className="pointer-events-auto select-none"
       >
         <button
-          onClick={onClick}
-          className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000000] hover:shadow-[2px_2px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer whitespace-nowrap active:scale-95"
-          style={{ backgroundColor: tagColor }}
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onClick?.();
+          }}
+          style={{
+            backgroundColor: tagColor,
+            border: '4px solid #000000',
+            boxShadow: '6px 6px 0px #000000',
+            borderRadius: '16px',
+            color: '#000000',
+          }}
+          className="flex flex-col items-center justify-center px-4 py-2 hover:-translate-x-0.5 hover:-translate-y-0.5 transition-transform cursor-pointer whitespace-nowrap active:translate-x-1 active:translate-y-1 active:shadow-[2px_2px_0px_#000000]"
         >
-          <span className="text-[12px] sm:text-[13px] font-black uppercase tracking-wider text-black font-sans leading-tight">
+          <span className="text-[13px] sm:text-[14px] font-black uppercase tracking-wider text-black font-sans leading-none">
             {name}
           </span>
-          <span className="text-[9px] font-black uppercase tracking-widest text-red-900 bg-white/90 px-1.5 py-0.2 rounded border border-black mt-0.5">
+          <span
+            style={{
+              backgroundColor: '#FFFFFF',
+              border: '2px solid #000000',
+              boxShadow: '2px 2px 0px #000000',
+              borderRadius: '8px',
+            }}
+            className="text-[10px] font-black uppercase tracking-widest text-black px-2 py-0.5 mt-1"
+          >
             {subtitle}
           </span>
         </button>
@@ -277,7 +299,14 @@ const MysteryChestsBuilding: React.FC = () => {
     <group
       position={[-8.5, 0, -8.5]}
       rotation={[0, 0.65, 0]}
-      onClick={() => openActivity('mystery-bag')}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('mystery-bag');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('mystery-bag');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard
@@ -419,7 +448,14 @@ const OddsWheelBuilding: React.FC = () => {
     <group
       position={[-11.0, 0, 0.5]}
       rotation={[0, 0.85, 0]}
-      onClick={() => openActivity('odds-wheel')}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('odds-wheel');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('odds-wheel');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard
@@ -559,7 +595,14 @@ const BallDropBuilding: React.FC = () => {
     <group
       position={[8.5, 0, -8.5]}
       rotation={[0, -0.65, 0]}
-      onClick={() => openActivity('ball-drop')}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('ball-drop');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('ball-drop');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard
@@ -703,7 +746,14 @@ const ProbabilityLabBuilding: React.FC = () => {
     <group
       position={[11.0, 0, 0.5]}
       rotation={[0, -0.85, 0]}
-      onClick={() => openActivity('probability-lab')}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('probability-lab');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('probability-lab');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard
@@ -808,9 +858,16 @@ const GameBuilderBuilding: React.FC = () => {
 
   return (
     <group
-      position={[-7.5, 0, 8.5]}
-      rotation={[0, 0.35, 0]}
-      onClick={() => openActivity('game-builder')}
+      position={[-7.5, 0, 7.5]}
+      rotation={[0, 0.45, 0]}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('game-builder');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('game-builder');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard
@@ -924,7 +981,14 @@ const GrandCarnivalBuilding: React.FC = () => {
     <group
       position={[3.5, 0, 9.5]}
       rotation={[0, -0.25, 0]}
-      onClick={() => openActivity('grand-carnival')}
+      onClick={(e) => {
+        e.stopPropagation();
+        openActivity('grand-carnival');
+      }}
+      onPointerDown={(e) => {
+        e.stopPropagation();
+        openActivity('grand-carnival');
+      }}
     >
       {/* Neo-Brutalist Name Card on Top */}
       <NeoBrutalistNameCard

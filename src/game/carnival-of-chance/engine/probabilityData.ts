@@ -418,7 +418,8 @@ export const CARNIVAL_CHALLENGES: Record<ActivityId, ProbabilityChallenge[]> = {
       activityId: 'grand-carnival',
       bloomLevel: 'evaluate',
       missionTitle: 'THE GRAND CARNIVAL COMPARISON',
-      prompt: 'Compare three carnival prize games:\\n• Game A: 4 wins out of 10 (4/10)\\n• Game B: 1 win out of 3 (1/3)\\n• Game C: 2 wins out of 5 (2/5)\\nWhich game gives you the LOWEST probability of winning?',
+      prompt:
+        'Compare three carnival prize games:\n• Game A: 4 wins out of 10 (4/10)\n• Game B: 1 win out of 3 (1/3)\n• Game C: 2 wins out of 5 (2/5)\nWhich game gives you the LOWEST probability of winning?',
       helperNote: 'Convert all fractions to percentages to compare accurately!',
       setup: {
         totalItems: 3,

@@ -1,6 +1,6 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — COMIC SPEECH-BUBBLE INSTRUCTION
-// 100% Solid Yellow Comic Speech Bubble with Downward Pointer
+// 100% Solid Opaque Comic Speech Bubble with Guaranteed Inline Styles
 // Dynamic Real-Time Operator Status & In-Game Direction
 // ============================================================
 
@@ -19,54 +19,69 @@ export const ActivityStatus: React.FC = () => {
 
   if (activeActivity === 'hub') return null;
 
-  let stepText = 'PREDICT BEFORE YOU SPIN!';
+  let stepText = 'PREDICT BEFORE YOU ACT — LOCK IN YOUR CHOICE!';
   let Icon = Dices;
-  let bgClass = 'bg-[#FFC928] text-[#111111]';
+  let bgHex = '#FED500';
+  let textHex = '#000000';
 
   if (phase === 'predicting') {
     if (blueConfirmed && !redConfirmed) {
       stepText = 'BLUE LOCKED IN! WAITING FOR RED OPERATOR...';
       Icon = CheckCircle2;
-      bgClass = 'bg-[#2463EB] text-[#FFFFFF]';
+      bgHex = '#3B82F6';
+      textHex = '#FFFFFF';
     } else if (redConfirmed && !blueConfirmed) {
       stepText = 'RED LOCKED IN! WAITING FOR BLUE OPERATOR...';
       Icon = CheckCircle2;
-      bgClass = 'bg-[#E53935] text-[#FFFFFF]';
+      bgHex = '#FF2A6D';
+      textHex = '#FFFFFF';
     } else if (blueConfirmed && redConfirmed) {
-      stepText = 'BOTH TEAMS LOCKED IN! EXECUTING 3D EXPERIMENT...';
+      stepText = 'BOTH TEAMS LOCKED IN! RUNNING 3D EXPERIMENT...';
       Icon = CheckCircle2;
-      bgClass = 'bg-[#2E9B57] text-[#FFFFFF]';
+      bgHex = '#00F0A8';
+      textHex = '#000000';
     } else {
       stepText = 'PREDICT BEFORE YOU ACT — LOCK IN YOUR CHOICE!';
       Icon = Dices;
-      bgClass = 'bg-[#FFC928] text-[#111111]';
+      bgHex = '#FED500';
+      textHex = '#000000';
     }
   } else if (phase === 'operating') {
-    stepText = '3D MACHINE RUNNING EXPERIMENT — WATCH CLOSELY!';
+    stepText = '3D MACHINE EXECUTING PHYSICAL EXPERIMENT...';
     Icon = Sparkles;
-    bgClass = 'bg-[#E53935] text-[#FFC928]';
+    bgHex = '#FF2A6D';
+    textHex = '#FED500';
   } else if (phase === 'observation') {
-    stepText = 'OBSERVE THE OUTCOME — COMPARE THEORETICAL VS ACTUAL!';
+    stepText = 'OBSERVE THE OUTCOME — THEORETICAL VS ACTUAL!';
     Icon = Eye;
-    bgClass = 'bg-[#2E9B57] text-[#FFFFFF]';
+    bgHex = '#00F0A8';
+    textHex = '#000000';
   } else if (phase === 'batch-trials') {
     stepText = '10-TRIAL BATCH SIMULATION — LAW OF LARGE NUMBERS';
     Icon = BarChart3;
-    bgClass = 'bg-[#2463EB] text-[#FFFFFF]';
+    bgHex = '#3B82F6';
+    textHex = '#FFFFFF';
   }
 
   return (
     <motion.div
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="pointer-events-none select-none z-20 flex flex-col items-center pb-2"
+      className="pointer-events-none select-none z-20 flex flex-col items-center pb-1.5"
     >
-      {/* Speech Bubble Plaque */}
+      {/* Speech Bubble Plaque with Guaranteed Inline Styles */}
       <div
-        className={`relative px-6 py-2 rounded-[18px] border-[4px] border-[#111111] shadow-[6px_6px_0px_#111111] flex items-center gap-2.5 ${bgClass}`}
+        style={{
+          backgroundColor: bgHex,
+          color: textHex,
+          border: '4px solid #000000',
+          boxShadow: '6px 6px 0px #000000',
+          borderRadius: '18px',
+        }}
+        className="relative px-5 sm:px-6 py-2 flex items-center gap-2.5"
       >
-        <Icon className="w-5 h-5 stroke-[3]" />
-        <span className="text-xs sm:text-sm font-black uppercase tracking-wider">
+        <Icon className="w-5 h-5 stroke-[3] shrink-0" />
+        <span className="text-xs sm:text-sm font-black uppercase tracking-wider text-center">
           {stepText}
         </span>
       </div>

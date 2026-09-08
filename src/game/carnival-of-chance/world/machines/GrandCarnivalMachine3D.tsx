@@ -79,34 +79,6 @@ export const GrandCarnivalMachine3D: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Rotating Scalloped Carousel Roof ── */}
-      <group ref={carouselRef} position={[0, 4.3, 0]}>
-        <mesh castShadow>
-          <coneGeometry args={[3.3, 1.8, 20]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.4} />
-        </mesh>
-        {/* Scalloped Valance Pendants */}
-        {Array.from({ length: 20 }).map((_, i) => (
-          <mesh
-            key={i}
-            position={[
-              Math.cos((i * Math.PI) / 10) * 3.25,
-              -0.2,
-              Math.sin((i * Math.PI) / 10) * 3.25,
-            ]}
-            castShadow
-          >
-            <boxGeometry args={[0.26, 0.35, 0.08]} />
-            <meshStandardMaterial color={i % 2 === 0 ? '#fbbf24' : '#ffffff'} />
-          </mesh>
-        ))}
-        {/* Gold Spire Dome Top */}
-        <mesh position={[0, 1.2, 0]} castShadow>
-          <sphereGeometry args={[0.35, 20, 20]} />
-          <meshStandardMaterial color="#f59e0b" metalness={0.95} roughness={0.1} />
-        </mesh>
-      </group>
-
       {/* ═════════════════════════════════════════════════════════════
           FLOATING GRAND MASTER TROPHY CUP WITH GOLDEN RADIANCE
           ═════════════════════════════════════════════════════════════ */}
