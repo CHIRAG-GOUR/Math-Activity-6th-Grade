@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST ANSWER BUTTON
-// 100% Solid Opaque Push Cards with Guaranteed Inline Styles & Outlines
-// Yellow with Black, Red with White & Black Neo-Brutalist Palette
+// 100% Solid Push Cards with Green for Correct and Red for Wrong
+// Turn-based Rebound Support with Instant Visual Feedback
 // ============================================================
 
 'use client';
@@ -17,6 +17,7 @@ interface AnswerButtonProps {
   teamId: TeamId;
   isSelected: boolean;
   isConfirmed: boolean;
+  isLocked: boolean;
   isPredicting: boolean;
   onSelect: (e: React.PointerEvent) => void;
 }
@@ -26,15 +27,18 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
   teamId,
   isSelected,
   isConfirmed,
+  isLocked,
   isPredicting,
   onSelect,
 }) => {
   const isBlue = teamId === 'blue';
   const isCorrect = choice.isCorrect;
-  const showCorrectResult = isConfirmed && isCorrect;
-  const showWrongResult = isConfirmed && isSelected && !isCorrect;
+  const isWrong = !isCorrect;
 
-  // Compute guaranteed inline style object
+  // Visual state computation
+  const showCorrect = isLocked && isCorrect;
+  const showWrong = isLocked && isSelected && isWrong;
+
   let buttonStyle: React.CSSProperties = {
     backgroundColor: '#FFFFFF',
     border: '3.5px solid #000000',
@@ -43,15 +47,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
     color: '#000000',
   };
 
-  if (isSelected && !isConfirmed) {
-    buttonStyle = {
-      backgroundColor: '#FED500',
-      border: '4px solid #000000',
-      boxShadow: '5px 5px 0px #000000',
-      borderRadius: '14px',
-      color: '#000000',
-    };
-  } else if (showCorrectResult) {
+  if (showCorrect) {
     buttonStyle = {
       backgroundColor: '#00F0A8',
       border: '4px solid #000000',
@@ -59,7 +55,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       borderRadius: '14px',
       color: '#000000',
     };
-  } else if (showWrongResult) {
+  } else if (showWrong) {
     buttonStyle = {
       backgroundColor: '#FF2A6D',
       border: '4px solid #000000',
@@ -67,9 +63,17 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       borderRadius: '14px',
       color: '#FFFFFF',
     };
+  } else if (isSelected && !isLocked) {
+    buttonStyle = {
+      backgroundColor: '#FED500',
+      border: '4px solid #000000',
+      boxShadow: '5px 5px 0px #000000',
+      borderRadius: '14px',
+      color: '#000000',
+    };
   }
 
-  const disabled = !isPredicting || isConfirmed;
+  const disabled = !isPredicting || isLocked;
 
   return (
     <motion.button
@@ -79,21 +83,21 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       style={buttonStyle}
       whileTap={!disabled ? { scale: 0.98, x: 2, y: 2 } : {}}
       animate={
-        showCorrectResult
+        showCorrect
           ? { scale: [1, 0.96, 1.03, 1], transition: { duration: 0.4 } }
-          : showWrongResult
+          : showWrong
           ? { x: [0, -4, 4, -4, 4, 0], transition: { duration: 0.35 } }
           : {}
       }
       className={`relative w-full h-[52px] sm:h-[58px] px-3 py-1.5 flex items-center justify-between gap-2.5 select-none cursor-pointer touch-manipulation transition-colors ${
-        disabled && !isConfirmed ? 'opacity-60 cursor-not-allowed' : ''
+        disabled && !showCorrect && !showWrong ? 'opacity-50 cursor-not-allowed' : ''
       }`}
     >
       {/* ── Left: Stacked Fraction Display & Choice Text ── */}
       <div className="flex-1 min-w-0 text-left flex items-center gap-2.5">
         <div
           style={{
-            backgroundColor: isSelected && !isConfirmed ? '#FFFFFF' : showWrongResult ? 'rgba(0,0,0,0.2)' : '#FED500',
+            backgroundColor: showCorrect ? '#FFFFFF' : showWrong ? 'rgba(0,0,0,0.25)' : isSelected ? '#FFFFFF' : '#FED500',
             border: '2px solid #000000',
             boxShadow: '1.5px 1.5px 0px #000000',
             borderRadius: '8px',
@@ -106,7 +110,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
 
         <span
           className={`text-[11px] sm:text-xs font-black truncate ${
-            showWrongResult ? 'text-white' : 'text-black'
+            showWrong ? 'text-white' : 'text-black'
           }`}
         >
           {choice.label}
@@ -114,7 +118,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       </div>
 
       {/* ── Right: Neubrutalist Outcome Status Stamps ── */}
-      {showCorrectResult && (
+      {showCorrect && (
         <div
           style={{
             backgroundColor: '#000000',
@@ -131,7 +135,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         </div>
       )}
 
-      {showWrongResult && (
+      {showWrong && (
         <div
           style={{
             backgroundColor: '#000000',
@@ -143,16 +147,16 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         >
           <X className="w-3.5 h-3.5 text-[#FF2A6D] stroke-[3.5]" />
           <span className="text-[9px] font-black uppercase tracking-wider text-white">
-            TRY AGAIN
+            WRONG
           </span>
         </div>
       )}
 
       {/* Selected Indicator Bullet (Radio Circle) */}
-      {!isConfirmed && (
+      {!isLocked && (
         <div
           style={{
-            backgroundColor: isSelected ? (isBlue ? '#3B82F6' : '#FF2A6D') : '#FFFFFF',
+            backgroundColor: isSelected ? (isBlue ? '#2563EB' : '#FF2A6D') : '#FFFFFF',
             border: '2.5px solid #000000',
             boxShadow: '1px 1px 0px #000000',
           }}

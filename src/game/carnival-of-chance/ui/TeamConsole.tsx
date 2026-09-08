@@ -36,6 +36,7 @@ const ACTION_LABELS: Record<ActivityId, string> = {
 export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
   const isBlue = teamId === 'blue';
   const teamState = useCarnivalStore((s) => (isBlue ? s.blueTeam : s.redTeam));
+  const otherTeamState = useCarnivalStore((s) => (isBlue ? s.redTeam : s.blueTeam));
   const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
   const activeActivity = useCarnivalStore((s) => s.activeActivity);
   const phase = useCarnivalStore((s) => s.phase);
@@ -47,23 +48,31 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
   const isObservation = phase === 'observation' || phase === 'batch-trials';
   const isCompleted = phase === 'completed';
 
+  const isReboundOpportunity =
+    isPredicting &&
+    !teamState.isLocked &&
+    otherTeamState.isLocked &&
+    otherTeamState.lastResult === 'wrong';
+
   const selectedChoice = activeChallenge?.choices.find(
     (c) => c.id === teamState.selectedChoiceId
   );
 
   const handleChoiceTouch = (choice: AnswerChoice, e: React.PointerEvent) => {
     e.preventDefault();
-    if (!isPredicting || teamState.isConfirmed) return;
+    if (!isPredicting || teamState.isConfirmed || teamState.isLocked) return;
     selectChoice(teamId, choice.id);
   };
 
   const handleConfirmTouch = (e: React.PointerEvent) => {
     e.preventDefault();
-    if (!isPredicting || teamState.isConfirmed || !teamState.selectedChoiceId) return;
+    if (!isPredicting || teamState.isConfirmed || teamState.isLocked || !teamState.selectedChoiceId) return;
     confirmPrediction(teamId);
   };
 
-  const actionLabel = ACTION_LABELS[activeActivity] || 'LOCK IN PREDICTION';
+  const actionLabel = isReboundOpportunity
+    ? '⚡ STEAL ON REBOUND!'
+    : ACTION_LABELS[activeActivity] || 'LOCK IN PREDICTION';
 
   return (
     // ── LAYER 1: SOLID COLOR OUTER FRAME (4.5px Black Outline & 6px Hard Shadow) ──
@@ -136,6 +145,44 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             {/* Question Panel Card (Yellow with Black) */}
             {activeChallenge && <QuestionPanel challenge={activeChallenge} />}
 
+            {/* Rebound Opportunity Alert Strip */}
+            {isReboundOpportunity && (
+              <motion.div
+                initial={{ scale: 0.95, opacity: 0 }}
+                animate={{ scale: [1, 1.02, 1], opacity: 1 }}
+                transition={{ repeat: Infinity, duration: 1 }}
+                style={{
+                  backgroundColor: '#FED500',
+                  border: '2.5px solid #000000',
+                  boxShadow: '2px 2px 0px #000000',
+                  borderRadius: '10px',
+                }}
+                className="py-1 px-2 text-center shrink-0"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-black">
+                  ⚡ REBOUND CHANCE — ANSWER FIRST TO STEAL!
+                </span>
+              </motion.div>
+            )}
+
+            {/* Locked Out Alert Strip */}
+            {teamState.isLocked && teamState.lastResult === 'wrong' && (
+              <div
+                style={{
+                  backgroundColor: '#FF2A6D',
+                  border: '2.5px solid #000000',
+                  boxShadow: '2px 2px 0px #000000',
+                  borderRadius: '10px',
+                  color: '#FFFFFF',
+                }}
+                className="py-1 px-2 text-center shrink-0"
+              >
+                <span className="text-[10px] font-black uppercase tracking-wider text-white">
+                  ❌ LOCKED OUT — REBOUND ACTIVE FOR 2ND PLAYER
+                </span>
+              </div>
+            )}
+
             {/* Answer Options Push Cards Stack */}
             <div className="flex flex-col gap-1.5 my-auto shrink-0">
               {activeChallenge?.choices.map((choice) => (
@@ -145,6 +192,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                   teamId={teamId}
                   isSelected={teamState.selectedChoiceId === choice.id}
                   isConfirmed={teamState.isConfirmed}
+                  isLocked={teamState.isLocked}
                   isPredicting={isPredicting}
                   onSelect={(e) => handleChoiceTouch(choice, e)}
                 />
@@ -154,7 +202,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             {/* Submit Actuator (Yellow / Mint) */}
             <div className="shrink-0 pt-0.5">
               <SubmitButton
-                isReady={!!teamState.selectedChoiceId}
+                isReady={!!teamState.selectedChoiceId && !teamState.isLocked}
                 isConfirmed={teamState.isConfirmed}
                 isPredicting={isPredicting}
                 onConfirm={handleConfirmTouch}

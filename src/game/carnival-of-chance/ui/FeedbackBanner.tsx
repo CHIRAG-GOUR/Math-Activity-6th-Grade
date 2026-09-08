@@ -18,6 +18,8 @@ import {
   Trophy,
   Star,
   MapPin,
+  RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 
 export const FeedbackBanner: React.FC = () => {
@@ -26,8 +28,12 @@ export const FeedbackBanner: React.FC = () => {
   const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
   const drawnOutcome = useCarnivalStore((s) => s.drawnOutcome);
   const batchTrialResults = useCarnivalStore((s) => s.batchTrialResults);
+  const blueTeam = useCarnivalStore((s) => s.blueTeam);
+  const redTeam = useCarnivalStore((s) => s.redTeam);
+  const activityWinner = useCarnivalStore((s) => s.activityWinner);
   const runBatchTrials = useCarnivalStore((s) => s.runBatchTrials);
   const nextChallengeOrComplete = useCarnivalStore((s) => s.nextChallengeOrComplete);
+  const restartCurrentActivity = useCarnivalStore((s) => s.restartCurrentActivity);
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
 
   if (activeActivity === 'hub') return null;
@@ -244,13 +250,13 @@ export const FeedbackBanner: React.FC = () => {
               }}
               className="w-full py-3 font-black text-sm uppercase tracking-wider cursor-pointer active:scale-95 transition-transform"
             >
-              CONTINUE TO COMPLETION
+              CONTINUE TO FINAL SCORES
             </button>
           </motion.div>
         </div>
       )}
 
-      {/* ── 3. ATTRACTION MASTERED MODAL (Exact Dead Center) ── */}
+      {/* ── 3. ATTRACTION WINNER & MASTERED SHOWDOWN MODAL ── */}
       {phase === 'completed' && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none">
           <motion.div
@@ -264,7 +270,7 @@ export const FeedbackBanner: React.FC = () => {
               borderRadius: '24px',
               color: '#000000',
             }}
-            className="pointer-events-auto max-w-md w-full p-6 sm:p-7 text-center"
+            className="pointer-events-auto max-w-lg w-full p-5 sm:p-6 text-center"
           >
             {/* Trophy Icon */}
             <div
@@ -275,61 +281,141 @@ export const FeedbackBanner: React.FC = () => {
                 borderRadius: '18px',
                 color: '#000000',
               }}
-              className="w-16 h-16 mx-auto flex items-center justify-center mb-3 animate-bounce"
+              className="w-14 h-14 mx-auto flex items-center justify-center mb-2 animate-bounce"
             >
-              <Trophy className="w-10 h-10 stroke-[3]" />
+              <Trophy className="w-8 h-8 stroke-[3]" />
             </div>
 
+            {/* Winner Announcement Plaque */}
             <div
               style={{
-                backgroundColor: '#FF2A6D',
-                border: '3px solid #000000',
-                boxShadow: '3px 3px 0px #000000',
-                borderRadius: '12px',
-                color: '#FFFFFF',
+                backgroundColor:
+                  activityWinner === 'blue'
+                    ? '#2563EB'
+                    : activityWinner === 'red'
+                    ? '#FF2A6D'
+                    : '#FED500',
+                border: '3.5px solid #000000',
+                boxShadow: '4px 4px 0px #000000',
+                borderRadius: '14px',
+                color: activityWinner === 'tie' ? '#000000' : '#FFFFFF',
               }}
-              className="inline-block px-5 py-1.5 mb-1"
+              className="inline-block px-5 py-2 mb-2"
             >
-              <h2 className="text-lg sm:text-xl font-black uppercase text-white">
-                {meta.name} MASTERED!
+              <h2 className="text-base sm:text-lg font-black uppercase tracking-wide">
+                {activityWinner === 'blue' && '🏆 TEAM BLUE WINS THE ATTRACTION!'}
+                {activityWinner === 'red' && '🏆 TEAM RED WINS THE ATTRACTION!'}
+                {activityWinner === 'tie' && '🤝 IT’S A TIED MATCH!'}
               </h2>
             </div>
 
-            <p className="text-xs font-black uppercase tracking-widest text-black mt-1">
-              ATTRACTION ACTIVATED ON THE ISLAND
+            <p className="text-[11px] font-black uppercase tracking-widest text-black mb-3">
+              {meta.name} • 5 QUESTIONS COMPLETED
             </p>
 
+            {/* Side-by-Side Activity Scores Comparison */}
+            <div className="grid grid-cols-2 gap-3 mb-3 text-left">
+              {/* Blue Team Card */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '3px solid #000000',
+                  boxShadow: '3px 3px 0px #000000',
+                  borderRadius: '14px',
+                }}
+                className="p-3 flex flex-col justify-between"
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-4 h-4 rounded bg-[#2563EB] border border-black" />
+                  <span className="text-[11px] font-black uppercase text-black">
+                    TEAM BLUE
+                  </span>
+                </div>
+                <div className="text-xl font-black font-mono text-black">
+                  +{blueTeam.activityScore} <span className="text-xs font-sans">PTS</span>
+                </div>
+                <span className="text-[10px] font-bold text-gray-700 mt-0.5">
+                  {blueTeam.correctAnswersCount} / 5 Questions First
+                </span>
+              </div>
+
+              {/* Red Team Card */}
+              <div
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '3px solid #000000',
+                  boxShadow: '3px 3px 0px #000000',
+                  borderRadius: '14px',
+                }}
+                className="p-3 flex flex-col justify-between"
+              >
+                <div className="flex items-center gap-1.5 mb-1">
+                  <div className="w-4 h-4 rounded bg-[#FF2A6D] border border-black" />
+                  <span className="text-[11px] font-black uppercase text-black">
+                    TEAM RED
+                  </span>
+                </div>
+                <div className="text-xl font-black font-mono text-black">
+                  +{redTeam.activityScore} <span className="text-xs font-sans">PTS</span>
+                </div>
+                <span className="text-[10px] font-bold text-gray-700 mt-0.5">
+                  {redTeam.correctAnswersCount} / 5 Questions First
+                </span>
+              </div>
+            </div>
+
+            {/* Tickets Award Plaque */}
             <div
               style={{
                 backgroundColor: '#FFFFFF',
                 border: '3px solid #000000',
                 boxShadow: '3px 3px 0px #000000',
-                borderRadius: '14px',
+                borderRadius: '12px',
                 color: '#000000',
               }}
-              className="my-4 p-3"
+              className="mb-4 p-2 flex items-center justify-center gap-2 font-black text-xs"
             >
-              <div className="flex items-center justify-center gap-2 font-black text-black">
-                <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
-                <span className="text-xs sm:text-sm uppercase tracking-wider">+2 GOLD TICKETS AWARDED</span>
-                <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
-              </div>
+              <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
+              <span>
+                {activityWinner === 'tie'
+                  ? '+1 GOLD TICKET AWARDED TO BOTH TEAMS'
+                  : `+2 GOLD TICKETS AWARDED TO ${activityWinner === 'blue' ? 'TEAM BLUE' : 'TEAM RED'}`}
+              </span>
+              <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
             </div>
 
-            <button
-              onClick={returnToHub}
-              style={{
-                backgroundColor: '#FF2A6D',
-                border: '4px solid #000000',
-                boxShadow: '5px 5px 0px #000000',
-                borderRadius: '16px',
-                color: '#FFFFFF',
-              }}
-              className="w-full py-3.5 font-black text-sm uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-transform"
-            >
-              <MapPin className="w-4 h-4 stroke-[3] text-white" />
-              <span className="text-white font-black">RETURN TO CARNIVAL ISLAND</span>
-            </button>
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <button
+                onClick={restartCurrentActivity}
+                style={{
+                  backgroundColor: '#FFFFFF',
+                  border: '3.5px solid #000000',
+                  boxShadow: '4px 4px 0px #000000',
+                  borderRadius: '14px',
+                  color: '#000000',
+                }}
+                className="py-2.5 font-black text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+              >
+                <RotateCcw className="w-4 h-4 stroke-[3]" />
+                <span>PLAY AGAIN</span>
+              </button>
+
+              <button
+                onClick={returnToHub}
+                style={{
+                  backgroundColor: '#FF2A6D',
+                  border: '3.5px solid #000000',
+                  boxShadow: '4px 4px 0px #000000',
+                  borderRadius: '14px',
+                  color: '#FFFFFF',
+                }}
+                className="py-2.5 font-black text-xs uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5 active:scale-95 transition-transform"
+              >
+                <MapPin className="w-4 h-4 stroke-[3] text-white" />
+                <span className="text-white font-black">CARNIVAL ISLAND</span>
+              </button>
+            </div>
           </motion.div>
         </div>
       )}

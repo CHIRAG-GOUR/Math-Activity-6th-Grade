@@ -80,12 +80,16 @@ export interface TeamState {
   id: TeamId;
   name: string;
   score: number;
+  activityScore: number;
   goldTickets: number;
   selectedChoiceId: string | null;
   isConfirmed: boolean;
+  isLocked: boolean;
   isCorrect: boolean | null;
+  lastResult: 'correct' | 'wrong' | null;
   scoreGained: number;
   streak: number;
+  correctAnswersCount: number;
 }
 
 export interface TrialOutcome {

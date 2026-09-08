@@ -18,6 +18,8 @@ export const CarnivalHUD: React.FC = () => {
   const activeActivity = useCarnivalStore((s) => s.activeActivity);
   const blueTeam = useCarnivalStore((s) => s.blueTeam);
   const redTeam = useCarnivalStore((s) => s.redTeam);
+  const challengeIndex = useCarnivalStore((s) => s.challengeIndex);
+  const totalChallengesInActivity = useCarnivalStore((s) => s.totalChallengesInActivity);
   const isMuted = useCarnivalStore((s) => s.isMuted);
   const toggleMute = useCarnivalStore((s) => s.toggleMute);
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
@@ -85,7 +87,7 @@ export const CarnivalHUD: React.FC = () => {
                   }}
                   className="px-1.5 py-0.2 text-[8px] font-black uppercase tracking-wider"
                 >
-                  GRADE 6 PROBABILITY
+                  QUESTION {challengeIndex + 1} OF {totalChallengesInActivity || 5}
                 </span>
                 <span className="text-[9px] font-black uppercase tracking-wider text-black opacity-80">
                   {meta.subtitle}
