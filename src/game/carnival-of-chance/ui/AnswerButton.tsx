@@ -1,7 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Neo-Brutalist Answer Button
-// Physical Carnival Arcade Push-Card for Dual-Team Touch Screens
-// High Contrast, Mathematical Fraction Display, Press Physics
+// THE GREAT CARNIVAL OF CHANCE — COMIC-BOOK ANSWER BUTTON
+// 100% Opaque Cream/Yellow Push Cards, 4px Black Outlines, 5px Hard Shadows
+// Comic Success Green Stamp & Error Red Feedback
 // ============================================================
 
 'use client';
@@ -10,7 +10,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { AnswerChoice, TeamId } from '../types';
 import { MathFractionDisplay } from './MathFraction';
-import { Check, X, Sparkles } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 
 interface AnswerButtonProps {
   choice: AnswerChoice;
@@ -34,30 +34,30 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
   const showCorrectResult = isConfirmed && isCorrect;
   const showWrongResult = isConfirmed && isSelected && !isCorrect;
 
-  // Determine Dynamic Style Classes
-  let bgClass = 'bg-[#FFFDF6] hover:bg-[#FFE380] text-[#111111]';
-  let borderClass = 'border-3 border-[#111111]';
-  let shadowClass = 'shadow-[4px_4px_0px_#111111]';
+  // Style Variants
+  let bgClass = 'bg-[#FFFDF8] hover:bg-[#FFE58F] text-[#111111]';
+  let borderClass = 'border-[4px] border-[#111111]';
+  let shadowClass = 'shadow-[5px_5px_0px_#111111]';
   let ringClass = '';
 
   if (isSelected && !isConfirmed) {
     if (isBlue) {
       bgClass = 'bg-[#DBEAFE] text-[#111111]';
       ringClass = 'ring-4 ring-[#2463EB]';
-      shadowClass = 'shadow-[6px_6px_0px_#111111]';
+      shadowClass = 'shadow-[6px_6px_0px_#2463EB]';
     } else {
-      bgClass = 'bg-[#FFE4E6] text-[#111111]';
+      bgClass = 'bg-[#FEE2E2] text-[#111111]';
       ringClass = 'ring-4 ring-[#E53935]';
-      shadowClass = 'shadow-[6px_6px_0px_#111111]';
+      shadowClass = 'shadow-[6px_6px_0px_#E53935]';
     }
   }
 
   if (showCorrectResult) {
     bgClass = 'bg-[#2E9B57] text-[#FFFFFF]';
-    shadowClass = 'shadow-[5px_5px_0px_#111111]';
+    shadowClass = 'shadow-[6px_6px_0px_#111111]';
   } else if (showWrongResult) {
     bgClass = 'bg-[#E53935] text-[#FFFFFF]';
-    shadowClass = 'shadow-[4px_4px_0px_#111111]';
+    shadowClass = 'shadow-[5px_5px_0px_#111111]';
   }
 
   const disabled = !isPredicting || isConfirmed;
@@ -68,43 +68,49 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       onPointerDown={onSelect}
       disabled={disabled}
       whileTap={!disabled ? { scale: 0.98, x: 2, y: 2 } : {}}
-      className={`relative w-full h-[62px] sm:h-[68px] px-3.5 py-2 rounded-2xl ${borderClass} ${shadowClass} ${ringClass} ${bgClass} flex items-center justify-between gap-3 transition-colors select-none cursor-pointer touch-manipulation ${
-        disabled && !isConfirmed ? 'opacity-50 cursor-not-allowed' : ''
+      animate={
+        showCorrectResult
+          ? { scale: [1, 0.95, 1.04, 1], transition: { duration: 0.4 } }
+          : showWrongResult
+          ? { x: [0, -4, 4, -4, 4, 0], transition: { duration: 0.35 } }
+          : {}
+      }
+      className={`relative w-full h-[62px] sm:h-[66px] px-3.5 py-1.5 rounded-[16px] ${borderClass} ${shadowClass} ${ringClass} ${bgClass} flex items-center justify-between gap-3 transition-colors select-none cursor-pointer touch-manipulation ${
+        disabled && !isConfirmed ? 'opacity-55 cursor-not-allowed' : ''
       }`}
     >
-      {/* ── Left: Fraction Display & Descriptor ── */}
+      {/* ── Left: Stacked Fraction & Label ── */}
       <div className="flex-1 min-w-0 text-left flex items-center gap-3">
         <MathFractionDisplay fraction={choice.fraction} size="md" />
 
-        {/* Small label / explanation hint */}
         <span
-          className={`text-[11px] sm:text-xs font-bold truncate ${
-            showCorrectResult || showWrongResult ? 'text-white/90' : 'text-[#111111]/80'
+          className={`text-[11px] sm:text-xs font-black truncate ${
+            showCorrectResult || showWrongResult ? 'text-white' : 'text-[#111111]'
           }`}
         >
           {choice.label}
         </span>
       </div>
 
-      {/* ── Right: Status Feedback Badge ── */}
+      {/* ── Right: Comic Stamp Badge ── */}
       {showCorrectResult && (
-        <div className="flex items-center gap-1.5 bg-[#111111] text-[#FFFFFF] px-2.5 py-1 rounded-xl border border-white shrink-0 shadow-[2px_2px_0px_#FFFFFF]">
-          <Check className="w-4 h-4 text-[#2E9B57] stroke-[3]" />
+        <div className="flex items-center gap-1 bg-[#111111] text-[#FFFFFF] px-2.5 py-1 rounded-xl border-2 border-white shrink-0 shadow-[2px_2px_0px_#FFFFFF]">
+          <Check className="w-4 h-4 text-[#2E9B57] stroke-[3.5]" />
           <span className="text-[10px] font-black uppercase tracking-wider">CORRECT!</span>
         </div>
       )}
 
       {showWrongResult && (
-        <div className="flex items-center gap-1.5 bg-[#111111] text-[#FFFFFF] px-2.5 py-1 rounded-xl border border-white shrink-0 shadow-[2px_2px_0px_#FFFFFF]">
-          <X className="w-4 h-4 text-[#E53935] stroke-[3]" />
-          <span className="text-[10px] font-black uppercase tracking-wider">WRONG</span>
+        <div className="flex items-center gap-1 bg-[#111111] text-[#FFFFFF] px-2.5 py-1 rounded-xl border-2 border-white shrink-0 shadow-[2px_2px_0px_#FFFFFF]">
+          <X className="w-4 h-4 text-[#E53935] stroke-[3.5]" />
+          <span className="text-[10px] font-black uppercase tracking-wider">TRY AGAIN</span>
         </div>
       )}
 
-      {/* Selected Radio Indicator (when not yet confirmed) */}
+      {/* Selected Indicator Bullet */}
       {!isConfirmed && (
         <div
-          className={`w-6 h-6 rounded-full border-3 border-[#111111] flex items-center justify-center shrink-0 ${
+          className={`w-6 h-6 rounded-full border-[3px] border-[#111111] flex items-center justify-center shrink-0 shadow-[1px_1px_0px_#111111] ${
             isSelected
               ? isBlue
                 ? 'bg-[#2463EB]'
@@ -112,7 +118,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
               : 'bg-white'
           }`}
         >
-          {isSelected && <div className="w-2 h-2 rounded-full bg-white" />}
+          {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-white" />}
         </div>
       )}
     </motion.button>

@@ -1,6 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Activity Status & Machine Instruction
-// Real-Time Arcade Step Guidance Banner for Classroom Students
+// THE GREAT CARNIVAL OF CHANCE — COMIC SPEECH-BUBBLE INSTRUCTION
+// 100% Solid Yellow Comic Speech Bubble with Downward Pointer
+// Dynamic Real-Time Operator Status & In-Game Direction
 // ============================================================
 
 'use client';
@@ -8,8 +9,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { useCarnivalStore } from '../store/carnivalStore';
-import { CARNIVAL_THEME } from './tokens';
-import { Sparkles, Dices, Eye, BarChart3, CheckCircle2 } from 'lucide-react';
+import { Dices, CheckCircle2, Sparkles, Eye, BarChart3 } from 'lucide-react';
 
 export const ActivityStatus: React.FC = () => {
   const activeActivity = useCarnivalStore((s) => s.activeActivity);
@@ -19,7 +19,7 @@ export const ActivityStatus: React.FC = () => {
 
   if (activeActivity === 'hub') return null;
 
-  let stepText = 'STEP 1: BOTH TEAMS MAKE PREDICTION ON CONSOLES';
+  let stepText = 'PREDICT BEFORE YOU SPIN!';
   let Icon = Dices;
   let bgClass = 'bg-[#FFC928] text-[#111111]';
 
@@ -33,24 +33,24 @@ export const ActivityStatus: React.FC = () => {
       Icon = CheckCircle2;
       bgClass = 'bg-[#E53935] text-[#FFFFFF]';
     } else if (blueConfirmed && redConfirmed) {
-      stepText = 'BOTH TEAMS LOCKED IN! STARTING 3D EXPERIMENT...';
+      stepText = 'BOTH TEAMS LOCKED IN! EXECUTING 3D EXPERIMENT...';
       Icon = CheckCircle2;
       bgClass = 'bg-[#2E9B57] text-[#FFFFFF]';
     } else {
-      stepText = 'STEP 1: PREDICT PROBABILITY & PRESS LOCK IN';
+      stepText = 'PREDICT BEFORE YOU ACT — LOCK IN YOUR CHOICE!';
       Icon = Dices;
       bgClass = 'bg-[#FFC928] text-[#111111]';
     }
   } else if (phase === 'operating') {
-    stepText = 'STEP 2: 3D MACHINE IN MOTION — RUNNING EXPERIMENT!';
+    stepText = '3D MACHINE RUNNING EXPERIMENT — WATCH CLOSELY!';
     Icon = Sparkles;
     bgClass = 'bg-[#E53935] text-[#FFC928]';
   } else if (phase === 'observation') {
-    stepText = 'STEP 3: OBSERVE RESULT — COMPARE THEORETICAL VS ACTUAL';
+    stepText = 'OBSERVE THE OUTCOME — COMPARE THEORETICAL VS ACTUAL!';
     Icon = Eye;
     bgClass = 'bg-[#2E9B57] text-[#FFFFFF]';
   } else if (phase === 'batch-trials') {
-    stepText = 'STEP 4: 10-TRIAL BATCH EXPERIMENT — LAW OF LARGE NUMBERS';
+    stepText = '10-TRIAL BATCH SIMULATION — LAW OF LARGE NUMBERS';
     Icon = BarChart3;
     bgClass = 'bg-[#2463EB] text-[#FFFFFF]';
   }
@@ -59,12 +59,13 @@ export const ActivityStatus: React.FC = () => {
     <motion.div
       initial={{ y: 20, opacity: 0 }}
       animate={{ y: 0, opacity: 1 }}
-      className="pointer-events-none select-none z-20 flex justify-center pb-1"
+      className="pointer-events-none select-none z-20 flex flex-col items-center pb-2"
     >
+      {/* Speech Bubble Plaque */}
       <div
-        className={`px-5 py-1.5 rounded-2xl border-4 border-[#111111] shadow-[4px_4px_0px_#111111] flex items-center gap-2.5 ${bgClass}`}
+        className={`relative px-6 py-2 rounded-[18px] border-[4px] border-[#111111] shadow-[6px_6px_0px_#111111] flex items-center gap-2.5 ${bgClass}`}
       >
-        <Icon className="w-4 h-4 stroke-[2.5]" />
+        <Icon className="w-5 h-5 stroke-[3]" />
         <span className="text-xs sm:text-sm font-black uppercase tracking-wider">
           {stepText}
         </span>

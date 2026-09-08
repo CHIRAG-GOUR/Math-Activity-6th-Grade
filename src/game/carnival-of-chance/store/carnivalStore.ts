@@ -87,7 +87,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
 
     set((state) => ({
       activeActivity: id,
-      phase: 'intro',
+      phase: 'predicting',
       activeChallenge: firstChallenge,
       challengeIndex: 0,
       drawnOutcome: null,

@@ -1,4 +1,5 @@
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800;900&family=Rajdhani:wght@600;700;800&family=Orbitron:wght@700;900&family=Cinzel:wght@700;900&display=swap');
+@import '../game/carnival-of-chance/carnival-comic.css';
 
 @tailwind base;
 @tailwind components;
