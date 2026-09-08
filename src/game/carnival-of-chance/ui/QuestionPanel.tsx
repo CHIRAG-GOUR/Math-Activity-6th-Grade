@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST QUESTION CARD
-// 100% Solid Opaque White Box, 4px Black Outline, 6px Hard Shadow
-// Lavender "CHALLENGE" badge, Yellow Points Stamp, Clean Math Text
+// 100% Solid Opaque Box, 4px Black Outline, 5px Hard Shadow
+// Yellow with Black, Red with White & Black Carnival Palette
 // ============================================================
 
 import React from 'react';
@@ -29,17 +29,18 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
       }}
       className="w-full p-2.5 sm:p-3 text-left flex flex-col gap-2 select-none shrink-0"
     >
-      {/* ── Top Strip: Lavender Challenge Badge & Yellow Points Stamp ── */}
+      {/* ── Top Strip: Red/Yellow Challenge Badge & Points Stamp ── */}
       <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <div
             style={{
-              backgroundColor: '#C4A1FF',
+              backgroundColor: '#FF2A6D',
               border: '2px solid #000000',
               boxShadow: '2px 2px 0px #000000',
               borderRadius: '8px',
+              color: '#FFFFFF',
             }}
-            className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider text-black shrink-0"
+            className="px-2 py-0.5 text-[10px] font-black uppercase tracking-wider shrink-0"
           >
             CHALLENGE
           </div>

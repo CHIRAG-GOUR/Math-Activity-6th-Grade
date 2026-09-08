@@ -1,6 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST FEEDBACK & REASONING MODALS
-// 100% Solid Opaque Panels with Guaranteed Inline Styles & Outlines
+// THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST OBSERVATION & REWARD MODALS
+// Dead-Center Positioning, Guaranteed Zero Side-Console Overlap
+// Exact Neubrutalist Palette: Yellow with Black, Red with White & Black
 // ============================================================
 
 'use client';
@@ -34,34 +35,34 @@ export const FeedbackBanner: React.FC = () => {
 
   return (
     <AnimatePresence>
-      {/* ── 1. OBSERVATION & REASONING CARD (Appears in center after machine stops) ── */}
+      {/* ── 1. OBSERVATION & REASONING CARD (Exact Center of Screen) ── */}
       {phase === 'observation' && activeChallenge && (
-        <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 max-w-xl w-full select-none pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none">
           <motion.div
-            initial={{ y: -40, opacity: 0, scale: 0.95 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            exit={{ y: -40, opacity: 0 }}
+            initial={{ scale: 0.9, opacity: 0, y: 20 }}
+            animate={{ scale: 1, opacity: 1, y: 0 }}
+            exit={{ scale: 0.9, opacity: 0, y: 20 }}
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: '#FED500',
               border: '5px solid #000000',
               boxShadow: '8px 8px 0px #000000',
               borderRadius: '24px',
               color: '#000000',
             }}
-            className="p-5 sm:p-6 text-center"
+            className="pointer-events-auto max-w-lg w-full p-5 sm:p-6 text-center"
           >
             {/* Header Stamp */}
             <div
               style={{
-                backgroundColor: '#FED500',
+                backgroundColor: '#FF2A6D',
                 border: '3px solid #000000',
-                boxShadow: '2px 2px 0px #000000',
+                boxShadow: '3px 3px 0px #000000',
                 borderRadius: '10px',
-                color: '#000000',
+                color: '#FFFFFF',
               }}
-              className="inline-flex items-center gap-2 px-3.5 py-1 mb-3 font-black text-xs uppercase tracking-wider"
+              className="inline-flex items-center gap-2 px-4 py-1 mb-3 font-black text-xs uppercase tracking-wider"
             >
-              <CheckCircle2 className="w-4 h-4 stroke-[3.5]" />
+              <CheckCircle2 className="w-4 h-4 stroke-[3.5] text-white" />
               <span>PHYSICAL EXPERIMENT COMPLETED</span>
             </div>
 
@@ -70,7 +71,7 @@ export const FeedbackBanner: React.FC = () => {
               {/* Theoretical Probability */}
               <div
                 style={{
-                  backgroundColor: '#FFF7E5',
+                  backgroundColor: '#FFFFFF',
                   border: '3px solid #000000',
                   boxShadow: '3px 3px 0px #000000',
                   borderRadius: '14px',
@@ -86,10 +87,10 @@ export const FeedbackBanner: React.FC = () => {
                 />
               </div>
 
-              {/* Actual Random Draw Outcome */}
+              {/* Actual Random Outcome */}
               <div
                 style={{
-                  backgroundColor: '#FED500',
+                  backgroundColor: '#FFFFFF',
                   border: '3px solid #000000',
                   boxShadow: '3px 3px 0px #000000',
                   borderRadius: '14px',
@@ -130,13 +131,13 @@ export const FeedbackBanner: React.FC = () => {
               <button
                 onClick={() => runBatchTrials(10)}
                 style={{
-                  backgroundColor: '#FED500',
+                  backgroundColor: '#FFFFFF',
                   border: '3.5px solid #000000',
                   boxShadow: '4px 4px 0px #000000',
                   borderRadius: '14px',
                   color: '#000000',
                 }}
-                className="py-2.5 px-4 font-black text-xs flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+                className="py-2.5 px-4 font-black text-xs flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
               >
                 <BarChart3 className="w-4 h-4 stroke-[3]" />
                 <span>RUN 10-TRIAL BATCH</span>
@@ -150,7 +151,7 @@ export const FeedbackBanner: React.FC = () => {
                   borderRadius: '14px',
                   color: '#000000',
                 }}
-                className="py-2.5 px-6 font-black text-xs flex items-center gap-2 cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+                className="py-2.5 px-6 font-black text-xs flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
               >
                 <span>CONTINUE</span>
                 <ArrowRight className="w-4 h-4 stroke-[3.5]" />
@@ -160,29 +161,29 @@ export const FeedbackBanner: React.FC = () => {
         </div>
       )}
 
-      {/* ── 2. 10-TRIAL BATCH EXPERIMENT MODAL ── */}
+      {/* ── 2. 10-TRIAL BATCH EXPERIMENT MODAL (Exact Center) ── */}
       {phase === 'batch-trials' && (
-        <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 max-w-lg w-full select-none pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none">
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0.9, opacity: 0 }}
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: '#FED500',
               border: '5px solid #000000',
               boxShadow: '8px 8px 0px #000000',
               borderRadius: '24px',
               color: '#000000',
             }}
-            className="p-6 text-center"
+            className="pointer-events-auto max-w-lg w-full p-6 text-center"
           >
             <div
               style={{
-                backgroundColor: '#C4A1FF',
+                backgroundColor: '#FF2A6D',
                 border: '3px solid #000000',
-                boxShadow: '2px 2px 0px #000000',
+                boxShadow: '3px 3px 0px #000000',
                 borderRadius: '10px',
-                color: '#000000',
+                color: '#FFFFFF',
               }}
               className="inline-block px-4 py-1.5 mb-2 font-black text-xs sm:text-sm uppercase tracking-wider"
             >
@@ -199,7 +200,7 @@ export const FeedbackBanner: React.FC = () => {
             {/* Trial Balls Sequence */}
             <div
               style={{
-                backgroundColor: '#FFF7E5',
+                backgroundColor: '#FFFFFF',
                 border: '3px solid #000000',
                 borderRadius: '14px',
               }}
@@ -218,18 +219,18 @@ export const FeedbackBanner: React.FC = () => {
               ))}
             </div>
 
-            {/* Law of Large Numbers Insight Narration Box */}
+            {/* Law of Large Numbers Insight */}
             <div
               style={{
-                backgroundColor: '#FED500',
+                backgroundColor: '#FFF7E5',
                 border: '3px solid #000000',
-                boxShadow: '3px 3px 0px #000000',
+                boxShadow: '2px 2px 0px #000000',
                 borderRadius: '14px',
                 color: '#000000',
               }}
               className="p-3 text-xs text-black font-bold leading-relaxed my-3 text-left"
             >
-              <strong>Carnival Math Insight:</strong> Did the 10 experimental trials match the exact theoretical percentage? With small sample sizes, random variation occurs. As you run hundreds or thousands of trials, experimental probability gets closer and closer to theoretical probability!
+              <strong>Carnival Math Insight:</strong> Did the 10 experimental trials match the theoretical fraction? With small sample sizes, random fluctuations occur. As more trials are run, the experimental frequency converges toward the exact theoretical probability!
             </div>
 
             <button
@@ -241,7 +242,7 @@ export const FeedbackBanner: React.FC = () => {
                 borderRadius: '16px',
                 color: '#000000',
               }}
-              className="w-full py-3 font-black text-sm uppercase tracking-wider cursor-pointer active:translate-x-0.5 active:translate-y-0.5"
+              className="w-full py-3 font-black text-sm uppercase tracking-wider cursor-pointer active:scale-95 transition-transform"
             >
               CONTINUE TO COMPLETION
             </button>
@@ -249,9 +250,9 @@ export const FeedbackBanner: React.FC = () => {
         </div>
       )}
 
-      {/* ── 3. ATTRACTION MASTERED & GOLD TICKETS REWARD ── */}
+      {/* ── 3. ATTRACTION MASTERED MODAL (Exact Dead Center) ── */}
       {phase === 'completed' && (
-        <div className="fixed top-20 inset-x-4 sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 z-50 max-w-md w-full select-none pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none select-none">
           <motion.div
             initial={{ scale: 0.85, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
@@ -263,8 +264,9 @@ export const FeedbackBanner: React.FC = () => {
               borderRadius: '24px',
               color: '#000000',
             }}
-            className="p-6 sm:p-8 text-center"
+            className="pointer-events-auto max-w-md w-full p-6 sm:p-7 text-center"
           >
+            {/* Trophy Icon */}
             <div
               style={{
                 backgroundColor: '#FFFFFF',
@@ -305,12 +307,12 @@ export const FeedbackBanner: React.FC = () => {
                 borderRadius: '14px',
                 color: '#000000',
               }}
-              className="my-4 p-3.5"
+              className="my-4 p-3"
             >
               <div className="flex items-center justify-center gap-2 font-black text-black">
-                <Star className="w-5 h-5 fill-[#FED500] text-black stroke-[2.5]" />
+                <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
                 <span className="text-xs sm:text-sm uppercase tracking-wider">+2 GOLD TICKETS AWARDED</span>
-                <Star className="w-5 h-5 fill-[#FED500] text-black stroke-[2.5]" />
+                <Star className="w-4 h-4 fill-[#FED500] text-black stroke-[2.5]" />
               </div>
             </div>
 
@@ -323,7 +325,7 @@ export const FeedbackBanner: React.FC = () => {
                 borderRadius: '16px',
                 color: '#000000',
               }}
-              className="w-full py-3 font-black text-sm uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 active:translate-x-0.5 active:translate-y-0.5"
+              className="w-full py-3.5 font-black text-sm uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
               <MapPin className="w-4 h-4 stroke-[3]" />
               <span>RETURN TO CARNIVAL ISLAND</span>
