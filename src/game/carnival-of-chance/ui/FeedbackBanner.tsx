@@ -37,7 +37,12 @@ export const FeedbackBanner: React.FC = () => {
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
 
   if (activeActivity === 'hub') return null;
-  const meta = CARNIVAL_THEME.activityAccents[activeActivity] || CARNIVAL_THEME.activityAccents.hub;
+  const isRightAnswer =
+    blueTeam.lastResult === 'correct' ||
+    redTeam.lastResult === 'correct' ||
+    (drawnOutcome &&
+      activeChallenge?.setup.targetColor &&
+      drawnOutcome.color === activeChallenge.setup.targetColor);
 
   return (
     <AnimatePresence>
@@ -49,27 +54,35 @@ export const FeedbackBanner: React.FC = () => {
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0, y: 20 }}
             style={{
-              backgroundColor: '#FED500',
+              backgroundColor: isRightAnswer ? '#00F0A8' : '#FF2A6D',
               border: '5px solid #000000',
               boxShadow: '8px 8px 0px #000000',
               borderRadius: '24px',
-              color: '#000000',
+              color: isRightAnswer ? '#000000' : '#FFFFFF',
             }}
             className="pointer-events-auto max-w-lg w-full p-5 sm:p-6 text-center"
           >
-            {/* Header Stamp (Red with White) */}
+            {/* Header Stamp (Black with Green or Red) */}
             <div
               style={{
-                backgroundColor: '#FF2A6D',
+                backgroundColor: '#000000',
                 border: '3px solid #000000',
                 boxShadow: '3px 3px 0px #000000',
                 borderRadius: '10px',
-                color: '#FFFFFF',
+                color: isRightAnswer ? '#00F0A8' : '#FF2A6D',
               }}
-              className="inline-flex items-center gap-2 px-4 py-1 mb-3 font-black text-xs uppercase tracking-wider"
+              className="inline-flex items-center gap-2 px-4 py-1.5 mb-3 font-black text-xs uppercase tracking-wider"
             >
-              <CheckCircle2 className="w-4 h-4 stroke-[3.5] text-white" />
-              <span>PHYSICAL EXPERIMENT COMPLETED</span>
+              <CheckCircle2
+                className={`w-4 h-4 stroke-[3.5] ${
+                  isRightAnswer ? 'text-[#00F0A8]' : 'text-[#FF2A6D]'
+                }`}
+              />
+              <span>
+                {isRightAnswer
+                  ? '🎉 PREDICTION CORRECT! (+POINTS)'
+                  : '❌ PREDICTION INCORRECT!'}
+              </span>
             </div>
 
             {/* Side-by-Side Comparison Panels */}
@@ -81,6 +94,7 @@ export const FeedbackBanner: React.FC = () => {
                   border: '3px solid #000000',
                   boxShadow: '3px 3px 0px #000000',
                   borderRadius: '14px',
+                  color: '#000000',
                 }}
                 className="p-3 flex flex-col justify-between"
               >
@@ -100,6 +114,7 @@ export const FeedbackBanner: React.FC = () => {
                   border: '3px solid #000000',
                   boxShadow: '3px 3px 0px #000000',
                   borderRadius: '14px',
+                  color: '#000000',
                 }}
                 className="p-3 flex flex-col justify-between"
               >
@@ -121,7 +136,7 @@ export const FeedbackBanner: React.FC = () => {
             {/* Mathematical Reasoning Narration Box */}
             <div
               style={{
-                backgroundColor: '#FFF7E5',
+                backgroundColor: '#FFFFFF',
                 border: '3px solid #000000',
                 boxShadow: '2px 2px 0px #000000',
                 borderRadius: '14px',
@@ -151,16 +166,16 @@ export const FeedbackBanner: React.FC = () => {
               <button
                 onClick={nextChallengeOrComplete}
                 style={{
-                  backgroundColor: '#FF2A6D',
+                  backgroundColor: isRightAnswer ? '#000000' : '#FFFFFF',
                   border: '3.5px solid #000000',
                   boxShadow: '4px 4px 0px #000000',
                   borderRadius: '14px',
-                  color: '#FFFFFF',
+                  color: isRightAnswer ? '#00F0A8' : '#000000',
                 }}
                 className="py-2.5 px-6 font-black text-xs flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
               >
-                <span className="font-black text-white uppercase tracking-wider">CONTINUE</span>
-                <ArrowRight className="w-4 h-4 stroke-[3.5] text-white" />
+                <span className="font-black uppercase tracking-wider">CONTINUE</span>
+                <ArrowRight className="w-4 h-4 stroke-[3.5]" />
               </button>
             </div>
           </motion.div>

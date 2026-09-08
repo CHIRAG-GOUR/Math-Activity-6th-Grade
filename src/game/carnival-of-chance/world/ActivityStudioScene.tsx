@@ -35,8 +35,8 @@ const StudioCameraRig: React.FC<{ activityId: ActivityId }> = ({ activityId }) =
       targetPos.set(0, 1.8, 7.0);
       targetLookAt.set(0, 1.4, 0);
     } else if (activityId === 'ball-drop') {
-      targetPos.set(0, 2.6, 8.8);
-      targetLookAt.set(0, 2.4, 0);
+      targetPos.set(0, 2.1, 7.8);
+      targetLookAt.set(0, 1.8, 0);
     } else if (activityId === 'probability-lab') {
       targetPos.set(0, 2.2, 7.2);
       targetLookAt.set(0, 2.0, 0);
