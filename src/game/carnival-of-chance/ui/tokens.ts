@@ -65,10 +65,10 @@ export const CARNIVAL_THEME = {
       primary: '#E53935',
       secondary: '#FFF8E7',
       accent: '#FFC928',
-      name: 'MYSTERY BALL BAG',
-      subtitle: 'PHYSICAL BALL DRAW',
+      name: 'MYSTERY CHESTS',
+      subtitle: '3D TREASURE CHEST DRAW',
       tagline: 'DRAW • CALCULATE • OBSERVE',
-      instruction: 'COUNT COLORED BALLS → PREDICT RATIO → PULL DRAW LEVER → REVEAL BALL',
+      instruction: 'COUNT BALLS IN CHESTS → PREDICT FRACTION → OPEN CHEST → REVEAL BALL',
     },
     'ball-drop': {
       primary: '#2463EB',
