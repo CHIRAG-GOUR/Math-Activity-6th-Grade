@@ -39,6 +39,8 @@ export interface ProbabilityBall {
 export interface MathFraction {
   numerator: number;
   denominator: number;
+  simplifiedNumerator?: number;
+  simplifiedDenominator?: number;
   percentage?: string;
   decimal?: number;
 }
@@ -99,6 +101,7 @@ export interface TeamState {
   scoreGained: number;
   streak: number;
   correctAnswersCount: number;
+  attemptsLeft: number;
 }
 
 export interface TrialOutcome {

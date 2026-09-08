@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST ANSWER BUTTON
 // Clean, Harmoniously Proportioned Push Card for Zero-Overflow Viewports
-// Green for Correct, Red for Wrong, Yellow for Selected
+// Green for Correct, Red for Wrong ONLY AFTER the 3D Machine Finishes Operating!
 // ============================================================
 
 'use client';
@@ -9,7 +9,8 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { AnswerChoice, TeamId } from '../types';
-import { Check, X } from 'lucide-react';
+import { useCarnivalStore } from '../store/carnivalStore';
+import { Check, X, Lock } from 'lucide-react';
 
 interface AnswerButtonProps {
   choice: AnswerChoice;
@@ -34,15 +35,18 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
   isPredicting,
   onSelect,
 }) => {
+  const phase = useCarnivalStore((s) => s.phase);
   const isBlue = teamId === 'blue';
   const isCorrect = choice.isCorrect;
   const isWrong = !isCorrect;
 
   // Visual state computation:
-  // Show Green ONLY if this choice was actually selected and correct!
-  // If a player picked wrong, show RED ONLY on their wrong choice without revealing the right answer.
-  const showCorrect = isLocked && isSelected && isCorrect;
-  const showWrong = isLocked && isSelected && isWrong;
+  // Show Green/Red ONLY when the 3D machine has settled and entered observation phase!
+  // During operating/spinning phase, locked choices stay yellow without spoiling the result.
+  const isObservation = phase === 'observation' || phase === 'batch-trials' || phase === 'completed';
+  const showCorrect = isObservation && isLocked && isSelected && isCorrect;
+  const showWrong = isObservation && isLocked && isSelected && isWrong;
+  const showLockedPending = isLocked && isSelected && !isObservation;
 
   const letter = OPTION_LETTERS[choiceIndex] || `${choiceIndex + 1}`;
 
@@ -61,7 +65,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
     buttonBorder = '3px solid #000000';
     buttonShadow = '3px 3px 0px #000000';
     textColor = '#FFFFFF';
-  } else if (isSelected && !isLocked) {
+  } else if (isSelected || showLockedPending) {
     buttonBg = '#FED500';
     buttonBorder = '3px solid #000000';
     buttonShadow = '3px 3px 0px #000000';
@@ -91,7 +95,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           : {}
       }
       className={`relative w-full h-[44px] sm:h-[48px] px-2.5 py-1.5 flex items-center justify-between gap-2 select-none cursor-pointer touch-manipulation transition-all shrink-0 ${
-        disabled && !showCorrect && !showWrong ? 'opacity-55 cursor-not-allowed' : ''
+        disabled && !showCorrect && !showWrong && !showLockedPending ? 'opacity-55 cursor-not-allowed' : ''
       }`}
     >
       {/* ── Left: Option Letter Pill + Fraction / Value Text ── */}
@@ -103,14 +107,14 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
               ? '#000000'
               : showWrong
               ? '#000000'
-              : isSelected
+              : isSelected || showLockedPending
               ? '#000000'
               : '#FED500',
             color: showCorrect
               ? '#00F0A8'
               : showWrong
               ? '#FFFFFF'
-              : isSelected
+              : isSelected || showLockedPending
               ? '#FED500'
               : '#000000',
             border: '2px solid #000000',
@@ -186,6 +190,24 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           <X className="w-3.5 h-3.5 text-[#FF2A6D] stroke-[3.5]" />
           <span className="text-[9px] font-black uppercase tracking-wider text-white">
             WRONG
+          </span>
+        </div>
+      )}
+
+      {/* Locked State during Machine Spin (does not reveal correct/wrong yet) */}
+      {showLockedPending && (
+        <div
+          style={{
+            backgroundColor: '#000000',
+            color: '#FED500',
+            border: '1.5px solid #000000',
+            borderRadius: '6px',
+          }}
+          className="flex items-center gap-1 px-1.5 py-0.5 shrink-0"
+        >
+          <Lock className="w-3 h-3 text-[#FED500] stroke-[3]" />
+          <span className="text-[8.5px] font-black uppercase tracking-wider text-[#FED500]">
+            LOCKED
           </span>
         </div>
       )}

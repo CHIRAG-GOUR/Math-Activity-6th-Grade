@@ -1,18 +1,18 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — DYNAMIC TOP HUD
+// THE GREAT CARNIVAL OF CHANCE — DYNAMIC TOP HUD WITH TIMER
+// - Inside Activity: Unified Top Plaque with Map Button, Question Counter, Live Timer, and Audio/FS
 // - On Island Hub: Full Marquee Navigation (Scores + Hub Title + Controls)
-// - Inside Activity: Dynamic Single Center Plaque (Map + Activity Name) + Top-Right Audio/FS
 // Strictly Neo-Brutalist: Yellow with Black, Red with White & Black
 // ============================================================
 
 'use client';
 
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useCarnivalStore } from '../store/carnivalStore';
 import { CARNIVAL_THEME } from './tokens';
 import { TeamScoreBadge } from './TeamScoreBadge';
-import { Home, MapPin, Volume2, VolumeX, Maximize } from 'lucide-react';
+import { Home, MapPin, Volume2, VolumeX, Maximize, Clock } from 'lucide-react';
 
 export const CarnivalHUD: React.FC = () => {
   const activeActivity = useCarnivalStore((s) => s.activeActivity);
@@ -23,6 +23,22 @@ export const CarnivalHUD: React.FC = () => {
   const isMuted = useCarnivalStore((s) => s.isMuted);
   const toggleMute = useCarnivalStore((s) => s.toggleMute);
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
+  const timeRemaining = useCarnivalStore((s) => s.timeRemaining);
+  const timerActive = useCarnivalStore((s) => s.timerActive);
+  const tickTimer = useCarnivalStore((s) => s.tickTimer);
+
+  // Active Timer Countdown Interval Loop
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  useEffect(() => {
+    if (timerActive) {
+      timerRef.current = setInterval(() => {
+        tickTimer();
+      }, 1000);
+    }
+    return () => {
+      if (timerRef.current) clearInterval(timerRef.current);
+    };
+  }, [timerActive, tickTimer]);
 
   const toggleFullscreen = useCallback(() => {
     if (document.fullscreenElement) {
@@ -34,6 +50,7 @@ export const CarnivalHUD: React.FC = () => {
 
   const isInsideActivity = activeActivity !== 'hub';
   const meta = CARNIVAL_THEME.activityAccents[activeActivity] || CARNIVAL_THEME.activityAccents.hub;
+  const isUrgent = timeRemaining <= 8 && timerActive;
 
   // ═══════════════════════════════════════════════════════════════
   // MODE 1: INSIDE ACTIVITY — 1 CENTER PLAQUE + TOP-RIGHT CONTROLS ONLY
@@ -41,7 +58,7 @@ export const CarnivalHUD: React.FC = () => {
   if (isInsideActivity) {
     return (
       <>
-        {/* ── 1. MIDDLE TOP: EXACTLY ONE PROPERLY DEFINED UNIFIED CARD ── */}
+        {/* ── 1. MIDDLE TOP: UNIFIED CENTER PLAQUE WITH LIVE TIMER ── */}
         <div className="fixed top-3 left-1/2 -translate-x-1/2 z-40 pointer-events-auto select-none">
           <div
             style={{
@@ -50,7 +67,7 @@ export const CarnivalHUD: React.FC = () => {
               boxShadow: '5px 5px 0px #000000',
               borderRadius: '18px',
             }}
-            className="flex items-center gap-3 px-4 py-2"
+            className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-4 py-2"
           >
             {/* Return to Map/Island Button */}
             <button
@@ -63,16 +80,16 @@ export const CarnivalHUD: React.FC = () => {
                 borderRadius: '10px',
                 color: '#FFFFFF',
               }}
-              className="flex items-center gap-1.5 px-3 py-1.5 font-black text-xs cursor-pointer active:scale-95 transition-transform shrink-0"
+              className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 font-black text-xs cursor-pointer active:scale-95 transition-transform shrink-0"
             >
               <MapPin className="w-4 h-4 stroke-[3] text-white" />
-              <span className="font-black uppercase tracking-wider">ISLAND</span>
+              <span className="font-black uppercase tracking-wider hidden sm:inline">ISLAND</span>
             </button>
 
             {/* Divider */}
             <div className="w-[2.5px] h-7 bg-black rounded-full shrink-0" />
 
-            {/* Activity Name & Tagline */}
+            {/* Activity Name & Question Info */}
             <div className="text-left leading-tight pr-1">
               <h1 className="text-xs sm:text-sm md:text-base font-black uppercase tracking-wider text-black">
                 {meta.name}
@@ -89,15 +106,38 @@ export const CarnivalHUD: React.FC = () => {
                 >
                   QUESTION {challengeIndex + 1} OF {totalChallengesInActivity || 5}
                 </span>
-                <span className="text-[9px] font-black uppercase tracking-wider text-black opacity-80">
+                <span className="text-[9px] font-black uppercase tracking-wider text-black opacity-80 hidden md:inline">
                   {meta.subtitle}
                 </span>
               </div>
             </div>
+
+            {/* Divider */}
+            <div className="w-[2.5px] h-7 bg-black rounded-full shrink-0" />
+
+            {/* Top Live Countdown Timer Box */}
+            <div
+              style={{
+                backgroundColor: isUrgent ? '#FF2A6D' : '#FFFFFF',
+                border: '2.5px solid #000000',
+                boxShadow: '2px 2px 0px #000000',
+                borderRadius: '10px',
+                color: isUrgent ? '#FFFFFF' : '#000000',
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1 text-xs font-black transition-colors ${
+                isUrgent ? 'animate-bounce' : ''
+              }`}
+            >
+              <Clock className={`w-3.5 h-3.5 ${isUrgent ? 'text-white animate-spin' : 'text-black'}`} />
+              <span className="font-mono text-xs sm:text-sm font-black">
+                {String(Math.floor(timeRemaining / 60)).padStart(2, '0')}:
+                {String(timeRemaining % 60).padStart(2, '0')}
+              </span>
+            </div>
           </div>
         </div>
 
-        {/* ── 2. TOP RIGHT: MUSIC & FULLSCREEN BUTTONS ONLY ── */}
+        {/* ── 2. TOP RIGHT: MUSIC & FULLSCREEN BUTTONS ── */}
         <div className="fixed top-3 right-4 z-40 pointer-events-auto select-none">
           <div
             style={{

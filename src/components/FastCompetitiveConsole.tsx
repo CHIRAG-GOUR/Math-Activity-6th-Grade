@@ -14,6 +14,7 @@ interface FastCompetitiveConsoleProps {
   wrongStrikes: number; // 0, 1, 2, 3
   isBusted: boolean; // triggered when 3 wrong answers
   isSkippingRound?: boolean;
+  attemptsLeft?: number;
   correctAnswer: number | string | null;
   isRevealed: boolean;
   disabled: boolean;
@@ -30,6 +31,7 @@ export const FastCompetitiveConsole: React.FC<FastCompetitiveConsoleProps> = ({
   wrongStrikes,
   isBusted,
   isSkippingRound = false,
+  attemptsLeft = 2,
   isRevealed,
   disabled,
   onDigitPress,
@@ -88,19 +90,28 @@ export const FastCompetitiveConsole: React.FC<FastCompetitiveConsoleProps> = ({
           </h3>
         </div>
 
-        {/* 3 STRIKE WARNING METER */}
-        <div className="flex items-center gap-1 bg-slate-200/90 px-2 py-0.5 rounded-md border border-slate-300">
-          <span className="text-[9px] font-black text-slate-600 font-game uppercase mr-0.5">
-            STRIKES
-          </span>
-          {[1, 2, 3].map((s) => (
-            <div
-              key={s}
-              className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                wrongStrikes >= s ? 'bg-rose-600 shadow-[0_0_6px_#ff0033]' : 'bg-slate-300'
-              }`}
-            />
-          ))}
+        {/* ATTEMPTS OR STRIKES */}
+        <div className="flex items-center gap-1.5">
+          {!isBlocked && attemptsLeft === 1 && (
+            <span className="px-1.5 py-0.5 rounded-md text-[8.5px] font-black uppercase font-game bg-amber-400 text-slate-950 border border-amber-500 animate-pulse">
+              1 TRY LEFT
+            </span>
+          )}
+
+          {/* 3 STRIKE WARNING METER */}
+          <div className="flex items-center gap-1 bg-slate-200/90 px-2 py-0.5 rounded-md border border-slate-300">
+            <span className="text-[9px] font-black text-slate-600 font-game uppercase mr-0.5">
+              STRIKES
+            </span>
+            {[1, 2, 3].map((s) => (
+              <div
+                key={s}
+                className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                  wrongStrikes >= s ? 'bg-rose-600 shadow-[0_0_6px_#ff0033]' : 'bg-slate-300'
+                }`}
+              />
+            ))}
+          </div>
         </div>
 
         {isStealOpportunity && !isLockedOut && !team.isLocked && !isBusted && (

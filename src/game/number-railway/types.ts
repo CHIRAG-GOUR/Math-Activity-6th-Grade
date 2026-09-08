@@ -117,6 +117,7 @@ export interface TeamState {
   selectedAnswer: number | string | null;
   isLocked: boolean; // Locked out for this question
   lastResult: 'correct' | 'wrong' | null;
+  attemptsLeft: number;
   lastScoreGained: number;
   lastFeedback: {
     message: string;

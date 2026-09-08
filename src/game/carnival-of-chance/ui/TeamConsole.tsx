@@ -27,10 +27,10 @@ const ACTION_LABELS: Record<ActivityId, string> = {
   hub: 'LOCK IN PREDICTION',
   'odds-wheel': 'SPIN THE 3D WHEEL',
   'mystery-bag': 'OPEN CHEST & DRAW BALL',
-  'ball-drop': 'RELEASE PACHINKO BALL',
-  'probability-lab': 'TEST LABORATORY CHAMBER',
+  'ball-drop': 'SWING SLEDGEHAMMER & STRIKE',
+  'probability-lab': 'IGNITE PLASMA REACTOR',
   'game-builder': 'LAUNCH TEST TOKEN',
-  'grand-carnival': 'SUBMIT CHAMPIONSHIP SELECTION',
+  'grand-carnival': 'UNLOCK CHAMPIONSHIP VAULT',
 };
 
 export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
@@ -165,6 +165,24 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               </motion.div>
             )}
 
+            {/* 1 Attempt Remaining Alert Strip */}
+            {!teamState.isLocked && teamState.attemptsLeft === 1 && (
+              <div
+                style={{
+                  backgroundColor: '#FED500',
+                  border: '2px solid #000000',
+                  boxShadow: '1.5px 1.5px 0px #000000',
+                  borderRadius: '8px',
+                  color: '#000000',
+                }}
+                className="py-0.5 px-1.5 text-center shrink-0 animate-pulse"
+              >
+                <span className="text-[9px] font-black uppercase tracking-wider text-black">
+                  ⚠️ 1 ATTEMPT LEFT — TRY AGAIN!
+                </span>
+              </div>
+            )}
+
             {/* Locked Out Alert Strip */}
             {teamState.isLocked && teamState.lastResult === 'wrong' && (
               <div
@@ -178,7 +196,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
                 className="py-0.5 px-1.5 text-center shrink-0"
               >
                 <span className="text-[9px] font-black uppercase tracking-wider text-white">
-                  ❌ LOCKED OUT — REBOUND ACTIVE FOR 2ND PLAYER
+                  ❌ LOCKED OUT — 0 ATTEMPTS LEFT
                 </span>
               </div>
             )}

@@ -69,6 +69,10 @@ export const MathEscapeVaultGame: React.FC = () => {
   const [blueLockedOut, setBlueLockedOut] = useState<boolean>(false);
   const [redLockedOut, setRedLockedOut] = useState<boolean>(false);
 
+  // 2 Attempts per Team per Question state
+  const [blueAttempts, setBlueAttempts] = useState<number>(2);
+  const [redAttempts, setRedAttempts] = useState<number>(2);
+
   // Wrong strikes
   const [blueStrikes, setBlueStrikes] = useState<number>(0);
   const [redStrikes, setRedStrikes] = useState<number>(0);
@@ -141,6 +145,8 @@ export const MathEscapeVaultGame: React.FC = () => {
       setCurrentRound(roundNum);
       const timerSec = q.timeLimit || settings.timePerRound || 25;
       setTimeLeft(timerSec);
+      setBlueAttempts(2);
+      setRedAttempts(2);
 
       // Handle next round skip penalty for Blue
       if (blueSkipNextRound) {
@@ -205,6 +211,8 @@ export const MathEscapeVaultGame: React.FC = () => {
     setCorrectCount(0);
     setBlueStrikes(0);
     setRedStrikes(0);
+    setBlueAttempts(2);
+    setRedAttempts(2);
     setBlueSkipNextRound(false);
     setRedSkipNextRound(false);
     setBlueIsSkipping(false);
@@ -235,16 +243,18 @@ export const MathEscapeVaultGame: React.FC = () => {
           setCurrentRound(settings.totalRounds + 1);
           setTimeLeft(35);
 
-          // Reset lockouts and strikes for fair sudden death
+          // Reset lockouts, strikes, and attempts for fair sudden death
           setBlueLockedOut(false);
           setBlueBusted(false);
           setBlueIsSkipping(false);
           setBlueStrikes(0);
+          setBlueAttempts(2);
 
           setRedLockedOut(false);
           setRedBusted(false);
           setRedIsSkipping(false);
           setRedStrikes(0);
+          setRedAttempts(2);
 
           setTeamBlue((prev) => ({
             ...prev,
@@ -358,7 +368,7 @@ export const MathEscapeVaultGame: React.FC = () => {
     }
   };
 
-  // 3. FAST COMPETITIVE SUBMISSION
+  // 3. FAST COMPETITIVE SUBMISSION (2 ATTEMPTS PER TEAM PER QUESTION)
   const handleSubmitPress = (teamId: TeamId) => {
     if (phase !== 'playing' || !currentQuestion) return;
 
@@ -401,45 +411,57 @@ export const MathEscapeVaultGame: React.FC = () => {
         }
 
       } else {
-        // WRONG ANSWER FOR TEAM BLUE
+        // WRONG ANSWER FOR TEAM BLUE: CHECK 2 ATTEMPTS
         soundManager.playWrong();
-        setBlueLockedOut(true);
 
-        setTeamBlue((prev) => ({
-          ...prev,
-          streak: 0,
-          selectedAnswer: prev.currentInput,
-          isLocked: true,
-          lastResult: 'wrong',
-          lastScoreGained: 0,
-        }));
-
-        if (isSuperTieBreaker) {
-          // If in tie-breaker and red is also locked out -> both failed!
-          if (redLockedOut || redBusted || redIsSkipping) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setIsPoliceBusted(true);
-            setPhase('round_reveal');
-            setTimeout(() => setPhase('game_over'), 2000);
-          }
+        if (blueAttempts > 1) {
+          // 1st Mistake: Allow 2nd Attempt Retry!
+          setBlueAttempts(1);
+          setTeamBlue((prev) => ({
+            ...prev,
+            currentInput: '',
+            lastResult: null,
+          }));
         } else {
-          const newStrikes = blueStrikes + 1;
-          setBlueStrikes(newStrikes);
-          if (newStrikes >= 3) {
-            soundManager.playSecurityAlarm();
-            setBlueBusted(true);
-            setBlueSkipNextRound(true);
-          }
-          if (redLockedOut || redBusted || redIsSkipping) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setPhase('round_reveal');
-            setTimeout(advanceRound, 2000);
+          // 2nd Mistake: Lock out Team Blue
+          setBlueAttempts(0);
+          setBlueLockedOut(true);
+
+          setTeamBlue((prev) => ({
+            ...prev,
+            streak: 0,
+            selectedAnswer: prev.currentInput,
+            isLocked: true,
+            lastResult: 'wrong',
+            lastScoreGained: 0,
+          }));
+
+          if (isSuperTieBreaker) {
+            if (redLockedOut || redBusted || redIsSkipping || redAttempts === 0) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              setIsPoliceBusted(true);
+              setPhase('round_reveal');
+              setTimeout(() => setPhase('game_over'), 2000);
+            }
+          } else {
+            const newStrikes = blueStrikes + 1;
+            setBlueStrikes(newStrikes);
+            if (newStrikes >= 3) {
+              soundManager.playSecurityAlarm();
+              setBlueBusted(true);
+              setBlueSkipNextRound(true);
+            }
+            if (redLockedOut || redBusted || redIsSkipping || redAttempts === 0) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              setPhase('round_reveal');
+              setTimeout(advanceRound, 2000);
+            }
           }
         }
       }
 
     } else {
-      // TEAM RED SUBMISSION
+      // TEAM RED SUBMISSION (2 ATTEMPTS PER TEAM PER QUESTION)
       if (teamRed.isLocked || redLockedOut || redBusted || redIsSkipping || !teamRed.currentInput) return;
 
       const isCorrect = String(teamRed.currentInput).trim() === String(currentQuestion.answer).trim();
@@ -478,39 +500,51 @@ export const MathEscapeVaultGame: React.FC = () => {
         }
 
       } else {
-        // WRONG ANSWER FOR TEAM RED
+        // WRONG ANSWER FOR TEAM RED: CHECK 2 ATTEMPTS
         soundManager.playWrong();
-        setRedLockedOut(true);
 
-        setTeamRed((prev) => ({
-          ...prev,
-          streak: 0,
-          selectedAnswer: prev.currentInput,
-          isLocked: true,
-          lastResult: 'wrong',
-          lastScoreGained: 0,
-        }));
-
-        if (isSuperTieBreaker) {
-          // If in tie-breaker and blue is also locked out -> both failed!
-          if (blueLockedOut || blueBusted || blueIsSkipping) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setIsPoliceBusted(true);
-            setPhase('round_reveal');
-            setTimeout(() => setPhase('game_over'), 2000);
-          }
+        if (redAttempts > 1) {
+          // 1st Mistake: Allow 2nd Attempt Retry!
+          setRedAttempts(1);
+          setTeamRed((prev) => ({
+            ...prev,
+            currentInput: '',
+            lastResult: null,
+          }));
         } else {
-          const newStrikes = redStrikes + 1;
-          setRedStrikes(newStrikes);
-          if (newStrikes >= 3) {
-            soundManager.playSecurityAlarm();
-            setRedBusted(true);
-            setRedSkipNextRound(true);
-          }
-          if (blueLockedOut || blueBusted || blueIsSkipping) {
-            if (timerRef.current) clearInterval(timerRef.current);
-            setPhase('round_reveal');
-            setTimeout(advanceRound, 2000);
+          // 2nd Mistake: Lock out Team Red
+          setRedAttempts(0);
+          setRedLockedOut(true);
+
+          setTeamRed((prev) => ({
+            ...prev,
+            streak: 0,
+            selectedAnswer: prev.currentInput,
+            isLocked: true,
+            lastResult: 'wrong',
+            lastScoreGained: 0,
+          }));
+
+          if (isSuperTieBreaker) {
+            if (blueLockedOut || blueBusted || blueIsSkipping || blueAttempts === 0) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              setIsPoliceBusted(true);
+              setPhase('round_reveal');
+              setTimeout(() => setPhase('game_over'), 2000);
+            }
+          } else {
+            const newStrikes = redStrikes + 1;
+            setRedStrikes(newStrikes);
+            if (newStrikes >= 3) {
+              soundManager.playSecurityAlarm();
+              setRedBusted(true);
+              setRedSkipNextRound(true);
+            }
+            if (blueLockedOut || blueBusted || blueIsSkipping || blueAttempts === 0) {
+              if (timerRef.current) clearInterval(timerRef.current);
+              setPhase('round_reveal');
+              setTimeout(advanceRound, 2000);
+            }
           }
         }
       }
@@ -593,6 +627,7 @@ export const MathEscapeVaultGame: React.FC = () => {
                 wrongStrikes={blueStrikes}
                 isBusted={blueBusted}
                 isSkippingRound={blueIsSkipping}
+                attemptsLeft={blueAttempts}
                 correctAnswer={phase === 'round_reveal' && currentQuestion ? currentQuestion.answer : null}
                 isRevealed={phase === 'round_reveal'}
                 disabled={phase !== 'playing'}
@@ -632,6 +667,7 @@ export const MathEscapeVaultGame: React.FC = () => {
                 wrongStrikes={redStrikes}
                 isBusted={redBusted}
                 isSkippingRound={redIsSkipping}
+                attemptsLeft={redAttempts}
                 correctAnswer={phase === 'round_reveal' && currentQuestion ? currentQuestion.answer : null}
                 isRevealed={phase === 'round_reveal'}
                 disabled={phase !== 'playing'}

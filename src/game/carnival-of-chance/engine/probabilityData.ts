@@ -1,7 +1,9 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Dynamic Probability Challenge Bank
-// 100+ Grade 6 Bloom's Taxonomy Mapped Challenges Per Mini-Game (600+ Total)
-// Fully dynamic with 3, 4, & 5 Chests, Odds Wheels, Pachinko, Lab, & Builder
+// THE GREAT CARNIVAL OF CHANCE — Dynamic Question Generation Engine
+// 100% Grade 6 Probability Curriculum:
+// - Small in length, concise, crisp, and direct (15-25 words max)
+// - Simple Event Probabilities, Complementary (NOT) Events, Spinners & Ratios
+// - 100+ Procedurally Generated Challenges per Attraction
 // ============================================================
 
 import {
@@ -13,222 +15,222 @@ import {
   ProbabilityChallenge,
 } from '../types';
 
-export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
-  hub: {
-    id: 'hub',
-    name: 'CARNIVAL ISLAND',
-    subtitle: 'The Heart of the Festival',
-    tagline: 'Explore • Predict • Discover',
-    description: 'Explore the 3D carnival island and operate physical probability machines with your team.',
-    accentColor: '#f59e0b',
-    islandPosition: [0, 0, 0],
-    completed: false,
-    unlocked: true,
-  },
-  'mystery-bag': {
-    id: 'mystery-bag',
-    name: 'MYSTERY CHESTS',
-    subtitle: '3D Treasure Chests Draw Chamber',
-    tagline: 'Draw Probability Spheres from Mystery Chests',
-    description: 'Genuine 3D treasure chests holding colorful spheres. Calculate exact single & multi-chest probabilities, then watch the winning chest reveal the drawn ball!',
-    accentColor: '#b45309',
-    islandPosition: [-6.5, 0, -5.5],
-    islandScale: [1.2, 1.2, 1.2],
-    completed: false,
-    unlocked: true,
-  },
-  'odds-wheel': {
-    id: 'odds-wheel',
-    name: 'THE ODDS WHEEL',
-    subtitle: 'Likelihood & Ratio Spinner',
-    tagline: 'Spin the Mechanical Segmented Wheel',
-    description: 'Spin the physical segmented wheel to explore certain, likely, unlikely, and impossible outcomes with tactile ratchet clicks.',
-    accentColor: '#2563eb',
-    islandPosition: [-8.5, 0, 1.5],
-    islandScale: [1.1, 1.1, 1.1],
-    completed: false,
-    unlocked: true,
-  },
-  'ball-drop': {
-    id: 'ball-drop',
-    name: 'GIANT BALL DROP',
-    subtitle: '2-Container Pachinko Tower',
-    tagline: 'Arcade Ricochets & 2 Collector Containers',
-    description: 'Drop physical balls down pegboard chutes with arcade ricochets into left and right collector containers.',
-    accentColor: '#10b981',
-    islandPosition: [6.5, 0, -5.5],
-    islandScale: [1.1, 1.1, 1.1],
-    completed: false,
-    unlocked: true,
-  },
-  'probability-lab': {
-    id: 'probability-lab',
-    name: 'THE PROBABILITY LAB',
-    subtitle: 'Compound Events Machine',
-    tagline: 'Dual-Chamber Multi-Stage Experiments',
-    description: 'Analyze multi-stage compound experiments and calculate compound probabilities of independent events.',
-    accentColor: '#8b5cf6',
-    islandPosition: [8.5, 0, 1.5],
-    islandScale: [1.1, 1.1, 1.1],
-    completed: false,
-    unlocked: true,
-  },
-  'game-builder': {
-    id: 'game-builder',
-    name: 'CARNIVAL GAME BUILDER',
-    subtitle: 'Fair Game & Expected Value Workshop',
-    tagline: 'Design Fair Carnival Booth Games',
-    description: 'Evaluate fair vs unfair game mechanics, token payouts, and expected value ratios.',
-    accentColor: '#ec4899',
-    islandPosition: [-4.0, 0, 7.5],
-    islandScale: [1.1, 1.1, 1.1],
-    completed: false,
-    unlocked: true,
-  },
-  'grand-carnival': {
-    id: 'grand-carnival',
-    name: 'GRAND SHOWDOWN',
-    subtitle: 'Championship Tournament',
-    tagline: 'The Ultimate Probability Grand Finale',
-    description: 'Test all probability skills in a high-stakes championship showdown across the carnival.',
-    accentColor: '#f59e0b',
-    islandPosition: [4.0, 0, 7.5],
-    islandScale: [1.3, 1.3, 1.3],
-    completed: false,
-    unlocked: false,
-  },
-};
-
-// Helper: Greatest Common Divisor to simplify fractions
-const gcd = (a: number, b: number): number => (b === 0 ? a : gcd(b, a % b));
-
-const makeFraction = (num: number, den: number): MathFraction => {
-  const g = gcd(num, den);
-  const sNum = num / g;
-  const sDen = den / g;
-  const pct = ((num / den) * 100).toFixed(1) + '%';
-  const dec = parseFloat((num / den).toFixed(3));
-  return {
-    numerator: sNum,
-    denominator: sDen,
-    percentage: pct,
-    decimal: dec,
-  };
-};
-
-const COLOR_PALETTE = [
-  { name: 'Red', hex: '#dc2626' },
-  { name: 'Blue', hex: '#2563eb' },
-  { name: 'Gold', hex: '#f59e0b' },
-  { name: 'Green', hex: '#16a34a' },
-  { name: 'Purple', hex: '#9333ea' },
-  { name: 'Orange', hex: '#ea580c' },
-  { name: 'Teal', hex: '#0d9488' },
+// ── Color Utilities & Palette ──
+export const COLOR_PALETTE = [
+  { name: 'Red', hex: '#EF4444' },
+  { name: 'Blue', hex: '#3B82F6' },
+  { name: 'Green', hex: '#10B981' },
+  { name: 'Yellow', hex: '#F59E0B' },
+  { name: 'Purple', hex: '#8B5CF6' },
+  { name: 'Orange', hex: '#F97316' },
+  { name: 'Gold', hex: '#EAB308' },
 ];
 
-const BLOOM_LEVELS: BloomLevel[] = [
+export const BLOOM_LEVELS: BloomLevel[] = [
   'remember',
   'understand',
   'apply',
   'analyze',
   'evaluate',
-  'create',
 ];
 
+// Helper: Greatest Common Divisor for Simplest Fractions
+export function gcd(a: number, b: number): number {
+  return b === 0 ? a : gcd(b, a % b);
+}
+
+// Helper: Build standard MathFraction object
+export function makeFraction(num: number, den: number): MathFraction {
+  const g = gcd(Math.abs(num), Math.abs(den)) || 1;
+  const simplifiedNum = num / g;
+  const simplifiedDen = den / g;
+  const decimal = den !== 0 ? num / den : 0;
+  const percentage = `${(decimal * 100).toFixed(1)}%`;
+
+  return {
+    numerator: num,
+    denominator: den,
+    simplifiedNumerator: simplifiedNum,
+    simplifiedDenominator: simplifiedDen,
+    decimal,
+    percentage,
+  };
+}
+
+// ── Attraction Metadata ──
+export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
+  hub: {
+    id: 'hub',
+    name: 'CARNIVAL ISLAND',
+    subtitle: 'Central Plaza & Ticket Pavilion',
+    tagline: 'Step Right Up to the World of Chance!',
+    description: 'Explore 5 probability pavilions, earn Gold Tickets, and master Grade 6 probability.',
+    accentColor: '#FED500',
+    islandPosition: [0, 0, 0],
+    unlocked: true,
+    completed: false,
+  },
+  'mystery-bag': {
+    id: 'mystery-bag',
+    name: 'THE MYSTERY CHESTS',
+    subtitle: 'Minecraft Chests & Ball Draws',
+    tagline: 'Pick the Chest & Draw the Ball',
+    description: 'Calculate single-event and complementary probabilities from authentic Minecraft-style treasure chests.',
+    accentColor: '#92400E',
+    islandPosition: [-6, 0.4, 3],
+    unlocked: true,
+    completed: false,
+  },
+  'odds-wheel': {
+    id: 'odds-wheel',
+    name: 'THE ODDS WHEEL',
+    subtitle: 'Prize Spinner Wheel',
+    tagline: 'Spin the Radial Sectors & Predict Odds',
+    description: 'Predict probability on numbered and color-coded spinning wheels.',
+    accentColor: '#FF2A6D',
+    islandPosition: [6, 0.4, 3],
+    unlocked: true,
+    completed: false,
+  },
+  'ball-drop': {
+    id: 'ball-drop',
+    name: 'THE HIGH STRIKER',
+    subtitle: 'Hammer & Bell Tower',
+    tagline: 'Slam the Sledgehammer & Ring the Bell',
+    description: 'Swing the carnival sledgehammer, launch the puck up the tower, and calculate winning slot odds.',
+    accentColor: '#2463EB',
+    islandPosition: [-4, 0.4, -4],
+    unlocked: true,
+    completed: false,
+  },
+  'probability-lab': {
+    id: 'probability-lab',
+    name: 'PROBABILITY LAB',
+    subtitle: 'Steampunk Reaction Vessel',
+    tagline: 'Centrifuge & Crystal Token Mixer',
+    description: 'Synthesize plasma reactions by predicting probabilities of crystal tokens and color vials.',
+    accentColor: '#10B981',
+    islandPosition: [4, 0.4, -4],
+    unlocked: true,
+    completed: false,
+  },
+  'game-builder': {
+    id: 'game-builder',
+    name: 'CARNIVAL BUILDER',
+    subtitle: 'Booth Token Calibrator',
+    tagline: 'Test Probability & Fair Payoffs',
+    description: 'Calculate fair and winning probabilities for carnival booth games.',
+    accentColor: '#8B5CF6',
+    islandPosition: [0, 0.4, -6],
+    unlocked: true,
+    completed: false,
+  },
+  'grand-carnival': {
+    id: 'grand-carnival',
+    name: 'CHAMPIONSHIP VAULT',
+    subtitle: 'Grand Finale Prize Vault',
+    tagline: 'Crack the Dial & Win the Grand Jackpot',
+    description: 'Compete in the championship arena, crack the combination vault, and claim ultimate victory.',
+    accentColor: '#F59E0B',
+    islandPosition: [0, 0.8, 0],
+    unlocked: true,
+    completed: false,
+  },
+};
+
 // ═══════════════════════════════════════════════════════════════
-// 1. DYNAMIC GENERATOR: MYSTERY CHESTS (100+ QUESTIONS)
-// Supports 3, 4, and 5 Chests dynamically
+// 1. DYNAMIC GENERATOR: MYSTERY CHESTS (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
-function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
+function generateMysteryBagChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const numChests = i % 3 === 0 ? 3 : i % 3 === 1 ? 4 : 5; // Rotate 3, 4, 5 chests
+    const numChests = (i % 3) + 3; // 3, 4, or 5 chests
+    const targetChestNum = (i % numChests) + 1;
     const c1 = COLOR_PALETTE[i % COLOR_PALETTE.length];
-    const c2 = COLOR_PALETTE[(i + 1) % COLOR_PALETTE.length];
-    const c3 = COLOR_PALETTE[(i + 2) % COLOR_PALETTE.length];
+    const c2 = COLOR_PALETTE[(i + 2) % COLOR_PALETTE.length];
 
-    // Generate dynamic chest configs
     const chests: ChestSetup[] = [];
-    let totalTargetBalls = 0;
-    let totalAllBalls = 0;
+    let targetBalls = 0;
+    let totalInChest = 0;
 
     for (let c = 0; c < numChests; c++) {
       const count1 = ((i + c * 2) % 4) + 1; // 1-4 balls
       const count2 = ((i + c + 1) % 3) + 2; // 2-4 balls
-      const isTargetChest = c === (i % numChests);
+      const isTarget = c === (i % numChests);
 
       chests.push({
         id: `chest-${c + 1}`,
         label: `CHEST ${c + 1}`,
         color: c === 0 ? '#92400e' : c === 1 ? '#b45309' : c === 2 ? '#78350f' : c === 3 ? '#a16207' : '#854d0e',
-        isTarget: isTargetChest,
+        isTarget,
         items: [
           { color: c1.hex, colorName: c1.name, count: count1 },
           { color: c2.hex, colorName: c2.name, count: count2 },
         ],
       });
 
-      if (isTargetChest) {
-        totalTargetBalls = count1;
-        totalAllBalls = count1 + count2;
+      if (isTarget) {
+        targetBalls = count1;
+        totalInChest = count1 + count2;
       }
     }
 
-    const questionType = i % 4;
+    const qType = i % 4;
     let prompt = '';
-    let targetNum = totalTargetBalls;
-    let targetDen = totalAllBalls;
+    let targetNum = targetBalls;
+    let targetDen = totalInChest;
     let targetColor = c1.hex;
     let explanation = '';
     let missionTitle = '';
 
-    if (questionType === 0) {
-      // Single Chest Direct Probability
-      missionTitle = `${numChests} CHESTS: SINGLE DRAW`;
-      prompt = `There are ${numChests} Mystery Chests on the table. In CHEST ${(i % numChests) + 1}, there are ${totalTargetBalls} ${c1.name.toUpperCase()} balls and ${totalAllBalls - totalTargetBalls} ${c2.name.toUpperCase()} balls (${totalAllBalls} total). What is the probability of drawing a ${c1.name.toUpperCase()} ball from this chest?`;
-      targetNum = totalTargetBalls;
-      targetDen = totalAllBalls;
+    if (qType === 0) {
+      // Direct Single Event
+      missionTitle = `CHEST ${targetChestNum}: P(${c1.name.toUpperCase()})`;
+      prompt = `Chest ${targetChestNum} holds ${targetBalls} ${c1.name} and ${totalInChest - targetBalls} ${c2.name} balls (${totalInChest} total). What is P(${c1.name})?`;
+      targetNum = targetBalls;
+      targetDen = totalInChest;
       targetColor = c1.hex;
-      explanation = `Probability = (Favorable Outcomes) / (Total Outcomes) = ${targetNum}/${targetDen}.`;
-    } else if (questionType === 1) {
-      // Complementary Event (NOT Event)
-      missionTitle = `${numChests} CHESTS: COMPLEMENTARY NOT EVENT`;
-      const notCount = totalAllBalls - totalTargetBalls;
-      prompt = `In CHEST ${(i % numChests) + 1}, there are ${totalTargetBalls} ${c1.name.toUpperCase()} balls and ${notCount} ${c2.name.toUpperCase()} balls (${totalAllBalls} total). What is the probability of drawing a ball that is NOT ${c1.name.toUpperCase()}?`;
+      explanation = `P(${c1.name}) = ${targetNum}/${targetDen}.`;
+    } else if (qType === 1) {
+      // Complementary NOT event
+      missionTitle = `CHEST ${targetChestNum}: P(NOT ${c1.name.toUpperCase()})`;
+      const notCount = totalInChest - targetBalls;
+      prompt = `Chest ${targetChestNum} holds ${targetBalls} ${c1.name} and ${notCount} ${c2.name} balls (${totalInChest} total). What is P(NOT ${c1.name})?`;
       targetNum = notCount;
-      targetDen = totalAllBalls;
+      targetDen = totalInChest;
       targetColor = c2.hex;
-      explanation = `P(NOT ${c1.name}) = 1 - P(${c1.name}) = 1 - ${totalTargetBalls}/${totalAllBalls} = ${targetNum}/${targetDen}.`;
-    } else if (questionType === 2) {
-      // Chest Selection Probability (1 in N chests)
+      explanation = `P(NOT ${c1.name}) = ${targetNum}/${targetDen}.`;
+    } else if (qType === 2) {
+      // Choosing a chest
       missionTitle = `SELECTING FROM ${numChests} CHESTS`;
-      prompt = `A player randomly chooses 1 of the ${numChests} distinct Mystery Chests shown on the table. What is the theoretical probability of picking CHEST ${(i % numChests) + 1}?`;
+      prompt = `There are ${numChests} closed chests on the table. What is the probability of picking Chest ${targetChestNum}?`;
       targetNum = 1;
       targetDen = numChests;
       targetColor = '#f59e0b';
-      explanation = `Since each of the ${numChests} chests is equally likely, P(Chest ${(i % numChests) + 1}) = 1/${numChests}.`;
+      explanation = `P(Chest ${targetChestNum}) = 1/${numChests}.`;
     } else {
-      // Two-color sum probability
-      missionTitle = `${numChests} CHESTS: COMBINED PROBABILITY`;
-      prompt = `CHEST ${(i % numChests) + 1} contains ${totalTargetBalls} ${c1.name.toUpperCase()} balls, ${totalAllBalls - totalTargetBalls} ${c2.name.toUpperCase()} balls, and 1 ${c3.name.toUpperCase()} ball (${totalAllBalls + 1} total). What is the probability of drawing either a ${c1.name.toUpperCase()} OR a ${c2.name.toUpperCase()} ball?`;
-      targetNum = totalAllBalls;
-      targetDen = totalAllBalls + 1;
+      // Two-ball either/or
+      missionTitle = `CHEST ${targetChestNum}: P(${c1.name.toUpperCase()} OR ${c2.name.toUpperCase()})`;
+      const otherColorCount = 1;
+      const totalPlusOne = totalInChest + otherColorCount;
+      prompt = `Chest ${targetChestNum} has ${targetBalls} ${c1.name}, ${totalInChest - targetBalls} ${c2.name}, and 1 Gold ball (${totalPlusOne} total). What is P(${c1.name} or ${c2.name})?`;
+      targetNum = totalInChest;
+      targetDen = totalPlusOne;
       targetColor = c1.hex;
-      explanation = `P(${c1.name} OR ${c2.name}) = (${totalTargetBalls} + ${totalAllBalls - totalTargetBalls}) / ${totalAllBalls + 1} = ${targetNum}/${targetDen}.`;
+      explanation = `P(${c1.name} or ${c2.name}) = ${targetNum}/${targetDen}.`;
     }
 
     const correctFrac = makeFraction(targetNum, targetDen);
-    const correctChoiceId = `mc-${i}-opt-0`;
+    const correctId = `mc-${i}-opt-0`;
 
-    // Distractor fractions
     const d1 = makeFraction(Math.max(1, targetDen - targetNum), targetDen);
     const d2 = makeFraction(Math.min(targetNum + 1, targetDen), targetDen + 1);
     const d3 = makeFraction(1, targetDen);
 
     const choices = [
       {
-        id: correctChoiceId,
+        id: correctId,
         fraction: correctFrac,
         label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
         isCorrect: true,
@@ -239,25 +241,24 @@ function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
         fraction: d1,
         label: `${d1.numerator}/${d1.denominator} (${d1.percentage})`,
         isCorrect: false,
-        feedbackText: `Incorrect. Remember to place favorable outcomes over total outcomes.`,
+        feedbackText: `Incorrect. Favorable outcomes over total outcomes.`,
       },
       {
         id: `mc-${i}-opt-2`,
         fraction: d2,
         label: `${d2.numerator}/${d2.denominator} (${d2.percentage})`,
         isCorrect: false,
-        feedbackText: `Incorrect. Make sure not to add extra balls to the denominator.`,
+        feedbackText: `Incorrect. Check the total number of balls.`,
       },
       {
         id: `mc-${i}-opt-3`,
         fraction: d3,
         label: `${d3.numerator}/${d3.denominator} (${d3.percentage})`,
         isCorrect: false,
-        feedbackText: `Incorrect. This only accounts for a single item.`,
+        feedbackText: `Incorrect. Multiple balls match the target.`,
       },
     ];
 
-    // Shuffle choices deterministically
     const shuffledChoices = [choices[0], choices[1], choices[2], choices[3]].sort(
       (a, b) => ((a.fraction.numerator * 7 + i) % 5) - ((b.fraction.numerator * 7 + i) % 5)
     );
@@ -268,7 +269,7 @@ function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
       missionTitle,
       prompt,
-      helperNote: `P(Event) = Number of Favorable Outcomes / Total Possible Outcomes`,
+      helperNote: `P(Event) = Favorable / Total`,
       setup: {
         totalItems: targetDen,
         items: chests[i % numChests].items,
@@ -277,7 +278,7 @@ function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
         theoreticalFraction: correctFrac,
       },
       choices: shuffledChoices,
-      correctAnswerId: correctChoiceId,
+      correctAnswerId: correctId,
       explanation,
       points: 100 + (i % 5) * 10,
       goldTickets: 1,
@@ -288,14 +289,14 @@ function generateMysteryChestChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 2. DYNAMIC GENERATOR: ODDS WHEEL (100+ QUESTIONS)
+// 2. DYNAMIC GENERATOR: ODDS WHEEL (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
     const totalSectors = i % 4 === 0 ? 8 : i % 4 === 1 ? 10 : i % 4 === 2 ? 12 : 6;
-    const qType = i % 5;
+    const qType = i % 4;
     let targetCount = 2;
     let prompt = '';
     let missionTitle = '';
@@ -303,30 +304,25 @@ function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
     const color = COLOR_PALETTE[i % COLOR_PALETTE.length];
 
     if (qType === 0) {
-      targetCount = totalSectors / 2; // Even / Odd
+      targetCount = totalSectors / 2;
       missionTitle = `${totalSectors}-SECTOR WHEEL: EVEN NUMBERS`;
-      prompt = `A mechanical carnival wheel is numbered 1 through ${totalSectors}. What is the probability that the pointer lands on an EVEN number?`;
-      explanation = `Even numbers from 1 to ${totalSectors} account for exactly half (${targetCount}/${totalSectors} = 1/2) of the sectors.`;
+      prompt = `A wheel has ${totalSectors} equal sectors numbered 1 to ${totalSectors}. What is P(Even Number)?`;
+      explanation = `Half of the sectors are even (${targetCount}/${totalSectors} = 1/2).`;
     } else if (qType === 1) {
-      targetCount = (i % 3) + 2; // Prime / Multiples
-      missionTitle = `${totalSectors}-SECTOR WHEEL: COLOR SECTORS`;
-      prompt = `A carnival wheel has ${totalSectors} equal sectors, with exactly ${targetCount} painted ${color.name.toUpperCase()} and the rest WHITE. What is P(${color.name.toUpperCase()})?`;
-      explanation = `P(${color.name}) = ${targetCount} / ${totalSectors}.`;
+      targetCount = (i % 3) + 2;
+      missionTitle = `${totalSectors}-SECTOR WHEEL: P(${color.name.toUpperCase()})`;
+      prompt = `A ${totalSectors}-sector wheel has ${targetCount} ${color.name} sectors. What is P(${color.name})?`;
+      explanation = `P(${color.name}) = ${targetCount}/${totalSectors}.`;
     } else if (qType === 2) {
-      targetCount = Math.floor(totalSectors / 3); // Multiples of 3
-      missionTitle = `${totalSectors}-SECTOR WHEEL: MULTIPLES OF 3`;
-      prompt = `On a wheel numbered 1 to ${totalSectors}, what is the probability of spinning a MULTIPLE OF 3?`;
-      explanation = `Multiples of 3 up to ${totalSectors} give ${targetCount} favorable sectors out of ${totalSectors}.`;
-    } else if (qType === 3) {
-      targetCount = totalSectors - 2; // Probability > X
-      missionTitle = `${totalSectors}-SECTOR WHEEL: NUMBER GREATER THAN 2`;
-      prompt = `A wheel has ${totalSectors} numbered sectors (1 to ${totalSectors}). What is the probability of landing on a number GREATER THAN 2?`;
-      explanation = `Numbers 3 through ${totalSectors} represent ${targetCount} out of ${totalSectors} sectors.`;
+      targetCount = totalSectors - 2;
+      missionTitle = `${totalSectors}-SECTOR WHEEL: NUMBER > 2`;
+      prompt = `On a wheel numbered 1 to ${totalSectors}, what is the probability of spinning a number GREATER than 2?`;
+      explanation = `Numbers 3 through ${totalSectors} give ${targetCount} out of ${totalSectors} sectors.`;
     } else {
-      targetCount = 1; // Single sector jackpot
-      missionTitle = `${totalSectors}-SECTOR WHEEL: GOLDEN JACKPOT`;
-      prompt = `A wheel has ${totalSectors} sectors, with exactly 1 GOLDEN JACKPOT sector. What is the theoretical probability of winning the jackpot in 1 spin?`;
-      explanation = `1 jackpot sector out of ${totalSectors} equal sectors = 1/${totalSectors}.`;
+      targetCount = 1;
+      missionTitle = `${totalSectors}-SECTOR WHEEL: JACKPOT`;
+      prompt = `A ${totalSectors}-sector wheel has 1 Gold Jackpot slot. What is P(Jackpot) on 1 spin?`;
+      explanation = `1 jackpot out of ${totalSectors} sectors = 1/${totalSectors}.`;
     }
 
     const correctFrac = makeFraction(targetCount, totalSectors);
@@ -352,14 +348,14 @@ function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
         fraction: makeFraction(1, totalSectors),
         label: `1/${totalSectors}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Multiple sectors satisfy this condition.`,
+        feedbackText: `Incorrect. There are ${targetCount} favorable sectors.`,
       },
       {
         id: `ow-${i}-opt-3`,
         fraction: makeFraction(Math.min(targetCount + 1, totalSectors), totalSectors),
         label: `${targetCount + 1}/${totalSectors}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Double-check your count of matching sectors.`,
+        feedbackText: `Incorrect. Double check your count.`,
       },
     ];
 
@@ -369,7 +365,7 @@ function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
       missionTitle,
       prompt,
-      helperNote: `P(Sector) = Favorable Sectors / Total Sectors (${totalSectors})`,
+      helperNote: `P(Sector) = Favorable / Total (${totalSectors})`,
       setup: {
         totalItems: totalSectors,
         items: [
@@ -391,21 +387,34 @@ function generateOddsWheelChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 3. DYNAMIC GENERATOR: GIANT BALL DROP (100+ QUESTIONS)
+// 3. DYNAMIC GENERATOR: THE HIGH STRIKER (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateBallDropChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const totalBalls = ((i % 5) + 3) * 2; // 6, 8, 10, 12, 14 balls
-    const greenCount = ((i * 2) % (totalBalls - 2)) + 2;
-    const redCount = totalBalls - greenCount;
+    const totalSlots = ((i % 4) + 3) * 2; // 6, 8, 10, 12 slots
+    const winBellSlots = ((i * 2) % (totalSlots - 2)) + 2;
+    const missSlots = totalSlots - winBellSlots;
 
-    const correctFrac = makeFraction(greenCount, totalBalls);
-    const correctId = `bd-${i}-opt-0`;
+    const correctFrac = makeFraction(winBellSlots, totalSlots);
+    const correctId = `hs-${i}-opt-0`;
 
-    const prompt = `The Pachinko Hopper contains ${greenCount} GREEN balls and ${redCount} RED balls (${totalBalls} total). If 1 ball drops through the pegboard, what is the probability it lands in the RIGHT CONTAINER (Green)?`;
-    const explanation = `P(Right Container / Green) = ${greenCount}/${totalBalls} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+    const qType = i % 3;
+    let prompt = '';
+    let explanation = '';
+    let missionTitle = `STRIKER TOWER #${i + 1}`;
+
+    if (qType === 0) {
+      prompt = `A High Striker tower has ${totalSlots} slots (${winBellSlots} Bell slots, ${missSlots} Miss slots). What is P(Ring Bell)?`;
+      explanation = `P(Bell) = ${winBellSlots}/${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    } else if (qType === 1) {
+      prompt = `The tower has ${totalSlots} notches numbered 1 to ${totalSlots}. ${winBellSlots} notches ring the bell. What is the win probability?`;
+      explanation = `P(Win) = ${winBellSlots}/${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    } else {
+      prompt = `A player hits the strike pad. Out of ${totalSlots} power zones, ${winBellSlots} hit the top bell. What is P(Top Bell)?`;
+      explanation = `P(Top Bell) = ${winBellSlots}/${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    }
 
     const choices = [
       {
@@ -416,25 +425,25 @@ function generateBallDropChallenges(count = 110): ProbabilityChallenge[] {
         feedbackText: `Correct! ${explanation}`,
       },
       {
-        id: `bd-${i}-opt-1`,
-        fraction: makeFraction(redCount, totalBalls),
-        label: `${redCount}/${totalBalls}`,
+        id: `hs-${i}-opt-1`,
+        fraction: makeFraction(missSlots, totalSlots),
+        label: `${missSlots}/${totalSlots}`,
         isCorrect: false,
-        feedbackText: `Incorrect. This is the probability of the Left Container (Red).`,
+        feedbackText: `Incorrect. This is the probability of missing.`,
       },
       {
-        id: `bd-${i}-opt-2`,
-        fraction: makeFraction(1, totalBalls),
-        label: `1/${totalBalls}`,
+        id: `hs-${i}-opt-2`,
+        fraction: makeFraction(1, totalSlots),
+        label: `1/${totalSlots}`,
         isCorrect: false,
-        feedbackText: `Incorrect. There are multiple green balls in the hopper.`,
+        feedbackText: `Incorrect. There are ${winBellSlots} winning slots.`,
       },
       {
-        id: `bd-${i}-opt-3`,
-        fraction: makeFraction(greenCount, greenCount + 1),
-        label: `${greenCount}/${greenCount + 1}`,
+        id: `hs-${i}-opt-3`,
+        fraction: makeFraction(winBellSlots, winBellSlots + 1),
+        label: `${winBellSlots}/${winBellSlots + 1}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Total outcomes must equal total balls in the hopper.`,
+        feedbackText: `Incorrect. Use total tower slots in denominator.`,
       },
     ];
 
@@ -442,14 +451,14 @@ function generateBallDropChallenges(count = 110): ProbabilityChallenge[] {
       id: `ball-drop-${i + 1}`,
       activityId: 'ball-drop',
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
-      missionTitle: `PACHINKO DROP #${i + 1}`,
+      missionTitle,
       prompt,
-      helperNote: `P(Right Bucket) = Green Balls / Total Balls in Hopper`,
+      helperNote: `P(Bell) = Winning Slots / Total Slots (${totalSlots})`,
       setup: {
-        totalItems: totalBalls,
+        totalItems: totalSlots,
         items: [
-          { color: '#10b981', colorName: 'Green', count: greenCount },
-          { color: '#ef4444', colorName: 'Red', count: redCount },
+          { color: '#10b981', colorName: 'Winning Slots', count: winBellSlots },
+          { color: '#ef4444', colorName: 'Miss Slots', count: missSlots },
         ],
         targetColor: '#10b981',
         theoreticalFraction: correctFrac,
@@ -466,50 +475,62 @@ function generateBallDropChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 4. DYNAMIC GENERATOR: PROBABILITY LAB (100+ QUESTIONS)
+// 4. DYNAMIC GENERATOR: PROBABILITY LAB (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateProbabilityLabChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const den1 = (i % 3) + 2; // 2, 3, 4
-    const den2 = ((i + 1) % 3) + 2; // 2, 3, 4
-    const totalOutcomes = den1 * den2; // Compound outcomes
+    const totalVials = (i % 4) + 6; // 6, 7, 8, 9 vials
+    const goldVials = (i % 3) + 2; // 2, 3, 4 gold vials
+    const otherVials = totalVials - goldVials;
 
-    const correctFrac = makeFraction(1, totalOutcomes);
+    const correctFrac = makeFraction(goldVials, totalVials);
     const correctId = `pl-${i}-opt-0`;
 
-    const prompt = `In the science chamber, Flask A has a 1/${den1} chance of success and Flask B has a 1/${den2} chance of success. What is the probability that BOTH independent chambers succeed simultaneously (P(A and B))?`;
-    const explanation = `For independent compound events: P(A and B) = P(A) × P(B) = (1/${den1}) × (1/${den2}) = 1/${totalOutcomes} (${correctFrac.percentage}).`;
+    const qType = i % 2;
+    let prompt = '';
+    let explanation = '';
+
+    if (qType === 0) {
+      prompt = `A test tube rack holds ${goldVials} Gold serums and ${otherVials} Blue serums (${totalVials} total). What is P(Gold Serum)?`;
+      explanation = `P(Gold Serum) = ${goldVials}/${totalVials} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    } else {
+      const notFrac = makeFraction(otherVials, totalVials);
+      prompt = `A centrifuge has ${goldVials} Gold crystals and ${otherVials} Emerald crystals (${totalVials} total). What is P(NOT Gold)?`;
+      explanation = `P(NOT Gold) = ${otherVials}/${totalVials} = ${notFrac.numerator}/${notFrac.denominator}.`;
+    }
+
+    const targetFrac = qType === 0 ? correctFrac : makeFraction(otherVials, totalVials);
 
     const choices = [
       {
         id: correctId,
-        fraction: correctFrac,
-        label: `1/${totalOutcomes} (${correctFrac.percentage})`,
+        fraction: targetFrac,
+        label: `${targetFrac.numerator}/${targetFrac.denominator} (${targetFrac.percentage})`,
         isCorrect: true,
         feedbackText: `Correct! ${explanation}`,
       },
       {
         id: `pl-${i}-opt-1`,
-        fraction: makeFraction(1, den1 + den2),
-        label: `1/${den1 + den2}`,
+        fraction: makeFraction(1, totalVials),
+        label: `1/${totalVials}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Compound probabilities multiply denominators, not add them.`,
+        feedbackText: `Incorrect. Multiple items match.`,
       },
       {
         id: `pl-${i}-opt-2`,
-        fraction: makeFraction(2, totalOutcomes),
-        label: `2/${totalOutcomes}`,
+        fraction: makeFraction(qType === 0 ? otherVials : goldVials, totalVials),
+        label: `${qType === 0 ? otherVials : goldVials}/${totalVials}`,
         isCorrect: false,
         feedbackText: `Incorrect.`,
       },
       {
         id: `pl-${i}-opt-3`,
-        fraction: makeFraction(1, den1),
-        label: `1/${den1}`,
+        fraction: makeFraction(2, totalVials),
+        label: `2/${totalVials}`,
         isCorrect: false,
-        feedbackText: `Incorrect. You must account for both flasks.`,
+        feedbackText: `Incorrect.`,
       },
     ];
 
@@ -517,22 +538,22 @@ function generateProbabilityLabChallenges(count = 110): ProbabilityChallenge[] {
       id: `probability-lab-${i + 1}`,
       activityId: 'probability-lab',
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
-      missionTitle: `COMPOUND CHAMBER #${i + 1}`,
+      missionTitle: `LAB REACTOR #${i + 1}`,
       prompt,
-      helperNote: `P(A and B) = P(A) × P(B)`,
+      helperNote: `P(Event) = Favorable / Total (${totalVials})`,
       setup: {
-        totalItems: totalOutcomes,
+        totalItems: totalVials,
         items: [
-          { color: '#8b5cf6', colorName: 'Purple', count: 1 },
-          { color: '#38bdf8', colorName: 'Blue', count: totalOutcomes - 1 },
+          { color: '#eab308', colorName: 'Gold', count: goldVials },
+          { color: '#38bdf8', colorName: 'Blue', count: otherVials },
         ],
-        targetColor: '#8b5cf6',
-        theoreticalFraction: correctFrac,
+        targetColor: '#eab308',
+        theoreticalFraction: targetFrac,
       },
-      choices: choices.sort((a, b) => a.fraction.denominator - b.fraction.denominator),
+      choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
       correctAnswerId: correctId,
       explanation,
-      points: 120 + (i % 5) * 10,
+      points: 100 + (i % 4) * 15,
       goldTickets: 1,
     });
   }
@@ -541,7 +562,7 @@ function generateProbabilityLabChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 5. DYNAMIC GENERATOR: GAME BUILDER (100+ QUESTIONS)
+// 5. DYNAMIC GENERATOR: CARNIVAL BUILDER (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
@@ -549,13 +570,12 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
   for (let i = 0; i < count; i++) {
     const totalSlots = (i % 4) + 6; // 6 to 9 slots
     const winSlots = Math.floor(totalSlots / 2);
-    const isFair = totalSlots % 2 === 0 && winSlots * 2 === totalSlots;
 
     const correctFrac = makeFraction(winSlots, totalSlots);
     const correctId = `gb-${i}-opt-0`;
 
-    const prompt = `A carnival booth designer builds a game with ${totalSlots} equal token slots: ${winSlots} WIN slots and ${totalSlots - winSlots} LOSE slots. What is the exact winning probability?`;
-    const explanation = `P(Win) = ${winSlots} / ${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+    const prompt = `A booth game has ${totalSlots} slots: ${winSlots} WIN slots and ${totalSlots - winSlots} LOSE slots. What is P(Win)?`;
+    const explanation = `P(Win) = ${winSlots}/${totalSlots} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
 
     const choices = [
       {
@@ -570,21 +590,21 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
         fraction: makeFraction(totalSlots - winSlots, totalSlots),
         label: `${totalSlots - winSlots}/${totalSlots}`,
         isCorrect: false,
-        feedbackText: `Incorrect. This is the losing probability.`,
+        feedbackText: `Incorrect. This is losing probability.`,
       },
       {
         id: `gb-${i}-opt-2`,
         fraction: makeFraction(1, totalSlots),
         label: `1/${totalSlots}`,
         isCorrect: false,
-        feedbackText: `Incorrect. There are ${winSlots} winning slots.`,
+        feedbackText: `Incorrect.`,
       },
       {
         id: `gb-${i}-opt-3`,
-        fraction: makeFraction(1, 2),
-        label: `1/2 (50.0%)`,
-        isCorrect: isFair,
-        feedbackText: isFair ? `Correct!` : `Incorrect. Total slots is not an even 50/50 split.`,
+        fraction: makeFraction(winSlots + 1, totalSlots),
+        label: `${winSlots + 1}/${totalSlots}`,
+        isCorrect: false,
+        feedbackText: `Incorrect.`,
       },
     ];
 
@@ -599,7 +619,7 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
         totalItems: totalSlots,
         items: [
           { color: '#10b981', colorName: 'Win', count: winSlots },
-          { color: '#ef4444', colorName: 'Loss', count: totalSlots - winSlots },
+          { color: '#ef4444', colorName: 'Lose', count: totalSlots - winSlots },
         ],
         targetColor: '#10b981',
         theoreticalFraction: correctFrac,
@@ -607,7 +627,7 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
       choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
       correctAnswerId: correctId,
       explanation,
-      points: 110 + (i % 4) * 15,
+      points: 100 + (i % 4) * 15,
       goldTickets: 1,
     });
   }
@@ -616,22 +636,23 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 6. DYNAMIC GENERATOR: GRAND CARNIVAL SHOWDOWN (100+ QUESTIONS)
+// 6. DYNAMIC GENERATOR: GRAND CARNIVAL ARENA (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const totalOutcomes = (i % 6) + 10; // 10 to 15 outcomes
-    const targetA = (i % 4) + 3;
-    const targetB = (i % 3) + 2;
-    const totalTarget = targetA + targetB;
+    const totalTokens = (i % 4) + 8; // 8, 9, 10, 11 tokens
+    const goldCount = (i % 3) + 2;
+    const diamondCount = 2;
+    const silverCount = totalTokens - goldCount - diamondCount;
 
-    const correctFrac = makeFraction(totalTarget, totalOutcomes);
+    const targetSum = goldCount + diamondCount;
+    const correctFrac = makeFraction(targetSum, totalTokens);
     const correctId = `gc-${i}-opt-0`;
 
-    const prompt = `CHAMPIONSHIP ROUND #${i + 1}: A tournament prize vault holds ${targetA} Gold Tokens, ${targetB} Diamond Tokens, and ${totalOutcomes - totalTarget} Silver Tokens (${totalOutcomes} total). What is the probability of drawing either a GOLD OR DIAMOND token?`;
-    const explanation = `P(Gold OR Diamond) = (${targetA} + ${targetB}) / ${totalOutcomes} = ${totalTarget}/${totalOutcomes} = ${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage}).`;
+    const prompt = `A prize vault has ${goldCount} Gold, ${diamondCount} Diamond, and ${silverCount} Silver tokens (${totalTokens} total). What is P(Gold or Diamond)?`;
+    const explanation = `P(Gold or Diamond) = (${goldCount} + ${diamondCount})/${totalTokens} = ${targetSum}/${totalTokens} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
 
     const choices = [
       {
@@ -643,24 +664,24 @@ function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
       },
       {
         id: `gc-${i}-opt-1`,
-        fraction: makeFraction(targetA, totalOutcomes),
-        label: `${targetA}/${totalOutcomes}`,
+        fraction: makeFraction(silverCount, totalTokens),
+        label: `${silverCount}/${totalTokens}`,
         isCorrect: false,
-        feedbackText: `Incorrect. You must also include the diamond tokens.`,
+        feedbackText: `Incorrect. This is Silver tokens.`,
       },
       {
         id: `gc-${i}-opt-2`,
-        fraction: makeFraction(totalOutcomes - totalTarget, totalOutcomes),
-        label: `${totalOutcomes - totalTarget}/${totalOutcomes}`,
+        fraction: makeFraction(goldCount, totalTokens),
+        label: `${goldCount}/${totalTokens}`,
         isCorrect: false,
-        feedbackText: `Incorrect. This is the silver token probability.`,
+        feedbackText: `Incorrect. Don't forget Diamond tokens.`,
       },
       {
         id: `gc-${i}-opt-3`,
-        fraction: makeFraction(1, totalOutcomes),
-        label: `1/${totalOutcomes}`,
+        fraction: makeFraction(1, totalTokens),
+        label: `1/${totalTokens}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Multiple prize tokens qualify.`,
+        feedbackText: `Incorrect.`,
       },
     ];
 
@@ -668,36 +689,34 @@ function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
       id: `grand-carnival-${i + 1}`,
       activityId: 'grand-carnival',
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
-      missionTitle: `GRAND TOURNAMENT #${i + 1}`,
+      missionTitle: `VAULT SHOWDOWN #${i + 1}`,
       prompt,
-      helperNote: `P(A or B) = (Count A + Count B) / Total`,
+      helperNote: `P(A or B) = (Count A + Count B) / Total (${totalTokens})`,
       setup: {
-        totalItems: totalOutcomes,
+        totalItems: totalTokens,
         items: [
-          { color: '#f59e0b', colorName: 'Gold', count: targetA },
-          { color: '#38bdf8', colorName: 'Diamond', count: targetB },
-          { color: '#94a3b8', colorName: 'Silver', count: totalOutcomes - totalTarget },
+          { color: '#eab308', colorName: 'Gold', count: goldCount },
+          { color: '#38bdf8', colorName: 'Diamond', count: diamondCount },
+          { color: '#94a3b8', colorName: 'Silver', count: silverCount },
         ],
-        targetColor: '#f59e0b',
+        targetColor: '#eab308',
         theoreticalFraction: correctFrac,
       },
       choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
       correctAnswerId: correctId,
       explanation,
-      points: 150 + (i % 5) * 10,
-      goldTickets: 2,
+      points: 120 + (i % 4) * 15,
+      goldTickets: 1,
     });
   }
 
   return list;
 }
 
-// ═══════════════════════════════════════════════════════════════
-// EXPORTED COMPREHENSIVE CHALLENGE BANK (100+ QUESTIONS PER GAME)
-// ═══════════════════════════════════════════════════════════════
+// ── Master Challenge Dictionary (100+ questions per attraction) ──
 export const CARNIVAL_CHALLENGES: Record<ActivityId, ProbabilityChallenge[]> = {
   hub: [],
-  'mystery-bag': generateMysteryChestChallenges(110),
+  'mystery-bag': generateMysteryBagChallenges(110),
   'odds-wheel': generateOddsWheelChallenges(110),
   'ball-drop': generateBallDropChallenges(110),
   'probability-lab': generateProbabilityLabChallenges(110),

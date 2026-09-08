@@ -1,38 +1,107 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — Probability Lab 3D Physical Machine
-// Steampunk Science Apparatus with stone bench, copper condenser coils,
-// calibrated liquid cylinders with volume ticks, and orbiting particle flask
+// Steampunk Science Apparatus & Kinetic Chemical Centrifuge:
+// - Central Glass Spherical Reaction Vessel with Swirling Catalyst Core
+// - Left & Right Calibrated Measuring Cylinders with Dynamic Liquid Pumping
+// - Copper Distillation Condenser Coils & Active Plasma Lightning Conduits
+// - Dynamic Catalyst Crystal Forging Animation on Correct Answer
+// - Steam Venting & Pressure Release on Incorrect Answer
 // ============================================================
 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCarnivalStore } from '../../store/carnivalStore';
+import { carnivalAudio } from '../../audio/CarnivalAudioManager';
 
 export const ProbabilityLabMachine3D: React.FC = () => {
   const phase = useCarnivalStore((s) => s.phase);
+  const blueTeam = useCarnivalStore((s) => s.blueTeam);
+  const redTeam = useCarnivalStore((s) => s.redTeam);
+
   const mixerRef = useRef<THREE.Group>(null);
   const leftLiquidRef = useRef<THREE.Mesh>(null);
   const rightLiquidRef = useRef<THREE.Mesh>(null);
+  const crystalRef = useRef<THREE.Mesh>(null);
+  const laserBeamRef = useRef<THREE.Group>(null);
+  const gaugeNeedleRef = useRef<THREE.Mesh>(null);
+
+  const isRoundCorrect = blueTeam.isCorrect === true || redTeam.isCorrect === true;
+  const audioTriggeredRef = useRef(false);
 
   useFrame((state, delta) => {
-    if (mixerRef.current) {
-      if (phase === 'operating') {
-        mixerRef.current.rotation.y += delta * 7;
-        mixerRef.current.rotation.x += delta * 2;
-      } else {
+    const tClock = state.clock.getElapsedTime();
+
+    if (phase === 'operating') {
+      if (!audioTriggeredRef.current) {
+        carnivalAudio.playLabReaction();
+        audioTriggeredRef.current = true;
+      }
+
+      // ── High Speed Centrifuge Vortex ──
+      if (mixerRef.current) {
+        mixerRef.current.rotation.y += delta * 12;
+        mixerRef.current.rotation.x += delta * 4;
+      }
+
+      // ── Dynamic Liquid Pumping & Boiling ──
+      if (leftLiquidRef.current) {
+        const boil = Math.sin(tClock * 15) * 0.12;
+        leftLiquidRef.current.scale.y = 1.3 + boil;
+      }
+      if (rightLiquidRef.current) {
+        const boil = Math.cos(tClock * 15) * 0.12;
+        rightLiquidRef.current.scale.y = 1.3 + boil;
+      }
+
+      // ── Forging Glowing Crystal on Correct Answer ──
+      if (crystalRef.current) {
+        if (isRoundCorrect) {
+          crystalRef.current.visible = true;
+          crystalRef.current.position.y = 0.2 + Math.sin(tClock * 4) * 0.15;
+          crystalRef.current.rotation.y += delta * 6;
+          crystalRef.current.rotation.z += delta * 3;
+          crystalRef.current.scale.setScalar(1.2 + Math.sin(tClock * 8) * 0.15);
+        } else {
+          crystalRef.current.visible = false;
+        }
+      }
+
+      // ── Plasma Laser Conduits ──
+      if (laserBeamRef.current) {
+        laserBeamRef.current.visible = true;
+        laserBeamRef.current.rotation.z += delta * 8;
+      }
+
+      // ── Pressure Gauge Needle Sweep ──
+      if (gaugeNeedleRef.current) {
+        gaugeNeedleRef.current.rotation.z = isRoundCorrect
+          ? THREE.MathUtils.lerp(gaugeNeedleRef.current.rotation.z, -1.2, delta * 6)
+          : THREE.MathUtils.lerp(gaugeNeedleRef.current.rotation.z, 1.2, delta * 6);
+      }
+    } else if (phase === 'observation' || phase === 'batch-trials' || phase === 'completed') {
+      if (crystalRef.current) {
+        crystalRef.current.visible = isRoundCorrect;
+        crystalRef.current.rotation.y += delta * 2;
+      }
+      if (laserBeamRef.current) laserBeamRef.current.visible = false;
+    } else {
+      audioTriggeredRef.current = false;
+      // Idle state
+      if (mixerRef.current) {
         mixerRef.current.rotation.y += delta * 0.8;
       }
-    }
-
-    // Dynamic liquid boiling/calibration
-    if (leftLiquidRef.current) {
-      const wobble = Math.sin(state.clock.getElapsedTime() * 3) * 0.05;
-      leftLiquidRef.current.scale.y = phase === 'operating' ? 1 + wobble * 2 : 1 + wobble;
-    }
-    if (rightLiquidRef.current) {
-      const wobble = Math.cos(state.clock.getElapsedTime() * 3) * 0.05;
-      rightLiquidRef.current.scale.y = phase === 'operating' ? 1 + wobble * 2 : 1 + wobble;
+      if (leftLiquidRef.current) {
+        const wobble = Math.sin(tClock * 3) * 0.04;
+        leftLiquidRef.current.scale.y = 1 + wobble;
+      }
+      if (rightLiquidRef.current) {
+        const wobble = Math.cos(tClock * 3) * 0.04;
+        rightLiquidRef.current.scale.y = 1 + wobble;
+      }
+      if (crystalRef.current) crystalRef.current.visible = false;
+      if (laserBeamRef.current) laserBeamRef.current.visible = false;
+      if (gaugeNeedleRef.current) gaugeNeedleRef.current.rotation.z = 0;
     }
   });
 
@@ -42,9 +111,9 @@ export const ProbabilityLabMachine3D: React.FC = () => {
       <spotLight
         position={[0, 9, 5]}
         target-position={[0, 2.2, 0]}
-        intensity={2.5}
+        intensity={2.8}
         angle={0.65}
-        penumbra={0.6}
+        penumbra={0.5}
         color="#f5f3ff"
         castShadow
       />
@@ -80,7 +149,7 @@ export const ProbabilityLabMachine3D: React.FC = () => {
       ))}
 
       {/* ═════════════════════════════════════════════════════════════
-          CENTRAL GLASS SPHERICAL REACTION FLASK
+          CENTRAL GLASS SPHERICAL REACTION FLASK & CENTRIFUGE
           ═════════════════════════════════════════════════════════════ */}
       <group position={[0, 2.3, 0]}>
         {/* Brass Ring Support Base */}
@@ -134,7 +203,7 @@ export const ProbabilityLabMachine3D: React.FC = () => {
                 roughness={0.2}
                 metalness={0.2}
                 emissive="#2563eb"
-                emissiveIntensity={0.3}
+                emissiveIntensity={0.5}
               />
             </mesh>
           ))}
@@ -146,7 +215,7 @@ export const ProbabilityLabMachine3D: React.FC = () => {
                 roughness={0.2}
                 metalness={0.2}
                 emissive="#dc2626"
-                emissiveIntensity={0.3}
+                emissiveIntensity={0.5}
               />
             </mesh>
           ))}
@@ -157,9 +226,31 @@ export const ProbabilityLabMachine3D: React.FC = () => {
               color="#f59e0b"
               metalness={0.95}
               emissive="#f59e0b"
-              emissiveIntensity={0.5}
+              emissiveIntensity={0.6}
             />
           </mesh>
+        </group>
+
+        {/* ── FORGED GLOWING CRYSTAL CATALYST ON CORRECT ANSWER ── */}
+        <mesh ref={crystalRef} position={[0, 0.2, 0]} castShadow>
+          <octahedronGeometry args={[0.32]} />
+          <meshStandardMaterial
+            color="#fbbf24"
+            emissive="#f59e0b"
+            emissiveIntensity={1.2}
+            metalness={0.8}
+            roughness={0.1}
+          />
+        </mesh>
+
+        {/* ── PLASMA LASER ENERGY CONDUITS ── */}
+        <group ref={laserBeamRef}>
+          {[-1, 1].map((dir, i) => (
+            <mesh key={`laser-${i}`} position={[dir * 0.8, 0.6, 0]} rotation={[0, 0, dir * 0.6]}>
+              <cylinderGeometry args={[0.02, 0.02, 1.2, 8]} />
+              <meshBasicMaterial color="#38bdf8" />
+            </mesh>
+          ))}
         </group>
       </group>
 
@@ -181,7 +272,7 @@ export const ProbabilityLabMachine3D: React.FC = () => {
         {/* Glowing Red Liquid */}
         <mesh ref={leftLiquidRef} position={[0, -0.4, 0]}>
           <cylinderGeometry args={[0.3, 0.3, 1.2, 20]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.2} emissive="#dc2626" emissiveIntensity={0.35} />
+          <meshStandardMaterial color="#dc2626" roughness={0.2} emissive="#dc2626" emissiveIntensity={0.5} />
         </mesh>
         {/* Brass Graduation Markings */}
         {[-0.8, -0.4, 0, 0.4, 0.8].map((y, i) => (
@@ -207,7 +298,7 @@ export const ProbabilityLabMachine3D: React.FC = () => {
         {/* Glowing Blue Liquid */}
         <mesh ref={rightLiquidRef} position={[0, -0.1, 0]}>
           <cylinderGeometry args={[0.3, 0.3, 1.8, 20]} />
-          <meshStandardMaterial color="#2563eb" roughness={0.2} emissive="#2563eb" emissiveIntensity={0.35} />
+          <meshStandardMaterial color="#2563eb" roughness={0.2} emissive="#2563eb" emissiveIntensity={0.5} />
         </mesh>
         {/* Brass Graduation Markings */}
         {[-0.8, -0.4, 0, 0.4, 0.8].map((y, i) => (
@@ -239,6 +330,11 @@ export const ProbabilityLabMachine3D: React.FC = () => {
           <mesh position={[0, 0, 0.04]}>
             <circleGeometry args={[0.18, 20]} />
             <meshStandardMaterial color="#ffffff" />
+          </mesh>
+          {/* Gauge Needle */}
+          <mesh ref={gaugeNeedleRef} position={[0, 0.05, 0.05]}>
+            <boxGeometry args={[0.02, 0.12, 0.01]} />
+            <meshStandardMaterial color="#dc2626" />
           </mesh>
         </group>
       </group>

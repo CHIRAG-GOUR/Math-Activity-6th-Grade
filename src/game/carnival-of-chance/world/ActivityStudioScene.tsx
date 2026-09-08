@@ -17,7 +17,7 @@ import { useCarnivalStore } from '../store/carnivalStore';
 import { ActivityId } from '../types';
 import { MysteryBagMachine3D } from './machines/MysteryBagMachine3D';
 import { OddsWheelMachine3D } from './machines/OddsWheelMachine3D';
-import { BallDropMachine3D } from './machines/BallDropMachine3D';
+import { HighStrikerMachine3D } from './machines/HighStrikerMachine3D';
 import { ProbabilityLabMachine3D } from './machines/ProbabilityLabMachine3D';
 import { GameBuilderMachine3D } from './machines/GameBuilderMachine3D';
 import { GrandCarnivalMachine3D } from './machines/GrandCarnivalMachine3D';
@@ -37,8 +37,8 @@ const StudioCameraRig: React.FC<{ activityId: ActivityId }> = ({ activityId }) =
       targetPos.set(0, 1.8, 7.0);
       targetLookAt.set(0, 1.4, 0);
     } else if (activityId === 'ball-drop') {
-      targetPos.set(0, 2.1, 7.8);
-      targetLookAt.set(0, 1.8, 0);
+      targetPos.set(0, 2.6, 8.2);
+      targetLookAt.set(0, 2.5, 0);
     } else if (activityId === 'probability-lab') {
       targetPos.set(0, 2.2, 7.2);
       targetLookAt.set(0, 2.0, 0);
@@ -46,8 +46,8 @@ const StudioCameraRig: React.FC<{ activityId: ActivityId }> = ({ activityId }) =
       targetPos.set(0, 2.4, 7.2);
       targetLookAt.set(0, 2.2, 0);
     } else if (activityId === 'grand-carnival') {
-      targetPos.set(0, 2.6, 9.8);
-      targetLookAt.set(0, 2.4, 0);
+      targetPos.set(0, 2.4, 8.2);
+      targetLookAt.set(0, 2.2, 0);
     }
 
     camera.position.lerp(targetPos, delta * 3.5);
@@ -412,7 +412,7 @@ export const ActivityStudioScene: React.FC = () => {
         {/* ── Active 3D Mini-Game Physical Machine ── */}
         {activeActivity === 'mystery-bag' && <MysteryBagMachine3D />}
         {activeActivity === 'odds-wheel' && <OddsWheelMachine3D />}
-        {activeActivity === 'ball-drop' && <BallDropMachine3D />}
+        {activeActivity === 'ball-drop' && <HighStrikerMachine3D />}
         {activeActivity === 'probability-lab' && <ProbabilityLabMachine3D />}
         {activeActivity === 'game-builder' && <GameBuilderMachine3D />}
         {activeActivity === 'grand-carnival' && <GrandCarnivalMachine3D />}
