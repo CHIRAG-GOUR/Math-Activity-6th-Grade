@@ -134,45 +134,54 @@ export const BallDropMachine3D: React.FC = () => {
             y = 0.55 + Math.max(0, bounce);
           }
         } else {
-          // ── LEFT CONTAINER ARCADE BOUNCE TRAJECTORY ──
+          // ── WRONG ANSWER: BALL FALLS OUTSIDE BOTH BUCKETS ──
           if (progress < 0.2) {
-            // Stage 1: Drop from hopper & strike 1st top pin
+            // Stage 1: Drop from hopper & strike center pin
             const p = progress / 0.2;
-            x = THREE.MathUtils.lerp(0, -0.15, p) - Math.sin(p * Math.PI) * 0.08;
+            x = THREE.MathUtils.lerp(0, -0.2, p) + Math.sin(p * Math.PI) * 0.08;
             y = 4.0 - p * 0.7; // 4.0 -> 3.3
-          } else if (progress < 0.42) {
-            // Stage 2: Ricochet left towards mid tier pin
-            const p = (progress - 0.2) / 0.22;
-            x = -0.15 - p * 0.45 - Math.sin(p * Math.PI) * 0.12; // -0.15 -> -0.60
-            y = 3.3 - p * 0.8 + Math.sin(p * Math.PI) * 0.15; // 3.3 -> 2.5
-          } else if (progress < 0.65) {
-            // Stage 3: Hit side rubber bumper & ricochet into left chute
-            const p = (progress - 0.42) / 0.23;
-            x = -0.6 - p * 0.45 - Math.sin(p * Math.PI) * 0.18; // -0.6 -> -1.05
-            y = 2.5 - p * 0.9 + Math.sin(p * Math.PI) * 0.2; // 2.5 -> 1.6
-          } else if (progress < 0.85) {
-            // Stage 4: Freefall into Left Container mouth
-            const p = (progress - 0.65) / 0.2;
-            x = -1.05 - p * 0.15; // -1.05 -> -1.2
-            y = 1.6 - p * 1.05; // 1.6 -> 0.55
+            z = 0.45;
+          } else if (progress < 0.45) {
+            // Stage 2: Erratic ricochet between middle pins
+            const p = (progress - 0.2) / 0.25;
+            x = -0.2 + p * 0.5 + Math.sin(p * Math.PI) * 0.15; // -0.2 -> 0.3
+            y = 3.3 - p * 0.9 + Math.sin(p * Math.PI) * 0.15; // 3.3 -> 2.4
+            z = 0.45;
+          } else if (progress < 0.7) {
+            // Stage 3: Strikes center divider wedge & pops outward past the buckets
+            const p = (progress - 0.45) / 0.25;
+            x = 0.3 - p * 0.35; // 0.3 -> -0.05 (Center miss gutter)
+            y = 2.4 - p * 1.2 + Math.sin(p * Math.PI) * 0.25; // 2.4 -> 1.2
+            z = 0.45 + p * 0.55; // 0.45 -> 1.0 (Flies forward past buckets)
+          } else if (progress < 0.9) {
+            // Stage 4: Freefall down past both buckets to the floor
+            const p = (progress - 0.7) / 0.2;
+            x = -0.05 + p * 0.05; // -0.05 -> 0.0
+            y = 1.2 - p * 1.6; // 1.2 -> -0.4 (Down past table)
+            z = 1.0 + p * 0.4; // 1.0 -> 1.4
           } else {
-            // Stage 5: Container landing with decaying vertical bounce
-            const p = (progress - 0.85) / 0.15;
-            x = -1.2;
-            const bounce = Math.sin(p * Math.PI * 2.5) * Math.exp(-p * 3) * 0.22;
-            y = 0.55 + Math.max(0, bounce);
+            // Stage 5: Bounces on floor gutter outside both buckets
+            const p = (progress - 0.9) / 0.1;
+            x = 0;
+            const bounce = Math.sin(p * Math.PI * 2) * Math.exp(-p * 3) * 0.15;
+            y = -0.42 + Math.max(0, bounce);
+            z = 1.4 + p * 0.1;
           }
         }
 
         droppingBallRef.current.position.set(x, y, z);
         droppingBallRef.current.scale.setScalar(1);
         droppingBallRef.current.rotation.x += delta * 15;
-        droppingBallRef.current.rotation.z += delta * (isTargetRight ? -12 : 12);
+        droppingBallRef.current.rotation.z += delta * (isTargetRight ? -12 : 8);
       } else if (phase === 'observation' || phase === 'batch-trials') {
-        // Settled inside winning container with a soft bobbing highlight
-        const destX = isTargetRight ? 1.2 : -1.2;
-        const bob = Math.sin(tClock * 3) * 0.03;
-        droppingBallRef.current.position.set(destX, 0.58 + bob, 0.45);
+        if (isTargetRight) {
+          // Settled inside right container with soft bobbing highlight
+          const bob = Math.sin(tClock * 3) * 0.03;
+          droppingBallRef.current.position.set(1.2, 0.58 + bob, 0.45);
+        } else {
+          // Settled on floor outside both buckets
+          droppingBallRef.current.position.set(0, -0.42, 1.5);
+        }
         droppingBallRef.current.scale.setScalar(1.15);
         droppingBallRef.current.rotation.y += delta * 1.5;
       } else {

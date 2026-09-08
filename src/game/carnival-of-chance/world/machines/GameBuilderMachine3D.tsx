@@ -120,39 +120,47 @@ export const GameBuilderMachine3D: React.FC = () => {
             y = 0.55 + Math.max(0, bounce);
           }
         } else {
-          // ── LEFT CONTAINER ARCADE BOUNCE TRAJECTORY ──
+          // ── WRONG ANSWER: BALL FALLS OUTSIDE BOTH BUCKETS ──
           if (progress < 0.2) {
             const p = progress / 0.2;
-            x = THREE.MathUtils.lerp(0, -0.15, p) - Math.sin(p * Math.PI) * 0.08;
-            y = 3.9 - p * 0.7;
-          } else if (progress < 0.42) {
-            const p = (progress - 0.2) / 0.22;
-            x = -0.15 - p * 0.4 - Math.sin(p * Math.PI) * 0.12;
-            y = 3.2 - p * 0.8 + Math.sin(p * Math.PI) * 0.15;
-          } else if (progress < 0.65) {
-            const p = (progress - 0.42) / 0.23;
-            x = -0.55 - p * 0.4 - Math.sin(p * Math.PI) * 0.18;
-            y = 2.4 - p * 0.9 + Math.sin(p * Math.PI) * 0.2;
-          } else if (progress < 0.85) {
-            const p = (progress - 0.65) / 0.2;
-            x = -0.95 - p * 0.15;
-            y = 1.5 - p * 0.95;
+            x = THREE.MathUtils.lerp(0, -0.2, p) + Math.sin(p * Math.PI) * 0.08;
+            y = 3.9 - p * 0.7; // 3.9 -> 3.2
+            z = 0.35;
+          } else if (progress < 0.45) {
+            const p = (progress - 0.2) / 0.25;
+            x = -0.2 + p * 0.5 + Math.sin(p * Math.PI) * 0.15; // -0.2 -> 0.3
+            y = 3.2 - p * 0.9 + Math.sin(p * Math.PI) * 0.15; // 3.2 -> 2.3
+            z = 0.35;
+          } else if (progress < 0.7) {
+            const p = (progress - 0.45) / 0.25;
+            x = 0.3 - p * 0.35; // 0.3 -> -0.05
+            y = 2.3 - p * 1.2 + Math.sin(p * Math.PI) * 0.2; // 2.3 -> 1.1
+            z = 0.35 + p * 0.55; // 0.35 -> 0.9 (Pops forward past buckets)
+          } else if (progress < 0.9) {
+            const p = (progress - 0.7) / 0.2;
+            x = -0.05 + p * 0.05; // -0.05 -> 0.0
+            y = 1.1 - p * 1.5; // 1.1 -> -0.4 (Down past workbench)
+            z = 0.9 + p * 0.4; // 0.9 -> 1.3
           } else {
-            const p = (progress - 0.85) / 0.15;
-            x = -1.1;
-            const bounce = Math.sin(p * Math.PI * 2.5) * Math.exp(-p * 3) * 0.2;
-            y = 0.55 + Math.max(0, bounce);
+            const p = (progress - 0.9) / 0.1;
+            x = 0;
+            const bounce = Math.sin(p * Math.PI * 2) * Math.exp(-p * 3) * 0.15;
+            y = -0.42 + Math.max(0, bounce);
+            z = 1.3 + p * 0.1;
           }
         }
 
         ballRef.current.position.set(x, y, z);
         ballRef.current.scale.setScalar(1);
         ballRef.current.rotation.x += delta * 15;
-        ballRef.current.rotation.z += delta * (isTargetRight ? -12 : 12);
+        ballRef.current.rotation.z += delta * (isTargetRight ? -12 : 8);
       } else if (phase === 'observation' || phase === 'batch-trials') {
-        const destX = isTargetRight ? 1.1 : -1.1;
-        const bob = Math.sin(tClock * 3) * 0.03;
-        ballRef.current.position.set(destX, 0.58 + bob, 0.35);
+        if (isTargetRight) {
+          const bob = Math.sin(tClock * 3) * 0.03;
+          ballRef.current.position.set(1.1, 0.58 + bob, 0.35);
+        } else {
+          ballRef.current.position.set(0, -0.42, 1.4);
+        }
         ballRef.current.scale.setScalar(1.15);
         ballRef.current.rotation.y += delta * 1.5;
       } else {

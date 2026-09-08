@@ -35,8 +35,10 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
   const isCorrect = choice.isCorrect;
   const isWrong = !isCorrect;
 
-  // Visual state computation
-  const showCorrect = isLocked && isCorrect;
+  // Visual state computation:
+  // Show Green ONLY if this choice was actually selected and correct!
+  // If a player picked wrong, show RED ONLY on their wrong choice without revealing the right answer.
+  const showCorrect = isLocked && isSelected && isCorrect;
   const showWrong = isLocked && isSelected && isWrong;
 
   let buttonStyle: React.CSSProperties = {
