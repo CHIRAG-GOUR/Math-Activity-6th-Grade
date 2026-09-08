@@ -1,72 +1,22 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — 3D Carnival Island Scene
-// Stylized Miniature Theme Park Island with Smooth Camera Rig,
-// Central Clock Tower, Boardwalk Pier, Sailboats, Paths, and 6 Attractions
+// THE GREAT CARNIVAL OF CHANCE — 3D Carnival Island Hub
+// Elevated cinematic 3/4 overview of the miniature carnival island,
+// with 6 touchable 3D attraction booths, central clock tower, and ocean
 // ============================================================
 
 'use client';
 
 import React, { useRef } from 'react';
-import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useCarnivalStore } from '../store/carnivalStore';
-import { ATTRACTIONS } from '../engine/probabilityData';
-import { GiantBallDrop3D } from './attractions/GiantBallDrop3D';
-import { OddsWheel3D } from './attractions/OddsWheel3D';
-import { MysteryChests3D } from './attractions/MysteryChests3D';
-import { ChanceLab3D } from './attractions/ChanceLab3D';
-import { CarnivalWorkshop3D } from './attractions/CarnivalWorkshop3D';
-import { GrandCarnival3D } from './attractions/GrandCarnival3D';
+import { ATTRACTIONS_META } from '../engine/probabilityData';
 
-// ── 1. Smooth Cinematic Camera Rig ──
-const CameraRig: React.FC = () => {
-  const { camera } = useThree();
-  const cameraMode = useCarnivalStore((s) => s.cameraMode);
-  const activeAttractionId = useCarnivalStore((s) => s.activeAttractionId);
-  const zoomLevel = useCarnivalStore((s) => s.zoomLevel);
-
-  const targetPos = useRef(new THREE.Vector3(0, 16, 24));
-  const targetLook = useRef(new THREE.Vector3(0, 1.5, 0));
-  const currentLook = useRef(new THREE.Vector3(0, 1.5, 0));
-
-  useFrame((_, delta) => {
-    const activeInfo = ATTRACTIONS.find((a) => a.id === activeAttractionId);
-
-    if (cameraMode === 'attraction-focus' && activeInfo) {
-      targetPos.current.set(...activeInfo.cameraPosition).multiplyScalar(1 / zoomLevel);
-      targetLook.current.set(...activeInfo.cameraTarget);
-    } else if (cameraMode === 'machine-run' && activeInfo) {
-      targetPos.current.set(
-        activeInfo.cameraPosition[0] * 0.9,
-        activeInfo.cameraPosition[1] * 0.85,
-        activeInfo.cameraPosition[2] * 0.85
-      ).multiplyScalar(1 / zoomLevel);
-      targetLook.current.set(...activeInfo.cameraTarget);
-    } else if (cameraMode === 'grand-celebration') {
-      targetPos.current.set(0, 18, 28).multiplyScalar(1 / zoomLevel);
-      targetLook.current.set(0, 3, 2);
-    } else {
-      // Default: Elevated 3/4 Island Overview
-      targetPos.current.set(0, 16, 24).multiplyScalar(1 / zoomLevel);
-      targetLook.current.set(0, 1.5, 0);
-    }
-
-    // Smooth spherical interpolation for cinematic camera moves
-    camera.position.lerp(targetPos.current, delta * 3.5);
-    currentLook.current.lerp(targetLook.current, delta * 4.0);
-    camera.lookAt(currentLook.current);
-  });
-
-  return null;
-};
-
-// ── 2. Central Plaza Clock Tower & Progress Dial ──
+// ── 1. Central Clock Tower & Plaza ──
 const CentralClockTower: React.FC = () => {
-  const selectAttraction = useCarnivalStore((s) => s.selectAttraction);
-  const attractions = useCarnivalStore((s) => s.attractions);
   const clockHandsRef = useRef<THREE.Group>(null);
-
-  const completedCount = attractions.filter((a) => a.id !== 'central-plaza' && a.completed).length;
+  const attractions = useCarnivalStore((s) => s.attractions);
+  const completedCount = Object.values(attractions).filter((a) => a.id !== 'hub' && a.completed).length;
 
   useFrame((_, delta) => {
     if (clockHandsRef.current) {
@@ -75,8 +25,8 @@ const CentralClockTower: React.FC = () => {
   });
 
   return (
-    <group position={[0, 0, 0]} onClick={() => selectAttraction('central-plaza')}>
-      {/* Stone Plaza Base Octagon */}
+    <group position={[0, 0, 0]}>
+      {/* Octagonal Stone Plaza Base */}
       <mesh position={[0, 0.15, 0]} receiveShadow>
         <cylinderGeometry args={[4.2, 4.6, 0.3, 8]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
@@ -86,76 +36,297 @@ const CentralClockTower: React.FC = () => {
         <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
       </mesh>
 
-      {/* Red & White Circus Skirt Base */}
+      {/* Red & White Striped Circus Base */}
       <mesh position={[0, 0.8, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[1.8, 2.2, 0.8, 16]} />
         <meshStandardMaterial color="#dc2626" roughness={0.4} />
       </mesh>
 
-      {/* Main Brick Clock Tower Body */}
+      {/* Brick Clock Tower Body */}
       <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.0, 4.8, 2.0]} />
+        <boxGeometry args={[1.8, 4.8, 1.8]} />
         <meshStandardMaterial color="#b45309" roughness={0.65} />
       </mesh>
-      {/* Upper Cornice Trim */}
-      <mesh position={[0, 5.8, 0]} castShadow>
-        <boxGeometry args={[2.4, 0.4, 2.4]} />
-        <meshStandardMaterial color="#fef08a" roughness={0.4} />
+      {/* Gold Trim Cornice */}
+      <mesh position={[0, 5.7, 0]} castShadow>
+        <boxGeometry args={[2.2, 0.35, 2.2]} />
+        <meshStandardMaterial color="#fef08a" roughness={0.3} metalness={0.6} />
       </mesh>
 
-      {/* Clock Face Housing & Hands */}
-      <mesh position={[0, 4.4, 1.05]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-        <cylinderGeometry args={[0.75, 0.75, 0.1, 24]} />
+      {/* Clock Face & Hands */}
+      <mesh position={[0, 4.4, 0.95]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+        <cylinderGeometry args={[0.7, 0.7, 0.1, 24]} />
         <meshStandardMaterial color="#ffffff" roughness={0.2} />
       </mesh>
-      <group ref={clockHandsRef} position={[0, 4.4, 1.12]}>
-        {/* Hour Hand */}
+      <group ref={clockHandsRef} position={[0, 4.4, 1.02]}>
         <mesh position={[0, 0.2, 0]} castShadow>
-          <boxGeometry args={[0.06, 0.4, 0.02]} />
+          <boxGeometry args={[0.05, 0.38, 0.02]} />
           <meshStandardMaterial color="#0f172a" />
         </mesh>
-        {/* Minute Hand */}
-        <mesh position={[0.25, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
-          <boxGeometry args={[0.04, 0.55, 0.02]} />
+        <mesh position={[0.22, 0, 0]} rotation={[0, 0, -Math.PI / 2]} castShadow>
+          <boxGeometry args={[0.04, 0.5, 0.02]} />
           <meshStandardMaterial color="#dc2626" />
         </mesh>
       </group>
 
-      {/* Pyramid Spire & Weather Vane Flag */}
-      <mesh position={[0, 7.2, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
-        <coneGeometry args={[1.4, 2.4, 4]} />
-        <meshStandardMaterial color="#0369a1" roughness={0.4} />
+      {/* Blue Spire & Flag */}
+      <mesh position={[0, 7.0, 0]} rotation={[0, Math.PI / 4, 0]} castShadow>
+        <coneGeometry args={[1.3, 2.4, 4]} />
+        <meshStandardMaterial color="#0284c7" roughness={0.4} />
       </mesh>
-      <mesh position={[0, 8.6, 0]} castShadow>
+      <mesh position={[0, 8.4, 0]} castShadow>
         <cylinderGeometry args={[0.04, 0.04, 0.8, 8]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.9} />
       </mesh>
-      <mesh position={[0.25, 8.8, 0]} castShadow>
-        <boxGeometry args={[0.5, 0.3, 0.02]} />
+      <mesh position={[0.25, 8.6, 0]} castShadow>
+        <boxGeometry args={[0.45, 0.28, 0.02]} />
         <meshStandardMaterial color="#e11d48" roughness={0.3} />
       </mesh>
     </group>
   );
 };
 
-// ── 3. Island Terrain, Boardwalk Pier, Sailboat, & Ocean Water ──
-const IslandTerrain: React.FC = () => {
+// ── 2. Touchable 3D Island Booths (Representing Each Activity on Their Heads) ──
+
+// A. Mystery Sack Booth
+const MysterySackBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['mystery-bag'];
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('mystery-bag')}>
+      {/* Booth Base Table */}
+      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3.8, 0.8, 2.6]} />
+        <meshStandardMaterial color="#78350f" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
+        <boxGeometry args={[4.0, 0.1, 2.8]} />
+        <meshStandardMaterial color="#fef08a" roughness={0.4} />
+      </mesh>
+
+      {/* Giant 3D Physical Sack on the Booth Table */}
+      <mesh position={[0, 1.8, 0]} castShadow>
+        <sphereGeometry args={[1.0, 24, 24]} />
+        <meshStandardMaterial color="#9a3412" roughness={0.85} />
+      </mesh>
+      {/* Sack Drawstring Neck */}
+      <mesh position={[0, 2.6, 0]} castShadow>
+        <cylinderGeometry args={[0.6, 0.9, 0.7, 16]} />
+        <meshStandardMaterial color="#c2410c" roughness={0.8} />
+      </mesh>
+      {/* Visible 3D Colored Spheres Around Sack Opening */}
+      {[
+        { color: '#dc2626', pos: [-0.25, 2.8, 0] },
+        { color: '#2563eb', pos: [0.25, 2.85, 0.1] },
+        { color: '#dc2626', pos: [0, 2.9, -0.2] },
+      ].map((b, i) => (
+        <mesh key={i} position={b.pos as [number, number, number]} castShadow>
+          <sphereGeometry args={[0.16, 16, 16]} />
+          <meshStandardMaterial color={b.color} roughness={0.3} metalness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Scalloped Red Striped Canopy */}
+      <mesh position={[0, 3.8, 0]} rotation={[0.12, 0, 0]} castShadow>
+        <boxGeometry args={[4.2, 0.15, 3.0]} />
+        <meshStandardMaterial color="#dc2626" roughness={0.4} />
+      </mesh>
+    </group>
+  );
+};
+
+// B. Odds Wheel Booth
+const OddsWheelBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['odds-wheel'];
+  const wheelRef = useRef<THREE.Group>(null);
+
+  useFrame((_, delta) => {
+    if (wheelRef.current) {
+      wheelRef.current.rotation.z -= delta * 0.4;
+    }
+  });
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('odds-wheel')}>
+      {/* Platform */}
+      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[2.0, 2.2, 0.4, 24]} />
+        <meshStandardMaterial color="#78350f" roughness={0.7} />
+      </mesh>
+      {/* Red A-Frame */}
+      <mesh position={[-0.6, 1.8, 0]} rotation={[0, 0, -0.2]} castShadow>
+        <boxGeometry args={[0.18, 3.2, 0.18]} />
+        <meshStandardMaterial color="#b91c1c" />
+      </mesh>
+      <mesh position={[0.6, 1.8, 0]} rotation={[0, 0, 0.2]} castShadow>
+        <boxGeometry args={[0.18, 3.2, 0.18]} />
+        <meshStandardMaterial color="#b91c1c" />
+      </mesh>
+
+      {/* Rotating Colorful Wheel */}
+      <group ref={wheelRef} position={[0, 2.8, 0.15]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+          <cylinderGeometry args={[1.5, 1.5, 0.14, 24]} />
+          <meshStandardMaterial color="#d97706" metalness={0.7} roughness={0.3} />
+        </mesh>
+        {/* Colorful Segments */}
+        {['#2563eb', '#dc2626', '#f59e0b', '#16a34a'].map((col, i) => (
+          <mesh key={i} position={[0, 0.7, 0.08]} rotation={[0, 0, (i * Math.PI) / 2]} castShadow>
+            <boxGeometry args={[0.5, 1.0, 0.04]} />
+            <meshStandardMaterial color={col} />
+          </mesh>
+        ))}
+        {/* Center Brass Hub */}
+        <mesh position={[0, 0, 0.12]} castShadow>
+          <sphereGeometry args={[0.2, 16, 16]} />
+          <meshStandardMaterial color="#fef08a" metalness={0.9} />
+        </mesh>
+      </group>
+    </group>
+  );
+};
+
+// C. Giant Ball Drop Booth
+const BallDropBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['ball-drop'];
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('ball-drop')}>
+      {/* Base */}
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.6, 1.8, 0.5, 24]} />
+        <meshStandardMaterial color="#854d0e" roughness={0.6} />
+      </mesh>
+
+      {/* Transparent Acrylic Chamber */}
+      <mesh position={[0, 2.0, 0]}>
+        <cylinderGeometry args={[0.9, 0.9, 1.8, 24, 1, true]} />
+        <meshPhysicalMaterial color="#e0f2fe" transmission={0.9} transparent opacity={1} roughness={0.1} />
+      </mesh>
+      {/* Golden Dome Top */}
+      <mesh position={[0, 3.0, 0]} castShadow>
+        <sphereGeometry args={[0.92, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        <meshStandardMaterial color="#eab308" metalness={0.85} roughness={0.2} />
+      </mesh>
+
+      {/* Internal Balls */}
+      {[
+        { color: '#16a34a', pos: [-0.3, 1.6, 0.2] },
+        { color: '#16a34a', pos: [0.2, 1.8, -0.2] },
+        { color: '#eab308', pos: [0, 2.2, 0.1] },
+      ].map((b, i) => (
+        <mesh key={i} position={b.pos as [number, number, number]} castShadow>
+          <sphereGeometry args={[0.18, 16, 16]} />
+          <meshStandardMaterial color={b.color} />
+        </mesh>
+      ))}
+    </group>
+  );
+};
+
+// D. Probability Lab Booth
+const ProbabilityLabBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['probability-lab'];
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('probability-lab')}>
+      {/* Bench Platform */}
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3.6, 0.7, 2.0]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.5} />
+      </mesh>
+      {/* Glass Reaction Sphere */}
+      <mesh position={[0, 1.8, 0]}>
+        <sphereGeometry args={[0.85, 24, 24]} />
+        <meshPhysicalMaterial color="#f1f5f9" transmission={0.9} transparent opacity={1} roughness={0.05} />
+      </mesh>
+      {/* Left Red & Right Blue Measuring Columns */}
+      <mesh position={[-1.1, 1.5, 0]}>
+        <cylinderGeometry args={[0.2, 0.2, 1.4, 12]} />
+        <meshStandardMaterial color="#dc2626" />
+      </mesh>
+      <mesh position={[1.1, 1.5, 0]}>
+        <cylinderGeometry args={[0.2, 0.2, 1.4, 12]} />
+        <meshStandardMaterial color="#2563eb" />
+      </mesh>
+    </group>
+  );
+};
+
+// E. Game Builder Booth
+const GameBuilderBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['game-builder'];
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('game-builder')}>
+      {/* Workbench */}
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+        <boxGeometry args={[3.8, 0.7, 2.0]} />
+        <meshStandardMaterial color="#78350f" roughness={0.6} />
+      </mesh>
+      {/* Upright Slanted Pegboard */}
+      <mesh position={[0, 1.8, -0.2]} rotation={[-0.15, 0, 0]} castShadow>
+        <boxGeometry args={[3.0, 2.2, 0.15]} />
+        <meshStandardMaterial color="#0284c7" />
+      </mesh>
+      {/* Awning */}
+      <mesh position={[0, 3.2, 0.1]} rotation={[0.2, 0, 0]} castShadow>
+        <boxGeometry args={[3.8, 0.15, 1.8]} />
+        <meshStandardMaterial color="#f97316" />
+      </mesh>
+    </group>
+  );
+};
+
+// F. Grand Carnival Entrance & Pavilion
+const GrandCarnivalBooth: React.FC = () => {
+  const openActivity = useCarnivalStore((s) => s.openActivity);
+  const meta = ATTRACTIONS_META['grand-carnival'];
+
+  return (
+    <group position={meta.islandPosition} onClick={() => openActivity('grand-carnival')}>
+      {/* Stage Base */}
+      <mesh position={[0, 0.3, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[2.6, 2.8, 0.6, 24]} />
+        <meshStandardMaterial color="#854d0e" roughness={0.6} />
+      </mesh>
+      {/* Red & Gold Carousel Pavilion Roof */}
+      <mesh position={[0, 2.6, 0]} castShadow>
+        <coneGeometry args={[2.6, 1.4, 16]} />
+        <meshStandardMaterial color="#dc2626" roughness={0.4} />
+      </mesh>
+      {/* Floating Trophy */}
+      <mesh position={[0, 1.5, 0]} castShadow>
+        <cylinderGeometry args={[0.3, 0.15, 0.5, 12]} />
+        <meshStandardMaterial color="#f59e0b" metalness={0.95} />
+      </mesh>
+    </group>
+  );
+};
+
+// ── 3. Island Terrain, Paths, Boardwalk Pier, and Ocean ──
+const IslandEnvironment: React.FC = () => {
   return (
     <group>
-      {/* Main Lush Island Plateau */}
-      <mesh position={[0, -0.4, 0]} receiveShadow>
-        <cylinderGeometry args={[16, 17.5, 1.4, 48]} />
+      {/* Main Lush Green Island Plateau */}
+      <mesh position={[0, -0.5, 0]} receiveShadow>
+        <cylinderGeometry args={[17, 18.5, 1.6, 48]} />
         <meshStandardMaterial color="#4ade80" roughness={0.8} />
       </mesh>
-      {/* Sandy Embankment Ring */}
-      <mesh position={[0, -0.9, 0]} receiveShadow>
-        <cylinderGeometry args={[17.5, 19.5, 0.8, 48]} />
+      {/* Sandy Beach Embankment Ring */}
+      <mesh position={[0, -1.0, 0]} receiveShadow>
+        <cylinderGeometry args={[18.5, 20.5, 0.8, 48]} />
         <meshStandardMaterial color="#fef08a" roughness={0.9} />
       </mesh>
 
       {/* Surrounding Calm Ocean Water */}
-      <mesh position={[0, -1.2, 0]} receiveShadow>
-        <cylinderGeometry args={[38, 38, 0.4, 48]} />
+      <mesh position={[0, -1.3, 0]} receiveShadow>
+        <cylinderGeometry args={[42, 42, 0.4, 48]} />
         <meshPhysicalMaterial
           color="#38bdf8"
           roughness={0.15}
@@ -166,89 +337,64 @@ const IslandTerrain: React.FC = () => {
         />
       </mesh>
 
-      {/* ── Wooden Boardwalk Pier Extending into the Water (South) ── */}
+      {/* Boardwalk Pier Extending South */}
       <mesh position={[0, 0.05, 14.5]} receiveShadow castShadow>
         <boxGeometry args={[2.6, 0.2, 7.5]} />
         <meshStandardMaterial color="#92400e" roughness={0.7} />
       </mesh>
-      {/* Pier Wooden Mooring Posts */}
-      {[-1.4, 1.4].map((x, i) =>
-        [12, 14.5, 17].map((z, j) => (
-          <mesh key={`${i}-${j}`} position={[x, 0.35, z]} castShadow>
-            <cylinderGeometry args={[0.08, 0.08, 1.0, 12]} />
-            <meshStandardMaterial color="#78350f" />
-          </mesh>
-        ))
-      )}
 
-      {/* ── Miniature Sailboat Floating in the Bay ── */}
-      <group position={[12.5, -0.6, 12.5]} rotation={[0, -0.6, 0]}>
-        {/* Boat Hull */}
+      {/* Miniature Sailboat in Bay */}
+      <group position={[13, -0.6, 13]} rotation={[0, -0.6, 0]}>
         <mesh position={[0, 0.2, 0]} castShadow>
           <boxGeometry args={[1.2, 0.4, 2.6]} />
           <meshStandardMaterial color="#ffffff" roughness={0.4} />
         </mesh>
-        {/* Wooden Deck Trim */}
-        <mesh position={[0, 0.42, 0]}>
-          <boxGeometry args={[1.0, 0.06, 2.4]} />
-          <meshStandardMaterial color="#b45309" />
-        </mesh>
-        {/* Mast */}
         <mesh position={[0, 1.8, 0]} castShadow>
           <cylinderGeometry args={[0.04, 0.04, 2.8, 8]} />
           <meshStandardMaterial color="#78350f" />
         </mesh>
-        {/* White Triangular Sail */}
         <mesh position={[0, 1.8, 0.5]} rotation={[0, Math.PI / 2, 0]} castShadow>
           <coneGeometry args={[0.8, 2.2, 3]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.3} />
         </mesh>
       </group>
 
-      {/* ── Cobblestone Pathways Connecting Central Plaza to Attractions ── */}
-      {/* Path to Odds Wheel (Left-West) */}
-      <mesh position={[-4.5, 0.05, 0.2]} rotation={[0, 0, 0]} receiveShadow>
-        <boxGeometry args={[7.0, 0.06, 1.8]} />
+      {/* Cobblestone Pathways Connecting Central Plaza to Attractions */}
+      <mesh position={[-4.5, 0.05, 0.5]} receiveShadow>
+        <boxGeometry args={[6.5, 0.06, 1.6]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Mystery Chests (Top-Left) */}
-      <mesh position={[-3.0, 0.05, -3.5]} rotation={[0, 0.7, 0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 7.5]} />
+      <mesh position={[4.5, 0.05, 0.5]} receiveShadow>
+        <boxGeometry args={[6.5, 0.06, 1.6]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Giant Ball Drop (Top-Right) */}
-      <mesh position={[3.0, 0.05, -3.5]} rotation={[0, -0.7, 0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 7.5]} />
+      <mesh position={[-3.0, 0.05, -3.0]} rotation={[0, 0.7, 0]} receiveShadow>
+        <boxGeometry args={[1.6, 0.06, 7.0]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Chance Lab (Right-East) */}
-      <mesh position={[4.5, 0.05, 0.4]} rotation={[0, 0, 0]} receiveShadow>
-        <boxGeometry args={[7.0, 0.06, 1.8]} />
+      <mesh position={[3.0, 0.05, -3.0]} rotation={[0, -0.7, 0]} receiveShadow>
+        <boxGeometry args={[1.6, 0.06, 7.0]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Workshop (Bottom-Left) */}
-      <mesh position={[-3.0, 0.05, 3.5]} rotation={[0, -0.7, 0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 7.5]} />
+      <mesh position={[-3.0, 0.05, 3.2]} rotation={[0, -0.7, 0]} receiveShadow>
+        <boxGeometry args={[1.6, 0.06, 7.0]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Grand Carnival (South Entrance) */}
       <mesh position={[0, 0.05, 4.5]} receiveShadow>
-        <boxGeometry args={[2.4, 0.06, 7.0]} />
+        <boxGeometry args={[2.2, 0.06, 6.5]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
 
-      {/* ── Stylized Low-Poly Pine Trees Around Island Edges ── */}
+      {/* Low-Poly Pine Trees Around Island Edges */}
       {[
-        [-12, 0, -8],
-        [-14, 0, 0],
+        [-13, 0, -7],
+        [-14, 0, 2],
         [-12, 0, 11],
-        [12, 0, -8],
-        [14, 0, 0],
+        [13, 0, -7],
+        [14, 0, 2],
         [12, 0, 11],
         [-4, 0, -13],
         [4, 0, -13],
-        [-8, 0, -12],
-        [8, 0, -12],
       ].map(([x, y, z], i) => (
         <group key={i} position={[x, y, z]}>
           <mesh position={[0, 0.8, 0]} castShadow>
@@ -269,13 +415,13 @@ const IslandTerrain: React.FC = () => {
   );
 };
 
-// ── 4. Main Carnival Island Canvas ──
+// ── 4. Main Hub Island Canvas ──
 export const CarnivalIslandScene: React.FC = () => {
   return (
     <div className="w-full h-full">
       <Canvas
         shadows
-        camera={{ position: [0, 16, 24], fov: 45 }}
+        camera={{ position: [0, 22, 28], fov: 42 }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -284,38 +430,29 @@ export const CarnivalIslandScene: React.FC = () => {
       >
         <color attach="background" args={['#bae6fd']} />
 
-        {/* Cinematic Sunlight Lighting */}
-        <ambientLight intensity={0.7} color="#f0f9ff" />
+        {/* Sunlight Lighting */}
+        <ambientLight intensity={0.75} color="#f0f9ff" />
         <directionalLight
-          position={[14, 26, 16]}
-          intensity={1.5}
+          position={[14, 28, 16]}
+          intensity={1.6}
           castShadow
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
-          shadow-camera-near={0.5}
-          shadow-camera-far={60}
-          shadow-camera-left={-22}
-          shadow-camera-right={22}
-          shadow-camera-top={22}
-          shadow-camera-bottom={-22}
           color="#fffbeb"
         />
         <directionalLight position={[-12, 10, -10]} intensity={0.4} color="#38bdf8" />
 
-        {/* Camera Rig */}
-        <CameraRig />
-
-        {/* Island World Base */}
-        <IslandTerrain />
+        {/* Island Environment */}
+        <IslandEnvironment />
         <CentralClockTower />
 
-        {/* 6 Physical Attractions (Matching the Reference Map Layout) */}
-        <OddsWheel3D position={[-8.5, 0, 0.5]} />
-        <MysteryChests3D position={[-5.5, 0, -6.5]} />
-        <GiantBallDrop3D position={[5.5, 0, -6.5]} />
-        <ChanceLab3D position={[8.5, 0, 0.8]} />
-        <CarnivalWorkshop3D position={[-5.5, 0, 6.0]} />
-        <GrandCarnival3D position={[0, 0, 8.5]} />
+        {/* 6 Touchable 3D Booths */}
+        <MysterySackBooth />
+        <OddsWheelBooth />
+        <BallDropBooth />
+        <ProbabilityLabBooth />
+        <GameBuilderBooth />
+        <GrandCarnivalBooth />
       </Canvas>
     </div>
   );

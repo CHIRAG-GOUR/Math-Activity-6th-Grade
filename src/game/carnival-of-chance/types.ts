@@ -1,20 +1,15 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Core Types
-// Grade 6 Mathematics: Probability & Chance
-//
-// Dual-Team Classroom Touchscreen Architecture:
-// - TEAM BLUE: Left Console
-// - TEAM RED: Right Console
-// - SHARED 3D CARNIVAL ISLAND in Center
+// THE GREAT CARNIVAL OF CHANCE — Core Types & Architecture
+// Grade 6 Mathematics: Probability & Physical Experimentation
 // ============================================================
 
-export type AttractionId =
-  | 'central-plaza'
+export type ActivityId =
+  | 'hub'
+  | 'mystery-bag'
   | 'odds-wheel'
-  | 'mystery-chests'
-  | 'giant-ball-drop'
-  | 'chance-lab'
-  | 'carnival-workshop'
+  | 'ball-drop'
+  | 'probability-lab'
+  | 'game-builder'
   | 'grand-carnival';
 
 export type BloomLevel =
@@ -27,92 +22,87 @@ export type BloomLevel =
 
 export type TeamId = 'blue' | 'red';
 
-export type CameraViewMode = 'island-overview' | 'attraction-focus' | 'machine-run' | 'grand-celebration';
+export type ActivityPhase =
+  | 'intro'            // Challenge presentation & physical machine reveal
+  | 'predicting'       // Both teams selecting/configuring predictions simultaneously
+  | 'operating'        // 3D physical machine animation (spinning, bag opening, ball dropping)
+  | 'observation'      // Showing theoretical vs actual random outcome & reasoning
+  | 'batch-trials'     // Optional 10 or 50 trials experimental distribution
+  | 'completed';       // Attraction finished, points & stars awarded
 
-export type MachineAnimationState =
-  | 'idle'
-  | 'mixing'
-  | 'spinning'
-  | 'dropping'
-  | 'opening'
-  | 'batch-simulating'
-  | 'settled';
-
-export interface AttractionInfo {
-  id: AttractionId;
-  name: string;
-  subtitle: string;
-  description: string;
-  position: [number, number, number];
-  cameraTarget: [number, number, number];
-  cameraPosition: [number, number, number];
-  color: string;
-  unlocked: boolean;
-  completed: boolean;
-  totalChallenges: number;
-  completedChallenges: number;
-}
-
-export interface OptionChoice {
+export interface ProbabilityBall {
   id: string;
-  value: string | number;
-  label: string;
-  fractionDisplay?: string; // e.g. "2/5"
-  percentageDisplay?: string; // e.g. "40%"
+  color: string;
+  colorName: string;
 }
 
-export interface ProbabilityData {
-  totalOutcomes: number;
-  favorableOutcomes: number;
-  items: { label: string; color: string; count: number }[];
-  theoreticalProbabilityFraction: string; // e.g. "2/5"
-  theoreticalProbabilityDecimal: number; // e.g. 0.4
+export interface MathFraction {
+  numerator: number;
+  denominator: number;
+  percentage?: string;
+  decimal?: number;
+}
+
+export interface AnswerChoice {
+  id: string;
+  fraction: MathFraction;
+  label: string;
+  isCorrect: boolean;
+  feedbackText: string;
 }
 
 export interface ProbabilityChallenge {
   id: string;
-  attractionId: AttractionId;
+  activityId: ActivityId;
   bloomLevel: BloomLevel;
-  difficulty: 'foundation' | 'core' | 'challenge' | 'mastery';
-  points: number;
   missionTitle: string;
   prompt: string;
-  scenarioText?: string;
-  probabilityData: ProbabilityData;
-  options: OptionChoice[];
-  correctAnswer: string | number;
-  hints: string[];
+  helperNote?: string;
+  
+  // Physical machine setup
+  setup: {
+    totalItems: number;
+    items: { color: string; colorName: string; count: number }[];
+    targetColor: string;
+    theoreticalFraction: MathFraction;
+  };
+  
+  // Answer choices
+  choices: AnswerChoice[];
+  correctAnswerId: string;
   explanation: string;
-  reflectionQuestion?: string;
-  machineAction: 'spin-wheel' | 'drop-ball' | 'open-chest' | 'run-lab' | 'test-slots' | 'grand-spectacle';
+  reflectionPrompt?: string;
+  points: number;
+  goldTickets: number;
 }
 
-export interface TeamScoreState {
+export interface TeamState {
   id: TeamId;
   name: string;
   score: number;
-  selectedAnswer: string | number | null;
-  isLocked: boolean;
-  lastResult: 'correct' | 'wrong' | null;
-  lastFeedback: string | null;
-  correctCount: number;
+  goldTickets: number;
+  selectedChoiceId: string | null;
+  isConfirmed: boolean;
+  isCorrect: boolean | null;
+  scoreGained: number;
   streak: number;
 }
 
-export interface TrialSimulationResult {
-  totalTrials: number;
-  tally: Record<string, number>;
-  history: string[]; // sequence of outcome labels
-  lastOutcome: string;
+export interface TrialOutcome {
+  trialIndex: number;
+  outcomeColor: string;
+  outcomeName: string;
 }
 
-export type CarnivalGamePhase =
-  | 'title'
-  | 'island-explore'
-  | 'attraction-intro'
-  | 'predicting'
-  | 'machine-running'
-  | 'observation-reasoning'
-  | 'experiment-trials'
-  | 'attraction-summary'
-  | 'grand-celebration';
+export interface AttractionMeta {
+  id: ActivityId;
+  name: string;
+  subtitle: string;
+  tagline: string;
+  description: string;
+  accentColor: string;
+  islandPosition: [number, number, number];
+  islandScale?: [number, number, number];
+  completed: boolean;
+  unlocked: boolean;
+}
