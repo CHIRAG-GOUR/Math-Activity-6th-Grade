@@ -1,11 +1,10 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — High Striker (Hammer Bell Tower) 3D Machine
 // Authentic Carnival Strongman Sledgehammer & 15-Foot High Striker Tower:
-// - Heavy Steel Strike Anvil & Kinetic Carnival Sledgehammer
-// - Dramatic Windup & High-Impact Hammer Slam Animation
-// - Weighted Golden Puck Rocketing Up Vertical Guide Rails
-// - Graduated Power Scale & Sequential Blinking Light Bars
-// - Top Championship Bell with Clapper Strike & Fireworks Sparks
+// - Heavy Steel Strike Anvil & High-Impact Carnival Sledgehammer
+// - Hard Windup & Explosive Hammer Slam onto Anvil
+// - Green Puck: Rockets all the way to top bell, rings bell with sparks, then falls back down green
+// - Red Puck: On wrong answer, rises only slightly and drops back down red
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
@@ -16,12 +15,12 @@ import { carnivalAudio } from '../../audio/CarnivalAudioManager';
 
 export const HighStrikerMachine3D: React.FC = () => {
   const phase = useCarnivalStore((s) => s.phase);
-  const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
   const blueTeam = useCarnivalStore((s) => s.blueTeam);
   const redTeam = useCarnivalStore((s) => s.redTeam);
 
   const hammerRef = useRef<THREE.Group>(null);
   const puckRef = useRef<THREE.Mesh>(null);
+  const puckMatRef = useRef<THREE.MeshStandardMaterial>(null);
   const bellRef = useRef<THREE.Group>(null);
   const sparkParticlesRef = useRef<THREE.Points>(null);
 
@@ -31,14 +30,14 @@ export const HighStrikerMachine3D: React.FC = () => {
   // Spark particles for bell hit
   const sparkGeo = useMemo(() => {
     const geo = new THREE.BufferGeometry();
-    const count = 30;
+    const count = 35;
     const positions = new Float32Array(count * 3);
     for (let i = 0; i < count; i++) {
       const theta = Math.random() * Math.PI * 2;
-      const rad = 0.2 + Math.random() * 0.8;
+      const rad = 0.2 + Math.random() * 0.9;
       positions[i * 3] = Math.cos(theta) * rad;
       positions[i * 3 + 1] = Math.sin(theta) * rad;
-      positions[i * 3 + 2] = (Math.random() - 0.5) * 0.4;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * 0.5;
     }
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     return geo;
@@ -48,58 +47,70 @@ export const HighStrikerMachine3D: React.FC = () => {
     const tClock = state.clock.getElapsedTime();
 
     if (phase === 'operating') {
-      const cycle = 2.2; // 2.2s strike and ascend sequence
-      const t = Math.min((tClock * 1.1) % (cycle + 0.6), cycle);
+      const cycle = 2.4; // 2.4s full strike, rise, and fall cycle
+      const t = Math.min((tClock * 1.0) % (cycle + 0.6), cycle);
       const progress = t / cycle;
 
-      // ── 1. SLEDGEHAMMER WINDUP & SLAM DYNAMICS ──
+      // ── 1. SLEDGEHAMMER WINDUP & HARD SLAM ──
       if (hammerRef.current) {
-        if (progress < 0.25) {
-          // Windup: lifts backward and tilts back
-          const p = progress / 0.25;
-          hammerRef.current.position.set(0.7, 1.4 + p * 0.9, 0.9);
-          hammerRef.current.rotation.set(-0.4 - p * 0.9, 0, 0.2);
-        } else if (progress < 0.38) {
-          // SLAM DOWN: Explosive acceleration onto anvil
-          const p = (progress - 0.25) / 0.13;
-          const easeIn = p * p * p;
+        if (progress < 0.22) {
+          // Windup: lifts backward and tilts back high
+          const p = progress / 0.22;
+          hammerRef.current.position.set(0.75, 1.4 + p * 1.1, 0.95);
+          hammerRef.current.rotation.set(-0.4 - p * 1.1, 0, 0.25);
+        } else if (progress < 0.34) {
+          // SLAM DOWN: Explosive hard slam onto anvil
+          const p = (progress - 0.22) / 0.12;
+          const easeIn = p * p * p * p;
           hammerRef.current.position.set(
-            THREE.MathUtils.lerp(0.7, 0, easeIn),
-            THREE.MathUtils.lerp(2.3, 0.45, easeIn),
-            THREE.MathUtils.lerp(0.9, 0.75, easeIn)
+            THREE.MathUtils.lerp(0.75, 0, easeIn),
+            THREE.MathUtils.lerp(2.5, 0.45, easeIn),
+            THREE.MathUtils.lerp(0.95, 0.75, easeIn)
           );
           hammerRef.current.rotation.set(
-            THREE.MathUtils.lerp(-1.3, 0.4, easeIn),
+            THREE.MathUtils.lerp(-1.5, 0.42, easeIn),
             0,
-            THREE.MathUtils.lerp(0.2, 0, easeIn)
+            THREE.MathUtils.lerp(0.25, 0, easeIn)
           );
 
-          // Trigger strike audio exactly on impact
+          // Strike audio triggered exactly on impact
           if (p >= 0.85 && !audioPlayedRef.current.strike) {
             carnivalAudio.playHammerStrike();
             audioPlayedRef.current.strike = true;
           }
         } else {
-          // Recoil bounce and rest on the ground
-          const p = (progress - 0.38) / 0.62;
-          const bounce = Math.sin(p * Math.PI * 3) * Math.exp(-p * 4) * 0.15;
+          // Recoil bounce and rest on ground
+          const p = (progress - 0.34) / 0.66;
+          const bounce = Math.sin(p * Math.PI * 4) * Math.exp(-p * 5) * 0.18;
           hammerRef.current.position.set(0, 0.45 + Math.max(0, bounce), 0.75);
           hammerRef.current.rotation.set(0.35, 0, 0);
         }
       }
 
-      // ── 2. WEIGHTED STRIKER PUCK ROCKETING UP TOWER ──
-      if (puckRef.current) {
-        if (progress < 0.38) {
-          // Resting on striker pad before hammer hit
+      // ── 2. WEIGHTED PUCK / CHIP TRAJECTORY & COLOR ──
+      if (puckRef.current && puckMatRef.current) {
+        // Color transition
+        if (isRoundCorrect) {
+          puckMatRef.current.color.set('#10b981'); // Vibrant Green
+          puckMatRef.current.emissive.set('#059669');
+          puckMatRef.current.emissiveIntensity = 0.8;
+        } else {
+          puckMatRef.current.color.set('#ef4444'); // Vibrant Red
+          puckMatRef.current.emissive.set('#dc2626');
+          puckMatRef.current.emissiveIntensity = 0.8;
+        }
+
+        if (progress < 0.34) {
+          // Resting on anvil before impact
           puckRef.current.position.set(0, 0.5, 0.32);
         } else {
-          const shootProgress = (progress - 0.38) / 0.62;
+          const shootProgress = (progress - 0.34) / 0.66;
 
           if (isRoundCorrect) {
-            // WIN: Rockets all the way to top bell (y = 5.3)
-            if (shootProgress < 0.5) {
-              const p = shootProgress / 0.5;
+            // WIN: Rockets all the way to top bell (y = 5.3), then falls back down!
+            if (shootProgress < 0.45) {
+              // Ascending rapidly
+              const p = shootProgress / 0.45;
               const easeOut = 1 - Math.pow(1 - p, 2.5);
               const y = THREE.MathUtils.lerp(0.5, 5.3, easeOut);
               puckRef.current.position.set(0, y, 0.32);
@@ -108,23 +119,29 @@ export const HighStrikerMachine3D: React.FC = () => {
                 carnivalAudio.playHighStrikerBell();
                 audioPlayedRef.current.bell = true;
               }
+            } else if (shootProgress < 0.65) {
+              // Pauses at top striking the bell with vibration
+              const p = (shootProgress - 0.45) / 0.2;
+              const vib = Math.sin(p * Math.PI * 8) * Math.exp(-p * 3) * 0.08;
+              puckRef.current.position.set(0, 5.3 - vib, 0.32);
             } else {
-              // Vibrates at top against the bell
-              const p = (shootProgress - 0.5) / 0.5;
-              const vibration = Math.sin(p * Math.PI * 8) * Math.exp(-p * 3) * 0.08;
-              puckRef.current.position.set(0, 5.3 - vibration, 0.32);
+              // Smoothly falls back down under gravity to the anvil at y = 0.5!
+              const p = (shootProgress - 0.65) / 0.35;
+              const easeIn = p * p;
+              const y = THREE.MathUtils.lerp(5.3, 0.5, easeIn);
+              puckRef.current.position.set(0, y, 0.32);
             }
           } else {
-            // MISS: Rises only to ~35% height and falls back down
+            // MISS: Rises only to ~25% height (y = 1.8) and falls back down red!
             if (shootProgress < 0.4) {
               const p = shootProgress / 0.4;
               const easeOut = 1 - Math.pow(1 - p, 2);
-              const y = THREE.MathUtils.lerp(0.5, 2.4, easeOut);
+              const y = THREE.MathUtils.lerp(0.5, 1.8, easeOut);
               puckRef.current.position.set(0, y, 0.32);
             } else {
               const p = (shootProgress - 0.4) / 0.6;
               const easeIn = p * p;
-              const y = THREE.MathUtils.lerp(2.4, 0.5, easeIn);
+              const y = THREE.MathUtils.lerp(1.8, 0.5, easeIn);
               puckRef.current.position.set(0, y, 0.32);
             }
           }
@@ -132,21 +149,39 @@ export const HighStrikerMachine3D: React.FC = () => {
       }
 
       // ── 3. TOP BELL & SPARKS VIBRATION ──
-      if (bellRef.current && isRoundCorrect && progress > 0.65) {
-        const p = (progress - 0.65) / 0.35;
+      if (bellRef.current && isRoundCorrect && progress > 0.5 && progress < 0.85) {
+        const p = (progress - 0.5) / 0.35;
         bellRef.current.rotation.z = Math.sin(p * Math.PI * 12) * Math.exp(-p * 3) * 0.25;
       }
 
       if (sparkParticlesRef.current) {
-        sparkParticlesRef.current.visible = isRoundCorrect && progress > 0.65 && progress < 0.95;
-        sparkParticlesRef.current.rotation.z += delta * 5;
+        sparkParticlesRef.current.visible = isRoundCorrect && progress > 0.5 && progress < 0.85;
+        sparkParticlesRef.current.rotation.z += delta * 6;
       }
     } else {
       // Reset audio triggers
       audioPlayedRef.current.strike = false;
       audioPlayedRef.current.bell = false;
 
-      // Idle state
+      // Observation / Idle state: keep color if answered or gold if idle
+      if (puckMatRef.current) {
+        if (phase === 'observation') {
+          if (isRoundCorrect) {
+            puckMatRef.current.color.set('#10b981');
+            puckMatRef.current.emissive.set('#059669');
+            puckMatRef.current.emissiveIntensity = 0.5;
+          } else {
+            puckMatRef.current.color.set('#ef4444');
+            puckMatRef.current.emissive.set('#dc2626');
+            puckMatRef.current.emissiveIntensity = 0.5;
+          }
+        } else {
+          puckMatRef.current.color.set('#fbbf24');
+          puckMatRef.current.emissive.set('#f59e0b');
+          puckMatRef.current.emissiveIntensity = 0.3;
+        }
+      }
+
       if (hammerRef.current) {
         const breath = Math.sin(tClock * 2) * 0.04;
         hammerRef.current.position.set(0.8, 1.2 + breath, 0.8);
@@ -228,15 +263,16 @@ export const HighStrikerMachine3D: React.FC = () => {
         {/* Leather Grip Wrappings */}
         {[-0.4, -0.2, 0, 0.2].map((y, i) => (
           <mesh key={`grip-${i}`} position={[0, 0.7 + y, 0]}>
-            <torusGeometry args={[0.052, 0.015, 8, 16]} />
-            <meshStandardMaterial color="#451a03" roughness={0.8} />
+            <cylinderGeometry args={[0.056, 0.056, 0.08, 16]} />
+            <meshStandardMaterial color="#b45309" roughness={0.8} />
           </mesh>
         ))}
-        {/* Brass Ferrule Sleeve */}
-        <mesh position={[0, 1.42, 0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.07, 0.18, 16]} />
-          <meshStandardMaterial color="#f59e0b" metalness={0.9} />
+        {/* Brass Handle Collar */}
+        <mesh position={[0, 1.38, 0]}>
+          <cylinderGeometry args={[0.065, 0.065, 0.12, 16]} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.95} />
         </mesh>
+
         {/* Heavy Iron & Gold Sledge Head */}
         <group position={[0, 1.52, 0]}>
           <mesh castShadow>
@@ -259,13 +295,14 @@ export const HighStrikerMachine3D: React.FC = () => {
       <group position={[0, 0, 0.2]}>
         {/* Main Vertical Tower Mast (Crimson Red with Gold Trim) */}
         <mesh position={[0, 2.8, 0]} castShadow receiveShadow>
-          <boxGeometry args={[1.2, towerHeight, 0.24]} />
-          <meshStandardMaterial color="#b91c1c" roughness={0.4} />
+          <boxGeometry args={[1.1, towerHeight, 0.22]} />
+          <meshStandardMaterial color="#991b1b" roughness={0.4} />
         </mesh>
-        {/* Face Track Plate (Navy with Neon Graduations) */}
-        <mesh position={[0, 2.8, 0.13]} receiveShadow>
-          <planeGeometry args={[0.9, towerHeight - 0.2]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.1} />
+
+        {/* Center Cream Faceplate Track */}
+        <mesh position={[0, 2.8, 0.12]}>
+          <boxGeometry args={[0.75, towerHeight - 0.2, 0.03]} />
+          <meshStandardMaterial color="#fffbeb" roughness={0.5} />
         </mesh>
 
         {/* Outer Gold Border Framing */}
@@ -315,13 +352,14 @@ export const HighStrikerMachine3D: React.FC = () => {
           </mesh>
         ))}
 
-        {/* ── WEIGHTED GOLDEN STRIKER PUCK ── */}
+        {/* ── WEIGHTED STRIKER PUCK / CHIP (DYNAMIC GREEN OR RED) ── */}
         <mesh ref={puckRef} position={[0, 0.5, 0.32]} castShadow>
           <cylinderGeometry args={[0.26, 0.26, 0.16, 24]} />
           <meshStandardMaterial
+            ref={puckMatRef}
             color="#fbbf24"
-            metalness={0.95}
-            roughness={0.1}
+            metalness={0.8}
+            roughness={0.15}
             emissive="#f59e0b"
             emissiveIntensity={0.3}
           />
@@ -359,10 +397,9 @@ export const HighStrikerMachine3D: React.FC = () => {
             </mesh>
           </group>
 
-          {/* Bell Hit Victory Spark Particles */}
-          <points ref={sparkParticlesRef} position={[0, 0, 0.5]}>
-            <primitive object={sparkGeo} />
-            <pointsMaterial size={0.08} color="#fef08a" transparent opacity={0.9} />
+          {/* Dynamic Fireworks Sparks on Bell Strike */}
+          <points ref={sparkParticlesRef} position={[0, 0, 0.4]} geometry={sparkGeo}>
+            <pointsMaterial size={0.12} color="#fbbf24" transparent opacity={0.9} />
           </points>
         </group>
       </group>

@@ -404,6 +404,115 @@ class CarnivalAudioManager {
     osc.start();
     osc.stop(this.ctx.currentTime + 0.07);
   }
+
+  // ── 3. Carnival Dart Throwing SFX ──
+
+  // Air-cutting Dart Whoosh
+  public playDartWhoosh() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.18);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(600, this.ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(1800, this.ctx.currentTime + 0.1);
+    filter.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.18);
+    filter.Q.value = 3.0;
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start();
+  }
+
+  // Dart Tip Solid Impact into Cork Board (Thud + Click)
+  public playDartHit() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    // 1. Low Thud
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.1);
+    oscGain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    oscGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.12);
+    osc.connect(oscGain);
+    oscGain.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.13);
+
+    // 2. High Sharp Snap / Sisal Fiber Puncture
+    const snap = this.ctx.createOscillator();
+    const snapGain = this.ctx.createGain();
+    snap.type = 'sine';
+    snap.frequency.setValueAtTime(1800, this.ctx.currentTime);
+    snap.frequency.exponentialRampToValueAtTime(300, this.ctx.currentTime + 0.04);
+    snapGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    snapGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+    snap.connect(snapGain);
+    snapGain.connect(this.sfxGain);
+    snap.start();
+    snap.stop(this.ctx.currentTime + 0.06);
+  }
+
+  // Dart Miss / Outer Board Rim Tap
+  public playDartMiss() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(80, this.ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.09);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.1);
+  }
+
+  // Bullseye Triumphant Fanfare Chime
+  public playBullseyeChime() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    const freqs = [1046.50, 1318.51, 1567.98, 2093.00]; // C6, E6, G6, C7
+    freqs.forEach((f, i) => {
+      if (!this.ctx || !this.sfxGain) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const t = this.ctx.currentTime + i * 0.06;
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(f, t);
+      gain.gain.setValueAtTime(0.3, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.5);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(t);
+      osc.stop(t + 0.55);
+    });
+  }
 }
 
 export const carnivalAudio = new CarnivalAudioManager();

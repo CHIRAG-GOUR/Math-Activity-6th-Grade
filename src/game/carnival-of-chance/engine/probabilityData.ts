@@ -127,10 +127,10 @@ export const ATTRACTIONS_META: Record<ActivityId, AttractionMeta> = {
   },
   'grand-carnival': {
     id: 'grand-carnival',
-    name: 'CHAMPIONSHIP VAULT',
-    subtitle: 'Grand Finale Prize Vault',
-    tagline: 'Crack the Dial & Win the Grand Jackpot',
-    description: 'Compete in the championship arena, crack the combination vault, and claim ultimate victory.',
+    name: 'GRAND DART ARENA',
+    subtitle: 'Championship Dart Throwing',
+    tagline: 'Aim for the Bullseye & Claim the Grand Prize',
+    description: 'Throw precision team darts at the carnival dartboard. Answer correctly to strike the bullseye!',
     accentColor: '#F59E0B',
     islandPosition: [0, 0.8, 0],
     unlocked: true,
@@ -636,50 +636,63 @@ function generateGameBuilderChallenges(count = 110): ProbabilityChallenge[] {
 }
 
 // ═══════════════════════════════════════════════════════════════
-// 6. DYNAMIC GENERATOR: GRAND CARNIVAL ARENA (100+ CONCISE QUESTIONS)
+// 6. DYNAMIC GENERATOR: GRAND DART ARENA (100+ CONCISE QUESTIONS)
 // ═══════════════════════════════════════════════════════════════
 function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
   const list: ProbabilityChallenge[] = [];
 
   for (let i = 0; i < count; i++) {
-    const totalTokens = (i % 4) + 8; // 8, 9, 10, 11 tokens
-    const goldCount = (i % 3) + 2;
-    const diamondCount = 2;
-    const silverCount = totalTokens - goldCount - diamondCount;
+    const totalSectors = ((i % 4) + 4) * 2; // 8, 10, 12, 14 sectors
+    const bullseyeCount = (i % 3) + 2; // 2, 3, 4 bullseye / triple rings
+    const outerCount = totalSectors - bullseyeCount;
 
-    const targetSum = goldCount + diamondCount;
-    const correctFrac = makeFraction(targetSum, totalTokens);
+    const correctFrac = makeFraction(bullseyeCount, totalSectors);
     const correctId = `gc-${i}-opt-0`;
 
-    const prompt = `A prize vault has ${goldCount} Gold, ${diamondCount} Diamond, and ${silverCount} Silver tokens (${totalTokens} total). What is P(Gold or Diamond)?`;
-    const explanation = `P(Gold or Diamond) = (${goldCount} + ${diamondCount})/${totalTokens} = ${targetSum}/${totalTokens} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    const qType = i % 3;
+    let prompt = '';
+    let explanation = '';
+
+    if (qType === 0) {
+      prompt = `A carnival dartboard has ${totalSectors} target zones (${bullseyeCount} Bullseye zones, ${outerCount} Outer zones). What is P(Bullseye)?`;
+      explanation = `P(Bullseye) = ${bullseyeCount}/${totalSectors} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    } else if (qType === 1) {
+      prompt = `Out of ${totalSectors} sectors on the dartboard, ${bullseyeCount} award 50-point Bullseyes. What is P(Bullseye)?`;
+      explanation = `P(Bullseye) = ${bullseyeCount}/${totalSectors} = ${correctFrac.numerator}/${correctFrac.denominator}.`;
+    } else {
+      const notBullseyeFrac = makeFraction(outerCount, totalSectors);
+      prompt = `A target has ${bullseyeCount} Bullseye slots and ${outerCount} Outer slots (${totalSectors} total). What is P(NOT Bullseye)?`;
+      explanation = `P(NOT Bullseye) = ${outerCount}/${totalSectors} = ${notBullseyeFrac.numerator}/${notBullseyeFrac.denominator}.`;
+    }
+
+    const targetFrac = qType === 2 ? makeFraction(outerCount, totalSectors) : correctFrac;
 
     const choices = [
       {
         id: correctId,
-        fraction: correctFrac,
-        label: `${correctFrac.numerator}/${correctFrac.denominator} (${correctFrac.percentage})`,
+        fraction: targetFrac,
+        label: `${targetFrac.numerator}/${targetFrac.denominator} (${targetFrac.percentage})`,
         isCorrect: true,
         feedbackText: `Correct! ${explanation}`,
       },
       {
         id: `gc-${i}-opt-1`,
-        fraction: makeFraction(silverCount, totalTokens),
-        label: `${silverCount}/${totalTokens}`,
+        fraction: makeFraction(qType === 2 ? bullseyeCount : outerCount, totalSectors),
+        label: `${qType === 2 ? bullseyeCount : outerCount}/${totalSectors}`,
         isCorrect: false,
-        feedbackText: `Incorrect. This is Silver tokens.`,
+        feedbackText: `Incorrect. Double check the favorable outcome.`,
       },
       {
         id: `gc-${i}-opt-2`,
-        fraction: makeFraction(goldCount, totalTokens),
-        label: `${goldCount}/${totalTokens}`,
+        fraction: makeFraction(1, totalSectors),
+        label: `1/${totalSectors}`,
         isCorrect: false,
-        feedbackText: `Incorrect. Don't forget Diamond tokens.`,
+        feedbackText: `Incorrect. Multiple sectors qualify.`,
       },
       {
         id: `gc-${i}-opt-3`,
-        fraction: makeFraction(1, totalTokens),
-        label: `1/${totalTokens}`,
+        fraction: makeFraction(Math.min(bullseyeCount + 1, totalSectors), totalSectors),
+        label: `${Math.min(bullseyeCount + 1, totalSectors)}/${totalSectors}`,
         isCorrect: false,
         feedbackText: `Incorrect.`,
       },
@@ -689,18 +702,17 @@ function generateGrandCarnivalChallenges(count = 110): ProbabilityChallenge[] {
       id: `grand-carnival-${i + 1}`,
       activityId: 'grand-carnival',
       bloomLevel: BLOOM_LEVELS[i % BLOOM_LEVELS.length],
-      missionTitle: `VAULT SHOWDOWN #${i + 1}`,
+      missionTitle: `DART SHOWDOWN #${i + 1}`,
       prompt,
-      helperNote: `P(A or B) = (Count A + Count B) / Total (${totalTokens})`,
+      helperNote: `P(Target) = Favorable Sectors / Total (${totalSectors})`,
       setup: {
-        totalItems: totalTokens,
+        totalItems: totalSectors,
         items: [
-          { color: '#eab308', colorName: 'Gold', count: goldCount },
-          { color: '#38bdf8', colorName: 'Diamond', count: diamondCount },
-          { color: '#94a3b8', colorName: 'Silver', count: silverCount },
+          { color: '#dc2626', colorName: 'Bullseye', count: bullseyeCount },
+          { color: '#1e293b', colorName: 'Outer Ring', count: outerCount },
         ],
-        targetColor: '#eab308',
-        theoreticalFraction: correctFrac,
+        targetColor: '#dc2626',
+        theoreticalFraction: targetFrac,
       },
       choices: choices.sort((a, b) => a.fraction.numerator - b.fraction.numerator),
       correctAnswerId: correctId,
