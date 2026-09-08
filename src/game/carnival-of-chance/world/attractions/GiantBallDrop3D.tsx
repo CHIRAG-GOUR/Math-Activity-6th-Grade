@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — Giant Ball Drop 3D Machine
-// Physical transparent hopper, mechanical agitator, helical chute,
-// rolling 3D spheres and collection bins
+// Steampunk transparent gumball pachinko tower, agitator spinner,
+// helical brass chute, rolling 3D spheres, and marquee signboard
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
@@ -17,11 +17,12 @@ interface BallInstance {
 }
 
 export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> = ({
-  position = [-7.5, 0, 6.5],
+  position = [5.5, 0, -6.5],
 }) => {
   const machineAnimState = useCarnivalStore((s) => s.machineAnimState);
   const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
   const latestRandomOutcome = useCarnivalStore((s) => s.latestRandomOutcome);
+  const selectAttraction = useCarnivalStore((s) => s.selectAttraction);
 
   const agitatorRef = useRef<THREE.Group>(null);
   const droppingBallRef = useRef<THREE.Mesh>(null);
@@ -38,7 +39,6 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
     let id = 0;
     items.forEach((item) => {
       for (let i = 0; i < item.count; i++) {
-        // Distribute uniformly in a cylinder volume
         const angle = Math.random() * Math.PI * 2;
         const radius = Math.random() * 0.7;
         const y = 2.4 + Math.random() * 1.2;
@@ -80,7 +80,6 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
     if (droppingBallRef.current) {
       if (machineAnimState === 'dropping') {
         const time = (state.clock.getElapsedTime() * 3) % 4;
-        // Helical chute trajectory: starts at hopper base (y=2.0), spirals down to collection tray (y=0.4, x=0.8, z=0.8)
         const progress = Math.min(1, time / 2.5);
         const theta = progress * Math.PI * 4;
         const r = 0.9 * (1 - progress * 0.4);
@@ -92,11 +91,9 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
         );
         droppingBallRef.current.scale.setScalar(1);
       } else if (machineAnimState === 'settled') {
-        // Sits proudly in the front collection tray
         droppingBallRef.current.position.set(0.6, 0.45, 1.2);
         droppingBallRef.current.scale.setScalar(1.2);
       } else {
-        // Hidden inside hopper ready to drop
         droppingBallRef.current.position.set(0, 2.2, 0);
         droppingBallRef.current.scale.setScalar(machineAnimState === 'mixing' ? 1 : 0);
       }
@@ -104,13 +101,19 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
   });
 
   return (
-    <group position={position}>
+    <group position={position} onClick={() => selectAttraction('giant-ball-drop')}>
+      {/* ── Circular Cobblestone Platform Base ── */}
+      <mesh position={[0, 0.15, 0]} receiveShadow>
+        <cylinderGeometry args={[2.5, 2.8, 0.3, 32]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+
       {/* ── Sturdy Wooden & Brass Base Stand ── */}
-      <mesh position={[0, 0.2, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[1.8, 2.0, 0.4, 32]} />
         <meshStandardMaterial color="#854d0e" roughness={0.6} metalness={0.1} />
       </mesh>
-      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+      <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
         <cylinderGeometry args={[1.6, 1.8, 0.15, 32]} />
         <meshStandardMaterial color="#d97706" metalness={0.7} roughness={0.3} />
       </mesh>
@@ -119,7 +122,7 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
       {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, i) => (
         <mesh
           key={i}
-          position={[Math.cos(ang) * 1.3, 2.0, Math.sin(ang) * 1.3]}
+          position={[Math.cos(ang) * 1.3, 2.2, Math.sin(ang) * 1.3]}
           castShadow
         >
           <cylinderGeometry args={[0.07, 0.07, 3.2, 16]} />
@@ -128,8 +131,8 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
       ))}
 
       {/* ── Transparent Acrylic Mixing Chamber ── */}
-      <mesh position={[0, 2.8, 0]}>
-        <cylinderGeometry args={[1.1, 1.1, 2.0, 32, 1, true]} />
+      <mesh position={[0, 3.0, 0]}>
+        <cylinderGeometry args={[1.1, 1.1, 2.2, 32, 1, true]} />
         <meshPhysicalMaterial
           color="#e0f2fe"
           transmission={0.92}
@@ -142,25 +145,38 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
       </mesh>
 
       {/* Top Brass Dome Cap */}
-      <mesh position={[0, 3.9, 0]} castShadow>
+      <mesh position={[0, 4.1, 0]} castShadow>
         <sphereGeometry args={[1.12, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshStandardMaterial color="#eab308" metalness={0.85} roughness={0.2} />
       </mesh>
-      {/* Decorative Finial */}
-      <mesh position={[0, 4.7, 0]} castShadow>
-        <sphereGeometry args={[0.22, 16, 16]} />
-        <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.1} />
-      </mesh>
+
+      {/* ── Top Marquee Sign: GIANT BALL DROP ── */}
+      <group position={[0, 5.8, 0]}>
+        <mesh position={[0, 0, 0]} castShadow>
+          <boxGeometry args={[3.2, 0.8, 0.2]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.3} />
+        </mesh>
+        <mesh position={[0, 0, 0.05]} castShadow>
+          <boxGeometry args={[3.3, 0.9, 0.05]} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.15} />
+        </mesh>
+        {/* Marquee Bulbs */}
+        {[-1.3, -0.8, -0.3, 0.2, 0.7, 1.3].map((x, i) => (
+          <mesh key={i} position={[x, 0.35, 0.12]}>
+            <sphereGeometry args={[0.06, 12, 12]} />
+            <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.6} />
+          </mesh>
+        ))}
+      </group>
 
       {/* ── Internal Agitator Spinner ── */}
-      <group ref={agitatorRef} position={[0, 2.8, 0]}>
+      <group ref={agitatorRef} position={[0, 3.0, 0]}>
         <mesh>
-          <cylinderGeometry args={[0.05, 0.05, 1.8, 12]} />
+          <cylinderGeometry args={[0.05, 0.05, 2.0, 12]} />
           <meshStandardMaterial color="#ca8a04" metalness={0.8} roughness={0.2} />
         </mesh>
-        {/* 4 Stirring Paddles */}
         {[0, 1, 2, 3].map((p) => (
-          <mesh key={p} position={[0, -0.4 + p * 0.3, 0]} rotation={[0, (p * Math.PI) / 2, 0]}>
+          <mesh key={p} position={[0, -0.4 + p * 0.35, 0]} rotation={[0, (p * Math.PI) / 2, 0]}>
             <boxGeometry args={[0.9, 0.04, 0.08]} />
             <meshStandardMaterial color="#eab308" metalness={0.7} roughness={0.3} />
           </mesh>
@@ -176,18 +192,17 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
       ))}
 
       {/* ── Bottom Funnel & Trapdoor Gate ── */}
-      <mesh position={[0, 1.7, 0]} castShadow>
+      <mesh position={[0, 1.8, 0]} castShadow>
         <cylinderGeometry args={[1.1, 0.3, 0.6, 32]} />
         <meshStandardMaterial color="#d97706" metalness={0.75} roughness={0.25} />
       </mesh>
-      {/* Mechanical Gate Flap */}
-      <mesh ref={gateRef} position={[0, 1.35, 0]} castShadow>
+      <mesh ref={gateRef} position={[0, 1.45, 0]} castShadow>
         <boxGeometry args={[0.55, 0.06, 0.4]} />
         <meshStandardMaterial color="#991b1b" metalness={0.8} roughness={0.3} />
       </mesh>
 
       {/* ── Helical Brass Guide Chute / Roller Ramp ── */}
-      <mesh position={[0, 1.2, 0]} castShadow>
+      <mesh position={[0, 1.25, 0]} castShadow>
         <torusGeometry args={[0.75, 0.07, 16, 48, Math.PI * 1.8]} />
         <meshStandardMaterial color="#ca8a04" metalness={0.85} roughness={0.2} />
       </mesh>
@@ -196,10 +211,6 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
       <mesh position={[0.6, 0.35, 1.2]} castShadow receiveShadow>
         <cylinderGeometry args={[0.45, 0.5, 0.15, 24]} />
         <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.6} />
-      </mesh>
-      <mesh position={[0.6, 0.43, 1.2]}>
-        <cylinderGeometry args={[0.4, 0.4, 0.02, 24]} />
-        <meshStandardMaterial color="#e2e8f0" roughness={0.2} metalness={0.2} />
       </mesh>
 
       {/* ── The Physical Dropping / Winner Ball ── */}
@@ -213,22 +224,6 @@ export const GiantBallDrop3D: React.FC<{ position?: [number, number, number] }> 
           emissiveIntensity={machineAnimState === 'settled' ? 0.35 : 0}
         />
       </mesh>
-
-      {/* ── Physical Signboard Stand ── */}
-      <group position={[0, 0, 2.0]}>
-        <mesh position={[-0.7, 0.7, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.04, 1.4, 12]} />
-          <meshStandardMaterial color="#854d0e" />
-        </mesh>
-        <mesh position={[0.7, 0.7, 0]} castShadow>
-          <cylinderGeometry args={[0.04, 0.04, 1.4, 12]} />
-          <meshStandardMaterial color="#854d0e" />
-        </mesh>
-        <mesh position={[0, 1.3, 0]} castShadow>
-          <boxGeometry args={[1.7, 0.5, 0.08]} />
-          <meshStandardMaterial color="#10b981" roughness={0.5} />
-        </mesh>
-      </group>
     </group>
   );
 };

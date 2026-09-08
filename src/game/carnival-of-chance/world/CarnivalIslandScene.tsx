@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — 3D Carnival Island Scene
 // Stylized Miniature Theme Park Island with Smooth Camera Rig,
-// Central Clock Tower, Paths, Water, and 6 Physical Attractions
+// Central Clock Tower, Boardwalk Pier, Sailboats, Paths, and 6 Attractions
 // ============================================================
 
 'use client';
@@ -86,9 +86,15 @@ const CentralClockTower: React.FC = () => {
         <meshStandardMaterial color="#f1f5f9" roughness={0.6} />
       </mesh>
 
+      {/* Red & White Circus Skirt Base */}
+      <mesh position={[0, 0.8, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[1.8, 2.2, 0.8, 16]} />
+        <meshStandardMaterial color="#dc2626" roughness={0.4} />
+      </mesh>
+
       {/* Main Brick Clock Tower Body */}
-      <mesh position={[0, 3.0, 0]} castShadow receiveShadow>
-        <boxGeometry args={[2.0, 5.2, 2.0]} />
+      <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
+        <boxGeometry args={[2.0, 4.8, 2.0]} />
         <meshStandardMaterial color="#b45309" roughness={0.65} />
       </mesh>
       {/* Upper Cornice Trim */}
@@ -132,7 +138,7 @@ const CentralClockTower: React.FC = () => {
   );
 };
 
-// ── 3. Island Terrain & Ocean Water ──
+// ── 3. Island Terrain, Boardwalk Pier, Sailboat, & Ocean Water ──
 const IslandTerrain: React.FC = () => {
   return (
     <group>
@@ -149,7 +155,7 @@ const IslandTerrain: React.FC = () => {
 
       {/* Surrounding Calm Ocean Water */}
       <mesh position={[0, -1.2, 0]} receiveShadow>
-        <cylinderGeometry args={[36, 36, 0.4, 48]} />
+        <cylinderGeometry args={[38, 38, 0.4, 48]} />
         <meshPhysicalMaterial
           color="#38bdf8"
           roughness={0.15}
@@ -160,48 +166,89 @@ const IslandTerrain: React.FC = () => {
         />
       </mesh>
 
-      {/* Cobblestone Pathways Connecting Central Plaza to Attractions */}
-      {/* Path to Odds Wheel (Left-North) */}
-      <mesh position={[-3.8, 0.05, -2.2]} rotation={[0, 0.55, 0]} receiveShadow>
+      {/* ── Wooden Boardwalk Pier Extending into the Water (South) ── */}
+      <mesh position={[0, 0.05, 14.5]} receiveShadow castShadow>
+        <boxGeometry args={[2.6, 0.2, 7.5]} />
+        <meshStandardMaterial color="#92400e" roughness={0.7} />
+      </mesh>
+      {/* Pier Wooden Mooring Posts */}
+      {[-1.4, 1.4].map((x, i) =>
+        [12, 14.5, 17].map((z, j) => (
+          <mesh key={`${i}-${j}`} position={[x, 0.35, z]} castShadow>
+            <cylinderGeometry args={[0.08, 0.08, 1.0, 12]} />
+            <meshStandardMaterial color="#78350f" />
+          </mesh>
+        ))
+      )}
+
+      {/* ── Miniature Sailboat Floating in the Bay ── */}
+      <group position={[12.5, -0.6, 12.5]} rotation={[0, -0.6, 0]}>
+        {/* Boat Hull */}
+        <mesh position={[0, 0.2, 0]} castShadow>
+          <boxGeometry args={[1.2, 0.4, 2.6]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.4} />
+        </mesh>
+        {/* Wooden Deck Trim */}
+        <mesh position={[0, 0.42, 0]}>
+          <boxGeometry args={[1.0, 0.06, 2.4]} />
+          <meshStandardMaterial color="#b45309" />
+        </mesh>
+        {/* Mast */}
+        <mesh position={[0, 1.8, 0]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 2.8, 8]} />
+          <meshStandardMaterial color="#78350f" />
+        </mesh>
+        {/* White Triangular Sail */}
+        <mesh position={[0, 1.8, 0.5]} rotation={[0, Math.PI / 2, 0]} castShadow>
+          <coneGeometry args={[0.8, 2.2, 3]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.3} />
+        </mesh>
+      </group>
+
+      {/* ── Cobblestone Pathways Connecting Central Plaza to Attractions ── */}
+      {/* Path to Odds Wheel (Left-West) */}
+      <mesh position={[-4.5, 0.05, 0.2]} rotation={[0, 0, 0]} receiveShadow>
+        <boxGeometry args={[7.0, 0.06, 1.8]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
+      </mesh>
+      {/* Path to Mystery Chests (Top-Left) */}
+      <mesh position={[-3.0, 0.05, -3.5]} rotation={[0, 0.7, 0]} receiveShadow>
         <boxGeometry args={[1.8, 0.06, 7.5]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Mystery Chests (Right-North) */}
-      <mesh position={[3.8, 0.05, -2.2]} rotation={[0, -0.55, 0]} receiveShadow>
+      {/* Path to Giant Ball Drop (Top-Right) */}
+      <mesh position={[3.0, 0.05, -3.5]} rotation={[0, -0.7, 0]} receiveShadow>
         <boxGeometry args={[1.8, 0.06, 7.5]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Giant Ball Drop (Left-South) */}
-      <mesh position={[-3.8, 0.05, 3.2]} rotation={[0, -0.7, 0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 8.5]} />
+      {/* Path to Chance Lab (Right-East) */}
+      <mesh position={[4.5, 0.05, 0.4]} rotation={[0, 0, 0]} receiveShadow>
+        <boxGeometry args={[7.0, 0.06, 1.8]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Chance Lab (Right-South) */}
-      <mesh position={[3.8, 0.05, 3.2]} rotation={[0, 0.7, 0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 8.5]} />
+      {/* Path to Workshop (Bottom-Left) */}
+      <mesh position={[-3.0, 0.05, 3.5]} rotation={[0, -0.7, 0]} receiveShadow>
+        <boxGeometry args={[1.8, 0.06, 7.5]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
-      {/* Path to Workshop (North) */}
-      <mesh position={[0, 0.05, -5.0]} receiveShadow>
-        <boxGeometry args={[1.8, 0.06, 6.0]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
-      </mesh>
-      {/* Path to Grand Carnival (South) */}
-      <mesh position={[0, 0.05, 5.5]} receiveShadow>
-        <boxGeometry args={[2.2, 0.06, 7.0]} />
+      {/* Path to Grand Carnival (South Entrance) */}
+      <mesh position={[0, 0.05, 4.5]} receiveShadow>
+        <boxGeometry args={[2.4, 0.06, 7.0]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
       </mesh>
 
-      {/* Stylized Low-Poly Trees Around Island Edges */}
+      {/* ── Stylized Low-Poly Pine Trees Around Island Edges ── */}
       {[
-        [-11, 0, -8],
-        [-13, 0, 0],
-        [-11, 0, 11],
-        [11, 0, -8],
-        [13, 0, 0],
-        [11, 0, 11],
-        [-4, 0, -12],
-        [4, 0, -12],
+        [-12, 0, -8],
+        [-14, 0, 0],
+        [-12, 0, 11],
+        [12, 0, -8],
+        [14, 0, 0],
+        [12, 0, 11],
+        [-4, 0, -13],
+        [4, 0, -13],
+        [-8, 0, -12],
+        [8, 0, -12],
       ].map(([x, y, z], i) => (
         <group key={i} position={[x, y, z]}>
           <mesh position={[0, 0.8, 0]} castShadow>
@@ -247,10 +294,10 @@ export const CarnivalIslandScene: React.FC = () => {
           shadow-mapSize-height={2048}
           shadow-camera-near={0.5}
           shadow-camera-far={60}
-          shadow-camera-left={-20}
-          shadow-camera-right={20}
-          shadow-camera-top={20}
-          shadow-camera-bottom={-20}
+          shadow-camera-left={-22}
+          shadow-camera-right={22}
+          shadow-camera-top={22}
+          shadow-camera-bottom={-22}
           color="#fffbeb"
         />
         <directionalLight position={[-12, 10, -10]} intensity={0.4} color="#38bdf8" />
@@ -262,13 +309,13 @@ export const CarnivalIslandScene: React.FC = () => {
         <IslandTerrain />
         <CentralClockTower />
 
-        {/* Physical Attractions */}
-        <GiantBallDrop3D position={[-7.5, 0, 6.5]} />
-        <OddsWheel3D position={[-7.5, 0, -4.5]} />
-        <MysteryChests3D position={[7.5, 0, -4.5]} />
-        <ChanceLab3D position={[7.5, 0, 6.5]} />
-        <CarnivalWorkshop3D position={[0, 0, -9.5]} />
-        <GrandCarnival3D position={[0, 0, 11]} />
+        {/* 6 Physical Attractions (Matching the Reference Map Layout) */}
+        <OddsWheel3D position={[-8.5, 0, 0.5]} />
+        <MysteryChests3D position={[-5.5, 0, -6.5]} />
+        <GiantBallDrop3D position={[5.5, 0, -6.5]} />
+        <ChanceLab3D position={[8.5, 0, 0.8]} />
+        <CarnivalWorkshop3D position={[-5.5, 0, 6.0]} />
+        <GrandCarnival3D position={[0, 0, 8.5]} />
       </Canvas>
     </div>
   );

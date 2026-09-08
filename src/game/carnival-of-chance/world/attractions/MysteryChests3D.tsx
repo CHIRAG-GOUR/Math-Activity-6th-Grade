@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — Mystery Chests 3D
 // Three physical antique carnival prize chests with animated lids,
-// gold trims, and floating tokens
+// gold trims, red striped canopy booth, and marquee signboard
 // ============================================================
 
 import React, { useRef } from 'react';
@@ -87,40 +87,70 @@ const Chest: React.FC<{
 };
 
 export const MysteryChests3D: React.FC<{ position?: [number, number, number] }> = ({
-  position = [7.5, 0, -4.5],
+  position = [-5.5, 0, -6.5],
 }) => {
   const machineAnimState = useCarnivalStore((s) => s.machineAnimState);
+  const selectAttraction = useCarnivalStore((s) => s.selectAttraction);
   const isOpen = machineAnimState === 'opening' || machineAnimState === 'settled';
 
   return (
-    <group position={position}>
+    <group position={position} onClick={() => selectAttraction('mystery-chests')}>
+      {/* ── Stone Platform Base ── */}
+      <mesh position={[0, 0.15, 0]} receiveShadow>
+        <boxGeometry args={[6.2, 0.3, 3.4]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+
       {/* ── Carnival Booth Counter Table ── */}
-      <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5.2, 0.7, 2.2]} />
+      <mesh position={[0, 0.45, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5.4, 0.7, 2.2]} />
         <meshStandardMaterial color="#991b1b" roughness={0.5} />
       </mesh>
       {/* Table Top Surface */}
-      <mesh position={[0, 0.75, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5.5, 0.1, 2.4]} />
+      <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5.6, 0.12, 2.4]} />
         <meshStandardMaterial color="#fef08a" roughness={0.4} />
       </mesh>
 
       {/* Three Physical Chests: Chest A, Chest B, Chest C */}
-      <Chest position={[-1.7, 0.8, 0]} label="CHEST A" goldCount={8} silverCount={2} isOpen={isOpen} />
-      <Chest position={[0, 0.8, 0]} label="CHEST B" goldCount={5} silverCount={5} isOpen={isOpen} />
-      <Chest position={[1.7, 0.8, 0]} label="CHEST C" goldCount={2} silverCount={8} isOpen={isOpen} />
+      <Chest position={[-1.7, 0.9, 0]} label="CHEST A" goldCount={8} silverCount={2} isOpen={isOpen} />
+      <Chest position={[0, 0.9, 0]} label="CHEST B" goldCount={5} silverCount={5} isOpen={isOpen} />
+      <Chest position={[1.7, 0.9, 0]} label="CHEST C" goldCount={2} silverCount={8} isOpen={isOpen} />
 
-      {/* Canopy Roof on Posts */}
-      {[-2.5, 2.5].map((x, i) => (
-        <mesh key={i} position={[x, 2.2, -1.0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.07, 3.0, 12]} />
-          <meshStandardMaterial color="#78350f" />
-        </mesh>
-      ))}
-      <mesh position={[0, 3.6, -0.2]} rotation={[0.2, 0, 0]} castShadow>
-        <boxGeometry args={[5.8, 0.15, 2.6]} />
+      {/* 4 Canopy Wooden Support Posts */}
+      {[-2.6, 2.6].map((x, i) =>
+        [-1.0, 1.0].map((z, j) => (
+          <mesh key={`${i}-${j}`} position={[x, 2.5, z]} castShadow>
+            <cylinderGeometry args={[0.08, 0.08, 3.4, 12]} />
+            <meshStandardMaterial color="#78350f" />
+          </mesh>
+        ))
+      )}
+
+      {/* Red-and-White Striped Canopy Roof */}
+      <mesh position={[0, 4.2, 0]} rotation={[0.15, 0, 0]} castShadow>
+        <boxGeometry args={[6.0, 0.2, 2.8]} />
         <meshStandardMaterial color="#dc2626" roughness={0.4} />
       </mesh>
+
+      {/* ── Top Marquee Sign: THE MYSTERY CHESTS ── */}
+      <group position={[0, 5.2, 0.2]}>
+        <mesh position={[0, 0, 0]} castShadow>
+          <boxGeometry args={[3.8, 0.8, 0.2]} />
+          <meshStandardMaterial color="#78350f" roughness={0.4} />
+        </mesh>
+        <mesh position={[0, 0, 0.06]} castShadow>
+          <boxGeometry args={[3.9, 0.9, 0.04]} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.15} />
+        </mesh>
+        {/* Glowing Carnival Bulbs */}
+        {[-1.6, -1.1, -0.6, 0, 0.6, 1.1, 1.6].map((x, i) => (
+          <mesh key={i} position={[x, 0.35, 0.14]}>
+            <sphereGeometry args={[0.06, 12, 12]} />
+            <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.6} />
+          </mesh>
+        ))}
+      </group>
     </group>
   );
 };
