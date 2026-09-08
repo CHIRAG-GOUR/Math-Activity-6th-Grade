@@ -256,8 +256,8 @@ export const BallDropMachine3D: React.FC = () => {
         {/* ── Pachinko Brass Pins / Pegs Grid ── */}
         {pins.map((pin) => (
           <group key={pin.id} position={[pin.x, pin.y - 2.4, 0.3]}>
-            <mesh castShadow>
-              <cylinderGeometry args={[0.045, 0.045, 0.25, 12]} rotation={[Math.PI / 2, 0, 0]} />
+            <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <cylinderGeometry args={[0.045, 0.045, 0.25, 12]} />
               <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.1} />
             </mesh>
             <mesh position={[0, 0, 0.12]} castShadow>
@@ -270,14 +270,14 @@ export const BallDropMachine3D: React.FC = () => {
         {/* ── Side Elastic Bounce Bumpers (Angled Triangles) ── */}
         {/* Left Bumper */}
         <group position={[-1.15, -0.7, 0.25]}>
-          <mesh castShadow rotation={[0, 0, 0.35]}>
+          <mesh rotation={[0, 0, 0.35]} castShadow>
             <boxGeometry args={[0.15, 1.1, 0.18]} />
             <meshStandardMaterial color="#ff2a6d" roughness={0.3} />
           </mesh>
         </group>
         {/* Right Bumper */}
         <group position={[1.15, -0.7, 0.25]}>
-          <mesh castShadow rotation={[0, 0, -0.35]}>
+          <mesh rotation={[0, 0, -0.35]} castShadow>
             <boxGeometry args={[0.15, 1.1, 0.18]} />
             <meshStandardMaterial color="#00f0a8" roughness={0.3} />
           </mesh>
@@ -285,8 +285,8 @@ export const BallDropMachine3D: React.FC = () => {
 
         {/* ── Center Divider Wedge Deflector (Splits ball to left or right) ── */}
         <group position={[0, -1.3, 0.3]}>
-          <mesh castShadow>
-            <coneGeometry args={[0.3, 0.6, 4]} rotation={[0, Math.PI / 4, 0]} />
+          <mesh rotation={[0, Math.PI / 4, 0]} castShadow>
+            <coneGeometry args={[0.3, 0.6, 4]} />
             <meshStandardMaterial color="#fed500" metalness={0.8} roughness={0.2} />
           </mesh>
         </group>

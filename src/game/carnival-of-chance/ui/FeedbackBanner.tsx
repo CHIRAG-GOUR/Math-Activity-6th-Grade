@@ -37,6 +37,7 @@ export const FeedbackBanner: React.FC = () => {
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
 
   if (activeActivity === 'hub') return null;
+  const meta = CARNIVAL_THEME.activityAccents[activeActivity] || CARNIVAL_THEME.activityAccents.hub;
   const isRightAnswer =
     blueTeam.lastResult === 'correct' ||
     redTeam.lastResult === 'correct' ||
