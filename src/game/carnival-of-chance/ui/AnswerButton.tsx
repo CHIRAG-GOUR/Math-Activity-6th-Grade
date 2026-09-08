@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST ANSWER BUTTON
 // 100% Solid Opaque Push Cards with Guaranteed Inline Styles & Outlines
-// High-Contrast Selection Rings, Mint Green Success & Hot Pink Error
+// Yellow with Black, Red with White & Black Neo-Brutalist Palette
 // ============================================================
 
 'use client';
@@ -45,10 +45,9 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
 
   if (isSelected && !isConfirmed) {
     buttonStyle = {
-      backgroundColor: isBlue ? '#BFDBFE' : '#FECDD3',
+      backgroundColor: '#FED500',
       border: '4px solid #000000',
-      boxShadow: isBlue ? '5px 5px 0px #1D4ED8' : '5px 5px 0px #BE123C',
-      outline: isBlue ? '3px solid #2563EB' : '3px solid #E11D48',
+      boxShadow: '5px 5px 0px #000000',
       borderRadius: '14px',
       color: '#000000',
     };
@@ -94,8 +93,9 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
       <div className="flex-1 min-w-0 text-left flex items-center gap-2.5">
         <div
           style={{
-            backgroundColor: showWrongResult ? 'rgba(0,0,0,0.2)' : '#FFFFFF',
+            backgroundColor: isSelected && !isConfirmed ? '#FFFFFF' : showWrongResult ? 'rgba(0,0,0,0.2)' : '#FED500',
             border: '2px solid #000000',
+            boxShadow: '1.5px 1.5px 0px #000000',
             borderRadius: '8px',
             padding: '2px 6px',
           }}
@@ -118,9 +118,8 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         <div
           style={{
             backgroundColor: '#000000',
-            color: '#FFFFFF',
-            border: '1.5px solid #FFFFFF',
-            boxShadow: '2px 2px 0px #FFFFFF',
+            color: '#00F0A8',
+            border: '2px solid #000000',
             borderRadius: '10px',
           }}
           className="flex items-center gap-1 px-2 py-0.5 shrink-0"
@@ -137,14 +136,13 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           style={{
             backgroundColor: '#000000',
             color: '#FFFFFF',
-            border: '1.5px solid #FFFFFF',
-            boxShadow: '2px 2px 0px #FFFFFF',
+            border: '2px solid #000000',
             borderRadius: '10px',
           }}
           className="flex items-center gap-1 px-2 py-0.5 shrink-0"
         >
-          <X className="w-3.5 h-3.5 text-[#FF4081] stroke-[3.5]" />
-          <span className="text-[9px] font-black uppercase tracking-wider text-[#FF4081]">
+          <X className="w-3.5 h-3.5 text-[#FF2A6D] stroke-[3.5]" />
+          <span className="text-[9px] font-black uppercase tracking-wider text-white">
             TRY AGAIN
           </span>
         </div>

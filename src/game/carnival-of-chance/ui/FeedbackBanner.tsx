@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST OBSERVATION & REWARD MODALS
 // Dead-Center Positioning, Guaranteed Zero Side-Console Overlap
-// Exact Neubrutalist Palette: Yellow with Black, Red with White & Black
+// Strict Neubrutalist Palette: Yellow with Black, Red with White & Black
 // ============================================================
 
 'use client';
@@ -51,7 +51,7 @@ export const FeedbackBanner: React.FC = () => {
             }}
             className="pointer-events-auto max-w-lg w-full p-5 sm:p-6 text-center"
           >
-            {/* Header Stamp */}
+            {/* Header Stamp (Red with White) */}
             <div
               style={{
                 backgroundColor: '#FF2A6D',
@@ -145,16 +145,16 @@ export const FeedbackBanner: React.FC = () => {
               <button
                 onClick={nextChallengeOrComplete}
                 style={{
-                  backgroundColor: '#00F0A8',
+                  backgroundColor: '#FF2A6D',
                   border: '3.5px solid #000000',
                   boxShadow: '4px 4px 0px #000000',
                   borderRadius: '14px',
-                  color: '#000000',
+                  color: '#FFFFFF',
                 }}
                 className="py-2.5 px-6 font-black text-xs flex items-center gap-2 cursor-pointer active:scale-95 transition-transform"
               >
-                <span>CONTINUE</span>
-                <ArrowRight className="w-4 h-4 stroke-[3.5]" />
+                <span className="font-black text-white uppercase tracking-wider">CONTINUE</span>
+                <ArrowRight className="w-4 h-4 stroke-[3.5] text-white" />
               </button>
             </div>
           </motion.div>
@@ -236,11 +236,11 @@ export const FeedbackBanner: React.FC = () => {
             <button
               onClick={nextChallengeOrComplete}
               style={{
-                backgroundColor: '#00F0A8',
+                backgroundColor: '#FF2A6D',
                 border: '4px solid #000000',
                 boxShadow: '5px 5px 0px #000000',
                 borderRadius: '16px',
-                color: '#000000',
+                color: '#FFFFFF',
               }}
               className="w-full py-3 font-black text-sm uppercase tracking-wider cursor-pointer active:scale-95 transition-transform"
             >
@@ -319,16 +319,16 @@ export const FeedbackBanner: React.FC = () => {
             <button
               onClick={returnToHub}
               style={{
-                backgroundColor: '#00F0A8',
+                backgroundColor: '#FF2A6D',
                 border: '4px solid #000000',
                 boxShadow: '5px 5px 0px #000000',
                 borderRadius: '16px',
-                color: '#000000',
+                color: '#FFFFFF',
               }}
               className="w-full py-3.5 font-black text-sm uppercase tracking-wider cursor-pointer flex items-center justify-center gap-2 active:scale-95 transition-transform"
             >
-              <MapPin className="w-4 h-4 stroke-[3]" />
-              <span>RETURN TO CARNIVAL ISLAND</span>
+              <MapPin className="w-4 h-4 stroke-[3] text-white" />
+              <span className="text-white font-black">RETURN TO CARNIVAL ISLAND</span>
             </button>
           </motion.div>
         </div>

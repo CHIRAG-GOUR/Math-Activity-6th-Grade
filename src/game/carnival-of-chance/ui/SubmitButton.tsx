@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Lock, ArrowRight, Play, Dices, Sparkles } from 'lucide-react';
+import { CheckCircle2, Lock, ArrowRight } from 'lucide-react';
 
 interface SubmitButtonProps {
   isReady: boolean;
@@ -57,11 +57,11 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         cursor: 'pointer',
       }
     : {
-        backgroundColor: '#E2E8F0',
+        backgroundColor: '#FFF7E5',
         border: '3px solid #000000',
         boxShadow: '3px 3px 0px #000000',
         borderRadius: '16px',
-        color: '#64748B',
+        color: '#94A3B8',
         cursor: 'not-allowed',
       };
 
@@ -76,7 +76,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
       whileTap={!disabled ? { scale: 0.97, x: 2, y: 2 } : {}}
       className="w-full h-[54px] sm:h-[60px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
     >
-      <Lock className={`w-4 h-4 stroke-[3] ${isReady ? 'text-black' : 'text-[#64748B]'}`} />
+      <Lock className={`w-4 h-4 stroke-[3] ${isReady ? 'text-black' : 'text-[#94A3B8]'}`} />
       <span className="truncate">{isReady ? actionText : 'CHOOSE AN OPTION'}</span>
       {isReady && <ArrowRight className="w-4 h-4 stroke-[3.5] text-black shrink-0" />}
     </motion.button>

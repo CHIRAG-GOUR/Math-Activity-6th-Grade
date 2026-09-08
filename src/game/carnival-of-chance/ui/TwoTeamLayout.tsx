@@ -1,7 +1,7 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — DUAL-CONSOLE CARNIVAL LAYOUT
-// Left: Team Blue Console (360px) | Center: Wide 3D Machine Viewport | Right: Team Red Console (360px)
-// Perfect Fixed Bounds, Zero Overlap, Full 3D Visibility
+// Left: Team Blue Console (320px-340px) | Center: Wide 3D Machine Viewport | Right: Team Red Console (320px-340px)
+// Perfect Symmetrical Bounds, Zero Overlap, Full 3D Visibility
 // ============================================================
 
 'use client';
@@ -27,10 +27,10 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
     <div className="fixed inset-0 pointer-events-none z-30 select-none">
       {/* ── 1. Tablet/Mobile Switcher (Only visible when screen width < 960px) ── */}
       {isMobileScreen && (
-        <div className="fixed top-[76px] inset-x-4 z-50 flex justify-center pointer-events-auto">
+        <div className="fixed top-[70px] inset-x-4 z-50 flex justify-center pointer-events-auto">
           <div
             style={{
-              backgroundColor: '#FFFFFF',
+              backgroundColor: '#FED500',
               border: '3.5px solid #000000',
               boxShadow: '4px 4px 0px #000000',
               borderRadius: '16px',
@@ -54,8 +54,8 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
               type="button"
               onClick={() => setMobileActiveTab('3d')}
               style={{
-                backgroundColor: mobileActiveTab === '3d' ? '#FED500' : '#FFFFFF',
-                color: '#000000',
+                backgroundColor: mobileActiveTab === '3d' ? '#FF2A6D' : '#FFFFFF',
+                color: mobileActiveTab === '3d' ? '#FFFFFF' : '#000000',
                 border: '2px solid #000000',
                 borderRadius: '10px',
               }}
@@ -81,18 +81,18 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
       )}
 
       {/* ── 2. Main Two-Team Layout Container ── */}
-      <div className="w-full h-full pt-[80px] pb-3 px-4 sm:px-6 flex items-stretch justify-between gap-4">
+      <div className="w-full h-full pt-[72px] pb-3 px-3 sm:px-5 flex items-stretch justify-between gap-3 sm:gap-4">
         
-        {/* ── LEFT CONSOLE: TEAM BLUE (Strictly 350px-370px wide) ── */}
+        {/* ── LEFT CONSOLE: TEAM BLUE (Strictly 320px-340px wide) ── */}
         {(!isMobileScreen || mobileActiveTab === 'blue') && (
           <motion.aside
-            initial={{ x: -160, opacity: 0 }}
+            initial={{ x: -140, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{
-              width: isMobileScreen ? '100%' : '360px',
-              maxWidth: isMobileScreen ? '420px' : '370px',
-              minWidth: isMobileScreen ? 'auto' : '320px',
+              width: isMobileScreen ? '100%' : '330px',
+              maxWidth: isMobileScreen ? '420px' : '340px',
+              minWidth: isMobileScreen ? 'auto' : '300px',
             }}
             className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
           >
@@ -103,23 +103,23 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
         {/* ── CENTER: WIDE 3D MACHINE VIEWPORT (Always flex-1, fully open) ── */}
         {(!isMobileScreen || mobileActiveTab === '3d') && (
           <div
-            style={{ minWidth: isMobileScreen ? '100%' : '360px' }}
+            style={{ minWidth: isMobileScreen ? '100%' : '320px' }}
             className="flex-1 h-full relative pointer-events-none flex flex-col justify-between items-center py-1"
           >
             {children}
           </div>
         )}
 
-        {/* ── RIGHT CONSOLE: TEAM RED (Strictly 350px-370px wide) ── */}
+        {/* ── RIGHT CONSOLE: TEAM RED (Strictly 320px-340px wide) ── */}
         {(!isMobileScreen || mobileActiveTab === 'red') && (
           <motion.aside
-            initial={{ x: 160, opacity: 0 }}
+            initial={{ x: 140, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
             style={{
-              width: isMobileScreen ? '100%' : '360px',
-              maxWidth: isMobileScreen ? '420px' : '370px',
-              minWidth: isMobileScreen ? 'auto' : '320px',
+              width: isMobileScreen ? '100%' : '330px',
+              maxWidth: isMobileScreen ? '420px' : '340px',
+              minWidth: isMobileScreen ? 'auto' : '300px',
             }}
             className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
           >

@@ -10,7 +10,7 @@
 'use client';
 
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useCarnivalStore } from '../store/carnivalStore';
 import { AnswerChoice, TeamId, ActivityId } from '../types';
 import { QuestionPanel } from './QuestionPanel';
@@ -66,27 +66,27 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
   const actionLabel = ACTION_LABELS[activeActivity] || 'LOCK IN PREDICTION';
 
   return (
-    // ── LAYER 1: SOLID COLOR OUTER FRAME (5px Black Outline & 8px Hard Shadow) ──
+    // ── LAYER 1: SOLID COLOR OUTER FRAME (4.5px Black Outline & 6px Hard Shadow) ──
     <div
       style={{
-        backgroundColor: isBlue ? '#3B82F6' : '#FF2A6D',
-        border: '5px solid #000000',
-        boxShadow: '8px 8px 0px #000000',
-        borderRadius: '24px',
+        backgroundColor: isBlue ? '#2563EB' : '#FF2A6D',
+        border: '4.5px solid #000000',
+        boxShadow: '6px 6px 0px #000000',
+        borderRadius: '22px',
       }}
-      className="w-full h-full p-2.5 sm:p-3 select-none flex flex-col justify-between overflow-hidden"
+      className="w-full h-full p-2 sm:p-2.5 select-none flex flex-col justify-between overflow-hidden"
     >
-      {/* ── LAYER 2: SOLID OPAQUE CREAM INNER CONTAINER (4px Black Outline) ── */}
+      {/* ── LAYER 2: SOLID OPAQUE CREAM INNER CONTAINER (3.5px Black Outline) ── */}
       <div
         style={{
           backgroundColor: '#FFF7E5',
-          border: '4px solid #000000',
-          boxShadow: '4px 4px 0px #000000',
-          borderRadius: '18px',
+          border: '3.5px solid #000000',
+          boxShadow: '3px 3px 0px #000000',
+          borderRadius: '16px',
         }}
         className="w-full h-full p-2.5 sm:p-3 flex flex-col justify-between overflow-y-auto"
       >
-        {/* ── HEADER STRIP: TEAM BADGE & TICKETS ── */}
+        {/* ── HEADER STRIP: TEAM BADGE & TICKETS (Yellow with Black Card) ── */}
         <div
           style={{
             backgroundColor: '#FED500',
@@ -94,17 +94,17 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             boxShadow: '3px 3px 0px #000000',
             borderRadius: '12px',
           }}
-          className="w-full py-1.5 px-3 flex items-center justify-between shrink-0"
+          className="w-full py-1.5 px-2.5 flex items-center justify-between shrink-0"
         >
           <div className="flex items-center gap-2 min-w-0">
             <div
               style={{
-                backgroundColor: isBlue ? '#3B82F6' : '#FF2A6D',
+                backgroundColor: isBlue ? '#2563EB' : '#FF2A6D',
                 border: '2px solid #000000',
-                boxShadow: '1px 1px 0px #000000',
+                boxShadow: '1.5px 1.5px 0px #000000',
                 borderRadius: '8px',
               }}
-              className="w-7 h-7 flex items-center justify-center font-black text-sm text-white shrink-0"
+              className="w-6 h-6 sm:w-7 sm:h-7 flex items-center justify-center font-black text-xs sm:text-sm text-white shrink-0"
             >
               {isBlue ? 'B' : 'R'}
             </div>
@@ -118,7 +118,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             style={{
               backgroundColor: '#FFFFFF',
               border: '2px solid #000000',
-              boxShadow: '2px 2px 0px #000000',
+              boxShadow: '1.5px 1.5px 0px #000000',
               borderRadius: '8px',
             }}
             className="flex items-center gap-1 px-2 py-0.5 font-black text-xs text-black shrink-0"
@@ -133,7 +133,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             ═════════════════════════════════════════════════════════════ */}
         {isPredicting && (
           <div className="flex-1 flex flex-col justify-between gap-2 my-2 min-h-0">
-            {/* Question Panel Card */}
+            {/* Question Panel Card (Yellow with Black) */}
             {activeChallenge && <QuestionPanel challenge={activeChallenge} />}
 
             {/* Answer Options Push Cards Stack */}
@@ -151,7 +151,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               ))}
             </div>
 
-            {/* Submit Actuator */}
+            {/* Submit Actuator (Yellow / Mint) */}
             <div className="shrink-0 pt-0.5">
               <SubmitButton
                 isReady={!!teamState.selectedChoiceId}
@@ -174,10 +174,10 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             animate={{ opacity: 1, scale: 1 }}
             className="flex-1 flex flex-col justify-center items-center text-center p-3 gap-3 my-auto"
           >
-            {/* Prediction Locked Preview Card */}
+            {/* Prediction Locked Preview Card (Yellow with Black) */}
             <div
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: '#FED500',
                 border: '3.5px solid #000000',
                 boxShadow: '4px 4px 0px #000000',
                 borderRadius: '16px',
@@ -185,14 +185,14 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               }}
               className="w-full p-3.5 flex flex-col items-center gap-1.5"
             >
-              <span className="text-[10px] font-black uppercase tracking-wider text-[#64748B]">
+              <span className="text-[10px] font-black uppercase tracking-wider text-black opacity-75">
                 LOCKED PREDICTION
               </span>
               {selectedChoice && (
                 <div className="flex items-center gap-2">
                   <div
                     style={{
-                      backgroundColor: '#FED500',
+                      backgroundColor: '#FFFFFF',
                       border: '2px solid #000000',
                       borderRadius: '8px',
                       padding: '2px 6px',
@@ -207,24 +207,24 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               )}
             </div>
 
-            {/* Active Machine Vibration Banner */}
+            {/* Active Machine Vibration Banner (Red with White) */}
             <div
               style={{
-                backgroundColor: '#FED500',
+                backgroundColor: '#FF2A6D',
                 border: '3.5px solid #000000',
                 boxShadow: '4px 4px 0px #000000',
                 borderRadius: '16px',
-                color: '#000000',
+                color: '#FFFFFF',
               }}
               className="w-full p-4 flex flex-col items-center gap-1.5 animate-pulse"
             >
               <div className="flex items-center gap-2">
-                <Eye className="w-5 h-5 stroke-[3] text-black" />
-                <span className="text-xs font-black uppercase tracking-wider">
+                <Eye className="w-5 h-5 stroke-[3] text-white" />
+                <span className="text-xs font-black uppercase tracking-wider text-white">
                   WATCH THE 3D MACHINE
                 </span>
               </div>
-              <span className="text-[10px] font-bold text-black opacity-80">
+              <span className="text-[10px] font-bold text-white opacity-90">
                 Physical random experiment in progress...
               </span>
             </div>
@@ -301,12 +301,12 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               )}
             </div>
 
-            {/* Team Score Plaque */}
+            {/* Team Score Plaque (Yellow with Black) */}
             <div
               style={{
-                backgroundColor: '#FFFFFF',
-                border: '3px solid #000000',
-                boxShadow: '3px 3px 0px #000000',
+                backgroundColor: '#FED500',
+                border: '3.5px solid #000000',
+                boxShadow: '4px 4px 0px #000000',
                 borderRadius: '14px',
                 color: '#000000',
               }}
@@ -329,7 +329,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
           <div className="flex-1 flex flex-col justify-center items-center text-center p-3 gap-2 my-auto">
             <div
               style={{
-                backgroundColor: '#00F0A8',
+                backgroundColor: '#FED500',
                 border: '4px solid #000000',
                 boxShadow: '5px 5px 0px #000000',
                 borderRadius: '18px',
@@ -338,7 +338,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
               className="w-full p-4 flex flex-col items-center gap-1"
             >
               <Sparkles className="w-6 h-6 text-black stroke-[3]" />
-              <span className="text-xs font-black uppercase">
+              <span className="text-xs font-black uppercase text-black">
                 ATTRACTION MASTERED!
               </span>
             </div>

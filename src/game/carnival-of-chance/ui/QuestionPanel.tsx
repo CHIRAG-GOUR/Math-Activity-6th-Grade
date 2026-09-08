@@ -1,6 +1,6 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST QUESTION CARD
-// 100% Solid Opaque Box, 4px Black Outline, 5px Hard Shadow
+// 100% Solid Yellow Card, 4px Black Outline, 5px Hard Shadow
 // Yellow with Black, Red with White & Black Carnival Palette
 // ============================================================
 
@@ -21,7 +21,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
   return (
     <div
       style={{
-        backgroundColor: '#FFFFFF',
+        backgroundColor: '#FED500',
         border: '4px solid #000000',
         boxShadow: '5px 5px 0px #000000',
         borderRadius: '16px',
@@ -29,7 +29,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
       }}
       className="w-full p-2.5 sm:p-3 text-left flex flex-col gap-2 select-none shrink-0"
     >
-      {/* ── Top Strip: Red/Yellow Challenge Badge & Points Stamp ── */}
+      {/* ── Top Strip: Red Challenge Badge & White Points Stamp ── */}
       <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <div
@@ -51,23 +51,23 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
 
         <div
           style={{
-            backgroundColor: '#FED500',
+            backgroundColor: '#FFFFFF',
             border: '2px solid #000000',
             boxShadow: '2px 2px 0px #000000',
             borderRadius: '8px',
           }}
           className="flex items-center gap-1 px-2 py-0.5 text-[10px] font-black text-black shrink-0"
         >
-          <Star className="w-3 h-3 fill-black text-black" />
+          <Star className="w-3 h-3 fill-[#FED500] text-black" />
           <span>+{challenge.points} PTS</span>
         </div>
       </div>
 
-      {/* ── Setup Counts Breakdown Ribbon ── */}
+      {/* ── Setup Counts Breakdown Ribbon (White card with black outlines) ── */}
       {setup && setup.items && setup.items.length > 0 && (
         <div
           style={{
-            backgroundColor: '#FFF7E5',
+            backgroundColor: '#FFFFFF',
             border: '2px solid #000000',
             borderRadius: '10px',
           }}
@@ -80,7 +80,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
             <div
               key={idx}
               style={{
-                backgroundColor: '#FFFFFF',
+                backgroundColor: '#FFF7E5',
                 border: '1.5px solid #000000',
                 borderRadius: '6px',
               }}
@@ -103,11 +103,11 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
         {formattedPrompt}
       </div>
 
-      {/* ── Optional Helper Hint ── */}
+      {/* ── Optional Helper Hint (Red with White) ── */}
       {challenge.helperNote && (
         <div
           style={{
-            backgroundColor: '#FED500',
+            backgroundColor: '#FFF7E5',
             border: '2px solid #000000',
             boxShadow: '2px 2px 0px #000000',
             borderRadius: '8px',
