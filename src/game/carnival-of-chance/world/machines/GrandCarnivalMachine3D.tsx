@@ -467,11 +467,6 @@ export const GrandCarnivalMachine3D: React.FC = () => {
           </mesh>
         )}
 
-        {/* Outer Brass Protective Ring Bezel */}
-        <mesh position={[0, 0, 0.03]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[1.36, 0.035, 12, 36]} />
-          <meshStandardMaterial color="#f59e0b" metalness={0.95} />
-        </mesh>
 
         {/* Golden Bullseye Fireworks Sparks */}
         <points ref={bullseyeSparkRef} position={[0, 0, 0.18]} geometry={sparkGeo}>
