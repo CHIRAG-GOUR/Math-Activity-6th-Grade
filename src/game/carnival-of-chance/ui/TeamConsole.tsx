@@ -184,11 +184,12 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
             )}
 
             {/* Answer Options Push Cards Stack */}
-            <div className="flex flex-col gap-1 my-auto shrink-0">
-              {activeChallenge?.choices.map((choice) => (
+            <div className="flex-1 flex flex-col justify-evenly gap-1.5 min-h-0 py-1">
+              {activeChallenge?.choices.map((choice, idx) => (
                 <AnswerButton
                   key={choice.id}
                   choice={choice}
+                  choiceIndex={idx}
                   teamId={teamId}
                   isSelected={teamState.selectedChoiceId === choice.id}
                   isConfirmed={teamState.isConfirmed}
