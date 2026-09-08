@@ -1,7 +1,7 @@
 // ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Probability Lab 3D Machine
-// Science laboratory studio apparatus with glass mixing chamber,
-// calibrated liquid columns, and floating orbital particles
+// THE GREAT CARNIVAL OF CHANCE — Probability Lab 3D Physical Machine
+// Steampunk Science Apparatus with stone bench, copper condenser coils,
+// calibrated liquid cylinders with volume ticks, and orbiting particle flask
 // ============================================================
 
 import React, { useRef } from 'react';
@@ -12,73 +12,235 @@ import { useCarnivalStore } from '../../store/carnivalStore';
 export const ProbabilityLabMachine3D: React.FC = () => {
   const phase = useCarnivalStore((s) => s.phase);
   const mixerRef = useRef<THREE.Group>(null);
+  const leftLiquidRef = useRef<THREE.Mesh>(null);
+  const rightLiquidRef = useRef<THREE.Mesh>(null);
 
   useFrame((state, delta) => {
     if (mixerRef.current) {
       if (phase === 'operating') {
-        mixerRef.current.rotation.y += delta * 6;
+        mixerRef.current.rotation.y += delta * 7;
+        mixerRef.current.rotation.x += delta * 2;
       } else {
-        mixerRef.current.rotation.y += delta * 0.5;
+        mixerRef.current.rotation.y += delta * 0.8;
       }
+    }
+
+    // Dynamic liquid boiling/calibration
+    if (leftLiquidRef.current) {
+      const wobble = Math.sin(state.clock.getElapsedTime() * 3) * 0.05;
+      leftLiquidRef.current.scale.y = phase === 'operating' ? 1 + wobble * 2 : 1 + wobble;
+    }
+    if (rightLiquidRef.current) {
+      const wobble = Math.cos(state.clock.getElapsedTime() * 3) * 0.05;
+      rightLiquidRef.current.scale.y = phase === 'operating' ? 1 + wobble * 2 : 1 + wobble;
     }
   });
 
   return (
-    <group position={[0, -0.4, 0]}>
-      {/* Stone & Brass Bench Base */}
-      <mesh position={[0, 0.4, 0]} castShadow receiveShadow>
-        <boxGeometry args={[4.8, 0.8, 2.4]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.5} />
+    <group position={[0, -0.6, 0]}>
+      {/* ── Studio Lighting ── */}
+      <spotLight
+        position={[0, 9, 5]}
+        target-position={[0, 2.2, 0]}
+        intensity={2.5}
+        angle={0.65}
+        penumbra={0.6}
+        color="#f5f3ff"
+        castShadow
+      />
+
+      {/* ── Heavy Stone & Mahogany Lab Table Base ── */}
+      <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5.2, 0.5, 2.6]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.85, 0]} castShadow receiveShadow>
-        <boxGeometry args={[5.0, 0.12, 2.6]} />
-        <meshStandardMaterial color="#ca8a04" metalness={0.7} roughness={0.3} />
+      {/* Brass Table Rim */}
+      <mesh position={[0, 0.52, 0]} castShadow receiveShadow>
+        <boxGeometry args={[5.4, 0.08, 2.8]} />
+        <meshStandardMaterial color="#ca8a04" metalness={0.8} roughness={0.2} />
       </mesh>
 
-      {/* Central Glass Spherical Reaction Chamber */}
-      <group position={[0, 2.4, 0]}>
-        <mesh>
-          <sphereGeometry args={[1.25, 32, 32]} />
-          <meshPhysicalMaterial color="#f1f5f9" transmission={0.9} transparent opacity={1} roughness={0.05} />
+      {/* Table Legs with Brass Ferrules */}
+      {[
+        [-2.4, -0.15, -1.1],
+        [2.4, -0.15, -1.1],
+        [-2.4, -0.15, 1.1],
+        [2.4, -0.15, 1.1],
+      ].map(([x, y, z], i) => (
+        <group key={i} position={[x, y, z]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.1, 0.12, 0.8, 12]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.7} />
+          </mesh>
+          <mesh position={[0, -0.3, 0]} castShadow>
+            <cylinderGeometry args={[0.13, 0.13, 0.2, 12]} />
+            <meshStandardMaterial color="#f59e0b" metalness={0.9} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* ═════════════════════════════════════════════════════════════
+          CENTRAL GLASS SPHERICAL REACTION FLASK
+          ═════════════════════════════════════════════════════════════ */}
+      <group position={[0, 2.3, 0]}>
+        {/* Brass Ring Support Base */}
+        <mesh position={[0, -1.1, 0]} castShadow>
+          <cylinderGeometry args={[0.85, 0.95, 0.35, 24]} />
+          <meshStandardMaterial color="#ca8a04" metalness={0.85} roughness={0.2} />
         </mesh>
+        {/* Tripod Legs */}
+        {[0, (Math.PI * 2) / 3, (Math.PI * 4) / 3].map((ang, i) => (
+          <mesh
+            key={i}
+            position={[Math.cos(ang) * 0.75, -1.4, Math.sin(ang) * 0.75]}
+            rotation={[0, -ang, 0.2]}
+            castShadow
+          >
+            <cylinderGeometry args={[0.05, 0.05, 0.8, 8]} />
+            <meshStandardMaterial color="#78350f" metalness={0.7} />
+          </mesh>
+        ))}
+
+        {/* Clear Glass Spherical Flask */}
+        <mesh>
+          <sphereGeometry args={[1.35, 36, 36]} />
+          <meshPhysicalMaterial
+            color="#f8fafc"
+            transmission={0.92}
+            transparent
+            opacity={1}
+            roughness={0.04}
+            ior={1.48}
+          />
+        </mesh>
+
+        {/* Flask Top Brass Neck & Valve */}
+        <mesh position={[0, 1.4, 0]} castShadow>
+          <cylinderGeometry args={[0.3, 0.45, 0.5, 20]} />
+          <meshStandardMaterial color="#d97706" metalness={0.85} roughness={0.2} />
+        </mesh>
+        <mesh position={[0, 1.7, 0]} castShadow>
+          <torusGeometry args={[0.35, 0.06, 12, 24]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.9} />
+        </mesh>
+
+        {/* Swirling Probability Compounds Inside Flask */}
         <group ref={mixerRef}>
-          {[-0.45, 0, 0.45].map((x, i) => (
-            <mesh key={`b-${i}`} position={[x, Math.sin(i * 2) * 0.35, Math.cos(i * 2) * 0.35]} castShadow>
-              <sphereGeometry args={[0.2, 20, 20]} />
-              <meshStandardMaterial color="#2563eb" roughness={0.3} metalness={0.2} />
+          {[-0.5, 0, 0.5].map((x, i) => (
+            <mesh key={`b-${i}`} position={[x, Math.sin(i * 2.2) * 0.4, Math.cos(i * 2.2) * 0.4]} castShadow>
+              <sphereGeometry args={[0.22, 20, 20]} />
+              <meshStandardMaterial
+                color="#2563eb"
+                roughness={0.2}
+                metalness={0.2}
+                emissive="#2563eb"
+                emissiveIntensity={0.3}
+              />
             </mesh>
           ))}
-          {[-0.3, 0.3].map((x, i) => (
-            <mesh key={`r-${i}`} position={[x, Math.cos(i * 2) * 0.35, Math.sin(i * 2) * 0.35]} castShadow>
-              <sphereGeometry args={[0.2, 20, 20]} />
-              <meshStandardMaterial color="#dc2626" roughness={0.3} metalness={0.2} />
+          {[-0.35, 0.35].map((x, i) => (
+            <mesh key={`r-${i}`} position={[x, Math.cos(i * 2.2) * 0.4, Math.sin(i * 2.2) * 0.4]} castShadow>
+              <sphereGeometry args={[0.22, 20, 20]} />
+              <meshStandardMaterial
+                color="#dc2626"
+                roughness={0.2}
+                metalness={0.2}
+                emissive="#dc2626"
+                emissiveIntensity={0.3}
+              />
             </mesh>
           ))}
+          {/* Gold Catalyst Core */}
+          <mesh position={[0, 0, 0]} castShadow>
+            <sphereGeometry args={[0.18, 16, 16]} />
+            <meshStandardMaterial
+              color="#f59e0b"
+              metalness={0.95}
+              emissive="#f59e0b"
+              emissiveIntensity={0.5}
+            />
+          </mesh>
         </group>
       </group>
 
-      {/* Left Red Column */}
-      <group position={[-1.8, 2.1, 0]}>
+      {/* ═════════════════════════════════════════════════════════════
+          CALIBRATED MEASURING CYLINDERS (Left & Right)
+          ═════════════════════════════════════════════════════════════ */}
+      {/* Left Red Fraction Tube */}
+      <group position={[-1.9, 2.0, 0]}>
+        {/* Brass Base Mount */}
+        <mesh position={[0, -1.2, 0]} castShadow>
+          <cylinderGeometry args={[0.45, 0.55, 0.25, 20]} />
+          <meshStandardMaterial color="#ca8a04" metalness={0.8} />
+        </mesh>
+        {/* Outer Glass Tube */}
         <mesh>
-          <cylinderGeometry args={[0.32, 0.32, 2.2, 16]} />
-          <meshPhysicalMaterial color="#e2e8f0" transmission={0.9} transparent opacity={1} roughness={0.1} />
+          <cylinderGeometry args={[0.34, 0.34, 2.4, 24]} />
+          <meshPhysicalMaterial color="#e0f2fe" transmission={0.92} transparent opacity={1} roughness={0.06} />
         </mesh>
-        <mesh position={[0, -0.4, 0]}>
-          <cylinderGeometry args={[0.28, 0.28, 1.1, 16]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.3} emissive="#dc2626" emissiveIntensity={0.2} />
+        {/* Glowing Red Liquid */}
+        <mesh ref={leftLiquidRef} position={[0, -0.4, 0]}>
+          <cylinderGeometry args={[0.3, 0.3, 1.2, 20]} />
+          <meshStandardMaterial color="#dc2626" roughness={0.2} emissive="#dc2626" emissiveIntensity={0.35} />
         </mesh>
+        {/* Brass Graduation Markings */}
+        {[-0.8, -0.4, 0, 0.4, 0.8].map((y, i) => (
+          <mesh key={i} position={[0, y, 0]}>
+            <torusGeometry args={[0.35, 0.015, 8, 24]} />
+            <meshStandardMaterial color="#fef08a" metalness={0.9} />
+          </mesh>
+        ))}
       </group>
 
-      {/* Right Blue Column */}
-      <group position={[1.8, 2.1, 0]}>
+      {/* Right Blue Fraction Tube */}
+      <group position={[1.9, 2.0, 0]}>
+        {/* Brass Base Mount */}
+        <mesh position={[0, -1.2, 0]} castShadow>
+          <cylinderGeometry args={[0.45, 0.55, 0.25, 20]} />
+          <meshStandardMaterial color="#ca8a04" metalness={0.8} />
+        </mesh>
+        {/* Outer Glass Tube */}
         <mesh>
-          <cylinderGeometry args={[0.32, 0.32, 2.2, 16]} />
-          <meshPhysicalMaterial color="#e2e8f0" transmission={0.9} transparent opacity={1} roughness={0.1} />
+          <cylinderGeometry args={[0.34, 0.34, 2.4, 24]} />
+          <meshPhysicalMaterial color="#e0f2fe" transmission={0.92} transparent opacity={1} roughness={0.06} />
         </mesh>
-        <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[0.28, 0.28, 1.6, 16]} />
-          <meshStandardMaterial color="#2563eb" roughness={0.3} emissive="#2563eb" emissiveIntensity={0.2} />
+        {/* Glowing Blue Liquid */}
+        <mesh ref={rightLiquidRef} position={[0, -0.1, 0]}>
+          <cylinderGeometry args={[0.3, 0.3, 1.8, 20]} />
+          <meshStandardMaterial color="#2563eb" roughness={0.2} emissive="#2563eb" emissiveIntensity={0.35} />
         </mesh>
+        {/* Brass Graduation Markings */}
+        {[-0.8, -0.4, 0, 0.4, 0.8].map((y, i) => (
+          <mesh key={i} position={[0, y, 0]}>
+            <torusGeometry args={[0.35, 0.015, 8, 24]} />
+            <meshStandardMaterial color="#fef08a" metalness={0.9} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* ── Copper Distillation Condenser Coils Connecting Tubes ── */}
+      <group position={[0, 3.4, 0]}>
+        {/* Left arched copper pipe */}
+        <mesh position={[-1.0, 0, 0]} rotation={[0, 0, 0.4]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 1.8, 12]} />
+          <meshStandardMaterial color="#b45309" metalness={0.85} roughness={0.2} />
+        </mesh>
+        {/* Right arched copper pipe */}
+        <mesh position={[1.0, 0, 0]} rotation={[0, 0, -0.4]} castShadow>
+          <cylinderGeometry args={[0.04, 0.04, 1.8, 12]} />
+          <meshStandardMaterial color="#b45309" metalness={0.85} roughness={0.2} />
+        </mesh>
+        {/* Pressure Gauge Dial */}
+        <group position={[0, 0.2, 0.3]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.22, 0.22, 0.06, 20]} />
+            <meshStandardMaterial color="#fef08a" metalness={0.9} />
+          </mesh>
+          <mesh position={[0, 0, 0.04]}>
+            <circleGeometry args={[0.18, 20]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+        </group>
       </group>
     </group>
   );
