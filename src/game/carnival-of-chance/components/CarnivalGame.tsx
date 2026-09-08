@@ -1,20 +1,18 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — Main Game Orchestrator
 // Coordinates 3D Island Hub, Isolated 3D Activity Studio,
-// Dual-Team Operator Consoles, and Flow Overlays
+// Two-Team Operator Consoles, and Flow State Machine
 // ============================================================
 
 'use client';
 
 import React, { useEffect } from 'react';
 import { useCarnivalStore } from '../store/carnivalStore';
-import { CarnivalHUD } from './CarnivalHUD';
+import { CarnivalHUD, ActivityShell } from '../ui';
 import { CarnivalIslandScene } from '../world/CarnivalIslandScene';
 import { ActivityStudioScene } from '../world/ActivityStudioScene';
-import { TeamOperatorConsoles } from './TeamOperatorConsole';
-import { ActivityFlowOverlays } from './ActivityFlowOverlays';
 import { carnivalAudio } from '../audio/CarnivalAudioManager';
-import { Sparkles, Star } from 'lucide-react';
+import { Star } from 'lucide-react';
 
 export const CarnivalGame: React.FC = () => {
   const activeActivity = useCarnivalStore((s) => s.activeActivity);
@@ -34,7 +32,7 @@ export const CarnivalGame: React.FC = () => {
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
-      {/* ── 1. Top HUD Header Bar ── */}
+      {/* ── 1. Top Neo-Brutalist Carnival HUD ── */}
       <CarnivalHUD />
 
       {/* ── 2. Primary 3D Viewport (Strictly Isolated Mode) ── */}
@@ -46,24 +44,22 @@ export const CarnivalGame: React.FC = () => {
         )}
       </div>
 
-      {/* ── 3. Dual-Team Operator Consoles (Active inside Attraction) ── */}
-      {activeActivity !== 'hub' && <TeamOperatorConsoles />}
+      {/* ── 3. Shared Activity Shell (Two-Team Consoles, Step Guide & Modals) ── */}
+      <ActivityShell />
 
-      {/* ── 4. Flow Modals & Reasoning Overlays ── */}
-      {activeActivity !== 'hub' && <ActivityFlowOverlays />}
-
-      {/* ── 5. Island Hub Bottom Helper Ribbon ── */}
+      {/* ── 4. Island Hub Bottom Helper Ribbon ── */}
       {activeActivity === 'hub' && (
         <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center pointer-events-none select-none">
-          <div className="px-6 py-2 rounded-xl bg-yellow-400 border-3 border-black shadow-[4px_4px_0px_#000000] flex items-center gap-2.5">
-            <Star className="w-4 h-4 fill-red-600 text-black stroke-black stroke-1" />
-            <span className="text-xs sm:text-sm font-black text-black uppercase tracking-wider text-center">
+          <div className="px-6 py-2.5 rounded-2xl bg-[#FFC928] border-4 border-[#111111] shadow-[5px_5px_0px_#111111] flex items-center gap-2.5">
+            <Star className="w-5 h-5 fill-[#E53935] text-[#111111] stroke-[2]" />
+            <span className="text-xs sm:text-sm font-black text-[#111111] uppercase tracking-wider text-center">
               Touch any 3D attraction building on the island to begin!
             </span>
-            <Star className="w-4 h-4 fill-red-600 text-black stroke-black stroke-1" />
+            <Star className="w-5 h-5 fill-[#E53935] text-[#111111] stroke-[2]" />
           </div>
         </div>
       )}
     </main>
   );
 };
+
