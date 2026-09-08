@@ -1,6 +1,6 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — NEUBRUTALIST SUBMIT ACTUATOR
-// Massive Physical Action Push Button with Guaranteed Inline Styles
+// Massive Physical Action Push Button with Activity-Specific Text & Icons
 // Yellow Active, Mint Green Locked, 4px Black Outlines & 6px Hard Shadows
 // ============================================================
 
@@ -8,7 +8,7 @@
 
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CheckCircle2, Lock, ArrowRight } from 'lucide-react';
+import { CheckCircle2, Lock, ArrowRight, Play, Dices, Sparkles } from 'lucide-react';
 
 interface SubmitButtonProps {
   isReady: boolean;
@@ -16,6 +16,7 @@ interface SubmitButtonProps {
   isPredicting: boolean;
   onConfirm: (e: React.PointerEvent) => void;
   teamColor?: 'blue' | 'red';
+  customLabel?: string;
 }
 
 export const SubmitButton: React.FC<SubmitButtonProps> = ({
@@ -24,6 +25,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
   isPredicting,
   onConfirm,
   teamColor = 'blue',
+  customLabel,
 }) => {
   const disabled = !isPredicting || !isReady || isConfirmed;
 
@@ -37,7 +39,7 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
           borderRadius: '16px',
           color: '#000000',
         }}
-        className="w-full h-[58px] sm:h-[64px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0"
+        className="w-full h-[54px] sm:h-[60px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0"
       >
         <CheckCircle2 className="w-5 h-5 stroke-[3.5] text-black" />
         <span>PREDICTION LOCKED!</span>
@@ -63,6 +65,8 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
         cursor: 'not-allowed',
       };
 
+  const actionText = customLabel || 'LOCK IN PREDICTION';
+
   return (
     <motion.button
       type="button"
@@ -70,11 +74,11 @@ export const SubmitButton: React.FC<SubmitButtonProps> = ({
       disabled={disabled}
       style={activeStyle}
       whileTap={!disabled ? { scale: 0.97, x: 2, y: 2 } : {}}
-      className="w-full h-[58px] sm:h-[64px] flex items-center justify-center gap-2.5 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
+      className="w-full h-[54px] sm:h-[60px] flex items-center justify-center gap-2 font-black text-xs sm:text-sm uppercase tracking-wider select-none shrink-0 touch-manipulation transition-all"
     >
       <Lock className={`w-4 h-4 stroke-[3] ${isReady ? 'text-black' : 'text-[#64748B]'}`} />
-      <span>{isReady ? 'LOCK IN PREDICTION' : 'CHOOSE AN OPTION'}</span>
-      {isReady && <ArrowRight className="w-4 h-4 stroke-[3.5] text-black" />}
+      <span className="truncate">{isReady ? actionText : 'CHOOSE AN OPTION'}</span>
+      {isReady && <ArrowRight className="w-4 h-4 stroke-[3.5] text-black shrink-0" />}
     </motion.button>
   );
 };
