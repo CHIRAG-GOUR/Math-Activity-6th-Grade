@@ -309,7 +309,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       colorName: chosen.colorName,
     };
 
-    // Play activity specific sound sequence
+    // Play activity specific sound sequence for static activities (3D machines handle frame-synced audio)
     if (activeActivity === 'mystery-bag') {
       carnivalAudio.playBagOpen();
       setTimeout(() => carnivalAudio.playBallRoll(), 700);
@@ -319,17 +319,9 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       setTimeout(() => carnivalAudio.playWheelTick(1.4), 700);
       setTimeout(() => carnivalAudio.playWheelTick(0.8), 1400);
       setTimeout(() => carnivalAudio.playBellChime(), 2100);
-    } else if (activeActivity === 'ball-drop') {
-      carnivalAudio.playHammerStrike();
-      setTimeout(() => carnivalAudio.playPuckAscend(), 400);
-      setTimeout(() => carnivalAudio.playHighStrikerBell(), 1100);
     } else if (activeActivity === 'probability-lab') {
       carnivalAudio.playLabReaction();
       setTimeout(() => carnivalAudio.playScoreTick(), 1200);
-    } else if (activeActivity === 'grand-carnival') {
-      carnivalAudio.playVaultUnlock();
-      setTimeout(() => carnivalAudio.playVaultOpen(), 600);
-      setTimeout(() => carnivalAudio.playCorrect(), 1800);
     }
 
     setTimeout(() => {
@@ -337,7 +329,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
         drawnOutcome: ball,
         phase: 'observation',
       });
-    }, 2200);
+    }, 2600);
   },
 
   tickTimer: () => {

@@ -182,36 +182,68 @@ class CarnivalAudioManager {
     osc.stop(this.ctx.currentTime + 0.72);
   }
 
-  // ── High Striker Sledgehammer Heavy Slam & Impact ──
+  // ── High Striker Sledgehammer Heavy Swing Whoosh ──
+  public playHammerWhoosh() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.25);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+    }
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, this.ctx.currentTime);
+    filter.frequency.exponentialRampToValueAtTime(1200, this.ctx.currentTime + 0.12);
+    filter.frequency.exponentialRampToValueAtTime(150, this.ctx.currentTime + 0.25);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.35, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.25);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start();
+  }
+
+  // ── High Striker Sledgehammer Heavy Slam & Anvil Impact ──
   public playHammerStrike() {
     this.initContext();
     if (this.isMuted || !this.ctx || !this.sfxGain) return;
 
-    // Sub-bass heavy thump
+    // 1. Sub-bass heavy thump boom
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(180, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(30, this.ctx.currentTime + 0.25);
-    gain.gain.setValueAtTime(0.6, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.28);
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(160, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(28, this.ctx.currentTime + 0.3);
+    gain.gain.setValueAtTime(0.7, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.32);
     osc.connect(gain);
     gain.connect(this.sfxGain);
     osc.start();
-    osc.stop(this.ctx.currentTime + 0.3);
+    osc.stop(this.ctx.currentTime + 0.35);
 
-    // Anvil metal clank
+    // 2. Heavy Anvil metallic clank & slap
     const metalOsc = this.ctx.createOscillator();
     const metalGain = this.ctx.createGain();
-    metalOsc.type = 'sawtooth';
-    metalOsc.frequency.setValueAtTime(920, this.ctx.currentTime);
-    metalOsc.frequency.exponentialRampToValueAtTime(400, this.ctx.currentTime + 0.15);
-    metalGain.gain.setValueAtTime(0.35, this.ctx.currentTime);
-    metalGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.18);
+    metalOsc.type = 'triangle';
+    metalOsc.frequency.setValueAtTime(1100, this.ctx.currentTime);
+    metalOsc.frequency.exponentialRampToValueAtTime(320, this.ctx.currentTime + 0.18);
+    metalGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
+    metalGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.2);
     metalOsc.connect(metalGain);
     metalGain.connect(this.sfxGain);
     metalOsc.start();
-    metalOsc.stop(this.ctx.currentTime + 0.2);
+    metalOsc.stop(this.ctx.currentTime + 0.22);
   }
 
   // High Striker Puck Ascending Whistle
@@ -222,35 +254,53 @@ class CarnivalAudioManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(300, this.ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(1400, this.ctx.currentTime + 0.9);
-    gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.95);
+    osc.frequency.setValueAtTime(260, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(1600, this.ctx.currentTime + 0.7);
+    gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.75);
     osc.connect(gain);
     gain.connect(this.sfxGain);
     osc.start();
-    osc.stop(this.ctx.currentTime + 1.0);
+    osc.stop(this.ctx.currentTime + 0.78);
   }
 
-  // High Striker Bell Top Ding
+  // High Striker Bell Top Ding / Championship Gong
   public playHighStrikerBell() {
     this.initContext();
     if (this.isMuted || !this.ctx || !this.sfxGain) return;
 
-    [1760, 2637, 3520].forEach((freq, i) => {
+    [1760, 2637, 3520, 4400].forEach((freq, i) => {
       if (!this.ctx || !this.sfxGain) return;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      const start = this.ctx.currentTime + i * 0.04;
+      const start = this.ctx.currentTime + i * 0.03;
       osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, start);
-      gain.gain.setValueAtTime(0.4 - i * 0.1, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.85);
+      gain.gain.setValueAtTime(0.45 - i * 0.08, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + 0.95);
       osc.connect(gain);
       gain.connect(this.sfxGain);
       osc.start(start);
-      osc.stop(start + 0.9);
+      osc.stop(start + 1.0);
     });
+  }
+
+  // High Striker Puck Landing Thud
+  public playPuckFallThud() {
+    this.initContext();
+    if (this.isMuted || !this.ctx || !this.sfxGain) return;
+
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(240, this.ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.14);
+    gain.gain.setValueAtTime(0.4, this.ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start();
+    osc.stop(this.ctx.currentTime + 0.16);
   }
 
   // ── Probability Lab Boiling Reactor & Chemical Laser Zap ──
