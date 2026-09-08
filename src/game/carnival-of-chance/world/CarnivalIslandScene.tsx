@@ -1,23 +1,53 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — 3D Carnival Island Hub
-// Masterpiece 3D Carnival Island with detailed architectural booths:
-// 1. The Odds Wheel (Ferris prize wheel with A-frame & marquee)
-// 2. The Mystery Chests (Circus stage with 3 treasure chests & sack)
-// 3. Central Clock Tower & Carousel Pavilion (Victorian landmark)
-// 4. Giant Ball Drop (Transparent gumball silo with helical slide)
-// 5. The Probability Lab (Stone & copper alchemy lab with liquid tubes)
-// 6. Build A Game Workshop (Artisan workshop with pegboard & giant dice)
-// 7. Grand Carnival Gateway (Twin circus spires, arch & floating trophy)
-// Connecting stone paths, festive bunting, pier boardwalk, trees & ocean
+// Masterpiece 3D Island with Cursor Parallax Interaction,
+// Spacious Non-Overlapping Building Placement,
+// Neo-Brutalist 3D Name Cards on every attraction,
+// Open-air Odds Wheel & Grand Carnival (no obstructive roofs)
 // ============================================================
 
 'use client';
 
 import React, { useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
+import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { useCarnivalStore } from '../store/carnivalStore';
-import { ATTRACTIONS_META } from '../engine/probabilityData';
+
+// ═══════════════════════════════════════════════════════════════
+// HELPER: Neo-Brutalist Interactive 3D Name Badge
+// ═══════════════════════════════════════════════════════════════
+const NeoBrutalistNameCard: React.FC<{
+  name: string;
+  subtitle: string;
+  tagColor?: string;
+  position: [number, number, number];
+  onClick?: () => void;
+}> = ({ name, subtitle, tagColor = '#facc15', position, onClick }) => {
+  return (
+    <group position={position}>
+      <Html
+        center
+        distanceFactor={28}
+        position={[0, 0, 0]}
+        className="pointer-events-auto select-none"
+      >
+        <button
+          onClick={onClick}
+          className="flex flex-col items-center justify-center px-3.5 py-1.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000000] hover:shadow-[2px_2px_0px_#000000] hover:translate-x-0.5 hover:translate-y-0.5 transition-all cursor-pointer whitespace-nowrap active:scale-95"
+          style={{ backgroundColor: tagColor }}
+        >
+          <span className="text-[12px] sm:text-[13px] font-black uppercase tracking-wider text-black font-sans leading-tight">
+            {name}
+          </span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-red-900 bg-white/90 px-1.5 py-0.2 rounded border border-black mt-0.5">
+            {subtitle}
+          </span>
+        </button>
+      </Html>
+    </group>
+  );
+};
 
 // ═══════════════════════════════════════════════════════════════
 // HELPER: Striped Carnival Scalloped Awning
@@ -82,12 +112,10 @@ const BuntingFlags: React.FC<{
   const spacing = width / count;
   return (
     <group position={position}>
-      {/* String Cable */}
       <mesh>
         <boxGeometry args={[width, 0.03, 0.03]} />
         <meshStandardMaterial color="#78350f" />
       </mesh>
-      {/* Triangle Pennants */}
       {Array.from({ length: count }).map((_, i) => (
         <mesh
           key={i}
@@ -98,54 +126,6 @@ const BuntingFlags: React.FC<{
           <meshStandardMaterial color={colors[i % colors.length]} roughness={0.3} />
         </mesh>
       ))}
-    </group>
-  );
-};
-
-// ═══════════════════════════════════════════════════════════════
-// HELPER: Grand Marquee Signboard with Incandescent Bulbs
-// ═══════════════════════════════════════════════════════════════
-const GrandMarqueeSign: React.FC<{
-  position: [number, number, number];
-  titleColor: string;
-  width?: number;
-  height?: number;
-}> = ({ position, titleColor, width = 3.6, height = 0.75 }) => {
-  const bulbCount = 8;
-  return (
-    <group position={position}>
-      {/* Mounting Posts */}
-      {[-width * 0.4, width * 0.4].map((x, i) => (
-        <mesh key={i} position={[x, -0.6, 0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.07, 1.2, 8]} />
-          <meshStandardMaterial color="#78350f" roughness={0.7} />
-        </mesh>
-      ))}
-      {/* Wooden Backing Board */}
-      <mesh castShadow>
-        <boxGeometry args={[width, height, 0.14]} />
-        <meshStandardMaterial color={titleColor} roughness={0.4} />
-      </mesh>
-      {/* Gold Inner Bevel Plaque */}
-      <mesh position={[0, 0, 0.08]}>
-        <boxGeometry args={[width - 0.2, height - 0.16, 0.02]} />
-        <meshStandardMaterial color="#fef08a" metalness={0.85} roughness={0.2} />
-      </mesh>
-      {/* Warm Incandescent Bulbs Around Frame */}
-      {Array.from({ length: bulbCount }).map((_, i) => {
-        const x = ((i / (bulbCount - 1)) - 0.5) * (width - 0.3);
-        return (
-          <mesh key={`top-${i}`} position={[x, height * 0.4, 0.09]} castShadow>
-            <sphereGeometry args={[0.06, 10, 10]} />
-            <meshStandardMaterial
-              color="#fef08a"
-              emissive="#f59e0b"
-              emissiveIntensity={0.6}
-              roughness={0.2}
-            />
-          </mesh>
-        );
-      })}
     </group>
   );
 };
@@ -167,7 +147,7 @@ const CentralClockTower: React.FC = () => {
   });
 
   return (
-    <group position={[0, 0, -1.0]}>
+    <group position={[0, 0, -2.5]}>
       {/* ── Octagonal Stone Central Plaza ── */}
       <mesh position={[0, 0.15, 0]} receiveShadow>
         <cylinderGeometry args={[5.2, 5.8, 0.3, 8]} />
@@ -188,7 +168,6 @@ const CentralClockTower: React.FC = () => {
           <cylinderGeometry args={[1.15, 1.15, 0.06, 16]} />
           <meshPhysicalMaterial color="#38bdf8" transmission={0.8} transparent opacity={0.9} roughness={0.1} />
         </mesh>
-        {/* Central Fountain Spout */}
         <mesh position={[0, 0.5, 0]} castShadow>
           <cylinderGeometry args={[0.15, 0.25, 0.5, 12]} />
           <meshStandardMaterial color="#ca8a04" metalness={0.8} />
@@ -234,7 +213,7 @@ const CentralClockTower: React.FC = () => {
         <meshStandardMaterial color="#fef08a" roughness={0.3} metalness={0.7} />
       </mesh>
 
-      {/* 4 Clock Faces (Front, Back, Left, Right) */}
+      {/* 4 Clock Faces */}
       {[
         { pos: [0, 4.8, 1.15] as [number, number, number], rot: [0, 0, 0] as [number, number, number] },
         { pos: [0, 4.8, -1.15] as [number, number, number], rot: [0, Math.PI, 0] as [number, number, number] },
@@ -253,7 +232,7 @@ const CentralClockTower: React.FC = () => {
         </group>
       ))}
 
-      {/* Rotating Clock Hands on Front Face */}
+      {/* Rotating Clock Hands */}
       <group ref={clockHandsRef} position={[0, 4.8, 1.18]}>
         <mesh position={[0, 0.22, 0]} castShadow>
           <boxGeometry args={[0.04, 0.42, 0.02]} />
@@ -296,17 +275,26 @@ const MysteryChestsBuilding: React.FC = () => {
 
   return (
     <group
-      position={[-7.8, 0, -5.8]}
-      rotation={[0, 0.5, 0]}
+      position={[-8.5, 0, -8.5]}
+      rotation={[0, 0.65, 0]}
       onClick={() => openActivity('mystery-bag')}
     >
-      {/* ── Foundation Platform ── */}
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="THE MYSTERY CHESTS"
+        subtitle="3D BALL DRAW"
+        tagColor="#facc15"
+        position={[0, 5.4, 0.4]}
+        onClick={() => openActivity('mystery-bag')}
+      />
+
+      {/* Foundation Platform */}
       <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
         <boxGeometry args={[5.4, 0.3, 4.2]} />
         <meshStandardMaterial color="#d4a574" roughness={0.7} />
       </mesh>
 
-      {/* ── 4 Ornate Carved Wooden Corner Posts ── */}
+      {/* 4 Carved Wooden Corner Posts */}
       {[
         [-2.4, 2.2, -1.8],
         [2.4, 2.2, -1.8],
@@ -325,13 +313,13 @@ const MysteryChestsBuilding: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Red Velvet Back Wall ── */}
+      {/* Red Velvet Back Wall */}
       <mesh position={[0, 2.2, -1.8]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 3.8, 0.15]} />
         <meshStandardMaterial color="#991b1b" roughness={0.7} />
       </mesh>
 
-      {/* ── Side Half-Walls ── */}
+      {/* Side Half-Walls */}
       {[-2.4, 2.4].map((x, i) => (
         <mesh key={i} position={[x, 1.3, 0]} castShadow>
           <boxGeometry args={[0.15, 2.2, 3.6]} />
@@ -339,7 +327,7 @@ const MysteryChestsBuilding: React.FC = () => {
         </mesh>
       ))}
 
-      {/* ── Front Stage Counter Shelf ── */}
+      {/* Front Stage Counter */}
       <mesh position={[0, 1.05, 1.5]} castShadow receiveShadow>
         <boxGeometry args={[5.0, 0.18, 1.0]} />
         <meshStandardMaterial color="#78350f" roughness={0.5} />
@@ -349,7 +337,7 @@ const MysteryChestsBuilding: React.FC = () => {
         <meshStandardMaterial color="#92400e" roughness={0.6} />
       </mesh>
 
-      {/* ── Striped Red & White Scalloped Awning Roof ── */}
+      {/* Striped Red & White Scalloped Canopy Roof */}
       <StripedAwning
         width={5.8}
         depth={4.6}
@@ -360,29 +348,23 @@ const MysteryChestsBuilding: React.FC = () => {
         color2="#ffffff"
       />
 
-      {/* ═════════════════════════════════════════════════════════════
-          3 ORNATE 3D TREASURE CHESTS ON THE STAGE COUNTER
-          ═════════════════════════════════════════════════════════════ */}
+      {/* 3 3D Treasure Chests on Stage */}
       {[-1.6, 0, 1.6].map((x, idx) => (
         <group key={idx} position={[x, 1.35, 1.3]} rotation={[0, (idx - 1) * 0.15, 0]}>
-          {/* Wooden Chest Box */}
           <mesh castShadow receiveShadow>
             <boxGeometry args={[0.9, 0.5, 0.6]} />
             <meshStandardMaterial color="#92400e" roughness={0.6} />
           </mesh>
-          {/* Gold Straps & Corners */}
           {[-0.32, 0.32].map((bx, j) => (
             <mesh key={j} position={[bx, 0, 0]} castShadow>
               <boxGeometry args={[0.07, 0.52, 0.62]} />
               <meshStandardMaterial color="#f59e0b" metalness={0.9} roughness={0.15} />
             </mesh>
           ))}
-          {/* Keyhole */}
           <mesh position={[0, 0, 0.31]} castShadow>
             <boxGeometry args={[0.14, 0.16, 0.02]} />
             <meshStandardMaterial color="#fef08a" metalness={0.95} />
           </mesh>
-          {/* Curved Lid */}
           <mesh position={[0, 0.28, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
             <cylinderGeometry args={[0.3, 0.3, 0.9, 16, 1, false, 0, Math.PI]} />
             <meshStandardMaterial color="#b45309" roughness={0.5} />
@@ -390,7 +372,7 @@ const MysteryChestsBuilding: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Iconic Glowing Magic Sack in the Center ── */}
+      {/* Glowing Magic Sack in Center */}
       <group position={[0, 1.3, -0.4]}>
         <mesh position={[0, 0.7, 0]} castShadow>
           <sphereGeometry args={[0.75, 20, 16]} />
@@ -406,20 +388,13 @@ const MysteryChestsBuilding: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── Marquee Sign on Roof ── */}
-      <GrandMarqueeSign
-        position={[0, 5.1, 0.3]}
-        titleColor="#b91c1c"
-        width={3.8}
-        height={0.8}
-      />
       <BuntingFlags width={5.0} position={[0, 4.0, 2.1]} count={8} />
     </group>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 2B. BUILDING: THE ODDS WHEEL (Left)
+// 2B. BUILDING: THE ODDS WHEEL (Left - Open Air, No Awning Roof)
 // ═══════════════════════════════════════════════════════════════
 const OddsWheelBuilding: React.FC = () => {
   const openActivity = useCarnivalStore((s) => s.openActivity);
@@ -438,66 +413,68 @@ const OddsWheelBuilding: React.FC = () => {
   ];
   const segCount = segmentColors.length;
   const segAngle = (Math.PI * 2) / segCount;
-  const wheelRadius = 2.1;
+  const wheelRadius = 2.4;
 
   return (
     <group
-      position={[-9.5, 0, 1.2]}
-      rotation={[0, 0.75, 0]}
+      position={[-11.0, 0, 0.5]}
+      rotation={[0, 0.85, 0]}
       onClick={() => openActivity('odds-wheel')}
     >
-      {/* ── Foundation Deck ── */}
-      <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
-        <cylinderGeometry args={[3.2, 3.5, 0.3, 24]} />
-        <meshStandardMaterial color="#d4a574" roughness={0.7} />
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="THE ODDS WHEEL"
+        subtitle="PRIZE SPINNER"
+        tagColor="#facc15"
+        position={[0, 6.8, 0.2]}
+        onClick={() => openActivity('odds-wheel')}
+      />
+
+      {/* Stepped Wooden Foundation Deck */}
+      <mesh position={[0, 0.2, 0]} receiveShadow castShadow>
+        <cylinderGeometry args={[3.4, 3.8, 0.4, 32]} />
+        <meshStandardMaterial color="#78350f" roughness={0.7} />
+      </mesh>
+      <mesh position={[0, 0.45, 0]} receiveShadow castShadow>
+        <cylinderGeometry args={[3.0, 3.3, 0.15, 32]} />
+        <meshStandardMaterial color="#d97706" metalness={0.7} roughness={0.3} />
       </mesh>
 
-      {/* ── Navy Blue Booth Pavilion Structure ── */}
-      <mesh position={[0, 2.2, -1.5]} castShadow receiveShadow>
-        <boxGeometry args={[5.2, 4.0, 0.15]} />
-        <meshStandardMaterial color="#1e3a5f" roughness={0.5} />
-      </mesh>
-      {/* Counter */}
-      <mesh position={[0, 0.95, 0.9]} castShadow receiveShadow>
-        <boxGeometry args={[5.0, 0.18, 1.2]} />
-        <meshStandardMaterial color="#78350f" roughness={0.5} />
-      </mesh>
-      <mesh position={[0, 0.5, 1.45]} castShadow>
-        <boxGeometry args={[5.0, 0.8, 0.12]} />
-        <meshStandardMaterial color="#92400e" roughness={0.6} />
-      </mesh>
-
-      {/* ── Red & Gold Steel A-Frame Lattice Truss Support ── */}
-      <mesh position={[-0.95, 3.0, -0.8]} rotation={[0, 0, -0.15]} castShadow>
-        <boxGeometry args={[0.22, 4.6, 0.22]} />
+      {/* Red & Gold Steel A-Frame Lattice Truss Towers */}
+      <mesh position={[-1.1, 2.6, 0]} rotation={[0, 0, -0.18]} castShadow>
+        <boxGeometry args={[0.24, 5.0, 0.24]} />
         <meshStandardMaterial color="#b91c1c" roughness={0.4} metalness={0.2} />
       </mesh>
-      <mesh position={[0.95, 3.0, -0.8]} rotation={[0, 0, 0.15]} castShadow>
-        <boxGeometry args={[0.22, 4.6, 0.22]} />
+      <mesh position={[1.1, 2.6, 0]} rotation={[0, 0, 0.18]} castShadow>
+        <boxGeometry args={[0.24, 5.0, 0.24]} />
         <meshStandardMaterial color="#b91c1c" roughness={0.4} metalness={0.2} />
       </mesh>
-      <mesh position={[0, 2.4, -0.8]} castShadow>
-        <boxGeometry args={[1.8, 0.14, 0.18]} />
+      <mesh position={[0, 1.6, 0]} castShadow>
+        <boxGeometry args={[2.2, 0.16, 0.2]} />
+        <meshStandardMaterial color="#b91c1c" roughness={0.4} metalness={0.2} />
+      </mesh>
+      <mesh position={[0, 2.8, 0]} castShadow>
+        <boxGeometry args={[1.7, 0.16, 0.2]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.85} roughness={0.2} />
       </mesh>
 
       {/* ═════════════════════════════════════════════════════════════
-          GIANT ROTATING CARNIVAL ODDS WHEEL (Accurate Pie Wedges)
+          GIANT ROTATING OPEN CARNIVAL ODDS WHEEL (Accurate Pie Wedges)
           ═════════════════════════════════════════════════════════════ */}
-      <group position={[0, 3.8, -0.6]}>
+      <group position={[0, 4.0, 0.2]}>
         <group ref={wheelRef}>
           {/* Backing Disc */}
           <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[wheelRadius, wheelRadius, 0.1, 48]} />
+            <cylinderGeometry args={[wheelRadius, wheelRadius, 0.12, 48]} />
             <meshStandardMaterial color="#451a03" roughness={0.6} />
           </mesh>
           {/* Thick Brass Outer Ring Tyre */}
           <mesh rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[wheelRadius + 0.1, wheelRadius + 0.1, 0.14, 48, 1, true]} />
+            <cylinderGeometry args={[wheelRadius + 0.12, wheelRadius + 0.12, 0.16, 48, 1, true]} />
             <meshStandardMaterial color="#d97706" metalness={0.9} roughness={0.15} />
           </mesh>
 
-          {/* ── True Pie-Slice Wedges ── */}
+          {/* True Pie-Slice Wedges */}
           {segmentColors.map((col, i) => (
             <mesh
               key={i}
@@ -506,9 +483,9 @@ const OddsWheelBuilding: React.FC = () => {
             >
               <cylinderGeometry
                 args={[
-                  wheelRadius - 0.06,
-                  wheelRadius - 0.06,
-                  0.12,
+                  wheelRadius - 0.08,
+                  wheelRadius - 0.08,
+                  0.14,
                   16,
                   1,
                   false,
@@ -516,71 +493,51 @@ const OddsWheelBuilding: React.FC = () => {
                   segAngle * 0.98,
                 ]}
               />
-              <meshStandardMaterial color={col} roughness={0.3} metalness={0.1} />
+              <meshStandardMaterial color={col} roughness={0.3} metalness={0.15} />
             </mesh>
           ))}
 
-          {/* ── Brass Pegs & Incandescent Lights on Edge ── */}
+          {/* Brass Pegs & Lights on Edge */}
           {Array.from({ length: segCount }).map((_, i) => {
             const angle = i * segAngle + segAngle / 2;
             return (
               <mesh
                 key={`peg-${i}`}
                 position={[
-                  Math.cos(angle) * (wheelRadius - 0.15),
-                  Math.sin(angle) * (wheelRadius - 0.15),
-                  0.08,
+                  Math.cos(angle) * (wheelRadius - 0.16),
+                  Math.sin(angle) * (wheelRadius - 0.16),
+                  0.1,
                 ]}
                 castShadow
               >
-                <sphereGeometry args={[0.07, 10, 10]} />
+                <sphereGeometry args={[0.08, 10, 10]} />
                 <meshStandardMaterial
                   color="#fef08a"
                   emissive="#f59e0b"
-                  emissiveIntensity={0.5}
+                  emissiveIntensity={0.6}
                   metalness={0.9}
                 />
               </mesh>
             );
           })}
 
-          {/* Center Golden Star Medal Hub */}
-          <mesh position={[0, 0, 0.09]} rotation={[Math.PI / 2, 0, 0]} castShadow>
-            <cylinderGeometry args={[0.55, 0.55, 0.16, 24]} />
+          {/* Center Golden Star Hub */}
+          <mesh position={[0, 0, 0.12]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+            <cylinderGeometry args={[0.6, 0.6, 0.18, 24]} />
             <meshStandardMaterial color="#f59e0b" metalness={0.95} roughness={0.1} />
           </mesh>
-          <mesh position={[0, 0, 0.18]} castShadow>
-            <sphereGeometry args={[0.3, 16, 16]} />
+          <mesh position={[0, 0, 0.22]} castShadow>
+            <sphereGeometry args={[0.32, 16, 16]} />
             <meshStandardMaterial color="#fbbf24" metalness={0.95} />
           </mesh>
         </group>
 
-        {/* Flapper Clicker Pointer at Top */}
-        <mesh position={[0, wheelRadius + 0.15, 0.1]} rotation={[0, 0, Math.PI]} castShadow>
-          <coneGeometry args={[0.2, 0.6, 16]} />
+        {/* Flapper Pointer at 12 O'Clock */}
+        <mesh position={[0, wheelRadius + 0.18, 0.12]} rotation={[0, 0, Math.PI]} castShadow>
+          <coneGeometry args={[0.22, 0.65, 16]} />
           <meshStandardMaterial color="#dc2626" metalness={0.4} roughness={0.2} />
         </mesh>
       </group>
-
-      {/* ── Blue/Gold Striped Awning ── */}
-      <StripedAwning
-        width={5.6}
-        depth={3.2}
-        position={[0, 5.2, 0.2]}
-        rotation={[0.1, 0, 0]}
-        stripeCount={8}
-        color1="#1e3a5f"
-        color2="#f59e0b"
-      />
-
-      {/* ── Marquee Sign ── */}
-      <GrandMarqueeSign
-        position={[0, 6.0, 0.5]}
-        titleColor="#1e3a5f"
-        width={3.8}
-        height={0.8}
-      />
-      <BuntingFlags width={5.2} position={[0, 4.8, 1.4]} count={9} />
     </group>
   );
 };
@@ -600,17 +557,26 @@ const BallDropBuilding: React.FC = () => {
 
   return (
     <group
-      position={[7.8, 0, -5.8]}
-      rotation={[0, -0.5, 0]}
+      position={[8.5, 0, -8.5]}
+      rotation={[0, -0.65, 0]}
       onClick={() => openActivity('ball-drop')}
     >
-      {/* ── Foundation Platform ── */}
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="GIANT BALL DROP"
+        subtitle="10-TRIAL PACHINKO"
+        tagColor="#facc15"
+        position={[0, 5.8, 0.4]}
+        onClick={() => openActivity('ball-drop')}
+      />
+
+      {/* Foundation Platform */}
       <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
         <boxGeometry args={[4.8, 0.3, 3.8]} />
         <meshStandardMaterial color="#d4a574" roughness={0.7} />
       </mesh>
 
-      {/* ── Building Back & Side Walls (Slate Stone) ── */}
+      {/* Building Slate Walls */}
       <mesh position={[0, 2.0, -1.6]} castShadow>
         <boxGeometry args={[4.6, 3.6, 0.15]} />
         <meshStandardMaterial color="#334155" roughness={0.5} />
@@ -628,17 +594,13 @@ const BallDropBuilding: React.FC = () => {
         <meshStandardMaterial color="#78350f" roughness={0.5} />
       </mesh>
 
-      {/* ═════════════════════════════════════════════════════════════
-          THE GUMBALL SILO TOWER (Clear Glass + 3D Balls + Red Spiral)
-          ═════════════════════════════════════════════════════════════ */}
+      {/* Transparent Glass Silo Chamber with 3D Balls */}
       <group position={[0, 0.4, -0.1]}>
-        {/* Brass Base Ring */}
         <mesh position={[0, 0.35, 0]} castShadow>
           <cylinderGeometry args={[1.3, 1.5, 0.4, 24]} />
           <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
         </mesh>
 
-        {/* 4 Brass Pillars */}
         {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((ang, i) => (
           <mesh
             key={i}
@@ -650,7 +612,6 @@ const BallDropBuilding: React.FC = () => {
           </mesh>
         ))}
 
-        {/* Transparent Glass Silo Chamber */}
         <mesh position={[0, 2.6, 0]}>
           <cylinderGeometry args={[1.05, 1.05, 2.8, 32, 1, true]} />
           <meshPhysicalMaterial
@@ -662,7 +623,7 @@ const BallDropBuilding: React.FC = () => {
           />
         </mesh>
 
-        {/* 3D Colorful Balls Inside Silo */}
+        {/* 3D Colorful Balls */}
         {[
           { c: '#16a34a', p: [-0.3, 1.8, 0.2] },
           { c: '#16a34a', p: [0.3, 2.2, -0.15] },
@@ -681,7 +642,6 @@ const BallDropBuilding: React.FC = () => {
           </mesh>
         ))}
 
-        {/* Rotating Agitator Paddle */}
         <group ref={agitatorRef} position={[0, 2.5, 0]}>
           {[0, 1, 2].map((p) => (
             <mesh
@@ -695,7 +655,7 @@ const BallDropBuilding: React.FC = () => {
           ))}
         </group>
 
-        {/* Red Helical Chute Coiling Around Silo */}
+        {/* Red Helical Chute */}
         {Array.from({ length: 16 }).map((_, i) => {
           const prog = i / 16;
           const angle = prog * Math.PI * 3.5;
@@ -721,24 +681,6 @@ const BallDropBuilding: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── Awning ── */}
-      <StripedAwning
-        width={5.2}
-        depth={3.6}
-        position={[0, 3.6, 0.1]}
-        rotation={[0.1, 0, 0]}
-        stripeCount={8}
-        color1="#334155"
-        color2="#16a34a"
-      />
-
-      {/* ── Marquee Sign ── */}
-      <GrandMarqueeSign
-        position={[0, 4.5, 1.1]}
-        titleColor="#334155"
-        width={3.6}
-        height={0.75}
-      />
       <BuntingFlags width={4.6} position={[0, 3.4, 1.6]} count={7} />
     </group>
   );
@@ -759,28 +701,36 @@ const ProbabilityLabBuilding: React.FC = () => {
 
   return (
     <group
-      position={[9.5, 0, 1.2]}
-      rotation={[0, -0.75, 0]}
+      position={[11.0, 0, 0.5]}
+      rotation={[0, -0.85, 0]}
       onClick={() => openActivity('probability-lab')}
     >
-      {/* ── Stone Foundation ── */}
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="THE PROBABILITY LAB"
+        subtitle="SAMPLE SPACE ALCHEMY"
+        tagColor="#facc15"
+        position={[0, 5.8, 0.4]}
+        onClick={() => openActivity('probability-lab')}
+      />
+
+      {/* Stone Foundation */}
       <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
         <boxGeometry args={[5.2, 0.3, 3.8]} />
         <meshStandardMaterial color="#475569" roughness={0.6} />
       </mesh>
 
-      {/* ── Victorian Stone Lab Building ── */}
+      {/* Victorian Stone Lab Body */}
       <mesh position={[0, 2.0, 0]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 3.4, 3.4]} />
         <meshStandardMaterial color="#1e293b" roughness={0.5} />
       </mesh>
-      {/* Purple & Gold Frieze Band */}
       <mesh position={[0, 3.4, 0]} castShadow>
         <boxGeometry args={[5.0, 0.2, 3.6]} />
         <meshStandardMaterial color="#7c3aed" roughness={0.4} />
       </mesh>
 
-      {/* Arched Stone Entrance Doorway */}
+      {/* Arched Stone Door */}
       <mesh position={[0, 1.4, 1.65]} castShadow>
         <boxGeometry args={[2.2, 2.4, 0.2]} />
         <meshStandardMaterial color="#334155" roughness={0.5} />
@@ -792,7 +742,7 @@ const ProbabilityLabBuilding: React.FC = () => {
         <meshStandardMaterial color="#475569" metalness={0.4} roughness={0.4} />
       </mesh>
 
-      {/* ── Rooftop Glass Alchemy Dome with Orbiting Particles ── */}
+      {/* Rooftop Glass Alchemy Dome with Orbiting Particles */}
       <mesh position={[0, 4.3, 0]}>
         <sphereGeometry args={[1.3, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
         <meshPhysicalMaterial
@@ -823,7 +773,7 @@ const ProbabilityLabBuilding: React.FC = () => {
         ))}
       </group>
 
-      {/* ── Twin Calibrated Liquid Columns (Left Red, Right Blue) ── */}
+      {/* Twin Liquid Columns */}
       <group position={[-1.6, 4.2, 0]}>
         <mesh>
           <cylinderGeometry args={[0.24, 0.24, 1.7, 14]} />
@@ -845,13 +795,6 @@ const ProbabilityLabBuilding: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── Marquee Sign ── */}
-      <GrandMarqueeSign
-        position={[0, 5.6, 0.5]}
-        titleColor="#7c3aed"
-        width={3.8}
-        height={0.8}
-      />
       <BuntingFlags width={4.8} position={[0, 3.5, 1.7]} count={8} />
     </group>
   );
@@ -865,17 +808,26 @@ const GameBuilderBuilding: React.FC = () => {
 
   return (
     <group
-      position={[-6.5, 0, 7.5]}
+      position={[-7.5, 0, 8.5]}
       rotation={[0, 0.35, 0]}
       onClick={() => openActivity('game-builder')}
     >
-      {/* ── Timber Deck Foundation ── */}
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="BUILD A GAME"
+        subtitle="PEG TARGETS"
+        tagColor="#facc15"
+        position={[0, 5.4, 0.4]}
+        onClick={() => openActivity('game-builder')}
+      />
+
+      {/* Timber Deck Foundation */}
       <mesh position={[0, 0.15, 0]} receiveShadow castShadow>
         <boxGeometry args={[5.2, 0.3, 3.8]} />
         <meshStandardMaterial color="#d4a574" roughness={0.7} />
       </mesh>
 
-      {/* ── Artisan Timber Workshop Body ── */}
+      {/* Artisan Timber Workshop Body */}
       <mesh position={[0, 2.3, -1.6]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 4.2, 0.15]} />
         <meshStandardMaterial color="#92400e" roughness={0.6} />
@@ -887,23 +839,24 @@ const GameBuilderBuilding: React.FC = () => {
         </mesh>
       ))}
 
-      {/* ── Carpenter Workbench Counter ── */}
+      {/* Workbench Counter */}
       <mesh position={[0, 1.05, 1.3]} castShadow receiveShadow>
         <boxGeometry args={[4.8, 0.16, 1.0]} />
         <meshStandardMaterial color="#78350f" roughness={0.5} />
       </mesh>
 
-      {/* ── Pitched Roof ── */}
-      <mesh position={[-1.2, 4.7, 0]} rotation={[0, 0, 0.35]} castShadow>
-        <boxGeometry args={[2.9, 0.1, 4.0]} />
-        <meshStandardMaterial color="#f97316" roughness={0.4} />
-      </mesh>
-      <mesh position={[1.2, 4.7, 0]} rotation={[0, 0, -0.35]} castShadow>
-        <boxGeometry args={[2.9, 0.1, 4.0]} />
-        <meshStandardMaterial color="#f97316" roughness={0.4} />
-      </mesh>
+      {/* Striped Workshop Awning */}
+      <StripedAwning
+        width={5.4}
+        depth={3.8}
+        position={[0, 4.3, 0.1]}
+        rotation={[0.12, 0, 0]}
+        stripeCount={8}
+        color1="#ea580c"
+        color2="#facc15"
+      />
 
-      {/* ── Giant 3D Colorful Dice on Workbench ── */}
+      {/* Giant 3D Colorful Dice on Workbench */}
       <mesh position={[-1.4, 1.35, 1.3]} rotation={[0.2, 0.3, 0]} castShadow>
         <boxGeometry args={[0.5, 0.5, 0.5]} />
         <meshStandardMaterial color="#dc2626" roughness={0.3} />
@@ -913,13 +866,12 @@ const GameBuilderBuilding: React.FC = () => {
         <meshStandardMaterial color="#2563eb" roughness={0.3} />
       </mesh>
 
-      {/* ── Pegboard Game Mounted on Back Wall ── */}
+      {/* Pegboard Game Mounted on Back Wall */}
       <group position={[0, 2.9, -1.4]} rotation={[-0.05, 0, 0]}>
         <mesh castShadow>
           <boxGeometry args={[3.2, 2.7, 0.12]} />
           <meshStandardMaterial color="#0284c7" roughness={0.5} />
         </mesh>
-        {/* Brass Pegs */}
         {Array.from({ length: 4 }).map((_, row) =>
           Array.from({ length: 5 }).map((_, col) => (
             <mesh
@@ -937,7 +889,6 @@ const GameBuilderBuilding: React.FC = () => {
             </mesh>
           ))
         )}
-        {/* Target Slots */}
         {Array.from({ length: 8 }).map((_, i) => {
           const isWin = i === 1 || i === 4 || i === 6;
           return (
@@ -949,36 +900,19 @@ const GameBuilderBuilding: React.FC = () => {
         })}
       </group>
 
-      {/* ── Spinning Brass Gears on Outer Wall ── */}
-      <mesh position={[-2.4, 3.6, 0.5]} rotation={[0, Math.PI / 2, 0]} castShadow>
-        <torusGeometry args={[0.35, 0.07, 8, 12]} />
-        <meshStandardMaterial color="#ca8a04" metalness={0.85} />
-      </mesh>
-
-      {/* ── Marquee Sign ── */}
-      <GrandMarqueeSign
-        position={[0, 5.2, 0.5]}
-        titleColor="#ea580c"
-        width={3.6}
-        height={0.75}
-      />
-      <BuntingFlags width={4.6} position={[0, 4.1, 1.5]} count={7} />
+      <BuntingFlags width={4.6} position={[0, 3.8, 1.8]} count={7} />
     </group>
   );
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 2F. BUILDING: GRAND CARNIVAL ENTRANCE GATEWAY (Bottom-Center)
+// 2F. BUILDING: GRAND CARNIVAL GATEWAY (Bottom-Center - Open Arch, No Covering Cone Roof)
 // ═══════════════════════════════════════════════════════════════
 const GrandCarnivalBuilding: React.FC = () => {
   const openActivity = useCarnivalStore((s) => s.openActivity);
-  const carouselRef = useRef<THREE.Group>(null);
   const trophyRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
-    if (carouselRef.current) {
-      carouselRef.current.rotation.y += delta * 0.5;
-    }
     if (trophyRef.current) {
       trophyRef.current.rotation.y += delta * 1.2;
       trophyRef.current.position.y =
@@ -988,10 +922,20 @@ const GrandCarnivalBuilding: React.FC = () => {
 
   return (
     <group
-      position={[0, 0, 9.8]}
+      position={[3.5, 0, 9.5]}
+      rotation={[0, -0.25, 0]}
       onClick={() => openActivity('grand-carnival')}
     >
-      {/* ── Grand Foundation Pedestal ── */}
+      {/* Neo-Brutalist Name Card on Top */}
+      <NeoBrutalistNameCard
+        name="GRAND CARNIVAL"
+        subtitle="CHAMPIONSHIP ARENA"
+        tagColor="#facc15"
+        position={[0, 6.8, 0.2]}
+        onClick={() => openActivity('grand-carnival')}
+      />
+
+      {/* Grand Foundation Pedestal */}
       <mesh position={[0, 0.2, 0]} receiveShadow castShadow>
         <cylinderGeometry args={[4.0, 4.4, 0.4, 32]} />
         <meshStandardMaterial color="#854d0e" roughness={0.6} />
@@ -1001,30 +945,25 @@ const GrandCarnivalBuilding: React.FC = () => {
         <meshStandardMaterial color="#fef08a" metalness={0.6} roughness={0.3} />
       </mesh>
 
-      {/* ── Twin Circus Towers (Left & Right) ── */}
+      {/* Twin Circus Towers (Left & Right) */}
       {[-2.2, 2.2].map((x, i) => (
         <group key={i} position={[x, 0, 0]}>
-          {/* Tower Body */}
           <mesh position={[0, 2.6, 0]} castShadow>
             <boxGeometry args={[1.3, 4.6, 1.3]} />
             <meshStandardMaterial color="#b91c1c" roughness={0.4} />
           </mesh>
-          {/* White Stripe Band */}
           <mesh position={[0, 2.0, 0]} castShadow>
             <boxGeometry args={[1.4, 0.18, 1.4]} />
             <meshStandardMaterial color="#ffffff" roughness={0.4} />
           </mesh>
-          {/* Gold Cornice */}
           <mesh position={[0, 5.0, 0]} castShadow>
             <boxGeometry args={[1.6, 0.22, 1.6]} />
             <meshStandardMaterial color="#fef08a" metalness={0.7} roughness={0.3} />
           </mesh>
-          {/* Scalloped Red/White Cone Turret */}
           <mesh position={[0, 6.0, 0]} castShadow>
             <coneGeometry args={[0.95, 1.6, 12]} />
             <meshStandardMaterial color="#dc2626" roughness={0.4} />
           </mesh>
-          {/* Golden Finial Ball & Flag */}
           <mesh position={[0, 6.9, 0]} castShadow>
             <sphereGeometry args={[0.16, 12, 12]} />
             <meshStandardMaterial color="#f59e0b" metalness={0.9} />
@@ -1036,7 +975,7 @@ const GrandCarnivalBuilding: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Central Arch Connecting Towers ── */}
+      {/* Central Arch Connecting Towers (Open Sky) */}
       <mesh position={[0, 4.6, 0]} castShadow>
         <boxGeometry args={[3.0, 0.65, 1.1]} />
         <meshStandardMaterial color="#fef08a" metalness={0.6} roughness={0.3} />
@@ -1046,29 +985,7 @@ const GrandCarnivalBuilding: React.FC = () => {
         <meshStandardMaterial color="#dc2626" roughness={0.4} />
       </mesh>
 
-      {/* ── Rotating Scalloped Carousel Canopy On Arch ── */}
-      <group ref={carouselRef} position={[0, 5.6, 0]}>
-        <mesh castShadow>
-          <coneGeometry args={[2.4, 1.1, 16]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.4} />
-        </mesh>
-        {Array.from({ length: 14 }).map((_, i) => (
-          <mesh
-            key={i}
-            position={[
-              Math.cos((i * Math.PI) / 7) * 2.3,
-              -0.18,
-              Math.sin((i * Math.PI) / 7) * 2.3,
-            ]}
-            castShadow
-          >
-            <boxGeometry args={[0.22, 0.28, 0.06]} />
-            <meshStandardMaterial color={i % 2 === 0 ? '#fbbf24' : '#ffffff'} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* ── Floating Glowing Championship Trophy Cup ── */}
+      {/* Floating Glowing Championship Trophy Cup */}
       <group ref={trophyRef} position={[0, 3.9, 0]}>
         <mesh castShadow>
           <cylinderGeometry args={[0.45, 0.22, 0.6, 16]} />
@@ -1086,14 +1003,7 @@ const GrandCarnivalBuilding: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── Grand Marquee Sign ── */}
-      <GrandMarqueeSign
-        position={[0, 7.6, 0]}
-        titleColor="#b91c1c"
-        width={3.8}
-        height={0.8}
-      />
-      <BuntingFlags width={5.2} position={[0, 4.3, 2.2]} count={9} />
+      <BuntingFlags width={5.2} position={[0, 4.3, 1.8]} count={9} />
     </group>
   );
 };
@@ -1104,19 +1014,19 @@ const GrandCarnivalBuilding: React.FC = () => {
 const IslandEnvironment: React.FC = () => {
   return (
     <group>
-      {/* ── Multi-Tier Lush Grass Island ── */}
+      {/* Multi-Tier Lush Grass Island */}
       <mesh position={[0, -0.5, 0]} receiveShadow>
-        <cylinderGeometry args={[18, 20, 1.6, 48]} />
+        <cylinderGeometry args={[19, 21, 1.6, 48]} />
         <meshStandardMaterial color="#4ade80" roughness={0.8} />
       </mesh>
       {/* Sandy Beach Shore Ring */}
       <mesh position={[0, -1.0, 0]} receiveShadow>
-        <cylinderGeometry args={[20, 22, 0.8, 48]} />
+        <cylinderGeometry args={[21, 23, 0.8, 48]} />
         <meshStandardMaterial color="#fef08a" roughness={0.9} />
       </mesh>
-      {/* Sparkling Turquoise Ocean */}
+      {/* Sparkling Ocean */}
       <mesh position={[0, -1.3, 0]} receiveShadow>
-        <cylinderGeometry args={[48, 48, 0.4, 48]} />
+        <cylinderGeometry args={[50, 50, 0.4, 48]} />
         <meshPhysicalMaterial
           color="#38bdf8"
           roughness={0.12}
@@ -1127,12 +1037,11 @@ const IslandEnvironment: React.FC = () => {
         />
       </mesh>
 
-      {/* ── Wooden Boardwalk Pier Extends Forward ── */}
+      {/* Boardwalk Pier */}
       <mesh position={[0, 0.05, 17]} receiveShadow castShadow>
         <boxGeometry args={[3.4, 0.22, 10.5]} />
         <meshStandardMaterial color="#92400e" roughness={0.7} />
       </mesh>
-      {/* Pier Railings & Posts */}
       {[-1.5, 1.5].map((x, i) => (
         <group key={i}>
           {[12.5, 14.5, 16.5, 18.5, 20.5].map((z, j) => (
@@ -1148,8 +1057,8 @@ const IslandEnvironment: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Sailboat in the Bay ── */}
-      <group position={[15, -0.6, 14]} rotation={[0, -0.6, 0]}>
+      {/* Sailboat */}
+      <group position={[16, -0.6, 14]} rotation={[0, -0.6, 0]}>
         <mesh position={[0, 0.2, 0]} castShadow>
           <boxGeometry args={[1.3, 0.45, 2.8]} />
           <meshStandardMaterial color="#ffffff" roughness={0.4} />
@@ -1164,14 +1073,15 @@ const IslandEnvironment: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── Cobblestone Pathways Linking Booths ── */}
+      {/* Cobblestone Pathways */}
       {[
-        { pos: [-4.5, 0.06, -3.2] as [number, number, number], w: 7.5, d: 1.8, rot: 0.5 },
-        { pos: [4.5, 0.06, -3.2] as [number, number, number], w: 7.5, d: 1.8, rot: -0.5 },
-        { pos: [-5.2, 0.06, 0.5] as [number, number, number], w: 8.0, d: 1.8, rot: -0.2 },
-        { pos: [5.2, 0.06, 0.5] as [number, number, number], w: 8.0, d: 1.8, rot: 0.2 },
-        { pos: [-3.5, 0.06, 4.5] as [number, number, number], w: 7.0, d: 1.8, rot: -0.6 },
-        { pos: [0, 0.06, 5.5] as [number, number, number], w: 2.6, d: 8.5, rot: 0 },
+        { pos: [-4.5, 0.06, -5.2] as [number, number, number], w: 7.5, d: 1.8, rot: 0.6 },
+        { pos: [4.5, 0.06, -5.2] as [number, number, number], w: 7.5, d: 1.8, rot: -0.6 },
+        { pos: [-6.0, 0.06, -0.5] as [number, number, number], w: 7.5, d: 1.8, rot: 0.1 },
+        { pos: [6.0, 0.06, -0.5] as [number, number, number], w: 7.5, d: 1.8, rot: -0.1 },
+        { pos: [-4.5, 0.06, 5.2] as [number, number, number], w: 7.0, d: 1.8, rot: -0.5 },
+        { pos: [2.5, 0.06, 5.5] as [number, number, number], w: 6.5, d: 1.8, rot: 0.3 },
+        { pos: [0, 0.06, 6.5] as [number, number, number], w: 2.6, d: 8.5, rot: 0 },
       ].map((path, i) => (
         <mesh key={i} position={path.pos} rotation={[0, path.rot, 0]} receiveShadow>
           <boxGeometry args={[path.w, 0.06, path.d]} />
@@ -1179,13 +1089,12 @@ const IslandEnvironment: React.FC = () => {
         </mesh>
       ))}
 
-      {/* ── Pine Trees ── */}
+      {/* Pine Trees */}
       {[
-        [-14, 0, -8], [-15, 0, 2], [-13, 0, 12],
-        [14, 0, -8], [15, 0, 2], [13, 0, 12],
-        [-5, 0, -14], [5, 0, -14],
-        [-10, 0, -12], [10, 0, -12],
-        [-16, 0, 6], [16, 0, 6],
+        [-15, 0, -9], [-16, 0, 2], [-14, 0, 13],
+        [15, 0, -9], [16, 0, 2], [14, 0, 13],
+        [-5, 0, -15], [5, 0, -15],
+        [-11, 0, -13], [11, 0, -13],
       ].map(([x, y, z], i) => (
         <group key={i} position={[x, y, z]}>
           <mesh position={[0, 0.8, 0]} castShadow>
@@ -1207,10 +1116,10 @@ const IslandEnvironment: React.FC = () => {
         </group>
       ))}
 
-      {/* ── Warm Street Lanterns ── */}
+      {/* Street Lanterns */}
       {[
         [-3.2, 0, 1.2], [3.2, 0, 1.2],
-        [-6.2, 0, -4.2], [6.2, 0, -4.2],
+        [-6.5, 0, -4.5], [6.5, 0, -4.5],
         [0, 0, 8.5],
       ].map(([x, y, z], i) => (
         <group key={`lamp-${i}`} position={[x, y, z]}>
@@ -1233,14 +1142,44 @@ const IslandEnvironment: React.FC = () => {
 };
 
 // ═══════════════════════════════════════════════════════════════
-// 4. MAIN ISLAND CANVAS
+// 4. PARALLAX RIG CONTAINER (Responds Smoothly to Cursor)
+// ═══════════════════════════════════════════════════════════════
+const IslandParallaxRig: React.FC = () => {
+  const rigRef = useRef<THREE.Group>(null);
+
+  useFrame((state, delta) => {
+    if (rigRef.current) {
+      // Smooth dynamic parallax based on pointer coordinates
+      const targetRotY = state.pointer.x * 0.18;
+      const targetRotX = -state.pointer.y * 0.08;
+      rigRef.current.rotation.y = THREE.MathUtils.lerp(rigRef.current.rotation.y, targetRotY, delta * 3);
+      rigRef.current.rotation.x = THREE.MathUtils.lerp(rigRef.current.rotation.x, targetRotX, delta * 3);
+    }
+  });
+
+  return (
+    <group ref={rigRef}>
+      <IslandEnvironment />
+      <CentralClockTower />
+      <MysteryChestsBuilding />
+      <OddsWheelBuilding />
+      <BallDropBuilding />
+      <ProbabilityLabBuilding />
+      <GameBuilderBuilding />
+      <GrandCarnivalBuilding />
+    </group>
+  );
+};
+
+// ═══════════════════════════════════════════════════════════════
+// 5. MAIN ISLAND CANVAS
 // ═══════════════════════════════════════════════════════════════
 export const CarnivalIslandScene: React.FC = () => {
   return (
     <div className="w-full h-full">
       <Canvas
         shadows
-        camera={{ position: [0, 22, 28], fov: 42 }}
+        camera={{ position: [0, 24, 30], fov: 42 }}
         gl={{ antialias: true, alpha: false }}
         onCreated={({ gl }) => {
           gl.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1249,7 +1188,7 @@ export const CarnivalIslandScene: React.FC = () => {
       >
         <color attach="background" args={['#bae6fd']} />
 
-        {/* ── Sun & Ambient Lighting ── */}
+        {/* Sun & Lighting */}
         <ambientLight intensity={0.8} color="#f0f9ff" />
         <directionalLight
           position={[16, 30, 18]}
@@ -1261,17 +1200,8 @@ export const CarnivalIslandScene: React.FC = () => {
         />
         <directionalLight position={[-14, 12, -12]} intensity={0.45} color="#38bdf8" />
 
-        {/* ── Island World Environment ── */}
-        <IslandEnvironment />
-        <CentralClockTower />
-
-        {/* ── 6 Detailed 3D Carnival Attraction Buildings ── */}
-        <MysteryChestsBuilding />
-        <OddsWheelBuilding />
-        <BallDropBuilding />
-        <ProbabilityLabBuilding />
-        <GameBuilderBuilding />
-        <GrandCarnivalBuilding />
+        {/* Parallax-enabled 3D Island */}
+        <IslandParallaxRig />
       </Canvas>
     </div>
   );

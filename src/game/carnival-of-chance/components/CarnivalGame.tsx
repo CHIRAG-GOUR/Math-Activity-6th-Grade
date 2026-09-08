@@ -55,12 +55,12 @@ export const CarnivalGame: React.FC = () => {
       {/* ── 5. Island Hub Bottom Helper Ribbon ── */}
       {activeActivity === 'hub' && (
         <div className="fixed bottom-4 inset-x-0 z-30 flex justify-center pointer-events-none select-none">
-          <div className="px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-100 via-white to-amber-100 border-3 border-amber-400 shadow-[0_10px_35px_rgba(0,0,0,0.5)] flex items-center gap-2.5">
-            <Star className="w-4 h-4 fill-amber-500 text-amber-600" />
-            <span className="text-xs sm:text-sm font-black text-slate-800 tracking-wide text-center">
+          <div className="px-6 py-2 rounded-xl bg-yellow-400 border-3 border-black shadow-[4px_4px_0px_#000000] flex items-center gap-2.5">
+            <Star className="w-4 h-4 fill-red-600 text-black stroke-black stroke-1" />
+            <span className="text-xs sm:text-sm font-black text-black uppercase tracking-wider text-center">
               Touch any 3D attraction building on the island to begin!
             </span>
-            <Star className="w-4 h-4 fill-amber-500 text-amber-600" />
+            <Star className="w-4 h-4 fill-red-600 text-black stroke-black stroke-1" />
           </div>
         </div>
       )}
