@@ -365,12 +365,19 @@ export const ArcadeCabinet3D: React.FC<{
 
   const handleClick = (e: any) => {
     e.stopPropagation();
-    soundManager.playClick();
-    if (onSelect) {
-      onSelect(config.id);
-    }
     if (config.status === 'active' && config.route !== '#') {
-      router.push(config.route);
+      soundManager.playArcadeGameStart();
+      if (onSelect) {
+        onSelect(config.id);
+      }
+      setTimeout(() => {
+        router.push(config.route);
+      }, 260);
+    } else {
+      soundManager.playClick();
+      if (onSelect) {
+        onSelect(config.id);
+      }
     }
   };
 

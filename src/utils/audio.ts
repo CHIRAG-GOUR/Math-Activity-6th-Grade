@@ -641,6 +641,72 @@ class SoundEngine {
     this.stopTrainRunningAudio();
     this.playVaultCracked();
   }
+
+  // Authentic Retro Arcade Coin Drop & Game Startup Chime
+  public playArcadeGameStart() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+
+    const now = this.ctx.currentTime;
+
+    // 1. Dual Coin Drop Ting (B5 -> E6)
+    const coinNotes = [987.77, 1318.51];
+    coinNotes.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.08);
+
+      gain.gain.setValueAtTime(0.35, now + idx * 0.08);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.08 + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(now + idx * 0.08);
+      osc.stop(now + idx * 0.08 + 0.18);
+    });
+
+    // 2. Rising Retro 8-bit Power-Up Arpeggio (C5 -> E5 -> G5 -> C6 -> E6 -> G6)
+    const arpNotes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+    arpNotes.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const t = now + 0.22 + idx * 0.055;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, t);
+
+      gain.gain.setValueAtTime(0.28, t);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.start(t);
+      osc.stop(t + 0.12);
+    });
+
+    // 3. Final Resonant Power Chime
+    const endT = now + 0.58;
+    const endOsc = this.ctx.createOscillator();
+    const endGain = this.ctx.createGain();
+    endOsc.type = 'sawtooth';
+    endOsc.frequency.setValueAtTime(1046.5, endT);
+    endOsc.frequency.exponentialRampToValueAtTime(2093.0, endT + 0.35);
+
+    endGain.gain.setValueAtTime(0.3, endT);
+    endGain.gain.exponentialRampToValueAtTime(0.001, endT + 0.4);
+
+    endOsc.connect(endGain);
+    endGain.connect(this.ctx.destination);
+
+    endOsc.start(endT);
+    endOsc.stop(endT + 0.4);
+  }
 }
 
 export const soundManager = new SoundEngine();

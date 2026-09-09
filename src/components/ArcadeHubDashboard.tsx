@@ -33,7 +33,11 @@ export const ArcadeHubDashboard: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(soundManager.getMuted());
 
-  const totalPages = Math.ceil(ARCADE_CABINET_DATA.length / MACHINES_PER_PAGE);
+  // Feature flag: Show wing exploration option once future activities (5-8) are ready
+  const ENABLE_FUTURE_WINGS_EXPLORATION = false;
+  const totalPages = ENABLE_FUTURE_WINGS_EXPLORATION
+    ? Math.ceil(ARCADE_CABINET_DATA.length / MACHINES_PER_PAGE)
+    : 1;
 
   const goToNextPage = useCallback(() => {
     soundManager.playClick();
@@ -53,8 +57,9 @@ export const ArcadeHubDashboard: React.FC = () => {
     });
   }, []);
 
-  // Keyboard Navigation: Left and Right arrows to switch wings
+  // Keyboard Navigation: Left and Right arrows to switch wings (when enabled)
   useEffect(() => {
+    if (!ENABLE_FUTURE_WINGS_EXPLORATION) return;
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'ArrowRight') {
         goToNextPage();
@@ -64,7 +69,7 @@ export const ArcadeHubDashboard: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNextPage, goToPrevPage]);
+  }, [ENABLE_FUTURE_WINGS_EXPLORATION, goToNextPage, goToPrevPage]);
 
   // Fullscreen Listener
   useEffect(() => {
@@ -106,9 +111,18 @@ export const ArcadeHubDashboard: React.FC = () => {
         activePage={activePage}
         selectedCategory={selectedCategory}
         onSelectCabinet={(id) => {
-          if (id === 'math-escape-vault') router.push('/math-vault');
-          else if (id === 'number-railway') router.push('/number-railway');
-          else if (id === 'carnival-of-chance') router.push('/carnival-of-chance');
+          if (id === 'math-escape-vault') {
+            soundManager.playArcadeGameStart();
+            setTimeout(() => router.push('/math-vault'), 260);
+          } else if (id === 'number-railway') {
+            soundManager.playArcadeGameStart();
+            setTimeout(() => router.push('/number-railway'), 260);
+          } else if (id === 'carnival-of-chance') {
+            soundManager.playArcadeGameStart();
+            setTimeout(() => router.push('/carnival-of-chance'), 260);
+          } else {
+            soundManager.playClick();
+          }
         }}
       />
 
@@ -182,29 +196,31 @@ export const ArcadeHubDashboard: React.FC = () => {
           </div>
         </div>
 
-        {/* Center: Wing Switcher & Machine Filter Pills */}
+        {/* Center: Machine Focus Filter Pills */}
         <div className="flex items-center gap-2 bg-amber-50/90 p-1 rounded-2xl border border-amber-300 shadow-inner overflow-x-auto">
           
-          {/* Wing Selector Tabs */}
-          <div className="flex items-center gap-1 border-r border-amber-300/80 pr-2 mr-1">
-            {Array.from({ length: totalPages }).map((_, pIdx) => (
-              <button
-                key={`wing-${pIdx}`}
-                onClick={() => {
-                  soundManager.playClick();
-                  setActivePage(pIdx);
-                  setSelectedCategory('all');
-                }}
-                className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                  activePage === pIdx
-                    ? 'bg-slate-950 text-amber-400 shadow-sm'
-                    : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-950'
-                }`}
-              >
-                WING {pIdx + 1}
-              </button>
-            ))}
-          </div>
+          {/* Wing Selector Tabs (active when multi-wing is enabled) */}
+          {totalPages > 1 && (
+            <div className="flex items-center gap-1 border-r border-amber-300/80 pr-2 mr-1">
+              {Array.from({ length: totalPages }).map((_, pIdx) => (
+                <button
+                  key={`wing-${pIdx}`}
+                  onClick={() => {
+                    soundManager.playClick();
+                    setActivePage(pIdx);
+                    setSelectedCategory('all');
+                  }}
+                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                    activePage === pIdx
+                      ? 'bg-slate-950 text-amber-400 shadow-sm'
+                      : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-950'
+                  }`}
+                >
+                  WING {pIdx + 1}
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Current Wing Category Pills */}
           <button
