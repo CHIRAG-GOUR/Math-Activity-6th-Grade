@@ -153,7 +153,7 @@ export const ContinuousRailwayTrack: React.FC<TrackProps> = ({
       {/* ── 4. Trestle Bridge Section (if configured) ── */}
       {hasBridge && (
         <group>
-          {[0.3, 0.5, 0.7].map((t, i) => {
+          {[0.28, 0.38, 0.48].map((t, i) => {
             const bp = curve.getPointAt(t);
             return (
               <group key={i} position={[bp.x, -0.6, bp.z]}>
@@ -173,8 +173,8 @@ export const ContinuousRailwayTrack: React.FC<TrackProps> = ({
 
       {/* ── 5. Mountain Tunnel Arch (if configured) ── */}
       {hasTunnel && (() => {
-        const tp = curve.getPointAt(0.5);
-        const tangent = curve.getTangentAt(0.5);
+        const tp = curve.getPointAt(0.72);
+        const tangent = curve.getTangentAt(0.72);
         const ang = Math.atan2(tangent.x, tangent.z);
         return (
           <group position={[tp.x, 0, tp.z]} rotation={[0, ang, 0]}>

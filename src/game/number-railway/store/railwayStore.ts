@@ -108,14 +108,14 @@ interface RailwayActions {
 export type RailwayStore = RailwayGameState & RailwayActions;
 
 const computeStepProgressAndSignals = (step: number) => {
-  // Step 0 (0 Q answered): Far staging background (progress 0), all signals red
+  // Step 0 (0 Q answered): Far background staging yard (progress 0), all signals red
   // Step 1 (1 Q answered): Approaching station (progress 0.06), all signals red
   // Step 2 (2 Q answered): At station platform (progress 0.12), all signals red
   // Step 3 (3 Q answered): Cleared Signal 1 (progress 0.18), Signal 1 turns GREEN
-  // Step 4 (4 Q answered): Approached Junction Switch (progress 0.24), Signal 2 turns GREEN (both green!)
-  // Step 5 (5 Q answered): Showdown departure (progress 0.24 -> 1.00)
+  // Step 4 (4 Q answered): Approached Junction Switch approach (progress 0.23), Signal 2 turns GREEN (both green!)
+  // Step 5 (5 Q answered): Showdown departure (progress 0.23 -> 1.00)
   const progress =
-    step === 1 ? 0.06 : step === 2 ? 0.12 : step === 3 ? 0.18 : step >= 4 ? 0.24 : 0;
+    step === 1 ? 0.06 : step === 2 ? 0.12 : step === 3 ? 0.18 : step >= 4 ? 0.23 : 0;
   const signal1: SignalState = step >= 3 ? 'green' : 'red';
   const signal2: SignalState = step >= 4 ? 'green' : 'red';
 
@@ -661,7 +661,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         toastMessage: `🚂 ${winnerName} EXPRESS ROARING DOWN THE LINE!`,
         [isBlue ? 'blueTrain' : 'redTrain']: {
           ...s[isBlue ? 'blueTrain' : 'redTrain'],
-          progress: 0.24,
+          progress: 0.23,
           speed: 1,
           state: 'departing',
           smokeActive: true,
@@ -670,18 +670,18 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         },
       }));
 
-      let prog = 0.24;
+      let prog = 0.23;
       let tick = 0;
       travelInterval = setInterval(() => {
         tick++;
-        prog += (1.0 - 0.24) / 160; // Smooth 8-second cinematic ride
+        prog += (1.0 - 0.23) / 160; // Smooth 8-second cinematic ride
 
         // Loud whistle blasts 2 times spaced at intervals during train movement!
         if (tick === 50 || tick === 105) {
           soundManager.playLoudWhistle();
         }
 
-        const normT = (prog - 0.24) / (1.0 - 0.24);
+        const normT = (prog - 0.23) / (1.0 - 0.23);
         const spd = normT < 0.15 ? normT * 6.6 : normT > 0.85 ? (1 - normT) * 6.6 : 1;
 
         set((s) => ({

@@ -14,19 +14,30 @@ import { HumanFigure } from './Locomotive';
 
 interface CartoonStationProps {
   position: [number, number, number];
+  rotation?: [number, number, number];
   name: string;
+  team?: 'blue' | 'red' | 'terminal';
   isSkillizeeJunction?: boolean;
 }
 
 export const CartoonStation: React.FC<CartoonStationProps> = ({
   position,
+  rotation = [0, 0, 0],
   name,
+  team = 'blue',
   isSkillizeeJunction = false,
 }) => {
   const passengersOnPlatform = isSkillizeeJunction;
+  const isRed = team === 'red';
+  const isTerminal = team === 'terminal';
+
+  const canopyMain = isRed ? '#dc2626' : isTerminal ? '#16a34a' : '#0284c7';
+  const canopyDark = isRed ? '#991b1b' : isTerminal ? '#15803d' : '#0369a1';
+  const signColor = isRed ? '#7f1d1d' : isTerminal ? '#14532d' : '#1e3a8a';
+  const signEmissive = isRed ? '#ef4444' : isTerminal ? '#22c55e' : '#38bdf8';
 
   return (
-    <group position={position}>
+    <group position={position} rotation={rotation}>
       {/* ── 1. Concrete Platform ── */}
       <group position={[0, 0, 0]}>
         {/* Main Platform Slab */}
@@ -69,7 +80,7 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
           ))}
         </group>
 
-        {/* ── 3D PASSENGERS WAITING ON SKILLIZEE PLATFORM (Before Step 1) ── */}
+        {/* ── 3D PASSENGERS WAITING ON STATION PLATFORM ── */}
         {passengersOnPlatform && (
           <group position={[0.4, 0.16, -1.0]}>
             {/* Passenger 1 (Student with Backpack) */}
@@ -77,7 +88,7 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
               position={[0, 0, 0]}
               rotation={[0, Math.PI / 2, 0]}
               scale={0.8}
-              shirtColor="#0284c7"
+              shirtColor={isRed ? '#dc2626' : '#0284c7'}
               pantsColor="#1e293b"
               hasBag={true}
             />
@@ -86,7 +97,7 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
               position={[-0.4, 0, -0.8]}
               rotation={[0, Math.PI / 2 - 0.2, 0]}
               scale={0.85}
-              shirtColor="#16a34a"
+              shirtColor={isRed ? '#b91c1c' : '#16a34a'}
               pantsColor="#334155"
               hasCap={true}
             />
@@ -95,7 +106,7 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
               position={[0.1, 0, -1.6]}
               rotation={[0, Math.PI / 2 + 0.1, 0]}
               scale={0.78}
-              shirtColor="#ea580c"
+              shirtColor={isRed ? '#ea580c' : '#2563eb'}
               pantsColor="#1e293b"
               hasBag={true}
             />
@@ -133,15 +144,15 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
           ))}
         </group>
 
-        {/* Curved Royal Blue Canopy */}
+        {/* Curved Team Themed Canopy */}
         <group position={[0.1, 2.65, 0]}>
           <mesh position={[0, 0, 0]}>
             <boxGeometry args={[2.2, 0.16, 6.4]} />
-            <meshStandardMaterial color="#0284c7" roughness={0.3} metalness={0.2} />
+            <meshStandardMaterial color={canopyMain} roughness={0.3} metalness={0.2} />
           </mesh>
           <mesh position={[0, 0.12, 0]} rotation={[Math.PI / 2, 0, 0]}>
             <cylinderGeometry args={[1.1, 1.1, 6.4, 24, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color="#0369a1" roughness={0.3} />
+            <meshStandardMaterial color={canopyDark} roughness={0.3} />
           </mesh>
 
           {/* Station Name Board on Canopy Roof */}
@@ -152,11 +163,11 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
             </mesh>
             <mesh position={[-0.01, 0, 0]}>
               <boxGeometry args={[0.04, 0.58, 2.86]} />
-              <meshStandardMaterial color="#dc2626" roughness={0.3} />
+              <meshStandardMaterial color={isRed ? '#dc2626' : '#2563eb'} roughness={0.3} />
             </mesh>
             <mesh position={[0.025, 0, 0]}>
               <boxGeometry args={[0.02, 0.26, 2.4]} />
-              <meshStandardMaterial color={isSkillizeeJunction ? '#1e3a8a' : '#14532d'} roughness={0.2} />
+              <meshStandardMaterial color={signColor} roughness={0.2} />
             </mesh>
           </group>
         </group>
@@ -170,8 +181,8 @@ export const CartoonStation: React.FC<CartoonStationProps> = ({
           <mesh position={[0.05, 0, 0]}>
             <boxGeometry args={[0.02, 0.24, 2.4]} />
             <meshStandardMaterial
-              color={isSkillizeeJunction ? '#38bdf8' : '#4ade80'}
-              emissive={isSkillizeeJunction ? '#0284c7' : '#16a34a'}
+              color={signEmissive}
+              emissive={signEmissive}
               emissiveIntensity={0.6}
             />
           </mesh>
