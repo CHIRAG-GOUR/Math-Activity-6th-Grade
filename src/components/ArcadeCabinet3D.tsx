@@ -3,8 +3,8 @@
 // Authentic Three.js Mesh Model with:
 // - Curved 3D Side Wings with Rich Vibrant Colors & Decals
 // - Skillizee Circular Speaker Medallions
-// - High-Contrast Backlit Marquees with Clear Names & Topics
-// - Prominent Overhead Name & Topic Floating Cards (Always Readable & Well Spaced)
+// - Ultra-Clear, High-Contrast Marquees with Simple, Highly Legible Typography
+// - Compact, Perfectly Spaced Floating Name & Topic Cards (No Overlap)
 // - Live CRT Monitor with High-Res Game Artwork & Retro Scanline Glow
 // - Slanted 3D Control Deck with Animated Joysticks & Candy Arcade Buttons
 // - Vibrant Stamped Coin Door with Illuminated 25¢ Insert Buttons
@@ -109,18 +109,18 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.fillRect(0, 0, 1024, 768);
 
       ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 14;
       ctx.beginPath();
-      ctx.arc(512, 350, 190, 0, Math.PI * 2);
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '900 68px "Impact", "Arial Black", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('MATH ESCAPE VAULT', 512, 330);
-      ctx.font = 'bold 36px "Inter", sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MATH ESCAPE VAULT', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else if (config.id === 'number-railway') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#0284c7');
@@ -130,18 +130,18 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.fillRect(0, 0, 1024, 768);
 
       ctx.strokeStyle = '#ffffff';
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 14;
       ctx.beginPath();
-      ctx.arc(512, 350, 190, 0, Math.PI * 2);
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 64px "Impact", "Arial Black", sans-serif';
+      ctx.font = 'bold 54px Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('THE GREAT NUMBER RAILWAY', 512, 330);
-      ctx.font = 'bold 36px "Inter", sans-serif';
+      ctx.fillText('THE GREAT NUMBER RAILWAY', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
-      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else if (config.id === 'carnival-of-chance') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#b91c1c');
@@ -151,18 +151,18 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.fillRect(0, 0, 1024, 768);
 
       ctx.strokeStyle = '#fbbf24';
-      ctx.lineWidth = 16;
+      ctx.lineWidth = 14;
       ctx.beginPath();
-      ctx.arc(512, 350, 190, 0, Math.PI * 2);
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = '#fbbf24';
-      ctx.font = '900 60px "Impact", "Arial Black", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('THE GREAT CARNIVAL OF CHANCE', 512, 330);
-      ctx.font = 'bold 36px "Inter", sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
+      ctx.font = 'bold 52px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE GREAT CARNIVAL OF CHANCE', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#6b21a8');
@@ -176,16 +176,16 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.strokeRect(120, 120, 784, 528);
 
       ctx.fillStyle = '#ffffff';
-      ctx.font = '900 72px "Impact", "Arial Black", sans-serif';
+      ctx.font = 'bold 64px Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('★ COMING SOON ★', 512, 340);
-      ctx.font = 'bold 34px "Inter", sans-serif';
+      ctx.fillText('★ COMING SOON ★', 512, 330);
+      ctx.font = 'bold 32px Arial, sans-serif';
       ctx.fillStyle = '#f0abfc';
-      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 420);
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
     }
 
     // CRT Scanlines
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.18)';
     for (let y = 0; y < 768; y += 8) {
       ctx.fillRect(0, y, 1024, 4);
     }
@@ -195,72 +195,91 @@ export const ArcadeCabinet3D: React.FC<{
     return tex;
   }, [config]);
 
-  // Procedural Canvas Texture for Physical Top Marquee Lightbox
+  // Ultra-Sharp, High-Visibility, Simple Font Procedural Canvas for Physical Top Marquee
   const marqueeTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 340;
+    canvas.width = 2048;
+    canvas.height = 680;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
-    const bgGrad = ctx.createLinearGradient(0, 0, 1024, 0);
+    // Rich Vibrant Solid Gradient Background
+    const bgGrad = ctx.createLinearGradient(0, 0, 2048, 0);
     if (config.id === 'math-escape-vault') {
-      bgGrad.addColorStop(0, '#1e3a8a');
-      bgGrad.addColorStop(0.5, '#f59e0b');
-      bgGrad.addColorStop(1, '#1e3a8a');
+      bgGrad.addColorStop(0, '#1d4ed8');
+      bgGrad.addColorStop(0.5, '#3b82f6');
+      bgGrad.addColorStop(1, '#1d4ed8');
     } else if (config.id === 'number-railway') {
-      bgGrad.addColorStop(0, '#0369a1');
+      bgGrad.addColorStop(0, '#0284c7');
       bgGrad.addColorStop(0.5, '#38bdf8');
       bgGrad.addColorStop(1, '#0284c7');
     } else if (config.id === 'carnival-of-chance') {
-      bgGrad.addColorStop(0, '#991b1b');
-      bgGrad.addColorStop(0.5, '#fbbf24');
-      bgGrad.addColorStop(1, '#dc2626');
+      bgGrad.addColorStop(0, '#b91c1c');
+      bgGrad.addColorStop(0.5, '#ef4444');
+      bgGrad.addColorStop(1, '#b91c1c');
     } else {
-      bgGrad.addColorStop(0, '#581c87');
-      bgGrad.addColorStop(0.5, '#c084fc');
-      bgGrad.addColorStop(1, '#7e22ce');
+      bgGrad.addColorStop(0, '#6b21a8');
+      bgGrad.addColorStop(0.5, '#a855f7');
+      bgGrad.addColorStop(1, '#6b21a8');
     }
 
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1024, 340);
+    ctx.fillRect(0, 0, 2048, 680);
+
+    // Outer Illuminated Bezel Border
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 18;
+    ctx.strokeRect(16, 16, 2016, 648);
+
+    // Inner Glowing Accent Border
+    ctx.strokeStyle = config.theme.tMoldingColor;
+    ctx.lineWidth = 8;
+    ctx.strokeRect(36, 36, 1976, 608);
+
+    // 1. Top Subheader: Grade & Cabinet (Clean, Simple Arial Font in Bright Yellow/Cyan)
+    ctx.fillStyle = config.id === 'number-railway' ? '#e0f2fe' : config.id === 'slot-04' ? '#f3e8ff' : '#fef08a';
+    ctx.font = 'bold 52px Arial, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText(`★ CABINET #${config.number}  •  ${config.grade.toUpperCase()} ★`, 1024, 118);
+
+    // 2. Main Game Title in Ultra-Legible, Simple, Bold Pure White Font with Soft Shadow
+    ctx.font = '900 102px Arial, sans-serif';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillText(config.title, 1028, 298); // Clean drop shadow for maximum contrast
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(config.title, 1024, 294);
+
+    // 3. Bottom Topic Badge: Solid High-Contrast Pill with Bold White Text (NOT black)
+    const pillBg = config.id === 'math-escape-vault' 
+      ? '#b45309' 
+      : config.id === 'number-railway' 
+      ? '#0369a1' 
+      : config.id === 'carnival-of-chance' 
+      ? '#7f1d1d' 
+      : '#4c1d95';
+
+    ctx.fillStyle = pillBg;
+    ctx.beginPath();
+    ctx.roundRect(240, 420, 1568, 160, 80);
+    ctx.fill();
 
     ctx.strokeStyle = '#ffffff';
-    ctx.lineWidth = 14;
-    ctx.strokeRect(10, 10, 1004, 320);
-
-    ctx.strokeStyle = '#020617';
     ctx.lineWidth = 8;
-    ctx.strokeRect(24, 24, 976, 292);
+    ctx.stroke();
 
-    ctx.fillStyle = '#020617';
-    ctx.font = '900 32px "Inter", "Arial Black", sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText(`★ CABINET #${config.number} • ${config.grade.toUpperCase()} ★`, 512, 72);
-
-    ctx.font = '900 70px "Impact", "Arial Black", sans-serif';
-    ctx.fillStyle = '#000000';
-    ctx.fillText(config.title, 515, 175);
-    ctx.fillStyle = config.theme.marqueeTextColor || '#ffffff';
-    ctx.fillText(config.title, 512, 172);
-
-    ctx.fillStyle = '#020617';
-    ctx.fillRect(150, 220, 724, 70);
-    ctx.strokeStyle = config.theme.tMoldingColor;
-    ctx.lineWidth = 4;
-    ctx.strokeRect(150, 220, 724, 70);
-
-    ctx.font = '900 34px "Inter", "Arial Black", sans-serif';
-    ctx.fillStyle = config.theme.tMoldingColor;
-    ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 268);
+    ctx.font = 'bold 64px Arial, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 1024, 526);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 8;
+    tex.generateMipmaps = true;
     return tex;
   }, [config]);
 
-  // Procedural Side Art Decal Texture
+  // Procedural Side Art Decal Texture with Bright Themes
   const sideArtTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
@@ -285,6 +304,7 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.bezierCurveTo(220, 320, 320, 620, 512, 670);
     ctx.stroke();
 
+    // Central Circular Speaker Medallion
     ctx.fillStyle = config.theme.secondaryColor || '#ffffff';
     ctx.beginPath();
     ctx.arc(256, 420, 115, 0, Math.PI * 2);
@@ -299,10 +319,10 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
-    ctx.font = '900 36px "Impact", "Arial Black", sans-serif';
+    ctx.font = 'bold 36px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText('SKILLIZEE', 256, 415);
-    ctx.font = 'bold 22px "Inter", sans-serif';
+    ctx.font = 'bold 22px Arial, sans-serif';
     ctx.fillText('ARCADE', 256, 445);
 
     const tex = new THREE.CanvasTexture(canvas);
@@ -333,7 +353,7 @@ export const ArcadeCabinet3D: React.FC<{
 
     if (marqueeMeshRef.current && marqueeMeshRef.current.material) {
       const mat = marqueeMeshRef.current.material as THREE.MeshStandardMaterial;
-      const pulse = 0.85 + Math.sin(t * 3) * 0.15;
+      const pulse = 0.88 + Math.sin(t * 3) * 0.12;
       mat.emissiveIntensity = hovered ? 1.4 : pulse;
     }
 
@@ -403,22 +423,26 @@ export const ArcadeCabinet3D: React.FC<{
 
       {/* ── LOWER FRONT CHASSIS & COIN DOOR (`y = 0.9, z = 0`) ── */}
       <group position={[0, 0.9, 0]}>
+        {/* Main Lower Box in Vibrant Theme Color */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.44, 1.32, 1.25]} />
           <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.5} />
         </mesh>
 
+        {/* Front Metal Door Recess Plate */}
         <mesh position={[0, 0, 0.63]} receiveShadow castShadow>
           <boxGeometry args={[1.32, 1.18, 0.04]} />
           <meshStandardMaterial color={config.theme.coinDoorColor} roughness={0.4} metalness={0.5} />
         </mesh>
 
+        {/* Stamped Heavy Steel Coin Door Frame */}
         <group position={[0, -0.05, 0.66]}>
           <mesh castShadow>
             <boxGeometry args={[0.62, 0.82, 0.05]} />
             <meshStandardMaterial color={config.theme.secondaryColor || '#1e293b'} roughness={0.3} metalness={0.7} />
           </mesh>
 
+          {/* Dual 25¢ Coin Reject Inserts with Glowing Orange/Red Buttons */}
           {[-0.16, 0.16].map((cx, i) => (
             <group key={`coin-${i}`} position={[cx, 0.18, 0.035]}>
               <mesh castShadow>
@@ -692,38 +716,38 @@ export const ArcadeCabinet3D: React.FC<{
         </mesh>
       </group>
 
-      {/* ── 3D PROMINENT FLOATING NAME & TOPIC CARD OVERHEAD ── */}
-      <Html position={[0, 4.05, 0.3]} center distanceFactor={8.5}>
+      {/* ── 3D COMPACT FLOATING NAME & TOPIC CARD OVERHEAD (Floating cleanly above marquee, no overlap) ── */}
+      <Html position={[0, 4.25, 0.35]} center distanceFactor={13.5}>
         <div
           className={`flex flex-col items-center select-none transition-all duration-300 transform pointer-events-auto cursor-pointer ${
-            hovered ? 'scale-105 -translate-y-2' : 'scale-95 opacity-95'
+            hovered ? 'scale-110 -translate-y-2' : 'scale-100 opacity-95'
           }`}
           onClick={handleClick}
         >
           <div
-            className="px-3 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl flex flex-col items-center text-center gap-1 w-[185px]"
+            className="px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md flex flex-col items-center text-center gap-1 w-[128px]"
             style={{
-              border: `2.5px solid ${config.theme.cardBorderColor || config.theme.tMoldingColor}`,
+              border: `2px solid ${config.theme.cardBorderColor || config.theme.tMoldingColor}`,
               boxShadow: hovered
-                ? `0 12px 30px ${config.theme.tMoldingEmissive}88, 0 0 20px ${config.theme.tMoldingColor}66`
-                : `0 8px 20px rgba(0,0,0,0.15)`,
+                ? `0 10px 24px ${config.theme.tMoldingEmissive}88, 0 0 14px ${config.theme.tMoldingColor}55`
+                : `0 4px 12px rgba(0,0,0,0.12)`,
             }}
           >
             {/* Header Tag */}
-            <div className="flex items-center gap-1 text-[9px] font-black font-game tracking-widest uppercase text-slate-500">
-              <span>CABINET #{config.number}</span>
+            <div className="flex items-center gap-1 text-[8px] font-black font-game tracking-wider uppercase text-slate-500 leading-none">
+              <span>CAB #{config.number}</span>
               <span>•</span>
               <span className="text-amber-600 font-bold">{config.grade}</span>
             </div>
 
-            {/* Main Machine Name */}
-            <h3 className="text-xs font-black font-bank uppercase tracking-wider text-slate-950 leading-tight">
+            {/* Main Machine Name - Full title with clean wrapping */}
+            <h3 className="text-[9.5px] font-black font-bank uppercase tracking-tight text-slate-950 leading-tight">
               {config.title}
             </h3>
 
             {/* Topic Badge */}
             <div
-              className="px-2 py-0.5 rounded-full text-[10px] font-black font-game uppercase tracking-tight shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+              className="px-2 py-0.5 rounded-full text-[8px] font-bold font-game uppercase tracking-tight shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-full leading-tight"
               style={{
                 backgroundColor: config.theme.topicBadgeBg,
                 color: config.theme.topicBadgeText,
@@ -732,14 +756,14 @@ export const ArcadeCabinet3D: React.FC<{
               {config.topic}
             </div>
 
-            {/* Play Indicator on Hover */}
+            {/* Play Indicator */}
             {config.status === 'active' ? (
-              <div className="mt-0.5 flex items-center gap-1 text-[9px] font-bold text-emerald-700 font-game tracking-wider">
+              <div className="flex items-center gap-1 text-[7.5px] font-bold text-emerald-700 font-game tracking-wider leading-none mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                <span>CLICK TO PLAY →</span>
+                <span>PLAY →</span>
               </div>
             ) : (
-              <div className="mt-0.5 text-[8.5px] font-bold text-purple-700 font-game tracking-wider">
+              <div className="text-[7.5px] font-bold text-purple-700 font-game tracking-wider leading-none mt-0.5">
                 COMING SOON
               </div>
             )}

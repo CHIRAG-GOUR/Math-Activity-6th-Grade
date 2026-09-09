@@ -4,9 +4,9 @@
 // SKILLIZEE RETRO ARCADE LOBBY — 3D Three.js Immersive Environment
 // Full-window 3D Arcade Arena with:
 // - Physical 3D Arcade Cabinets in Bright, Vibrant Activity Colors
-// - Prominent Overhead Name & Topic Floating Cards
+// - Well-Spaced, Compact Overhead Name & Topic Floating Cards
+// - Clear, Simple Font Marquees with High Visibility
 // - Polished Honey-Wood & Neon Reflective Flooring
-// - Overhead Neon Signage, Ceiling Trusses, and Warm Retro Lighting
 // - Themed Dynamic Spotlights focused on each machine
 // - Smooth Parallax Camera Rig with Responsive Layout & Interactive Selection
 // ============================================================
@@ -28,15 +28,15 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/math-vault-card.jpg',
     route: '/math-vault',
-    position: [-4.2, 0, -0.1],
-    rotation: [0, 0.24, 0],
+    position: [-4.6, 0, -0.1],
+    rotation: [0, 0.22, 0],
     theme: {
       cabinetColor: '#1d4ed8',
       secondaryColor: '#3b82f6',
       tMoldingColor: '#fbbf24',
       tMoldingEmissive: '#f59e0b',
       marqueeBg: '#f59e0b',
-      marqueeTextColor: '#020617',
+      marqueeTextColor: '#ffffff',
       marqueeGlow: '#fbbf24',
       screenBezelColor: '#1e40af',
       screenGlowColor: '#fbbf24',
@@ -63,15 +63,15 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/number-railway-card.jpg',
     route: '/number-railway',
-    position: [-1.4, 0, 0.15],
-    rotation: [0, 0.08, 0],
+    position: [-1.55, 0, 0.15],
+    rotation: [0, 0.07, 0],
     theme: {
       cabinetColor: '#0284c7',
       secondaryColor: '#0ea5e9',
       tMoldingColor: '#38bdf8',
       tMoldingEmissive: '#0284c7',
       marqueeBg: '#0284c7',
-      marqueeTextColor: '#020617',
+      marqueeTextColor: '#ffffff',
       marqueeGlow: '#38bdf8',
       screenBezelColor: '#0369a1',
       screenGlowColor: '#38bdf8',
@@ -90,7 +90,7 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
   {
     id: 'carnival-of-chance',
     number: '03',
-    title: 'THE GREAT CARNIVAL OF CHANCE',
+    title: 'CARNIVAL OF CHANCE',
     subtitle: 'Probability & Chance Arena',
     topic: 'Probability & Chance',
     grade: 'Grade 6',
@@ -98,15 +98,15 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/carnival-card.jpg',
     route: '/carnival-of-chance',
-    position: [1.4, 0, 0.15],
-    rotation: [0, -0.08, 0],
+    position: [1.55, 0, 0.15],
+    rotation: [0, -0.07, 0],
     theme: {
       cabinetColor: '#dc2626',
       secondaryColor: '#ef4444',
       tMoldingColor: '#fbbf24',
       tMoldingEmissive: '#f59e0b',
       marqueeBg: '#ef4444',
-      marqueeTextColor: '#020617',
+      marqueeTextColor: '#ffffff',
       marqueeGlow: '#fbbf24',
       screenBezelColor: '#b91c1c',
       screenGlowColor: '#fbbf24',
@@ -133,8 +133,8 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'planned',
     image: '/images/math-vault-card.jpg',
     route: '#',
-    position: [4.2, 0, -0.1],
-    rotation: [0, -0.24, 0],
+    position: [4.6, 0, -0.1],
+    rotation: [0, -0.22, 0],
     theme: {
       cabinetColor: '#7e22ce',
       secondaryColor: '#9333ea',
@@ -164,37 +164,37 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
 // ============================================================
 const ArcadeCameraRig: React.FC<{ selectedCategory: string }> = ({ selectedCategory }) => {
   const { camera, pointer } = useThree();
-  const targetPos = useRef(new THREE.Vector3(0, 2.15, 8.9));
-  const lookAtPos = useRef(new THREE.Vector3(0, 1.9, 0));
+  const targetPos = useRef(new THREE.Vector3(0, 2.15, 9.2));
+  const lookAtPos = useRef(new THREE.Vector3(0, 1.85, 0));
 
   useFrame(() => {
     let focusX = 0;
-    let focusZ = 8.9;
+    let focusZ = 9.2;
     let targetLookX = 0;
 
     if (selectedCategory === 'Heist & Escape' || selectedCategory === '#01 MATH VAULT') {
-      focusX = -3.8;
-      focusZ = 6.6;
-      targetLookX = -4.2;
+      focusX = -4.0;
+      focusZ = 6.8;
+      targetLookX = -4.6;
     } else if (selectedCategory === 'Adventure & Strategy' || selectedCategory === '#02 NUMBER RAILWAY') {
-      focusX = -1.2;
-      focusZ = 6.4;
-      targetLookX = -1.4;
-    } else if (selectedCategory === 'Theme Park & Chance' || selectedCategory === '#03 CARNIVAL OF CHANCE') {
-      focusX = 1.2;
-      focusZ = 6.4;
-      targetLookX = 1.4;
-    } else if (selectedCategory === 'Arcade Arena' || selectedCategory === '#04 COMING SOON') {
-      focusX = 3.8;
+      focusX = -1.3;
       focusZ = 6.6;
-      targetLookX = 4.2;
+      targetLookX = -1.55;
+    } else if (selectedCategory === 'Theme Park & Chance' || selectedCategory === '#03 CARNIVAL OF CHANCE') {
+      focusX = 1.3;
+      focusZ = 6.6;
+      targetLookX = 1.55;
+    } else if (selectedCategory === 'Arcade Arena' || selectedCategory === '#04 COMING SOON') {
+      focusX = 4.0;
+      focusZ = 6.8;
+      targetLookX = 4.6;
     }
 
-    const parallaxX = pointer.x * 0.5;
-    const parallaxY = pointer.y * 0.18;
+    const parallaxX = pointer.x * 0.45;
+    const parallaxY = pointer.y * 0.16;
 
-    targetPos.current.set(focusX + parallaxX, 2.15 + parallaxY, focusZ);
-    lookAtPos.current.set(targetLookX + parallaxX * 0.2, 1.9 + parallaxY * 0.15, 0);
+    targetPos.current.set(focusX + parallaxX, 2.1 + parallaxY, focusZ);
+    lookAtPos.current.set(targetLookX + parallaxX * 0.18, 1.85 + parallaxY * 0.12, 0);
 
     camera.position.lerp(targetPos.current, 0.05);
     camera.lookAt(lookAtPos.current);
@@ -254,13 +254,13 @@ const ArcadeRoomEnvironment: React.FC = () => {
     ctx.strokeRect(10, 10, 1004, 236);
 
     ctx.fillStyle = '#f59e0b';
-    ctx.font = '900 68px "Impact", "Arial Black", sans-serif';
+    ctx.font = 'bold 64px Arial, sans-serif';
     ctx.textAlign = 'center';
-    ctx.fillText('★ SKILLIZEE ARCADE ARENA ★', 512, 140);
+    ctx.fillText('★ SKILLIZEE ARCADE ARENA ★', 512, 135);
 
-    ctx.font = 'bold 28px "Inter", sans-serif';
+    ctx.font = 'bold 28px Arial, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText('GRADE 6 MATHEMATICS • CLASSROOM DUEL ARENA', 512, 200);
+    ctx.fillText('GRADE 6 MATHEMATICS • CLASSROOM DUEL ARENA', 512, 195);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -280,10 +280,10 @@ const ArcadeRoomEnvironment: React.FC = () => {
       />
 
       {/* ── INDIVIDUAL SPOTLIGHTS OVER EACH CABINET ── */}
-      <spotLight position={[-4.2, 7, 2]} target-position={[-4.2, 0, 0]} color="#fbbf24" intensity={2.8} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[-1.4, 7, 2]} target-position={[-1.4, 0, 0]} color="#38bdf8" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[1.4, 7, 2]} target-position={[1.4, 0, 0]} color="#f43f5e" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[4.2, 7, 2]} target-position={[4.2, 0, 0]} color="#c084fc" intensity={2.4} angle={0.5} penumbra={0.6} castShadow />
+      <spotLight position={[-4.6, 7, 2]} target-position={[-4.6, 0, 0]} color="#fbbf24" intensity={2.8} angle={0.5} penumbra={0.6} castShadow />
+      <spotLight position={[-1.55, 7, 2]} target-position={[-1.55, 0, 0]} color="#38bdf8" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
+      <spotLight position={[1.55, 7, 2]} target-position={[1.55, 0, 0]} color="#f43f5e" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
+      <spotLight position={[4.6, 7, 2]} target-position={[4.6, 0, 0]} color="#c084fc" intensity={2.4} angle={0.5} penumbra={0.6} castShadow />
 
       {/* ── BACK ARCADE ACCENT WALL (`z = -2.2`) ── */}
       <group position={[0, 3.5, -2.2]}>
@@ -302,36 +302,18 @@ const ArcadeRoomEnvironment: React.FC = () => {
           <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} />
         </mesh>
 
-        {[-3.8, 0, 3.8].map((nx, i) => (
+        {[-4.2, -1.4, 1.4, 4.2].map((nx, i) => (
           <group key={`neon-wall-${i}`} position={[nx, 1.8, 0.08]}>
             <mesh>
-              <boxGeometry args={[2.8, 0.08, 0.04]} />
+              <boxGeometry args={[2.4, 0.06, 0.04]} />
               <meshStandardMaterial
-                color={i === 0 ? '#f59e0b' : i === 1 ? '#38bdf8' : '#f43f5e'}
-                emissive={i === 0 ? '#f59e0b' : i === 1 ? '#0284c7' : '#e11d48'}
+                color={i === 0 ? '#f59e0b' : i === 1 ? '#38bdf8' : i === 2 ? '#f43f5e' : '#c084fc'}
+                emissive={i === 0 ? '#f59e0b' : i === 1 ? '#0284c7' : i === 2 ? '#e11d48' : '#9333ea'}
                 emissiveIntensity={1.2}
               />
             </mesh>
           </group>
         ))}
-
-        <group position={[0, 3.0, 0.15]}>
-          <mesh>
-            <boxGeometry args={[9.5, 1.1, 0.12]} />
-            <meshStandardMaterial color="#020617" roughness={0.3} metalness={0.6} />
-          </mesh>
-          {signTexture && (
-            <mesh position={[0, 0, 0.07]}>
-              <planeGeometry args={[9.3, 0.96]} />
-              <meshStandardMaterial
-                map={signTexture}
-                emissive="#ffffff"
-                emissiveMap={signTexture}
-                emissiveIntensity={0.85}
-              />
-            </mesh>
-          )}
-        </group>
       </group>
 
       {/* ── CEILING STEEL TRUSSES ── */}
@@ -390,7 +372,7 @@ export const ArcadeLobbyScene: React.FC<{
     <div className="absolute inset-0 w-full h-full z-0">
       <Canvas
         shadows
-        camera={{ position: [0, 2.15, 8.9], fov: 42 }}
+        camera={{ position: [0, 2.15, 9.2], fov: 42 }}
         className="w-full h-full cursor-grab active:cursor-grabbing"
         dpr={[1, 2]}
       >
