@@ -14,8 +14,11 @@
 class BlueprintAudioEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
-  private bgmInterval: any = null;
   private isBgmPlaying: boolean = false;
+
+  // Real Background Audio Tracks (40% volume on loop)
+  private constructionBgmAudio: HTMLAudioElement | null = null;
+  private constructionSiteSoundAudio: HTMLAudioElement | null = null;
 
   private initCtx() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -27,14 +30,47 @@ class BlueprintAudioEngine {
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
-      this.ctx.resume();
+      this.ctx.resume().catch(() => {});
+    }
+  }
+
+  private initAudioElements() {
+    if (typeof window === 'undefined') return;
+
+    if (!this.constructionBgmAudio) {
+      try {
+        this.constructionBgmAudio = new Audio('/audio/Construction Game BGm.mp3');
+        this.constructionBgmAudio.loop = true;
+        this.constructionBgmAudio.volume = this.isMuted ? 0 : 0.40;
+      } catch {}
+    }
+
+    if (!this.constructionSiteSoundAudio) {
+      try {
+        this.constructionSiteSoundAudio = new Audio('/audio/Construction Site Sound.wav');
+        this.constructionSiteSoundAudio.loop = true;
+        this.constructionSiteSoundAudio.volume = this.isMuted ? 0 : 0.40;
+      } catch {}
     }
   }
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
-    if (muted) {
-      this.stopBgm();
+    if (this.constructionBgmAudio) {
+      this.constructionBgmAudio.volume = muted ? 0 : 0.40;
+      if (muted) {
+        this.constructionBgmAudio.pause();
+      } else if (this.isBgmPlaying) {
+        this.constructionBgmAudio.play().catch(() => {});
+      }
+    }
+    if (this.constructionSiteSoundAudio) {
+      this.constructionSiteSoundAudio.volume = muted ? 0 : 0.40;
+      if (muted) {
+        this.constructionSiteSoundAudio.pause();
+      } else if (this.isBgmPlaying) {
+        this.constructionSiteSoundAudio.play().catch(() => {});
+      }
     }
   }
 
@@ -474,57 +510,49 @@ class BlueprintAudioEngine {
     });
   }
 
-  // ── 19. UPBEAT CONSTRUCTION BGM LOOP ──
+  // ── 19. DUAL CONSTRUCTION SITE BGM & AMBIENCE (40% Volume on Loop) ──
   public startBgm() {
-    if (this.isMuted || this.isBgmPlaying) return;
     this.initCtx();
-    if (!this.ctx) return;
-
+    this.initAudioElements();
     this.isBgmPlaying = true;
-    let step = 0;
-    const bassline = [110, 110, 130.81, 146.83, 110, 164.81, 146.83, 123.47];
-    const melody = [440, 523.25, 659.25, 587.33, 440, 659.25, 783.99, 659.25];
 
-    this.bgmInterval = setInterval(() => {
-      if (this.isMuted || !this.ctx) return;
-      try {
-        const now = this.ctx.currentTime;
+    // Track 1: Construction Game BGM (40% volume on loop)
+    if (this.constructionBgmAudio) {
+      this.constructionBgmAudio.volume = this.isMuted ? 0 : 0.40;
+      this.constructionBgmAudio.loop = true;
+      this.constructionBgmAudio.play().catch(() => {});
+    }
 
-        const bOsc = this.ctx.createOscillator();
-        const bGain = this.ctx.createGain();
-        bOsc.type = 'triangle';
-        bOsc.frequency.setValueAtTime(bassline[step % bassline.length], now);
-        bGain.gain.setValueAtTime(0.12, now);
-        bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-        bOsc.connect(bGain);
-        bGain.connect(this.ctx.destination);
-        bOsc.start(now);
-        bOsc.stop(now + 0.22);
-
-        if (step % 2 === 0) {
-          const mOsc = this.ctx.createOscillator();
-          const mGain = this.ctx.createGain();
-          mOsc.type = 'sine';
-          mOsc.frequency.setValueAtTime(melody[(step / 2) % melody.length], now);
-          mGain.gain.setValueAtTime(0.07, now);
-          mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
-          mOsc.connect(mGain);
-          mGain.connect(this.ctx.destination);
-          mOsc.start(now);
-          mOsc.stop(now + 0.35);
-        }
-
-        step++;
-      } catch {}
-    }, 280);
+    // Track 2: Construction Site Sound Ambience (40% volume on loop)
+    if (this.constructionSiteSoundAudio) {
+      this.constructionSiteSoundAudio.volume = this.isMuted ? 0 : 0.40;
+      this.constructionSiteSoundAudio.loop = true;
+      this.constructionSiteSoundAudio.play().catch(() => {});
+    }
   }
 
   public stopBgm() {
-    if (this.bgmInterval) {
-      clearInterval(this.bgmInterval);
-      this.bgmInterval = null;
-    }
     this.isBgmPlaying = false;
+    if (this.constructionBgmAudio) {
+      this.constructionBgmAudio.pause();
+      this.constructionBgmAudio.currentTime = 0;
+    }
+    if (this.constructionSiteSoundAudio) {
+      this.constructionSiteSoundAudio.pause();
+      this.constructionSiteSoundAudio.currentTime = 0;
+    }
+  }
+
+  public pauseBgm() {
+    if (this.constructionBgmAudio) this.constructionBgmAudio.pause();
+    if (this.constructionSiteSoundAudio) this.constructionSiteSoundAudio.pause();
+  }
+
+  public resumeBgm() {
+    if (!this.isMuted && this.isBgmPlaying) {
+      if (this.constructionBgmAudio) this.constructionBgmAudio.play().catch(() => {});
+      if (this.constructionSiteSoundAudio) this.constructionSiteSoundAudio.play().catch(() => {});
+    }
   }
 }
 
