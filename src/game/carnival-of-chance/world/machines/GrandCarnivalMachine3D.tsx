@@ -78,6 +78,9 @@ export const GrandCarnivalMachine3D: React.FC = () => {
   const blueDartRef = useRef<THREE.Group>(null);
   const redDartRef = useRef<THREE.Group>(null);
   const bullseyeSparkRef = useRef<THREE.Points>(null);
+  const opStartTimeRef = useRef<number | null>(null);
+  const prevPhaseRef = useRef<string>(phase);
+
   const audioTriggersRef = useRef<{
     blueWhoosh: boolean;
     blueHit: boolean;
@@ -92,8 +95,6 @@ export const GrandCarnivalMachine3D: React.FC = () => {
 
   const isBlueCorrect = blueTeam.isCorrect === true;
   const isRedCorrect = redTeam.isCorrect === true;
-  const hasBlueAttempt = blueTeam.selectedChoiceId !== null || blueTeam.isConfirmed;
-  const hasRedAttempt = redTeam.selectedChoiceId !== null || redTeam.isConfirmed;
 
   // Generate Procedural High-Res Tournament Dartboard Canvas Texture
   const dartboardTexture = useMemo(() => {
@@ -221,10 +222,22 @@ export const GrandCarnivalMachine3D: React.FC = () => {
   useFrame((state, delta) => {
     const tClock = state.clock.getElapsedTime();
 
-    if (phase === 'operating') {
-      const cycle = 2.4;
-      const t = Math.min((tClock * 1.0) % (cycle + 0.6), cycle);
-      const progress = t / cycle;
+    // Detect phase transition to 'operating'
+    if (phase === 'operating' && prevPhaseRef.current !== 'operating') {
+      opStartTimeRef.current = tClock;
+      audioTriggersRef.current = {
+        blueWhoosh: false,
+        blueHit: false,
+        redWhoosh: false,
+        redHit: false,
+      };
+    }
+    prevPhaseRef.current = phase;
+
+    if (phase === 'operating' && opStartTimeRef.current !== null) {
+      const elapsed = tClock - opStartTimeRef.current;
+      const totalDuration = 2.4;
+      const progress = Math.min(elapsed / totalDuration, 1.0);
 
       // ═════════════════════════════════════════════════════════════
       // 1. TEAM BLUE DART THROW (Launches in 0.0s - 1.2s)
