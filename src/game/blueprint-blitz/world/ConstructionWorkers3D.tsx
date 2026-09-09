@@ -3,8 +3,9 @@
 // Authentic Construction Site Logic & Natural Human Kinematics:
 // 1. Two-Handed Sand Shoveler & Wheelbarrow Transport Worker:
 //    - Holds physical steel shovel firmly with BOTH HANDS (Right on top D-grip, Left on mid-shaft)
-//    - Arms and hands stay strictly in front of body at waist/chest level (NEVER above head!)
-//    - Scoops sand from front sand pile into wheelbarrow tub
+//    - Slow, deliberate ground-level sand scooping (never fast or jerky)
+//    - Smoothly brings shovel up and turns directly over the wheel cart to dump sand
+//    - Hands and shovel stay strictly in front of body at waist/chest level (NEVER above head!)
 //    - Mounts shovel, grips wheelbarrow handles at waist height, walks to rear haul dump
 //    - Tips wheelbarrow to dump sand into rear mound, and walks back!
 // 2. Stationary Mason / Bricklayer Builder (Blue Team Site):
@@ -38,6 +39,7 @@ interface WorkerModelProps {
   rightArmY?: number;
   toolHeld?: 'shovel' | 'hammer' | 'clipboard' | 'tablet' | 'baton' | 'laser' | 'trowel' | 'none';
   hasSandOnShovel?: boolean;
+  isDumpingIntoCart?: boolean;
   shovelPitch?: number;
   shovelRoll?: number;
 }
@@ -60,6 +62,7 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
   rightArmY = 0,
   toolHeld = 'none',
   hasSandOnShovel = false,
+  isDumpingIntoCart = false,
   shovelPitch = 0.3,
   shovelRoll = 0,
 }) => {
@@ -188,7 +191,6 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
                 <boxGeometry args={[0.08, 0.16, 0.05]} />
                 <meshStandardMaterial color="#ea580c" roughness={0.4} />
               </mesh>
-              {/* Laser Beam */}
               <mesh position={[0, 0.08, 0.4]} rotation={[Math.PI / 2, 0, 0]}>
                 <cylinderGeometry args={[0.006, 0.006, 0.7, 6]} />
                 <meshBasicMaterial color="#ef4444" />
@@ -206,7 +208,7 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
           )}
         </group>
 
-        {/* ── ⛏️ TWO-HANDED STEEL SHOVEL RIG (Centered across Left & Right hands at waist level) ── */}
+        {/* ── ⛏️ TWO-HANDED STEEL SHOVEL RIG (Held securely in front of body at waist height) ── */}
         {toolHeld === 'shovel' && (
           <group position={[0.05, 0.05, 0.35]} rotation={[shovelPitch, 0, shovelRoll]}>
             {/* Top D-Handle (Grip for Right Hand near hip) */}
@@ -219,7 +221,7 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
               <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
             </mesh>
 
-            {/* Solid Ash Wood Shovel Shaft (Diagonal across front of torso between hands) */}
+            {/* Solid Ash Wood Shovel Shaft */}
             <mesh position={[0, -0.42, 0.05]} rotation={[0.2, 0, -0.32]} castShadow>
               <cylinderGeometry args={[0.024, 0.024, 1.25, 8]} />
               <meshStandardMaterial color="#b45309" roughness={0.7} />
@@ -231,7 +233,7 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
               <meshStandardMaterial color="#475569" metalness={0.8} />
             </mesh>
 
-            {/* Heavy Curved Steel Shovel Blade (At bottom ground level) */}
+            {/* Heavy Curved Steel Shovel Blade (Positioned at sand pile / over wheel cart) */}
             <group position={[-0.28, -0.92, 0.22]} rotation={[0.3, 0, -0.32]}>
               <mesh castShadow>
                 <boxGeometry args={[0.32, 0.38, 0.05]} />
@@ -243,12 +245,22 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
                 <meshStandardMaterial color="#334155" metalness={0.88} roughness={0.25} />
               </mesh>
 
-              {/* Physical Sand Heap on Shovel Blade (Visible when scooped) */}
+              {/* Sand Heap on Shovel Blade (Visible when scooped) */}
               {hasSandOnShovel && (
                 <mesh position={[0, 0.05, 0.05]} castShadow>
-                  <coneGeometry args={[0.15, 0.2, 12]} />
+                  <coneGeometry args={[0.16, 0.22, 12]} />
                   <meshStandardMaterial color="#d4b895" roughness={0.95} />
                 </mesh>
+              )}
+
+              {/* Falling Sand Stream when dumped into Wheel Cart */}
+              {isDumpingIntoCart && (
+                <group position={[0, -0.35, 0]}>
+                  <mesh position={[0, -0.25, 0]}>
+                    <cylinderGeometry args={[0.08, 0.18, 0.55, 8]} />
+                    <meshStandardMaterial color="#d4b895" transparent opacity={0.85} roughness={0.95} />
+                  </mesh>
+                </group>
               )}
             </group>
           </group>
@@ -326,13 +338,13 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
   );
 };
 
-// ── 2. ACTIVE SAND SHOVELER & WHEELBARROW TRANSPORT WORKER (14s Physical Cycle) ──
-// Authentic human shoveling: Shovels sand with TWO HANDS at waist height, never raises hands over head!
+// ── 2. ACTIVE SAND SHOVELER & WHEELBARROW TRANSPORT WORKER (20s Physical Cycle) ──
+// Authentic human shoveling: Slow, deliberate sand scooping, brings shovel up directly over wheel cart tub, dumps smoothly!
 export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
   const [animState, setAnimState] = React.useState({
     workerZ: 3.5,
-    workerRotY: 0.1, // Facing viewer/front
-    torsoBend: 0.2,
+    workerRotY: 0.1,
+    torsoBend: 0.14,
     torsoTwist: 0,
     leftLegAngle: 0,
     rightLegAngle: 0,
@@ -340,23 +352,25 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
     leftArmAngle: 0.55,
     leftArmZ: 0.25,
     rightArmZ: -0.15,
-    headRotX: 0.25,
+    headRotX: 0.22,
     headRotY: 0,
     hasSandOnShovel: false,
-    shovelPitch: 0.3,
+    isDumpingIntoCart: false,
+    shovelPitch: 0.15,
     shovelRoll: 0,
     toolHeld: 'shovel' as 'shovel' | 'none',
     wheelbarrowTilt: 0,
-    sandInWheelbarrow: 0.3,
+    sandInWheelbarrow: 0.25,
+    isRearDumping: false,
   });
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    const cycle = t % 14.0; // 14.0 second loop
+    const cycle = t % 20.0; // 20.0 second full realistic physical cycle
 
     let workerZ = 3.5;
-    let workerRotY = 0.1; // Facing front
-    let torsoBend = 0.2;
+    let workerRotY = 0.1;
+    let torsoBend = 0.14;
     let torsoTwist = 0;
     let leftLegAngle = 0;
     let rightLegAngle = 0;
@@ -364,75 +378,114 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
     let leftArmAngle = 0.55;
     let leftArmZ = 0.25;
     let rightArmZ = -0.15;
-    let headRotX = 0.25;
+    let headRotX = 0.22;
     let headRotY = 0;
     let hasSandOnShovel = false;
-    let shovelPitch = 0.3;
+    let isDumpingIntoCart = false;
+    let shovelPitch = 0.15;
     let shovelRoll = 0;
     let toolHeld: 'shovel' | 'none' = 'shovel';
     let wheelbarrowTilt = 0;
-    let sandInWheelbarrow = 0.3;
+    let sandInWheelbarrow = 0.25;
+    let isRearDumping = false;
 
-    // ── Phase 1: Real-Life Two-Handed Shoveling (0.0s - 6.0s) ──
-    // Hands strictly at waist/ground level (NEVER above head or chest!)
-    if (cycle < 6.0) {
+    // ── Phase 1: Slow, Deliberate Two-Handed Shoveling into Wheel Cart (0.0s - 11.6s) ──
+    // 2 complete, slow, satisfying scoops (5.8 seconds each)
+    if (cycle < 11.6) {
       workerZ = 3.5;
-      workerRotY = 0.1; // Facing viewer/front
+      workerRotY = 0.1;
       toolHeld = 'shovel';
 
-      const scoopSubCycle = (cycle % 2.0) / 2.0; // 3 complete scoops
+      const scoopPeriod = 5.8; // 5.8 seconds per scoop (Slow, weighted, deliberate)
+      const scoopSubTime = cycle % scoopPeriod;
 
-      // Step 1: Bend forward at hips and plunge shovel down into sand pile
-      if (scoopSubCycle < 0.42) {
-        const p = scoopSubCycle / 0.42;
-        torsoBend = 0.18 + Math.sin(p * Math.PI) * 0.26; // Bends at waist (0.18 to 0.44 rad)
-        torsoTwist = -0.18 * Math.sin(p * Math.PI); // Leans toward sand pile on left
-        rightArmAngle = 0.25 + Math.sin(p * Math.PI) * 0.25; // Arms push down/forward
-        leftArmAngle = 0.45 + Math.sin(p * Math.PI) * 0.3;
-        headRotX = 0.25 + Math.sin(p * Math.PI) * 0.2; // Looks down at sand mound
-        shovelPitch = 0.2 + Math.sin(p * Math.PI) * 0.35; // Blade plunges into sand
-        hasSandOnShovel = p > 0.45;
+      // Step 1: Slow, steady plunge into the sand pile on the left (0.0s - 2.2s)
+      if (scoopSubTime < 2.2) {
+        const p = scoopSubTime / 2.2;
+        const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+
+        torsoBend = 0.14 + smoothP * 0.34; // Bends steadily at waist down to sand
+        torsoTwist = -0.42 * smoothP; // Twists smoothly toward sand pile on left
+        rightArmAngle = 0.22 + smoothP * 0.26; // Arms extend down/forward at waist
+        leftArmAngle = 0.40 + smoothP * 0.32;
+        headRotX = 0.20 + smoothP * 0.28; // Head tilts down to watch blade penetrate sand
+        headRotY = -0.35 * smoothP;
+        shovelPitch = 0.15 + smoothP * 0.38; // Blade slides deep into sand mound
+        hasSandOnShovel = false;
       }
-      // Step 2: Lift loaded shovel to waist height and twist toward wheelbarrow tub
-      else if (scoopSubCycle < 0.76) {
-        const p = (scoopSubCycle - 0.42) / 0.34;
-        torsoBend = 0.14;
-        torsoTwist = Math.sin(p * Math.PI) * 0.55; // Smooth turn toward tub
-        rightArmAngle = 0.32; // Kept safely at waist level (positive angle)
-        leftArmAngle = 0.48;
-        headRotX = 0.2;
-        headRotY = 0.3 * Math.sin(p * Math.PI); // Looks over at wheelbarrow
-        shovelPitch = 0.15 - Math.sin(p * Math.PI) * 0.35; // Tips blade down over tub
-        shovelRoll = 0.25 * Math.sin(p * Math.PI);
-        hasSandOnShovel = p < 0.5; // Sand drops into tub halfway through swing
+      // Step 2: Settle into sand & lever loaded mound (2.2s - 3.0s)
+      else if (scoopSubTime < 3.0) {
+        torsoBend = 0.48;
+        torsoTwist = -0.42;
+        rightArmAngle = 0.48;
+        leftArmAngle = 0.72;
+        headRotX = 0.48;
+        headRotY = -0.35;
+        shovelPitch = 0.53;
+        hasSandOnShovel = true; // Generous heap of golden sand securely loaded on blade
       }
-      // Step 3: Reset shovel back in front of body at waist height
+      // Step 3: Bring shovel up smoothly and rotate directly over the Wheel Cart Tub (3.0s - 4.5s)
+      else if (scoopSubTime < 4.5) {
+        const p = (scoopSubTime - 3.0) / 1.5;
+        const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+
+        torsoBend = 0.48 - smoothP * 0.36; // Straightens torso smoothly to upright waist height (0.12)
+        torsoTwist = -0.42 + smoothP * 1.30; // Twists smoothly from left to +0.88 rad (directly facing wheel cart tub!)
+        rightArmAngle = 0.48 - smoothP * 0.16; // Right arm stays comfortably at waist level
+        leftArmAngle = 0.72 - smoothP * 0.22; // Left arm supports shaft
+        headRotX = 0.48 - smoothP * 0.26;
+        headRotY = -0.35 + smoothP * 0.90; // Head smoothly tracks from sand pile to look right into wheel cart tub
+
+        // Shovel blade rises to waist height and positions centered directly over the wheel cart tub
+        shovelPitch = 0.53 - smoothP * 0.48; // Levels off smoothly
+        shovelRoll = smoothP * 0.35;
+        hasSandOnShovel = true;
+      }
+      // Step 4: Tilt shovel blade downward and pour sand smoothly into Wheel Cart tub (4.5s - 5.3s)
+      else if (scoopSubTime < 4.5 + 0.8) {
+        const p = (scoopSubTime - 4.5) / 0.8;
+        torsoBend = 0.12;
+        torsoTwist = 0.88; // Locked directly over wheel cart tub
+        rightArmAngle = 0.32;
+        leftArmAngle = 0.50;
+        headRotX = 0.22;
+        headRotY = 0.55; // Watching sand pour into wheel cart
+
+        // Shovel blade tilts down and rolls over tub opening
+        shovelPitch = 0.05 - p * 0.47; // Tilts down into tub
+        shovelRoll = 0.35 + p * 0.20; // Rolls to let sand slide off
+        hasSandOnShovel = p < 0.35; // Sand slides off blade
+        isDumpingIntoCart = p >= 0.05 && p <= 0.85; // Continuous sand stream pouring into cart
+      }
+      // Step 5: Smooth shovel leveling & return toward sand pile (5.3s - 5.8s)
       else {
-        const p = (scoopSubCycle - 0.76) / 0.24;
-        torsoBend = 0.18;
-        torsoTwist = 0.55 * (1 - p);
-        rightArmAngle = 0.35;
-        leftArmAngle = 0.55;
-        shovelPitch = 0.3;
-        shovelRoll = 0;
+        const p = (scoopSubTime - 5.3) / 0.5;
+        torsoBend = 0.12 + p * 0.02;
+        torsoTwist = 0.88 * (1 - p); // Twists smoothly back to center
+        rightArmAngle = 0.32 + p * 0.03;
+        leftArmAngle = 0.50 + p * 0.05;
+        headRotX = 0.22;
+        headRotY = 0.55 * (1 - p);
+        shovelPitch = -0.42 + p * 0.57; // Returns to neutral waist angle
+        shovelRoll = 0.55 * (1 - p);
         hasSandOnShovel = false;
       }
 
-      sandInWheelbarrow = Math.min(1.0, 0.3 + (cycle / 6.0) * 0.7);
+      // Sand level inside wheelbarrow progressively builds with each scoop
+      sandInWheelbarrow = Math.min(1.0, 0.2 + (cycle / 11.6) * 0.8);
     }
-    // ── Phase 2: Walk with Wheelbarrow to Rear Dump Mound (6.0s - 9.5s) ──
-    else if (cycle < 9.5) {
-      const p = (cycle - 6.0) / 3.5;
+    // ── Phase 2: Walk with Full Wheelbarrow to Rear Dump Mound (11.6s - 15.0s) ──
+    else if (cycle < 15.0) {
+      const p = (cycle - 11.6) / 3.4;
       workerZ = 3.5 - p * 7.5; // Moves from +3.5 to -4.0
-      workerRotY = Math.PI; // Turned facing rear
+      workerRotY = Math.PI; // Turned facing rear haul road
       toolHeld = 'none';
 
-      // Natural walking stride
-      const walkFreq = cycle * 8.0;
+      const walkFreq = cycle * 7.5;
       leftLegAngle = Math.sin(walkFreq) * 0.55;
       rightLegAngle = -Math.sin(walkFreq) * 0.55;
 
-      // Both hands gripping wheelbarrow handles at waist level
+      // Both hands gripping wheelbarrow push handles at waist height
       rightArmAngle = 0.45;
       leftArmAngle = 0.45;
       leftArmZ = -0.1;
@@ -441,30 +494,31 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
       headRotX = 0.1;
       sandInWheelbarrow = 1.0;
     }
-    // ── Phase 3: Tip Wheelbarrow & Empty Sand in Back (9.5s - 11.5s) ──
-    else if (cycle < 11.5) {
-      const p = (cycle - 9.5) / 2.0;
+    // ── Phase 3: Tip Wheelbarrow & Empty Sand at Rear Mound (15.0s - 17.2s) ──
+    else if (cycle < 17.2) {
+      const p = (cycle - 15.0) / 2.2;
       workerZ = -4.0;
       workerRotY = Math.PI;
       toolHeld = 'none';
       leftLegAngle = 0.1;
       rightLegAngle = -0.1;
 
-      // Wheelbarrow tilts forward to dump sand
+      // Wheelbarrow tub tilts forward to tip payload into mound
       wheelbarrowTilt = Math.sin(p * Math.PI) * 0.85;
       rightArmAngle = 0.45 + Math.sin(p * Math.PI) * 0.3;
       leftArmAngle = 0.45 + Math.sin(p * Math.PI) * 0.3;
       torsoBend = 0.14 + Math.sin(p * Math.PI) * 0.2;
-      sandInWheelbarrow = p < 0.4 ? 1.0 : Math.max(0.08, 1.0 - (p - 0.4) * 2.2);
+      sandInWheelbarrow = p < 0.35 ? 1.0 : Math.max(0.08, 1.0 - (p - 0.35) * 2.0);
+      isRearDumping = p >= 0.25 && p <= 0.75;
     }
-    // ── Phase 4: Walk Empty Wheelbarrow Back to Front Sand Pile (11.5s - 14.0s) ──
+    // ── Phase 4: Walk Empty Wheelbarrow Back to Front Sand Station (17.2s - 20.0s) ──
     else {
-      const p = (cycle - 11.5) / 2.5;
+      const p = (cycle - 17.2) / 2.8;
       workerZ = -4.0 + p * 7.5; // Moves from -4.0 back to +3.5
       workerRotY = 0; // Turned facing front
       toolHeld = 'none';
 
-      const walkFreq = cycle * 8.0;
+      const walkFreq = cycle * 7.5;
       leftLegAngle = Math.sin(walkFreq) * 0.55;
       rightLegAngle = -Math.sin(walkFreq) * 0.55;
 
@@ -488,11 +542,13 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
       headRotX,
       headRotY,
       hasSandOnShovel,
+      isDumpingIntoCart,
       shovelPitch,
       shovelRoll,
       toolHeld,
       wheelbarrowTilt,
       sandInWheelbarrow,
+      isRearDumping,
     });
   });
 
@@ -500,8 +556,8 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
 
   return (
     <group position={[-2.2, 0, 0]}>
-      {/* ── 1. FRONT SAND PILE DUNE (Next to worker at front station) ── */}
-      <group position={[-1.2, 0, 3.5]}>
+      {/* ── 1. FRONT SAND PILE DUNE (Positioned directly to worker's left) ── */}
+      <group position={[-1.15, 0, 3.5]}>
         <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
           <coneGeometry args={[1.3, 0.7, 14]} />
           <meshStandardMaterial color="#d4b895" roughness={0.95} />
@@ -542,32 +598,44 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
           rightArmZ={animState.rightArmZ}
           toolHeld={animState.toolHeld}
           hasSandOnShovel={animState.hasSandOnShovel}
+          isDumpingIntoCart={animState.isDumpingIntoCart}
           shovelPitch={animState.shovelPitch}
           shovelRoll={animState.shovelRoll}
         />
 
-        {/* ── WHEELBARROW VEHICLE ── */}
+        {/* ── WHEELBARROW VEHICLE (WHEEL CART) ── */}
+        {/* Parked right beside worker during shoveling, and gripped in front during haul */}
         <group
-          position={isWalking ? [0, 0.15, 0.75] : [0.95, 0, 0.1]}
-          rotation={isWalking ? [animState.wheelbarrowTilt, 0, 0] : [0, -0.4, 0]}
+          position={isWalking ? [0, 0.15, 0.75] : [0.82, 0, 0.28]}
+          rotation={isWalking ? [animState.wheelbarrowTilt, 0, 0] : [0, -0.55, 0]}
         >
-          {/* Blue Steel Payload Tub */}
+          {/* Blue Steel Payload Tub / Hopper */}
           <mesh position={[0, 0.42, 0]} castShadow>
             <boxGeometry args={[0.75, 0.35, 1.05]} />
             <meshStandardMaterial color="#0284c7" roughness={0.4} metalness={0.3} />
           </mesh>
+          {/* Hopper Rolled Steel Rim */}
+          <mesh position={[0, 0.58, 0]}>
+            <boxGeometry args={[0.79, 0.04, 1.09]} />
+            <meshStandardMaterial color="#0369a1" roughness={0.3} metalness={0.5} />
+          </mesh>
 
-          {/* Front Heavy Rubber Wheel */}
+          {/* Front Heavy Rubber Pneumatic Wheel */}
           <mesh position={[0, 0.2, 0.62]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[0.2, 0.2, 0.12, 12]} />
+            <cylinderGeometry args={[0.2, 0.2, 0.12, 14]} />
             <meshStandardMaterial color="#0f172a" roughness={0.9} />
           </mesh>
           <mesh position={[0, 0.2, 0.62]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.09, 0.09, 0.13, 8]} />
             <meshStandardMaterial color="#cbd5e1" metalness={0.9} />
           </mesh>
+          {/* Curved Front Tipping Nose Guard */}
+          <mesh position={[0, 0.22, 0.75]} rotation={[0.4, 0, 0]}>
+            <boxGeometry args={[0.4, 0.04, 0.16]} />
+            <meshStandardMaterial color="#d97706" />
+          </mesh>
 
-          {/* Support Legs */}
+          {/* Steel Support Legs */}
           {[-0.3, 0.3].map((lx, idx) => (
             <mesh key={idx} position={[lx, 0.18, -0.2]}>
               <cylinderGeometry args={[0.02, 0.02, 0.36, 6]} />
@@ -575,19 +643,43 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
             </mesh>
           ))}
 
-          {/* Twin Push Handles (Waist Height) */}
+          {/* Twin Push Handles with Orange Grips (Waist Height) */}
           {[-0.28, 0.28].map((hx, idx) => (
-            <mesh key={idx} position={[hx, 0.45, -0.6]} rotation={[0.25, 0, 0]}>
-              <cylinderGeometry args={[0.02, 0.02, 0.6, 6]} />
-              <meshStandardMaterial color="#d97706" />
-            </mesh>
+            <group key={idx} position={[hx, 0.45, -0.6]} rotation={[0.25, 0, 0]}>
+              <mesh>
+                <cylinderGeometry args={[0.02, 0.02, 0.6, 6]} />
+                <meshStandardMaterial color="#475569" metalness={0.8} />
+              </mesh>
+              <mesh position={[0, -0.2, 0]}>
+                <cylinderGeometry args={[0.028, 0.028, 0.18, 6]} />
+                <meshStandardMaterial color="#d97706" roughness={0.6} />
+              </mesh>
+            </group>
           ))}
 
-          {/* Dynamic Sand Heap inside Wheelbarrow */}
+          {/* Mounted Shovel on Side of Wheelbarrow during transit */}
+          {isWalking && (
+            <mesh position={[0.42, 0.42, 0]} rotation={[0.1, 0, 0]}>
+              <cylinderGeometry args={[0.018, 0.018, 1.2, 6]} />
+              <meshStandardMaterial color="#b45309" />
+            </mesh>
+          )}
+
+          {/* Dynamic Sand Heap inside Wheelbarrow (Rises with each scoop!) */}
           <mesh position={[0, 0.45 + animState.sandInWheelbarrow * 0.08, 0]}>
             <boxGeometry args={[0.68, 0.15 * animState.sandInWheelbarrow, 0.9]} />
             <meshStandardMaterial color="#d4b895" roughness={0.95} />
           </mesh>
+
+          {/* Sand Cascading Stream when Tipped at Rear Mound */}
+          {animState.isRearDumping && (
+            <group position={[0, 0.35, 0.6]}>
+              <mesh position={[0, -0.3, 0]}>
+                <cylinderGeometry args={[0.15, 0.35, 0.65, 8]} />
+                <meshStandardMaterial color="#d4b895" transparent opacity={0.85} roughness={0.95} />
+              </mesh>
+            </group>
+          )}
         </group>
       </group>
     </group>
