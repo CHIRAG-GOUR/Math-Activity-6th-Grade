@@ -1,11 +1,11 @@
 // ============================================================
-// BLUEPRINT BLITZ — Physical Construction Site HUD & Blueprint Board
+// BLUEPRINT BLITZ — Physical Construction Site HUD & Project Signboard
 // Features:
-// - Pinned Architectural Blueprint Drafting Board at center top
-// - Industrial Top Gantry with LED countdown clock & site round badge (Sunny Daytime)
+// - Ultra-Readable, High-Contrast Daytime Project Signboard at center top
+// - Grade 6 Friendly Prompts, Clear Formulas & Helpful Hints
+// - Industrial Top Gantry with LED countdown clock & site round badge
 // - Blue Workstation on LEFT, Red Workstation on RIGHT
-// - Zero glassmorphism, 100% solid construction materials & vector iconography
-// - Zero dark navy / black boxes
+// - Zero visual clutter, 100% solid construction materials & vector iconography
 // ============================================================
 
 import React, { useEffect } from 'react';
@@ -20,8 +20,8 @@ import {
   RotateCcw,
   Ruler,
   HardHat,
-  CheckCircle,
-  AlertOctagon,
+  Lightbulb,
+  Target,
 } from 'lucide-react';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { TeamControlPanel } from './TeamControlPanel';
@@ -67,7 +67,7 @@ export const BlueprintHUD: React.FC = () => {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-4 select-none">
-      {/* ── TOP INDUSTRIAL GANTRY HEADER BAR (Bright Daytime Styling) ── */}
+      {/* ── TOP INDUSTRIAL GANTRY HEADER BAR (Daytime Styling) ── */}
       <header className="flex items-center justify-between w-full pointer-events-auto gap-3">
         {/* Left: Back to Arcade & Site Identity */}
         <div className="flex items-center gap-2.5 bg-[#fff8e7] px-3.5 py-2 rounded-2xl border-4 border-slate-950 shadow-xl">
@@ -133,37 +133,41 @@ export const BlueprintHUD: React.FC = () => {
         </div>
       </header>
 
-      {/* ── PINNED ARCHITECTURAL PROJECT BLUEPRINT BOARD (Top-Center) ── */}
+      {/* ── ULTRA-READABLE DAYTIME PROJECT MISSION SIGNBOARD (Top-Center) ── */}
       {activeChallenge && phase !== 'intro' && phase !== 'game-over' && (
-        <div className="self-center pointer-events-auto max-w-xl w-full mx-auto -mt-1 bg-amber-900 border-4 border-slate-950 rounded-2xl p-1.5 shadow-2xl text-slate-100 flex flex-col">
-          {/* Outer Wood Clipboard Backing */}
-          <div className="bb-blueprint-paper p-3 rounded-xl border-2 border-blue-300 shadow-inner flex flex-col gap-1.5">
-            {/* Top Blueprint Clip & Mission Code */}
-            <div className="flex items-center justify-between border-b border-blue-200/50 pb-1">
-              <div className="flex items-center gap-2">
-                <Ruler className="w-4 h-4 text-amber-300" />
-                <span className="text-xs font-black tracking-wider text-amber-300 uppercase">
-                  📐 PROJECT BLUEPRINT: {activeChallenge.code} • {activeChallenge.title}
-                </span>
-              </div>
-              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-400 text-slate-950 uppercase border border-slate-950">
-                {activeChallenge.category}
+        <div className="self-center pointer-events-auto max-w-2xl w-full mx-auto -mt-1 bg-[#fffdf5] border-4 border-slate-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-950">
+          {/* Top Yellow Header Bar */}
+          <div className="bg-amber-400 px-4 py-1.5 border-b-3 border-slate-950 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Ruler className="w-4 h-4 text-slate-950" />
+              <span className="text-xs sm:text-sm font-black tracking-wide text-slate-950 uppercase">
+                📐 PROJECT #{currentRound}: {activeChallenge.title}
               </span>
             </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-950 text-amber-300 uppercase">
+                ★ {activeChallenge.basePoints} PTS
+              </span>
+            </div>
+          </div>
 
-            {/* Main Architectural Mission Prompt */}
-            <p className="text-sm font-black text-white leading-snug drop-shadow">
+          {/* Main Question Body & Clear Grade 6 Prompt */}
+          <div className="p-3.5 flex flex-col gap-2 bg-white">
+            {/* Main Prompt Text in Large Bold Type */}
+            <h2 className="text-base sm:text-lg font-black text-slate-950 leading-snug tracking-tight">
               {activeChallenge.prompt}
-            </p>
+            </h2>
 
-            {/* Target Spec Strip & Inspector Status */}
-            <div className="flex items-center justify-between text-xs pt-0.5 border-t border-blue-200/40">
-              <span className="font-black text-amber-300">
-                TARGET SPEC: {activeChallenge.target.description}
-              </span>
-              <span className="text-[10px] text-blue-100 font-mono font-bold">
-                SITE INSPECTOR: ACTIVE
-              </span>
+            {/* Helpful Hint & Target Spec Strip */}
+            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-3.5 py-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+              <div className="flex items-center gap-1.5 text-amber-950 font-bold">
+                <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>{activeChallenge.missionBrief}</span>
+              </div>
+              <div className="flex items-center gap-1 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-lg border border-slate-950 font-black shrink-0">
+                <Target className="w-3.5 h-3.5" />
+                <span>SPEC: {activeChallenge.target.description}</span>
+              </div>
             </div>
           </div>
         </div>

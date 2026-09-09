@@ -4,24 +4,23 @@
 // - Blue Team Site on LEFT (x = -9)
 // - Central Architectural & Surveying Station (x = 0) with Theodolite Tripod & Blueprints Table
 // - Red Team Site on RIGHT (x = +9)
-// - Active Heavy Machinery:
-//   * Iconic Yellow JCB Backhoe Crane & Excavator (Animated Hoist Boom & Loader)
+// - Active Heavy Machinery Fleet:
+//   * Background Mobile JCB Crane & Excavator (Drives back & forth carrying sand/gravel without collisions!)
+//   * Foreground JCB Backhoe Crane (Stationary hoist crane with non-clipping suspended block)
 //   * Yellow Tracked Excavator (Animated Digging Boom & Bucket)
 //   * Articulated Heavy Red Dump Truck
 //   * Rotating Cement Mixer Truck
-// - 3D Construction Crew: Hard hats, high-vis vests, active working animations
+// - 3D Construction Crew: Expressive faces, safety hard hats with LED headlamps, active animations
 // - Architecture: Unfinished concrete building with scaffolding, sunny city skyline, flying birds
-// - 100% Sunny Daytime palette — Zero Dark Navy / Black surfaces
 // ============================================================
 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { ConstructionPlot3D } from './ConstructionPlot3D';
 import { Excavator3D, DumpTruck3D, CementMixer3D } from './ConstructionMachinery3D';
-import { JCBBackhoeCrane3D } from './JCBBackhoeCrane3D';
+import { JCBBackhoeCrane3D, MobileJCB3D } from './JCBBackhoeCrane3D';
 import { ConstructionCrew3D } from './ConstructionWorkers3D';
 import { UnfinishedBuilding3D, FlyingBirds3D, SunnyCityBackdrop3D } from './DaytimeSkyAndCity3D';
 
@@ -40,14 +39,14 @@ export const ConstructionDistrict3D: React.FC = () => {
       bgCraneRef.current.rotation.y = Math.sin(t * 0.25) * 0.4 + 0.3;
     }
     if (theodoliteRef.current) {
-      theodoliteRef.current.rotation.y = Math.sin(t * 0.6) * 0.5;
+      theodoliteRef.current.rotation.y = Math.sin(t * 0.6) * 0.4;
     }
   });
 
   return (
     <group>
       {/* ── 1. BRIGHT SUNNY DAYTIME LIGHTING ── */}
-      <ambientLight intensity={1.0} color="#ffffff" />
+      <ambientLight intensity={1.05} color="#ffffff" />
       <directionalLight
         position={[20, 32, 24]}
         intensity={1.9}
@@ -89,7 +88,7 @@ export const ConstructionDistrict3D: React.FC = () => {
         <meshStandardMaterial color="#d4b895" roughness={0.9} />
       </mesh>
 
-      {/* Concrete Paved Haul Roads */}
+      {/* Front Concrete Paved Haul Road */}
       <mesh position={[0, -0.58, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
         <planeGeometry args={[130, 7]} />
         <meshStandardMaterial color="#94a3b8" roughness={0.8} />
@@ -103,6 +102,12 @@ export const ConstructionDistrict3D: React.FC = () => {
           </mesh>
         ))}
       </group>
+
+      {/* Rear Background Haul Road (Where Mobile JCB drives back and forth) */}
+      <mesh position={[0, -0.58, -14]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[130, 6]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.8} />
+      </mesh>
 
       {/* ── 4. MODERN SUNNY CITY & UNFINISHED BUILDING BACKDROP ── */}
       <SunnyCityBackdrop3D />
@@ -131,7 +136,6 @@ export const ConstructionDistrict3D: React.FC = () => {
       />
 
       {/* ── 7. CENTRAL ARCHITECTURAL & SURVEYING STATION (x = 0) ── */}
-      {/* Replaced ugly dark cone with a realistic Sunny Site Command Deck */}
       <group position={[0, 0, -3.8]}>
         {/* Light Concrete Octagonal Pedestal Base */}
         <mesh position={[0, 0.25, 0]} castShadow receiveShadow>
@@ -160,8 +164,7 @@ export const ConstructionDistrict3D: React.FC = () => {
         </group>
 
         {/* Central Architectural Drafting Stand with Blueprints */}
-        <group position={[0.6, 0.5, 0]}>
-          {/* Wooden Drafting Table Stand */}
+        <group position={[0.7, 0.5, 0]}>
           <mesh position={[0, 0.45, 0]} castShadow>
             <cylinderGeometry args={[0.06, 0.06, 0.9, 8]} />
             <meshStandardMaterial color="#94a3b8" metalness={0.8} />
@@ -178,8 +181,7 @@ export const ConstructionDistrict3D: React.FC = () => {
         </group>
 
         {/* Surveying Theodolite Instrument on Tripod */}
-        <group position={[-0.6, 0.5, 0]}>
-          {/* Yellow Tripod Legs */}
+        <group position={[-0.7, 0.5, 0]}>
           <mesh position={[-0.18, 0.4, 0.1]} rotation={[0.2, 0, 0.2]}>
             <cylinderGeometry args={[0.02, 0.02, 0.85, 6]} />
             <meshStandardMaterial color="#facc15" metalness={0.4} />
@@ -203,12 +205,10 @@ export const ConstructionDistrict3D: React.FC = () => {
               <boxGeometry args={[0.14, 0.1, 0.12]} />
               <meshStandardMaterial color="#facc15" />
             </mesh>
-            {/* Optical Telescope Scope */}
             <mesh position={[0, 0.18, 0]} rotation={[Math.PI / 2, 0, 0]}>
               <cylinderGeometry args={[0.035, 0.035, 0.32, 12]} />
               <meshStandardMaterial color="#0f172a" metalness={0.9} />
             </mesh>
-            {/* Front Objective Lens */}
             <mesh position={[0, 0.18, 0.165]}>
               <circleGeometry args={[0.03, 12]} />
               <meshStandardMaterial color="#38bdf8" roughness={0.1} metalness={0.9} />
@@ -224,21 +224,24 @@ export const ConstructionDistrict3D: React.FC = () => {
       </group>
 
       {/* ── 8. ACTIVE 3D HEAVY MACHINERY FLEET ── */}
-      {/* 🚜 NEW: ICONIC JCB BACKHOE CRANE & EXCAVATOR (Foreground-Left Haul Road) */}
+      {/* 🚜 1. BACKGROUND MOBILE WORKING JCB CRANE (Drives back and forth doing work without colliding!) */}
+      <MobileJCB3D />
+
+      {/* 🚜 2. FOREGROUND STATIONARY WORKING JCB CRANE (Left Outskirts with Non-Clipping Hoist) */}
       <JCBBackhoeCrane3D
-        position={[-10.2, 0, 7.8]}
-        rotation={[0, 0.45, 0]}
-        scale={1.15}
+        position={[-15.2, 0, 6.2]}
+        rotation={[0, 0.4, 0]}
+        scale={1.1}
       />
 
-      {/* 🚜 Heavy Yellow Tracked Excavator (Left Far Worksite) */}
-      <Excavator3D position={[-15.2, 0, 1.8]} rotation={[0, 0.6, 0]} />
+      {/* 🚜 3. Heavy Yellow Tracked Excavator (Far Left Digging Zone) */}
+      <Excavator3D position={[-16.5, 0, 1.2]} rotation={[0, 0.6, 0]} />
 
-      {/* 🚛 Articulated Heavy Red Dump Truck (Right Worksite) */}
-      <DumpTruck3D position={[15.2, 0, 1.5]} rotation={[0, -0.7, 0]} />
+      {/* 🚛 4. Articulated Heavy Red Dump Truck (Right Haul Road) */}
+      <DumpTruck3D position={[15.5, 0, 1.5]} rotation={[0, -0.7, 0]} />
 
-      {/* 🚚 Rotating Cement Mixer Truck (Rear Center-Left) */}
-      <CementMixer3D position={[-6.8, 0, -11]} rotation={[0, 0.4, 0]} />
+      {/* 🚚 5. Rotating Cement Mixer Truck (Rear Center-Left) */}
+      <CementMixer3D position={[-6.8, 0, -10.5]} rotation={[0, 0.4, 0]} />
 
       {/* Distant Active Tower Crane */}
       <group ref={bgCraneRef} position={[16, 0, -26]}>
@@ -252,7 +255,7 @@ export const ConstructionDistrict3D: React.FC = () => {
         </mesh>
       </group>
 
-      {/* ── 9. 3D ACTIVE CONSTRUCTION CREW (Animated Working Poses) ── */}
+      {/* ── 9. 3D ACTIVE CONSTRUCTION CREW (Expressive Faces & Active Working Poses) ── */}
       <ConstructionCrew3D />
 
       {/* ── 10. REALISTIC FOREGROUND CONSTRUCTION SITE PROPS ── */}
@@ -262,7 +265,6 @@ export const ConstructionDistrict3D: React.FC = () => {
           <boxGeometry args={[1.0, 1.0, 1.0]} />
           <meshStandardMaterial color="#92400e" roughness={0.8} />
         </mesh>
-        {/* X Braces on Wood Crate */}
         <mesh position={[0, 0.5, 0.51]}>
           <planeGeometry args={[0.9, 0.9]} />
           <meshStandardMaterial color="#78350f" wireframe />
