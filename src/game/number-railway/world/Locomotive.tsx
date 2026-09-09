@@ -217,8 +217,8 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
 
     const targetProgress = trainAnim.progress;
     const isShowdown = trainAnim.state === 'departing' || trainAnim.state === 'moving';
-    // Smooth, realistic steam locomotive physics damping
-    const dampRate = isShowdown ? 4.5 : 2.5;
+    // Smooth, silky steam locomotive physics damping
+    const dampRate = isShowdown ? 3.5 : 2.2;
 
     currentProgressRef.current = THREE.MathUtils.damp(
       currentProgressRef.current,
@@ -229,7 +229,7 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
 
     const baseProgress = currentProgressRef.current;
     const progressDiff = Math.abs(currentProgressRef.current - targetProgress);
-    const isMoving = isShowdown || progressDiff > 0.0005;
+    const isMoving = isShowdown || progressDiff > 0.0003;
 
     const positionWagon = (
       groupRef: React.RefObject<THREE.Group | null>,
@@ -243,13 +243,7 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
 
       groupRef.current.position.set(pos.x, pos.y + yOffset, pos.z);
       const angle = Math.atan2(tangent.x, tangent.z);
-      groupRef.current.rotation.y = angle;
-
-      if (isMoving) {
-        groupRef.current.rotation.z = Math.sin(Date.now() * 0.008 + offset * 10) * 0.02;
-      } else {
-        groupRef.current.rotation.z = 0;
-      }
+      groupRef.current.rotation.set(0, angle, 0);
     };
 
     positionWagon(locoGroupRef, locoOffset, 0.12);
@@ -257,30 +251,36 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
     positionWagon(cargoGroupRef, cargoOffset, 0.12);
     positionWagon(coachGroupRef, coachOffset, 0.12);
 
-    // Rotate wheels
-    const activeSpeed = isShowdown ? trainAnim.speed : Math.max(0.6, progressDiff * 30);
-    const wheelSpeed = (isMoving ? activeSpeed * 22 : 0) * delta;
+    // Smooth wheel rotation (no jerky speed spikes)
+    const activeSpeed = isShowdown ? trainAnim.speed : Math.min(1.2, Math.max(0.4, progressDiff * 25));
+    const wheelSpeed = (isMoving ? activeSpeed * 16 : 0) * delta;
     wheelsRef.current.forEach((w) => {
       if (w) w.rotation.x -= wheelSpeed;
     });
 
-    // Connecting rod oscillation
+    // Smooth connecting rod oscillation
     if (rodRef.current) {
-      rodRef.current.position.y = 0.2 + Math.sin(Date.now() * 0.015) * 0.04;
-      rodRef.current.position.z = 0.1 + Math.cos(Date.now() * 0.015) * 0.06;
+      if (isMoving) {
+        const tNow = Date.now() * 0.005;
+        rodRef.current.position.y = 0.2 + Math.sin(tNow) * 0.03;
+        rodRef.current.position.z = 0.1 + Math.cos(tNow) * 0.04;
+      } else {
+        rodRef.current.position.y = 0.2;
+        rodRef.current.position.z = 0.1;
+      }
     }
 
-    // Steam puffs
+    // Gentle steam puffs
     steamPuffsRef.current.forEach((puff, i) => {
       if (puff) {
         if (trainAnim.smokeActive || isMoving) {
           puff.visible = true;
-          const timeOffset = (Date.now() * 0.002 + i * 0.35) % 1.5;
-          puff.position.y = 1.35 + timeOffset * 1.3;
-          puff.position.z = 0.65 - (isMoving ? timeOffset * 0.9 : 0);
-          const s = 0.12 + timeOffset * 0.28;
+          const timeOffset = (Date.now() * 0.0018 + i * 0.35) % 1.5;
+          puff.position.y = 1.35 + timeOffset * 1.2;
+          puff.position.z = 0.65 - (isMoving ? timeOffset * 0.8 : 0);
+          const s = 0.12 + timeOffset * 0.24;
           puff.scale.set(s, s, s);
-          (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(0, 0.75 - timeOffset * 0.5);
+          (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(0, 0.65 - timeOffset * 0.45);
         } else {
           puff.visible = false;
         }
