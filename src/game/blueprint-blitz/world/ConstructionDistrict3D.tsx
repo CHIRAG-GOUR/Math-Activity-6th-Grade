@@ -1,91 +1,104 @@
 // ============================================================
-// BLUEPRINT BLITZ — Construction District 3D Environment Overhaul
-// A bright, warm, colorful stylized architecture & construction world:
-// - Blue Team Site on the LEFT (x: -9)
-// - Central Architectural Inspection Tower & Gantry (x: 0)
-// - Red Team Site on the RIGHT (x: +9)
-// - Active Work Site: Scaffolding, steel I-beams, drainage pipes, brick stacks, cement pallets
-// - Background: Animated construction cranes, rising skyscrapers, blueprint horizon, sunny blue sky
+// BLUEPRINT BLITZ — Bright Sunny Daytime Construction District
+// A cheerful, realistic, warm and premium 3D work site:
+// - Blue Team Site on LEFT (x = -9)
+// - Central Architectural Inspection Tower (x = 0)
+// - Red Team Site on RIGHT (x = +9)
+// - Active Heavy Machinery: Yellow Excavator, Articulated Dump Truck, Rotating Cement Mixer
+// - 3D Construction Crew: Hard hats, high-vis reflective safety vests, surveyor instruments
+// - Architecture: Unfinished concrete building with scaffolding, sunny city skyline, flying birds
 // ============================================================
 
-import React, { useMemo, useRef } from 'react';
+import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text, Float } from '@react-three/drei';
 import * as THREE from 'three';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { ConstructionPlot3D } from './ConstructionPlot3D';
+import { Excavator3D, DumpTruck3D, CementMixer3D } from './ConstructionMachinery3D';
+import { ConstructionCrew3D } from './ConstructionWorkers3D';
+import { UnfinishedBuilding3D, FlyingBirds3D, SunnyCityBackdrop3D } from './DaytimeSkyAndCity3D';
 
 export const ConstructionDistrict3D: React.FC = () => {
   const { blueTeam, redTeam, activeChallenge, phase } = useBlueprintStore();
-  const bgCrane1Ref = useRef<THREE.Group>(null);
-  const bgCrane2Ref = useRef<THREE.Group>(null);
+  const bgCraneRef = useRef<THREE.Group>(null);
 
   const isScanning = phase === 'scanning';
   const mechanic = activeChallenge?.mechanic || 'cubes';
 
-  // Subtle background crane rotation
+  // Background crane rotation
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    if (bgCrane1Ref.current) {
-      bgCrane1Ref.current.rotation.y = Math.sin(t * 0.25) * 0.4 + 0.3;
-    }
-    if (bgCrane2Ref.current) {
-      bgCrane2Ref.current.rotation.y = -Math.sin(t * 0.2) * 0.5 - 0.4;
+    if (bgCraneRef.current) {
+      bgCraneRef.current.rotation.y = Math.sin(t * 0.25) * 0.4 + 0.3;
     }
   });
 
-  // Background stylized miniature buildings
-  const buildings = useMemo(() => {
-    const list: Array<{ x: number; z: number; width: number; height: number; depth: number; color: string }> = [];
-    const colors = ['#0284c7', '#2563eb', '#f59e0b', '#059669', '#d97706', '#475569', '#64748b'];
-
-    for (let i = -10; i <= 10; i++) {
-      if (Math.abs(i) < 2) continue; // Keep center clear
-      const h = 8 + (Math.sin(i * 1.5) * 4) + (Math.cos(i * 3) * 3);
-      list.push({
-        x: i * 3.5,
-        z: -24 - Math.abs(i) * 1.2,
-        width: 2.8,
-        height: h,
-        depth: 2.8,
-        color: colors[(Math.abs(i) + 2) % colors.length],
-      });
-    }
-    return list;
-  }, []);
-
   return (
     <group>
-      {/* ── BRIGHT SUNNY DAYTIME ENVIRONMENT LIGHTING ── */}
-      <ambientLight intensity={0.9} />
+      {/* ── 1. BRIGHT SUNNY DAYTIME LIGHTING ── */}
+      <ambientLight intensity={1.0} color="#ffffff" />
       <directionalLight
-        position={[18, 30, 22]}
-        intensity={1.8}
+        position={[20, 32, 24]}
+        intensity={1.9}
+        color="#fffbeb"
         castShadow
         shadow-mapSize-width={2048}
         shadow-mapSize-height={2048}
         shadow-bias={-0.0001}
       />
-      <directionalLight position={[-18, 16, -10]} intensity={0.6} color="#bae6fd" />
-      <hemisphereLight groundColor="#334155" color="#fef08a" intensity={0.7} />
+      <directionalLight position={[-20, 18, -12]} intensity={0.7} color="#bae6fd" />
+      <hemisphereLight groundColor="#78350f" color="#fef08a" intensity={0.7} />
 
-      {/* ── GROUND TERRAIN / DISTRICT ASPHALT ── */}
+      {/* ── 2. SUNNY SKY & CLOUDS & BIRDS ── */}
+      <FlyingBirds3D />
+
+      {/* Low-Poly Fluffy Daytime Clouds */}
+      <group position={[0, 22, -28]}>
+        {[-30, -12, 10, 28].map((x, idx) => (
+          <group key={idx} position={[x, (idx % 2) * 2, idx * 2]}>
+            <mesh position={[0, 0, 0]}>
+              <sphereGeometry args={[3.5, 12, 12]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            </mesh>
+            <mesh position={[2.2, -0.4, 0]}>
+              <sphereGeometry args={[2.5, 12, 12]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            </mesh>
+            <mesh position={[-2.2, -0.4, 0]}>
+              <sphereGeometry args={[2.5, 12, 12]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.3} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      {/* ── 3. WARM SANDY / GRAVEL CONSTRUCTION TERRAIN ── */}
       <mesh position={[0, -0.6, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
-        <planeGeometry args={[120, 80]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.9} />
+        <planeGeometry args={[130, 90]} />
+        <meshStandardMaterial color="#d4b895" roughness={0.9} />
       </mesh>
 
-      {/* Road Markings */}
-      <group position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        {[-30, -20, -10, 0, 10, 20, 30].map((x, idx) => (
-          <mesh key={idx} position={[x, 9, 0]}>
+      {/* Concrete Paved Haul Roads */}
+      <mesh position={[0, -0.58, 8]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
+        <planeGeometry args={[130, 7]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.8} />
+      </mesh>
+      {/* Road Yellow Hazard Markings */}
+      <group position={[0, -0.56, 8]} rotation={[-Math.PI / 2, 0, 0]}>
+        {[-40, -25, -10, 5, 20, 35].map((x, idx) => (
+          <mesh key={idx} position={[x, 0, 0]}>
             <planeGeometry args={[4, 0.4]} />
             <meshBasicMaterial color="#facc15" />
           </mesh>
         ))}
       </group>
 
-      {/* ── LEFT SITE: BLUE TEAM CONSTRUCTION PLOT (x = -9) ── */}
+      {/* ── 4. MODERN SUNNY CITY & UNFINISHED BUILDING BACKDROP ── */}
+      <SunnyCityBackdrop3D />
+      <UnfinishedBuilding3D position={[0, 0, -22]} />
+
+      {/* ── 5. LEFT SITE: BLUE TEAM CONSTRUCTION PLOT (x = -9) ── */}
       <ConstructionPlot3D
         teamId="blue"
         teamName={blueTeam.name}
@@ -96,7 +109,7 @@ export const ConstructionDistrict3D: React.FC = () => {
         position={[-9, 0, 0]}
       />
 
-      {/* ── RIGHT SITE: RED TEAM CONSTRUCTION PLOT (x = +9) ── */}
+      {/* ── 6. RIGHT SITE: RED TEAM CONSTRUCTION PLOT (x = +9) ── */}
       <ConstructionPlot3D
         teamId="red"
         teamName={redTeam.name}
@@ -107,28 +120,28 @@ export const ConstructionDistrict3D: React.FC = () => {
         position={[9, 0, 0]}
       />
 
-      {/* ── CENTRAL ARCHITECTURAL INSPECTION PEDESTAL (x = 0) ── */}
-      <group position={[0, 0, -5]}>
-        {/* Central Foundation Base */}
+      {/* ── 7. CENTRAL ARCHITECTURAL INSPECTION PEDESTAL (x = 0) ── */}
+      <group position={[0, 0, -4.5]}>
+        {/* Concrete Foundation Base */}
         <mesh position={[0, 1.2, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[1.8, 2.2, 2.4, 16]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.6} />
+          <meshStandardMaterial color="#475569" roughness={0.6} metalness={0.4} />
         </mesh>
-        {/* Golden Central Compass / Protractor Emblem */}
+        {/* Golden Central Compass Emblem */}
         <mesh position={[0, 2.45, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[0.4, 1.4, 32]} />
           <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.2} />
         </mesh>
 
         {/* Central Holographic Architecture Tower Title */}
-        <Float speed={2} rotationIntensity={0.08} floatIntensity={0.2}>
+        <Float speed={2} rotationIntensity={0.06} floatIntensity={0.15}>
           <group position={[0, 4.3, 0]}>
             <mesh>
-              <boxGeometry args={[4.0, 1.3, 0.2]} />
-              <meshStandardMaterial color="#1e3a8a" roughness={0.3} metalness={0.7} />
+              <boxGeometry args={[4.2, 1.3, 0.2]} />
+              <meshStandardMaterial color="#f59e0b" roughness={0.3} metalness={0.6} />
             </mesh>
             <mesh position={[0, 0, 0.12]}>
-              <planeGeometry args={[3.8, 1.1]} />
+              <planeGeometry args={[4.0, 1.1]} />
               <meshBasicMaterial color="#0284c7" />
             </mesh>
             <Text
@@ -155,33 +168,71 @@ export const ConstructionDistrict3D: React.FC = () => {
         </Float>
       </group>
 
-      {/* ── ACTIVE WORK SITE PROPS: Scaffolding, Steel Beams, Pipes, Pallets ── */}
-      {/* Left Scaffolding Tower */}
-      <group position={[-16, 0, -3]}>
-        <mesh position={[0, 4, 0]}>
-          <boxGeometry args={[2.5, 8, 2.5]} />
-          <meshStandardMaterial color="#cbd5e1" wireframe wireframeLinewidth={2} />
+      {/* ── 8. ACTIVE 3D CONSTRUCTION MACHINERY ── */}
+      {/* Heavy Yellow Tracked Excavator (Left Worksite) */}
+      <Excavator3D position={[-14.5, 0, 1.8]} rotation={[0, 0.6, 0]} />
+
+      {/* Articulated Heavy Red Dump Truck (Right Worksite, Reference Image 1) */}
+      <DumpTruck3D position={[15.0, 0, 1.5]} rotation={[0, -0.7, 0]} />
+
+      {/* Rotating Cement Mixer Truck (Rear Center-Left) */}
+      <CementMixer3D position={[-6.5, 0, -11]} rotation={[0, 0.4, 0]} />
+
+      {/* Distant Active Tower Crane */}
+      <group ref={bgCraneRef} position={[16, 0, -26]}>
+        <mesh position={[0, 9, 0]}>
+          <cylinderGeometry args={[0.25, 0.3, 18, 6]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.6} />
         </mesh>
-        <mesh position={[0, 4.1, 0]}>
-          <boxGeometry args={[2.4, 0.1, 2.4]} />
-          <meshStandardMaterial color="#854d0e" roughness={0.9} />
+        <mesh position={[-4, 18, 0]}>
+          <boxGeometry args={[12, 0.3, 0.3]} />
+          <meshStandardMaterial color="#f59e0b" />
         </mesh>
       </group>
 
-      {/* Right Scaffolding Tower */}
-      <group position={[16, 0, -3]}>
-        <mesh position={[0, 4, 0]}>
-          <boxGeometry args={[2.5, 8, 2.5]} />
-          <meshStandardMaterial color="#cbd5e1" wireframe wireframeLinewidth={2} />
+      {/* ── 9. 3D CONSTRUCTION CREW (Hard Hats, Safety Vests) ── */}
+      <ConstructionCrew3D />
+
+      {/* ── 10. REALISTIC FOREGROUND CONSTRUCTION SITE PROPS ── */}
+      {/* Wooden Cargo Crates (Reference Image 1) */}
+      <group position={[-2.5, 0, 5.5]}>
+        <mesh position={[0, 0.5, 0]} castShadow>
+          <boxGeometry args={[1.0, 1.0, 1.0]} />
+          <meshStandardMaterial color="#92400e" roughness={0.8} />
         </mesh>
-        <mesh position={[0, 4.1, 0]}>
-          <boxGeometry args={[2.4, 0.1, 2.4]} />
-          <meshStandardMaterial color="#854d0e" roughness={0.9} />
+        {/* X Braces on Wood Crate */}
+        <mesh position={[0, 0.5, 0.51]}>
+          <planeGeometry args={[0.9, 0.9]} />
+          <meshStandardMaterial color="#78350f" wireframe />
+        </mesh>
+      </group>
+      <group position={[2.8, 0, 5.8]}>
+        <mesh position={[0, 0.4, 0]} castShadow>
+          <boxGeometry args={[0.8, 0.8, 0.8]} />
+          <meshStandardMaterial color="#92400e" roughness={0.8} />
         </mesh>
       </group>
 
-      {/* Steel I-Beams Stacks */}
-      <group position={[-14, 0, 4]}>
+      {/* Orange Traffic Cones with Reflective White Rings (Reference Image 1) */}
+      {[-5, -1.5, 1.5, 5].map((x, idx) => (
+        <group key={idx} position={[x, 0, 6.4]}>
+          <mesh position={[0, 0.04, 0]}>
+            <boxGeometry args={[0.35, 0.08, 0.35]} />
+            <meshStandardMaterial color="#ea580c" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 0.35, 0]} castShadow>
+            <coneGeometry args={[0.16, 0.65, 12]} />
+            <meshStandardMaterial color="#ea580c" roughness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.32, 0]}>
+            <cylinderGeometry args={[0.11, 0.13, 0.14, 12]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.2} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Steel I-Beams Stack */}
+      <group position={[-16, 0, 6]}>
         {[0, 0.3, 0.6].map((y, idx) => (
           <mesh key={idx} position={[0, y + 0.15, 0]} castShadow>
             <boxGeometry args={[3.2, 0.25, 0.4]} />
@@ -191,87 +242,19 @@ export const ConstructionDistrict3D: React.FC = () => {
       </group>
 
       {/* Concrete Drainage Pipes Stack */}
-      <group position={[14, 0, 4]}>
+      <group position={[16, 0, 6]}>
         <mesh position={[-0.6, 0.4, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.4, 0.4, 2.8, 16]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.9} />
+          <meshStandardMaterial color="#cbd5e1" roughness={0.9} />
         </mesh>
         <mesh position={[0.6, 0.4, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.4, 0.4, 2.8, 16]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.9} />
+          <meshStandardMaterial color="#cbd5e1" roughness={0.9} />
         </mesh>
         <mesh position={[0, 1.1, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
           <cylinderGeometry args={[0.4, 0.4, 2.8, 16]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.9} />
+          <meshStandardMaterial color="#cbd5e1" roughness={0.9} />
         </mesh>
-      </group>
-
-      {/* ── BACKGROUND STYLIZED SKYLINE & ROTATING CRANES ── */}
-      <group position={[0, 0, 0]}>
-        {buildings.map((b, i) => (
-          <group key={i} position={[b.x, b.height * 0.5, b.z]}>
-            <mesh castShadow receiveShadow>
-              <boxGeometry args={[b.width, b.height, b.depth]} />
-              <meshStandardMaterial color={b.color} roughness={0.7} metalness={0.2} />
-            </mesh>
-            {/* Window rows */}
-            {Array.from({ length: Math.floor(b.height / 2) }).map((_, wIdx) => (
-              <mesh key={wIdx} position={[0, -(b.height * 0.5) + (wIdx + 1) * 2, b.depth * 0.5 + 0.05]}>
-                <planeGeometry args={[b.width * 0.8, 0.8]} />
-                <meshBasicMaterial color="#fef08a" opacity={0.7} transparent />
-              </mesh>
-            ))}
-          </group>
-        ))}
-
-        {/* Distant Active Tower Crane 1 (Left) */}
-        <group ref={bgCrane1Ref} position={[-18, 0, -28]}>
-          <mesh position={[0, 8, 0]}>
-            <cylinderGeometry args={[0.25, 0.3, 16, 6]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.6} />
-          </mesh>
-          <mesh position={[4, 16, 0]}>
-            <boxGeometry args={[12, 0.3, 0.3]} />
-            <meshStandardMaterial color="#f59e0b" />
-          </mesh>
-        </group>
-
-        {/* Distant Active Tower Crane 2 (Right) */}
-        <group ref={bgCrane2Ref} position={[18, 0, -28]}>
-          <mesh position={[0, 9, 0]}>
-            <cylinderGeometry args={[0.25, 0.3, 18, 6]} />
-            <meshStandardMaterial color="#f59e0b" metalness={0.6} />
-          </mesh>
-          <mesh position={[-4, 18, 0]}>
-            <boxGeometry args={[12, 0.3, 0.3]} />
-            <meshStandardMaterial color="#f59e0b" />
-          </mesh>
-        </group>
-      </group>
-
-      {/* ── FOREGROUND SAFETY BARRIERS & WARNING LAMPS ── */}
-      <group position={[0, 0, 8]}>
-        {[-14, -10, -6, 6, 10, 14].map((x, idx) => (
-          <group key={idx} position={[x, 0.6, 0]}>
-            <mesh castShadow>
-              <boxGeometry args={[3.2, 1.2, 0.1]} />
-              <meshStandardMaterial color="#f59e0b" roughness={0.4} />
-            </mesh>
-            <mesh position={[0, 0, 0.06]}>
-              <planeGeometry args={[3.0, 0.4]} />
-              <meshBasicMaterial color="#1e293b" />
-            </mesh>
-            <Text
-              position={[0, 0, 0.07]}
-              fontSize={0.22}
-              color="#fbbf24"
-              anchorX="center"
-              anchorY="middle"
-            >
-              ⚠ CAUTION: ACTIVE ZONE
-            </Text>
-          </group>
-        ))}
       </group>
     </group>
   );

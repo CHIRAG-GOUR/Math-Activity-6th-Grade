@@ -25,7 +25,7 @@ export const BlueprintBlitzGame: React.FC = () => {
   }, [initGame]);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-slate-950 font-sans select-none">
+    <div className="relative w-full h-screen overflow-hidden bg-sky-400 font-sans select-none">
       {/* ── 3D THREE.JS CANVAS (Center 60-65% Gameplay Arena) ── */}
       <Canvas
         shadows
@@ -37,8 +37,8 @@ export const BlueprintBlitzGame: React.FC = () => {
         }}
         className="w-full h-full"
       >
-        <color attach="background" args={['#0f172a']} />
-        <fog attach="fog" args={['#0f172a', 30, 75]} />
+        <color attach="background" args={['#38bdf8']} />
+        <fog attach="fog" args={['#bae6fd', 35, 95]} />
 
         {/* 3D District Scene & Buildings */}
         <ConstructionDistrict3D />

@@ -1,10 +1,11 @@
 /* ============================================================
-   BLUEPRINT BLITZ — Physical Construction Site Theme & Styles
-   Authentic Heavy-Duty Industrial Aesthetic:
-   - Yellow/Black Hazard Striping & Stamped Steel Frames
-   - Chunky Mechanical Pushbuttons with 4px Mechanical Depressions
-   - Bolted Metal Plates & Architectural Blueprint Parchment
-   - High-Contrast, Zero-Glassmorphism, 100% Solid Tactile Touch Targets
+   BLUEPRINT BLITZ — Sunny Daytime Construction Site Theme
+   Aesthetic:
+   - Warm Cream (#FFF8E7) & Construction Yellow (#F59E0B) Workstations
+   - Thick Charcoal (#0F172A) Outlines (4-5px) & Stamped Rivets
+   - Yellow/Black Hazard Striping & Blueprint Paper Texture
+   - Chunky Mechanical Pushbuttons with Tactile 4-6px Physical Depressions
+   - 100% Solid Opaque Surfaces — Zero Glassmorphism & Zero Dark Navy
    ============================================================ */
 
 /* ── HAZARD STRIPING PATTERNS ── */
@@ -13,8 +14,8 @@
     -45deg,
     #facc15,
     #facc15 14px,
-    #0f172a 14px,
-    #0f172a 28px
+    #1e293b 14px,
+    #1e293b 28px
   );
 }
 
@@ -23,61 +24,61 @@
     -45deg,
     #eab308,
     #eab308 8px,
-    #1e293b 8px,
-    #1e293b 16px
+    #334155 8px,
+    #334155 16px
   );
 }
 
-/* ── BLUEPRINT PARCHMENT PATTERN ── */
+/* ── BLUEPRINT DRAFTING PAPER PATTERN ── */
 .bb-blueprint-paper {
-  background-color: #0369a1;
+  background-color: #0284c7;
   background-image: 
-    linear-gradient(rgba(255, 255, 255, 0.18) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.18) 1px, transparent 1px),
-    linear-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-  background-size: 40px 40px, 40px 40px, 10px 10px, 10px 10px;
+    linear-gradient(rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.22) 1px, transparent 1px),
+    linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+  background-size: 36px 36px, 36px 36px, 9px 9px, 9px 9px;
 }
 
-/* ── INDUSTRIAL WORKSTATION CONSOLE SHELL ── */
+/* ── SUNNY DAYTIME WORKSTATION CONSOLES (Solid Cream + Stamped Metal Frame) ── */
 .bb-workstation-blue {
-  background: #1e293b;
+  background: #fff8e7;
   border: 4px solid #0f172a;
-  box-shadow: 0 12px 0 #0f172a, 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 0 #0f172a, 0 18px 25px rgba(0, 0, 0, 0.35);
   position: relative;
 }
 
 .bb-workstation-red {
-  background: #1e293b;
+  background: #fff8e7;
   border: 4px solid #0f172a;
-  box-shadow: 0 12px 0 #0f172a, 0 20px 25px -5px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 10px 0 #0f172a, 0 18px 25px rgba(0, 0, 0, 0.35);
   position: relative;
 }
 
-/* ── RIVETS / CORNER BOLT DECORATIONS ── */
+/* ── CORNER BOLTS & RIVETS ── */
 .bb-bolt {
-  width: 10px;
-  height: 10px;
-  background: radial-gradient(circle at 35% 35%, #cbd5e1, #64748b 70%, #334155);
+  width: 11px;
+  height: 11px;
+  background: radial-gradient(circle at 35% 35%, #f1f5f9, #94a3b8 70%, #475569);
   border-radius: 50%;
-  border: 1px solid #1e293b;
-  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.6), 1px 1px 2px rgba(0, 0, 0, 0.6);
+  border: 1.5px solid #0f172a;
+  box-shadow: inset 1px 1px 1px rgba(255, 255, 255, 0.8), 1px 1px 2px rgba(0, 0, 0, 0.4);
 }
 
 /* ── CHUNKY MECHANICAL STEPPER BUTTONS (70-90px Touch Targets) ── */
 .bb-stepper-btn {
-  background: #334155;
+  background: #ffffff;
   border: 3px solid #0f172a;
   border-bottom: 6px solid #0f172a;
   border-radius: 12px;
-  color: #ffffff;
+  color: #0f172a;
   font-weight: 900;
   transition: all 0.08s ease;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.15);
 }
 
 .bb-stepper-btn:hover {
-  background: #475569;
+  background: #fef08a;
 }
 
 .bb-stepper-btn:active {
@@ -93,56 +94,60 @@
   border-bottom-width: 4px;
 }
 
-/* ── HEAVY INDUSTRIAL "TEST BUILD" SWITCH BUTTON ── */
+/* ── HEAVY INDUSTRIAL "TEST BUILD" SWITCH BUTTONS ── */
 .bb-test-switch-blue {
-  background: linear-gradient(180deg, #3b82f6 0%, #1d4ed8 100%);
-  border: 4px solid #0f172a;
-  border-bottom: 8px solid #0f172a;
-  box-shadow: 0 8px 0 #0f172a, 0 15px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+  border: 3.5px solid #0f172a;
+  border-bottom: 7px solid #0f172a;
+  box-shadow: 0 7px 0 #0f172a, 0 12px 18px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
 }
 
 .bb-test-switch-blue:hover {
-  background: linear-gradient(180deg, #60a5fa 0%, #2563eb 100%);
+  background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
 }
 
 .bb-test-switch-blue:active {
-  transform: translateY(6px);
+  transform: translateY(5px);
   border-bottom-width: 2px;
   box-shadow: 0 2px 0 #0f172a;
 }
 
 .bb-test-switch-red {
-  background: linear-gradient(180deg, #ef4444 0%, #b91c1c 100%);
-  border: 4px solid #0f172a;
-  border-bottom: 8px solid #0f172a;
-  box-shadow: 0 8px 0 #0f172a, 0 15px 20px rgba(0, 0, 0, 0.4);
+  background: linear-gradient(180deg, #dc2626 0%, #b91c1c 100%);
+  border: 3.5px solid #0f172a;
+  border-bottom: 7px solid #0f172a;
+  box-shadow: 0 7px 0 #0f172a, 0 12px 18px rgba(0, 0, 0, 0.3);
+  color: #ffffff;
 }
 
 .bb-test-switch-red:hover {
-  background: linear-gradient(180deg, #f87171 0%, #dc2626 100%);
+  background: linear-gradient(180deg, #ef4444 0%, #dc2626 100%);
 }
 
 .bb-test-switch-red:active {
-  transform: translateY(6px);
+  transform: translateY(5px);
   border-bottom-width: 2px;
   box-shadow: 0 2px 0 #0f172a;
 }
 
-/* ── MATERIAL PALLET SELECTOR CHIPS ── */
+/* ── MATERIAL PALLET CHIPS (Daytime Cream/Steel) ── */
 .bb-material-chip {
-  background: #0f172a;
-  border: 2px solid #334155;
+  background: #ffffff;
+  border: 2px solid #cbd5e1;
   border-radius: 10px;
+  color: #0f172a;
   transition: all 0.1s ease;
 }
 
 .bb-material-chip:hover {
-  border-color: #facc15;
+  border-color: #f59e0b;
+  background: #fef3c7;
   transform: translateY(-2px);
 }
 
 .bb-material-chip.active {
-  border-color: #facc15;
-  background: #1e293b;
-  box-shadow: 0 0 12px rgba(250, 204, 21, 0.4);
+  border-color: #f59e0b;
+  background: #fef3c7;
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
 }
