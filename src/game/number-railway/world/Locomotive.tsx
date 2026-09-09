@@ -205,11 +205,31 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
   const cargoOffset = 3.9 / curveLen;
   const coachOffset = 5.8 / curveLen;
 
+  const currentProgressRef = useRef(trainAnim.progress);
+
   useFrame((_, delta) => {
     if (!curve) return;
 
-    const baseProgress = trainAnim.progress;
-    const isMoving = trainAnim.state === 'moving' || trainAnim.state === 'departing' || trainAnim.state === 'approaching';
+    // Reset position immediately if new round resets progress to 0
+    if (trainAnim.progress === 0 && currentProgressRef.current > 0.4) {
+      currentProgressRef.current = 0;
+    }
+
+    const targetProgress = trainAnim.progress;
+    const isShowdown = trainAnim.state === 'departing' || trainAnim.state === 'moving';
+    // Smooth, realistic steam locomotive physics damping
+    const dampRate = isShowdown ? 4.5 : 2.5;
+
+    currentProgressRef.current = THREE.MathUtils.damp(
+      currentProgressRef.current,
+      targetProgress,
+      dampRate,
+      delta
+    );
+
+    const baseProgress = currentProgressRef.current;
+    const progressDiff = Math.abs(currentProgressRef.current - targetProgress);
+    const isMoving = isShowdown || progressDiff > 0.0005;
 
     const positionWagon = (
       groupRef: React.RefObject<THREE.Group | null>,
@@ -238,7 +258,8 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
     positionWagon(coachGroupRef, coachOffset, 0.12);
 
     // Rotate wheels
-    const wheelSpeed = (isMoving ? trainAnim.speed * 22 : 0) * delta;
+    const activeSpeed = isShowdown ? trainAnim.speed : Math.max(0.6, progressDiff * 30);
+    const wheelSpeed = (isMoving ? activeSpeed * 22 : 0) * delta;
     wheelsRef.current.forEach((w) => {
       if (w) w.rotation.x -= wheelSpeed;
     });

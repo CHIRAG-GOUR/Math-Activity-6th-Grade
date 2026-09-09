@@ -97,8 +97,10 @@ const CameraController: React.FC = () => {
 
 // ── 3D World Composition ──
 const RailwayWorld: React.FC = () => {
-  const signalBlue = useRailwayStore((s) => s.signalBlue);
-  const signalRed = useRailwayStore((s) => s.signalRed);
+  const signal1Blue = useRailwayStore((s) => s.signal1Blue);
+  const signal2Blue = useRailwayStore((s) => s.signal2Blue);
+  const signal1Red = useRailwayStore((s) => s.signal1Red);
+  const signal2Red = useRailwayStore((s) => s.signal2Red);
   const switchTarget = useRailwayStore((s) => s.switchTarget);
   const unlocked = useRailwayStore((s) => s.unlockedStationIds);
 
@@ -125,9 +127,14 @@ const RailwayWorld: React.FC = () => {
         <NetworkStationMarker key={st.id} position={st.position} color={st.color} unlocked={unlocked.includes(st.id)} />
       ))}
 
-      {/* Team signals guarding each spur */}
-      <DynamicRailwaySignal position={[-2.5, 0, 8.4]} signalState={signalBlue} team="blue" />
-      <DynamicRailwaySignal position={[2.5, 0, 8.4]} signalState={signalRed} team="red" />
+      {/* ── 2-Stage Progressive Signals along each route ── */}
+      {/* Blue Route Signals: S1 (Station Exit Block) & S2 (Junction Entrance Switch Guard) */}
+      <DynamicRailwaySignal position={[-4.1, 0, 8.2]} signalState={signal1Blue} team="blue" rotation={[0, 0.35, 0]} label="S1" scale={0.95} />
+      <DynamicRailwaySignal position={[-2.1, 0, 6.2]} signalState={signal2Blue} team="blue" rotation={[0, 0.55, 0]} label="S2" scale={0.95} />
+
+      {/* Red Route Signals: S1 (Station Exit Block) & S2 (Junction Entrance Switch Guard) */}
+      <DynamicRailwaySignal position={[4.1, 0, 8.2]} signalState={signal1Red} team="red" rotation={[0, -0.35, 0]} label="S1" scale={0.95} />
+      <DynamicRailwaySignal position={[2.1, 0, 6.2]} signalState={signal2Red} team="red" rotation={[0, -0.55, 0]} label="S2" scale={0.95} />
 
       {/* Spur tracks + the mechanical switch + the shared main line */}
       <ContinuousRailwayTrack controlPoints={BLUE_SPUR} active />

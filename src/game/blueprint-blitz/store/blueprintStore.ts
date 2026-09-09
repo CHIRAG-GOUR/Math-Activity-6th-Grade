@@ -480,15 +480,19 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   nextRound: () => {
     const { currentRound, maxRounds, usedChallengeIds, blueTeam, redTeam } = get();
 
-    if (currentRound >= maxRounds) {
-      // Game Over / Podium Phase
+    if (currentRound >= maxRounds || blueTeam.completedChallengesCount >= 5 || redTeam.completedChallengesCount >= 5) {
+      // Game Over / Podium Phase - Winner Close-up on Completed Dream House
       blueprintAudio.playChampionshipVictory();
       const finalWinner: TeamId | 'tie' =
-        blueTeam.score > redTeam.score
+        blueTeam.completedChallengesCount > redTeam.completedChallengesCount
           ? 'blue'
-          : redTeam.score > blueTeam.score
+          : redTeam.completedChallengesCount > blueTeam.completedChallengesCount
             ? 'red'
-            : 'tie';
+            : blueTeam.score > redTeam.score
+              ? 'blue'
+              : redTeam.score > blueTeam.score
+                ? 'red'
+                : 'tie';
 
       set({
         phase: 'game-over',

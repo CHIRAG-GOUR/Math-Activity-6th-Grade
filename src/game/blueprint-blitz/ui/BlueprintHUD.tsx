@@ -8,7 +8,7 @@
 // - Zero visual clutter, 100% solid construction materials & vector iconography
 // ============================================================
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Home,
@@ -22,6 +22,8 @@ import {
   HardHat,
   Lightbulb,
   Target,
+  Maximize,
+  Minimize,
 } from 'lucide-react';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { TeamControlPanel } from './TeamControlPanel';
@@ -31,6 +33,7 @@ import { blueprintAudio } from '../audio/blueprintAudio';
 
 export const BlueprintHUD: React.FC = () => {
   const router = useRouter();
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const {
     phase,
     currentRound,
@@ -47,6 +50,29 @@ export const BlueprintHUD: React.FC = () => {
     startBuilding,
     restartGame,
   } = useBlueprintStore();
+
+  // Fullscreen state listener
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange);
+  }, []);
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error('Fullscreen request error:', err);
+      });
+      setIsFullscreen(true);
+    } else {
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      }
+      setIsFullscreen(false);
+    }
+  };
 
   // Shared Countdown Timer Interval
   useEffect(() => {
@@ -119,8 +145,9 @@ export const BlueprintHUD: React.FC = () => {
             </div>
           </div>
 
-          {/* Right: Audio Control & Reset */}
+          {/* Right: Audio Control, Fullscreen & Reset */}
           <div className="flex items-center gap-1.5 bg-[#fff8e7] p-1 rounded-2xl border-4 border-slate-950 shadow-xl">
+            {/* Volume Mute/Unmute */}
             <button
               onClick={toggleMute}
               className="p-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 active:scale-95 text-slate-900 border-2 border-slate-950 transition-all"
@@ -132,6 +159,21 @@ export const BlueprintHUD: React.FC = () => {
                 <Volume2 className="w-4 h-4 text-emerald-700 stroke-[2.5]" />
               )}
             </button>
+
+            {/* Fullscreen Button near Volume Button */}
+            <button
+              onClick={toggleFullscreen}
+              className="p-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 active:scale-95 text-slate-900 border-2 border-slate-950 transition-all"
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+            >
+              {isFullscreen ? (
+                <Minimize className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              ) : (
+                <Maximize className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+              )}
+            </button>
+
+            {/* Reset Game */}
             <button
               onClick={restartGame}
               className="p-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 border-2 border-slate-950 transition-all"

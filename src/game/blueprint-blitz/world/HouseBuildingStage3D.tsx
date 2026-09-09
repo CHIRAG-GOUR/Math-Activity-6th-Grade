@@ -1,12 +1,13 @@
 // ============================================================
 // BLUEPRINT BLITZ — 3D Physical House Construction Progression
-// As teams answer questions across the 5 rounds, their house physically builds:
-// - Round 1: Foundation Pad + Laid Decorative Floor Tiles
-// - Round 2: 1st Floor Exterior Brick Walls + Front Entrance Door
-// - Round 3: Interior Room Divider Walls + Glass Windows
-// - Round 4: 2nd Story Multi-Room House Structure + Balcony Railing
-// - Round 5 / Victory: Finished Dream House with Pitched Terracotta Roof,
-//   Brick Chimney with Chimney Smoke, Porch Lights, & Victory Flags!
+// As each team answers questions correctly, their building builds step-by-step:
+// - Step 0: Ground Leveling, Survey Stakes & Foundation Trench Markers
+// - Step 1: Concrete Foundation Slab + Laid Decorative Floor Tiles
+// - Step 2: 1st Floor Exterior Walls (Blue for Blue Team, Red for Red Team) + Front Entrance Door
+// - Step 3: Interior Room Divider Partitions + Front Glass Windows & Mullions
+// - Step 4: 2nd Story Upper Living Structure, 2nd Floor Windows + Balcony Railing
+// - Step 5 / Victory: Finished Dream House with Pitched Roof (Slate Blue for Blue, Terracotta Red for Red),
+//   Brick Chimney with Smoke, Porch Awning with Lantern, & Rooftop Victory Flag!
 // ============================================================
 
 import React, { useRef } from 'react';
@@ -23,7 +24,6 @@ interface HouseBuildingStage3DProps {
 
 export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
   teamId,
-  currentRound,
   completedStages,
   isGameOver = false,
 }) => {
@@ -31,9 +31,45 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
   const flagRef = useRef<THREE.Group>(null);
 
   const isBlue = teamId === 'blue';
-  const teamColor = isBlue ? '#2563eb' : '#dc2626';
 
-  // Smoke & flag animation
+  // ── Curated Team Palettes ──
+  const colors = isBlue
+    ? {
+        primary: '#2563eb',       // Royal Blue
+        darkWall: '#1e40af',      // Deep Sapphire
+        lightWall: '#3b82f6',     // Azure Blue
+        accent: '#60a5fa',        // Sky Blue Accent
+        trim: '#1e3a8a',          // Navy Trim
+        roof: '#1e3a8a',          // Mediterranean Slate Blue
+        roofSlope: '#2563eb',     // Royal Blue Roof Tiles
+        gable: '#e0f2fe',         // Ice Blue Gable
+        door: '#1e293b',          // Dark Oak Door
+        doorTrim: '#ffffff',      // Pure White Door Trim
+        chimney: '#334155',       // Slate Brick Chimney
+        flag: '#2563eb',          // Team Blue Flag
+        grout: '#93c5fd',         // Blue Floor Grout
+        balconyRail: '#0f172a',   // Dark Slate Railing
+        balconyPosts: '#60a5fa',  // Sky Blue Posts
+      }
+    : {
+        primary: '#dc2626',       // Ruby Red
+        darkWall: '#991b1b',      // Deep Crimson Brick
+        lightWall: '#ef4444',     // Scarlet Red
+        accent: '#f87171',        // Coral Red Accent
+        trim: '#7f1d1d',          // Burgundy Trim
+        roof: '#c2410c',          // Tuscan Terracotta Dark
+        roofSlope: '#ea580c',     // Terracotta Tile Red
+        gable: '#fef3c7',         // Warm Cream Gable
+        door: '#78350f',          // Warm Mahogany Door
+        doorTrim: '#ffffff',      // Pure White Door Trim
+        chimney: '#7f1d1d',       // Red Brick Chimney
+        flag: '#dc2626',          // Team Red Flag
+        grout: '#fca5a5',         // Red Floor Grout
+        balconyRail: '#0f172a',   // Dark Slate Railing
+        balconyPosts: '#f87171',  // Coral Posts
+      };
+
+  // Smoke & flag animations
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (smokeGroupRef.current) {
@@ -46,19 +82,42 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
       });
     }
     if (flagRef.current) {
-      flagRef.current.rotation.y = Math.sin(t * 3) * 0.2;
+      flagRef.current.rotation.y = Math.sin(t * 3) * 0.25;
     }
   });
 
-  // Effective visible stage level (at least currentRound or completedStages)
-  const activeLevel = Math.max(1, Math.min(5, isGameOver ? 5 : currentRound));
+  // Effective visible stage strictly based on answered/completed questions
+  const activeLevel = Math.max(0, Math.min(5, completedStages));
 
   return (
     <group position={[0, 0, 0]}>
-      {/* ── STAGE 1: FOUNDATION PAD & FLOOR TILES (Visible for all rounds >= 1) ── */}
+      {/* ── STAGE 0: GROUND SURVEY STAKES & CORNER FLAGS (Always visible) ── */}
+      <group position={[0, 0, 0]}>
+        {/* Four Corner Survey Stakes */}
+        {[
+          [-3.8, -3.2],
+          [3.8, -3.2],
+          [-3.8, 3.2],
+          [3.8, 3.2],
+        ].map(([sx, sz], idx) => (
+          <group key={`stake-${idx}`} position={[sx, 0, sz]}>
+            <mesh position={[0, 0.3, 0]}>
+              <cylinderGeometry args={[0.03, 0.03, 0.6, 6]} />
+              <meshStandardMaterial color="#f59e0b" roughness={0.4} />
+            </mesh>
+            {/* Team Corner Ribbon Flag */}
+            <mesh position={[0.08, 0.5, 0]}>
+              <boxGeometry args={[0.16, 0.1, 0.01]} />
+              <meshStandardMaterial color={colors.primary} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      {/* ── STAGE 1: FOUNDATION PAD & FLOOR TILES (Completed Questions >= 1) ── */}
       {activeLevel >= 1 && (
         <group position={[0, 0, 0]}>
-          {/* Foundation Screed Edge */}
+          {/* Concrete Foundation Screed Edge */}
           <mesh position={[0, 0.04, 0]}>
             <boxGeometry args={[7.4, 0.08, 6.4]} />
             <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.1} />
@@ -66,82 +125,87 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
           {/* Laid Floor Tiles */}
           <mesh position={[0, 0.085, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[7.0, 6.0]} />
-            <meshStandardMaterial color="#e2e8f0" roughness={0.4} />
+            <meshStandardMaterial color="#f8fafc" roughness={0.3} />
           </mesh>
-          {/* Wood Tile Grout Lines */}
+          {/* Team Styled Floor Tile Grout Lines */}
           <group position={[0, 0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             {[-2.5, -1.25, 0, 1.25, 2.5].map((x, idx) => (
               <mesh key={`gx-${idx}`} position={[x, 0, 0]}>
                 <planeGeometry args={[0.03, 5.8]} />
-                <meshBasicMaterial color="#94a3b8" />
+                <meshBasicMaterial color={colors.grout} />
               </mesh>
             ))}
             {[-2, -1, 0, 1, 2].map((y, idx) => (
               <mesh key={`gy-${idx}`} position={[0, y, 0]}>
                 <planeGeometry args={[6.8, 0.03]} />
-                <meshBasicMaterial color="#94a3b8" />
+                <meshBasicMaterial color={colors.grout} />
               </mesh>
             ))}
           </group>
         </group>
       )}
 
-      {/* ── STAGE 2: 1ST FLOOR EXTERIOR BRICK WALLS & FRONT DOOR (Rounds >= 2) ── */}
+      {/* ── STAGE 2: 1ST FLOOR EXTERIOR WALLS & FRONT DOOR (Completed Questions >= 2) ── */}
       {activeLevel >= 2 && (
         <group position={[0, 0, 0]}>
-          {/* Back Brick Wall */}
+          {/* Back Wall */}
           <mesh position={[0, 1.1, -2.85]} castShadow>
             <boxGeometry args={[6.8, 2.0, 0.3]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.darkWall} roughness={0.6} />
           </mesh>
 
-          {/* Left Brick Wall */}
+          {/* Left Wall */}
           <mesh position={[-3.25, 1.1, 0]} castShadow>
             <boxGeometry args={[0.3, 2.0, 5.8]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.darkWall} roughness={0.6} />
           </mesh>
 
-          {/* Right Brick Wall */}
+          {/* Right Wall */}
           <mesh position={[3.25, 1.1, 0]} castShadow>
             <boxGeometry args={[0.3, 2.0, 5.8]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.darkWall} roughness={0.6} />
           </mesh>
 
           {/* Front Wall with Doorway Opening */}
           <mesh position={[-1.8, 1.1, 2.85]} castShadow>
             <boxGeometry args={[3.0, 2.0, 0.3]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.primary} roughness={0.6} />
           </mesh>
           <mesh position={[1.8, 1.1, 2.85]} castShadow>
             <boxGeometry args={[3.0, 2.0, 0.3]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.primary} roughness={0.6} />
           </mesh>
           <mesh position={[0, 1.85, 2.85]} castShadow>
             <boxGeometry args={[1.2, 0.5, 0.3]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.7} />
+            <meshStandardMaterial color={colors.primary} roughness={0.6} />
           </mesh>
 
-          {/* Front Wooden Entrance Door */}
+          {/* Front Entrance Door */}
           <group position={[0, 0.75, 2.85]}>
             <mesh castShadow>
               <boxGeometry args={[0.95, 1.5, 0.08]} />
-              <meshStandardMaterial color="#78350f" roughness={0.6} />
+              <meshStandardMaterial color={colors.door} roughness={0.5} />
             </mesh>
             {/* Brass Doorknob */}
             <mesh position={[0.35, 0, 0.05]}>
               <sphereGeometry args={[0.04, 8, 8]} />
               <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.2} />
             </mesh>
-            {/* Door Frame Trim */}
+            {/* White Door Frame Trim */}
             <mesh position={[0, 0, 0]}>
               <boxGeometry args={[1.05, 1.58, 0.12]} />
-              <meshStandardMaterial color="#ffffff" />
+              <meshStandardMaterial color={colors.doorTrim} />
+            </mesh>
+            {/* Entrance Porch Step */}
+            <mesh position={[0, -0.72, 0.25]}>
+              <boxGeometry args={[1.3, 0.1, 0.4]} />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.8} />
             </mesh>
           </group>
         </group>
       )}
 
-      {/* ── STAGE 3: INTERIOR ROOM DIVIDER WALLS & WINDOWS (Rounds >= 3) ── */}
+      {/* ── STAGE 3: INTERIOR ROOM DIVIDER WALLS & WINDOWS (Completed Questions >= 3) ── */}
       {activeLevel >= 3 && (
         <group position={[0, 0, 0]}>
           {/* Interior Room Divider Wall */}
@@ -188,31 +252,31 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
         </group>
       )}
 
-      {/* ── STAGE 4: 2ND STORY UPPER LIVING SPACE & BALCONY (Rounds >= 4) ── */}
+      {/* ── STAGE 4: 2ND STORY UPPER LIVING SPACE & BALCONY (Completed Questions >= 4) ── */}
       {activeLevel >= 4 && (
         <group position={[0, 2.1, 0]}>
-          {/* 2nd Story Floor Intermediate Slab */}
+          {/* 2nd Story Intermediate Floor Slab */}
           <mesh position={[0, 0.08, 0]} castShadow>
             <boxGeometry args={[7.0, 0.16, 6.2]} />
             <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
           </mesh>
 
-          {/* 2nd Floor Walls */}
+          {/* 2nd Floor Exterior Walls */}
           <mesh position={[0, 1.0, -2.85]} castShadow>
             <boxGeometry args={[6.8, 1.8, 0.3]} />
-            <meshStandardMaterial color="#dc2626" roughness={0.7} />
+            <meshStandardMaterial color={colors.lightWall} roughness={0.6} />
           </mesh>
           <mesh position={[-3.25, 1.0, 0]} castShadow>
             <boxGeometry args={[0.3, 1.8, 5.8]} />
-            <meshStandardMaterial color="#dc2626" roughness={0.7} />
+            <meshStandardMaterial color={colors.lightWall} roughness={0.6} />
           </mesh>
           <mesh position={[3.25, 1.0, 0]} castShadow>
             <boxGeometry args={[0.3, 1.8, 5.8]} />
-            <meshStandardMaterial color="#dc2626" roughness={0.7} />
+            <meshStandardMaterial color={colors.lightWall} roughness={0.6} />
           </mesh>
           <mesh position={[0, 1.0, 2.85]} castShadow>
             <boxGeometry args={[6.8, 1.8, 0.3]} />
-            <meshStandardMaterial color="#dc2626" roughness={0.7} />
+            <meshStandardMaterial color={colors.lightWall} roughness={0.6} />
           </mesh>
 
           {/* 2nd Floor Windows */}
@@ -237,50 +301,56 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
           <group position={[0, 0.45, 3.2]}>
             <mesh>
               <boxGeometry args={[4.2, 0.06, 0.06]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.8} />
+              <meshStandardMaterial color={colors.balconyRail} metalness={0.8} />
             </mesh>
             {[-1.8, -0.9, 0, 0.9, 1.8].map((rx, idx) => (
               <mesh key={`post-${idx}`} position={[rx, -0.22, 0]}>
-                <cylinderGeometry args={[0.02, 0.02, 0.45, 6]} />
-                <meshStandardMaterial color="#1e293b" metalness={0.8} />
+                <cylinderGeometry args={[0.025, 0.025, 0.45, 6]} />
+                <meshStandardMaterial color={colors.balconyPosts} metalness={0.7} />
               </mesh>
             ))}
           </group>
         </group>
       )}
 
-      {/* ── STAGE 5 / VICTORY: PITCHED ROOF, CHIMNEY & CELEBRATION (Round 5 / Game Over) ── */}
+      {/* ── STAGE 5 / VICTORY: PITCHED ROOF, CHIMNEY & CELEBRATION (Completed Questions >= 5) ── */}
       {activeLevel >= 5 && (
         <group position={[0, 4.0, 0]}>
-          {/* Pitched Terracotta Roof (Left Slope) */}
+          {/* Pitched Roof (Left Slope) */}
           <mesh position={[-1.75, 0.8, 0]} rotation={[0, 0, 0.45]} castShadow>
             <boxGeometry args={[3.9, 0.18, 6.6]} />
-            <meshStandardMaterial color="#ea580c" roughness={0.5} />
+            <meshStandardMaterial color={colors.roofSlope} roughness={0.4} />
           </mesh>
 
-          {/* Pitched Terracotta Roof (Right Slope) */}
+          {/* Pitched Roof (Right Slope) */}
           <mesh position={[1.75, 0.8, 0]} rotation={[0, 0, -0.45]} castShadow>
             <boxGeometry args={[3.9, 0.18, 6.6]} />
-            <meshStandardMaterial color="#ea580c" roughness={0.5} />
+            <meshStandardMaterial color={colors.roofSlope} roughness={0.4} />
+          </mesh>
+
+          {/* Roof Ridge Cap */}
+          <mesh position={[0, 1.62, 0]}>
+            <boxGeometry args={[0.22, 0.12, 6.65]} />
+            <meshStandardMaterial color={colors.roof} roughness={0.3} />
           </mesh>
 
           {/* Front Gable Triangle Endwall */}
           <mesh position={[0, 0.7, 2.9]} rotation={[0, Math.PI / 4, 0]}>
             <cylinderGeometry args={[0, 3.4, 1.5, 4]} />
-            <meshStandardMaterial color="#fef08a" roughness={0.6} />
+            <meshStandardMaterial color={colors.gable} roughness={0.5} />
           </mesh>
 
           {/* Back Gable Triangle Endwall */}
           <mesh position={[0, 0.7, -2.9]} rotation={[0, Math.PI / 4, 0]}>
             <cylinderGeometry args={[0, 3.4, 1.5, 4]} />
-            <meshStandardMaterial color="#fef08a" roughness={0.6} />
+            <meshStandardMaterial color={colors.gable} roughness={0.5} />
           </mesh>
 
-          {/* Brick Chimney */}
+          {/* Chimney */}
           <group position={[1.8, 1.5, -1.2]}>
             <mesh castShadow>
               <boxGeometry args={[0.7, 1.6, 0.7]} />
-              <meshStandardMaterial color="#7f1d1d" roughness={0.8} />
+              <meshStandardMaterial color={colors.chimney} roughness={0.7} />
             </mesh>
             {/* Chimney Cap */}
             <mesh position={[0, 0.82, 0]}>
@@ -294,9 +364,9 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
                 <mesh key={`smoke-${idx}`} position={[0, 0.3 * idx, 0]}>
                   <sphereGeometry args={[0.18, 8, 8]} />
                   <meshStandardMaterial
-                    color="#e2e8f0"
+                    color="#f1f5f9"
                     transparent
-                    opacity={0.45 - idx * 0.1}
+                    opacity={0.55 - idx * 0.15}
                     roughness={0.9}
                   />
                 </mesh>
@@ -309,12 +379,12 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
             {/* Flagpole */}
             <mesh position={[0, 0.5, 0]}>
               <cylinderGeometry args={[0.02, 0.02, 1.1, 8]} />
-              <meshStandardMaterial color="#94a3b8" metalness={0.9} />
+              <meshStandardMaterial color="#cbd5e1" metalness={0.9} />
             </mesh>
             {/* Team Flag Banner */}
             <mesh position={[0.3, 0.85, 0]}>
               <boxGeometry args={[0.55, 0.32, 0.02]} />
-              <meshStandardMaterial color={teamColor} roughness={0.3} />
+              <meshStandardMaterial color={colors.flag} roughness={0.3} />
             </mesh>
             {/* Gold Finial Ball */}
             <mesh position={[0, 1.06, 0]}>
@@ -323,16 +393,16 @@ export const HouseBuildingStage3D: React.FC<HouseBuildingStage3DProps> = ({
             </mesh>
           </group>
 
-          {/* Front Entrance Porch Awning with Lantern Lamp */}
+          {/* Front Entrance Porch Awning with Lantern */}
           <group position={[0, -2.4, 3.2]}>
             <mesh castShadow>
               <boxGeometry args={[1.6, 0.1, 0.9]} />
-              <meshStandardMaterial color="#78350f" />
+              <meshStandardMaterial color={colors.door} />
             </mesh>
             {/* Glowing Porch Lantern */}
             <mesh position={[0, -0.15, 0.25]}>
               <cylinderGeometry args={[0.06, 0.08, 0.14, 8]} />
-              <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.8} />
+              <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={1.2} />
             </mesh>
           </group>
         </group>

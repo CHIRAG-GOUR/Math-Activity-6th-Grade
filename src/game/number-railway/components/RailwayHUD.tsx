@@ -10,7 +10,7 @@
 
 import React, { useEffect, useRef } from 'react';
 import { useRailwayStore } from '../store/railwayStore';
-import { Volume2, VolumeX, Home } from 'lucide-react';
+import { Volume2, VolumeX, Home, Maximize } from 'lucide-react';
 import Link from 'next/link';
 import { TeamId } from '../types';
 
@@ -154,7 +154,7 @@ export const RailwayHUD: React.FC = () => {
         </div>
       </div>
 
-      {/* Right: Red plaque + sound toggle */}
+      {/* Right: Red plaque + sound toggle + fullscreen */}
       <div className="flex items-center gap-2 pointer-events-auto">
         <TeamPlaque team="red" align="right" />
         <button
@@ -163,6 +163,19 @@ export const RailwayHUD: React.FC = () => {
           className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-lg transition cursor-pointer"
         >
           {isMuted ? <VolumeX className="w-5 h-5 text-red-500" /> : <Volume2 className="w-5 h-5 text-slate-700" />}
+        </button>
+        <button
+          onClick={() => {
+            if (!document.fullscreenElement) {
+              document.documentElement.requestFullscreen().catch(() => {});
+            } else {
+              if (document.exitFullscreen) document.exitFullscreen();
+            }
+          }}
+          title="Toggle Fullscreen"
+          className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-lg transition cursor-pointer"
+        >
+          <Maximize className="w-5 h-5 text-slate-700" />
         </button>
       </div>
     </header>

@@ -162,9 +162,13 @@ export interface RailwayGameState {
   signalsGreenCount: number; // 0..5 signals turned green
   onboardPassengers: OnboardPassenger[]; // Passengers seated INSIDE the train
 
-  // Hardware State
+  // Hardware State & Progressive 2-Stage Signals
   signalBlue: SignalState;
   signalRed: SignalState;
+  signal1Blue: SignalState; // Intermediate station exit signal
+  signal2Blue: SignalState; // Junction entrance switch guard signal
+  signal1Red: SignalState;
+  signal2Red: SignalState;
   switchTarget: SwitchTarget;
   showdownStep: ShowdownStep;
   activeRoute: TeamId | null;

@@ -202,9 +202,19 @@ interface DynamicSignalProps {
   position: [number, number, number];
   signalState: SignalState;
   team?: 'blue' | 'red';
+  rotation?: [number, number, number];
+  scale?: number;
+  label?: string;
 }
 
-export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({ position, signalState, team }) => {
+export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({
+  position,
+  signalState,
+  team,
+  rotation = [0, 0, 0],
+  scale = 1,
+  label,
+}) => {
   const armRef = useRef<THREE.Group>(null);
   const isGreen = signalState === 'green';
   const isYellow = signalState === 'yellow';
@@ -221,7 +231,7 @@ export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({ position, s
   const capColor = team === 'blue' ? '#2563eb' : team === 'red' ? '#dc2626' : '#334155';
 
   return (
-    <group position={position}>
+    <group position={position} rotation={rotation} scale={[scale, scale, scale]}>
       {/* Concrete footing */}
       <mesh position={[0, 0.12, 0]}>
         <cylinderGeometry args={[0.22, 0.25, 0.24, 12]} />
@@ -233,6 +243,20 @@ export const DynamicRailwaySignal: React.FC<DynamicSignalProps> = ({ position, s
         <cylinderGeometry args={[0.06, 0.07, 2.3, 12]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} roughness={0.3} />
       </mesh>
+
+      {/* Optional Signal Number Plate (e.g. S1, S2) */}
+      {label && (
+        <group position={[0, 1.1, 0.08]}>
+          <mesh>
+            <boxGeometry args={[0.3, 0.16, 0.03]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.4} />
+          </mesh>
+          <mesh position={[0, 0, 0.02]}>
+            <boxGeometry args={[0.26, 0.12, 0.01]} />
+            <meshStandardMaterial color={capColor} roughness={0.3} />
+          </mesh>
+        </group>
+      )}
 
       {/* Team cap on top of the mast */}
       <mesh position={[0, 2.72, 0]}>

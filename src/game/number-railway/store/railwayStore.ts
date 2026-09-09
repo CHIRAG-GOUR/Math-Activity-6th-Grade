@@ -15,6 +15,7 @@ import {
   GamePhase,
   RoundWinner,
   OnboardPassenger,
+  SignalState,
 } from '../types';
 import { ROUNDS, NETWORK_STATIONS, getTieBreaker, buildRounds } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
@@ -106,6 +107,21 @@ interface RailwayActions {
 
 export type RailwayStore = RailwayGameState & RailwayActions;
 
+const computeStepProgressAndSignals = (step: number) => {
+  // Step 0 (0 Q answered): Far staging background (progress 0), all signals red
+  // Step 1 (1 Q answered): Approaching station (progress 0.06), all signals red
+  // Step 2 (2 Q answered): At station platform (progress 0.12), all signals red
+  // Step 3 (3 Q answered): Cleared Signal 1 (progress 0.18), Signal 1 turns GREEN
+  // Step 4 (4 Q answered): Approached Junction Switch (progress 0.24), Signal 2 turns GREEN (both green!)
+  // Step 5 (5 Q answered): Showdown departure (progress 0.24 -> 1.00)
+  const progress =
+    step === 1 ? 0.06 : step === 2 ? 0.12 : step === 3 ? 0.18 : step >= 4 ? 0.24 : 0;
+  const signal1: SignalState = step >= 3 ? 'green' : 'red';
+  const signal2: SignalState = step >= 4 ? 'green' : 'red';
+
+  return { progress, signal1, signal2 };
+};
+
 export const useRailwayStore = create<RailwayStore>((set, get) => ({
   phase: 'title',
 
@@ -126,6 +142,10 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   signalBlue: 'red',
   signalRed: 'red',
+  signal1Blue: 'red',
+  signal2Blue: 'red',
+  signal1Red: 'red',
+  signal2Red: 'red',
   switchTarget: 'neutral',
   showdownStep: 'idle',
   activeRoute: null,
@@ -217,6 +237,10 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       onboardPassengers: [],
       signalBlue: 'red',
       signalRed: 'red',
+      signal1Blue: 'red',
+      signal2Blue: 'red',
+      signal1Red: 'red',
+      signal2Red: 'red',
       switchTarget: 'neutral',
       showdownStep: 'idle',
       activeRoute: null,
@@ -245,6 +269,10 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       onboardPassengers: [],
       signalBlue: 'red',
       signalRed: 'red',
+      signal1Blue: 'red',
+      signal2Blue: 'red',
+      signal1Red: 'red',
+      signal2Red: 'red',
       switchTarget: 'neutral',
       showdownStep: 'idle',
       activeRoute: null,
@@ -275,7 +303,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     }));
   },
 
-  // ── First-Answerer & Rebound Engine ──
+  // ── First-Answerer & Rebound Engine (5-Step Incremental Train Advancement) ──
   lockInTeam: (team) => {
     const state = get();
     const ch = state.activeChallenge;
@@ -306,6 +334,20 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         seatIndex: nextSeat,
       };
 
+      const nextGreen = Math.min(5, state.signalsGreenCount + 1);
+      const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
+
+      // Play step atmospheric audio
+      if (nextGreen === 1) {
+        soundManager.playTrainBells(2500);
+      } else if (nextGreen === 2) {
+        soundManager.playTrainWhistle();
+      } else if (nextGreen === 3) {
+        soundManager.playSignalChange();
+      } else if (nextGreen === 4) {
+        soundManager.playSignalChange();
+      }
+
       set((s) => ({
         [key]: {
           ...s[key],
@@ -327,9 +369,36 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           ...s[otherKey],
           isLocked: true, // Question claimed by first correct answerer!
         },
-        signalsGreenCount: Math.min(5, s.signalsGreenCount + 1),
+        signalsGreenCount: nextGreen,
+        signal1Blue: signal1,
+        signal2Blue: signal2,
+        signal1Red: signal1,
+        signal2Red: signal2,
+        signalBlue: signal2,
+        signalRed: signal2,
+        blueTrain: {
+          ...s.blueTrain,
+          progress,
+          speed: 0.85,
+          smokeActive: true,
+        },
+        redTrain: {
+          ...s.redTrain,
+          progress,
+          speed: 0.85,
+          smokeActive: true,
+        },
         onboardPassengers: [...s.onboardPassengers, newPassenger],
-        toastMessage: `👥 ${s[key].name} PASSENGER BOARDED! SIGNAL GREEN!`,
+        toastMessage:
+          nextGreen === 1
+            ? `🚂 ${s[key].name} ANSWERED! TRAIN ADVANCING FROM YARD...`
+            : nextGreen === 2
+              ? `🚉 ${s[key].name} PASSENGER BOARDED AT STATION PLATFORM!`
+              : nextGreen === 3
+                ? `🟢 SIGNAL 1 GREEN! TRAIN CLEARING STATION EXIT BLOCK!`
+                : nextGreen === 4
+                  ? `🟢 SIGNAL 2 GREEN! BOTH SIGNALS GREEN — APPROACHING JUNCTION!`
+                  : `👥 ${s[key].name} PASSENGER BOARDED! ROUTE READY!`,
         timerActive: false,
       }));
 
@@ -384,7 +453,31 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
         // If the other team was ALREADY locked out (both exhausted turns), end question!
         if (otherTeamState.isLocked) {
-          set({ timerActive: false });
+          const nextGreen = Math.min(5, state.signalsGreenCount + 1);
+          const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
+
+          set({
+            timerActive: false,
+            signalsGreenCount: nextGreen,
+            signal1Blue: signal1,
+            signal2Blue: signal2,
+            signal1Red: signal1,
+            signal2Red: signal2,
+            signalBlue: signal2,
+            signalRed: signal2,
+            blueTrain: {
+              ...state.blueTrain,
+              progress,
+              speed: 0.8,
+              smokeActive: true,
+            },
+            redTrain: {
+              ...state.redTrain,
+              progress,
+              speed: 0.8,
+              smokeActive: true,
+            },
+          });
           setTimeout(() => {
             set({ phase: 'question-reveal', timerActive: false });
           }, 600);
@@ -416,10 +509,32 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       return;
     }
 
-    // 0 points for both when timer expires with no correct answer
+    const nextGreen = Math.min(5, state.signalsGreenCount + 1);
+    const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
+
+    // 0 points for both when timer expires with no correct answer, but step advances
     set((s) => ({
       blueTeam: { ...s.blueTeam, isLocked: true },
       redTeam: { ...s.redTeam, isLocked: true },
+      signalsGreenCount: nextGreen,
+      signal1Blue: signal1,
+      signal2Blue: signal2,
+      signal1Red: signal1,
+      signal2Red: signal2,
+      signalBlue: signal2,
+      signalRed: signal2,
+      blueTrain: {
+        ...s.blueTrain,
+        progress,
+        speed: 0.8,
+        smokeActive: true,
+      },
+      redTrain: {
+        ...s.redTrain,
+        progress,
+        speed: 0.8,
+        smokeActive: true,
+      },
       timerActive: false,
       phase: 'question-reveal',
     }));
@@ -494,10 +609,14 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       timerActive: false,
       showdownStep: 'quiet',
       activeRoute: winner,
-      signalBlue: 'red',
-      signalRed: 'red',
+      signal1Blue: 'green',
+      signal2Blue: isBlue ? 'yellow' : 'red',
+      signal1Red: 'green',
+      signal2Red: !isBlue ? 'yellow' : 'red',
+      signalBlue: isBlue ? 'yellow' : 'red',
+      signalRed: !isBlue ? 'yellow' : 'red',
       switchTarget: 'neutral',
-      toastMessage: '🛑 ALL SIGNALS RED — ROUTE CLEARANCE IN PROGRESS',
+      toastMessage: `🛑 BOTH TRAINS AT JUNCTION — CLEARING ROUTE FOR ${winnerName}`,
     });
 
     // 1. Throw switch lever toward winner (after 1.2s)
@@ -506,71 +625,75 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       set({
         showdownStep: 'switching',
         switchTarget: winner,
-        toastMessage: `⚙️ JUNCTION SWITCH THROWING ➔ ${winnerName} EXPRESS LINE`,
+        toastMessage: `⚙️ JUNCTION SWITCH THROWN ➔ ${winnerName} EXPRESS LINE`,
       });
     }, 1200);
 
     // 2. Winner signal turns YELLOW (after 2.5s)
     setTimeout(() => {
       soundManager.playSignalChange();
-      set({
+      set((s) => ({
         showdownStep: 'signal-yellow',
+        [isBlue ? 'signal2Blue' : 'signal2Red']: 'yellow',
         [isBlue ? 'signalBlue' : 'signalRed']: 'yellow',
-        toastMessage: `🟡 SIGNAL YELLOW — ROUTE PRE-CLEARED FOR ${winnerName}`,
-      });
+        toastMessage: `🟡 SIGNAL 2 YELLOW — PRE-CLEARED FOR ${winnerName}`,
+      }));
     }, 2500);
 
-    // 3. Winner signal turns GREEN & Loud Whistle blows when about to start (after 3.8s)
+    // 3. Winner signal turns GREEN & Loud Whistle blows (after 3.8s)
     setTimeout(() => {
       soundManager.playSignalChange();
       soundManager.playLoudWhistle();
-      set({
+      set((s) => ({
         showdownStep: 'signal-green',
+        [isBlue ? 'signal2Blue' : 'signal2Red']: 'green',
         [isBlue ? 'signalBlue' : 'signalRed']: 'green',
         toastMessage: `🟢 SIGNAL GREEN! ${winnerName} AUTHORIZED TO DEPART!`,
-      });
+      }));
     }, 3800);
 
-    // 4. Train departs & travels down the scenic line (after 5.0s)
+    // 4. Train departs from junction switch (0.24) and travels down the scenic line (after 5.0s)
     setTimeout(() => {
       soundManager.playTrainRunningAudio();
 
-      set({
+      set((s) => ({
         showdownStep: 'departing',
-        toastMessage: `🚂 ${winnerName} STEAM TRAIN EN ROUTE!`,
+        toastMessage: `🚂 ${winnerName} EXPRESS ROARING DOWN THE LINE!`,
         [isBlue ? 'blueTrain' : 'redTrain']: {
-          progress: 0,
+          ...s[isBlue ? 'blueTrain' : 'redTrain'],
+          progress: 0.24,
           speed: 1,
           state: 'departing',
           smokeActive: true,
           whistleActive: true,
           headlampOn: true,
         },
-      });
+      }));
 
-      let prog = 0;
+      let prog = 0.24;
       let tick = 0;
       travelInterval = setInterval(() => {
         tick++;
-        prog += 1 / 180; // ~9 second cinematic ride
+        prog += (1.0 - 0.24) / 160; // Smooth 8-second cinematic ride
 
-        // Loud whistle blasts 2 times spaced at 3-second intervals during train movement!
-        if (tick === 60 || tick === 120) {
+        // Loud whistle blasts 2 times spaced at intervals during train movement!
+        if (tick === 50 || tick === 105) {
           soundManager.playLoudWhistle();
         }
 
-        const spd = prog < 0.15 ? prog * 6.6 : prog > 0.85 ? (1 - prog) * 6.6 : 1;
+        const normT = (prog - 0.24) / (1.0 - 0.24);
+        const spd = normT < 0.15 ? normT * 6.6 : normT > 0.85 ? (1 - normT) * 6.6 : 1;
 
         set((s) => ({
           [isBlue ? 'blueTrain' : 'redTrain']: {
             ...s[isBlue ? 'blueTrain' : 'redTrain'],
             progress: Math.min(1, prog),
-            speed: spd,
-            state: prog >= 0.88 ? 'approaching' : 'moving',
+            speed: Math.max(0.5, spd),
+            state: prog >= 0.92 ? 'approaching' : 'moving',
           },
         }));
 
-        if (prog >= 1) {
+        if (prog >= 1.0) {
           clearTravel();
           soundManager.stopTrainRunningAudio();
           soundManager.playTrainArrive();
@@ -591,6 +714,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
             },
             [isBlue ? 'blueTrain' : 'redTrain']: {
               ...s[isBlue ? 'blueTrain' : 'redTrain'],
+              progress: 1.0,
               state: 'arrived',
               speed: 0,
               smokeActive: false,
