@@ -1,13 +1,14 @@
 // ============================================================
 // SKILLIZEE ARCADE — 3D Physical Retro Arcade Cabinet Component
 // Authentic Three.js Mesh Model with:
-// - Curved 3D Side Wings matching the retro cabinet drawing
-// - Skillizee Circular Speaker Medallions & Custom Side Decals
-// - Vibrant Backlit Top Marquee Cards with High-Contrast Game Titles
+// - Curved 3D Side Wings with Rich Vibrant Colors & Decals
+// - Skillizee Circular Speaker Medallions
+// - High-Contrast Backlit Marquees with Clear Names & Topics
+// - Prominent Overhead Name & Topic Floating Cards (Always Readable & Well Spaced)
 // - Live CRT Monitor with High-Res Game Artwork & Retro Scanline Glow
-// - Slanted 3D Control Deck with Animated Joysticks & Arcade Buttons
-// - Stamped Coin Door with Illuminated 25¢ Insert Reject Buttons
-// - Dynamic On-Hover Floating Badge & Direct Click-to-Play
+// - Slanted 3D Control Deck with Animated Joysticks & Candy Arcade Buttons
+// - Vibrant Stamped Coin Door with Illuminated 25¢ Insert Buttons
+// - Interactive Hover Float, Joystick Wiggle & Direct Click-to-Play
 // ============================================================
 
 import React, { useRef, useMemo, useState, useEffect } from 'react';
@@ -22,6 +23,7 @@ export interface ArcadeCabinetConfig {
   number: string;
   title: string;
   subtitle: string;
+  topic: string;
   grade: string;
   category: string;
   status: 'active' | 'planned';
@@ -31,6 +33,7 @@ export interface ArcadeCabinetConfig {
   rotation?: [number, number, number];
   theme: {
     cabinetColor: string;
+    secondaryColor: string;
     tMoldingColor: string;
     tMoldingEmissive: string;
     marqueeBg: string;
@@ -45,6 +48,9 @@ export interface ArcadeCabinetConfig {
     coinDoorColor: string;
     sideArtAccent: string;
     floorGlowColor: string;
+    topicBadgeBg: string;
+    topicBadgeText: string;
+    cardBorderColor: string;
   };
 }
 
@@ -96,91 +102,90 @@ export const ArcadeCabinet3D: React.FC<{
 
     if (config.id === 'math-escape-vault') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
-      grad.addColorStop(0, '#0f172a');
-      grad.addColorStop(0.5, '#1e3a8a');
-      grad.addColorStop(1, '#020617');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 1024, 768);
-
-      ctx.strokeStyle = '#f59e0b';
-      ctx.lineWidth = 16;
-      ctx.beginPath();
-      ctx.arc(512, 360, 200, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = '#f59e0b';
-      ctx.font = '900 64px "Impact", "Arial Black", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('MATH ESCAPE VAULT', 512, 340);
-      ctx.font = 'bold 36px "Inter", sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('CRACK THE GTA V TREASURY', 512, 410);
-    } else if (config.id === 'number-railway') {
-      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
-      grad.addColorStop(0, '#082f49');
-      grad.addColorStop(0.5, '#0284c7');
-      grad.addColorStop(1, '#0369a1');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, 1024, 768);
-
-      ctx.strokeStyle = '#38bdf8';
-      ctx.lineWidth = 16;
-      ctx.beginPath();
-      ctx.arc(512, 360, 200, 0, Math.PI * 2);
-      ctx.stroke();
-
-      ctx.fillStyle = '#ffffff';
-      ctx.font = '900 64px "Impact", "Arial Black", sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText('THE GREAT NUMBER RAILWAY', 512, 340);
-      ctx.font = 'bold 36px "Inter", sans-serif';
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillText('3D LOCOMOTIVE OPERATIONS', 512, 410);
-    } else if (config.id === 'carnival-of-chance') {
-      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
-      grad.addColorStop(0, '#7f1d1d');
-      grad.addColorStop(0.5, '#dc2626');
-      grad.addColorStop(1, '#450a0a');
+      grad.addColorStop(0, '#1e3a8a');
+      grad.addColorStop(0.5, '#2563eb');
+      grad.addColorStop(1, '#172554');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 768);
 
       ctx.strokeStyle = '#fbbf24';
       ctx.lineWidth = 16;
       ctx.beginPath();
-      ctx.arc(512, 360, 200, 0, Math.PI * 2);
+      ctx.arc(512, 350, 190, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#fbbf24';
+      ctx.font = '900 68px "Impact", "Arial Black", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MATH ESCAPE VAULT', 512, 330);
+      ctx.font = 'bold 36px "Inter", sans-serif';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
+    } else if (config.id === 'number-railway') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#0284c7');
+      grad.addColorStop(0.5, '#38bdf8');
+      grad.addColorStop(1, '#0369a1');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.arc(512, 350, 190, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '900 64px "Impact", "Arial Black", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE GREAT NUMBER RAILWAY', 512, 330);
+      ctx.font = 'bold 36px "Inter", sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
+    } else if (config.id === 'carnival-of-chance') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#b91c1c');
+      grad.addColorStop(0.5, '#ef4444');
+      grad.addColorStop(1, '#991b1b');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 16;
+      ctx.beginPath();
+      ctx.arc(512, 350, 190, 0, Math.PI * 2);
       ctx.stroke();
 
       ctx.fillStyle = '#fbbf24';
       ctx.font = '900 60px "Impact", "Arial Black", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('THE GREAT CARNIVAL OF CHANCE', 512, 340);
+      ctx.fillText('THE GREAT CARNIVAL OF CHANCE', 512, 330);
       ctx.font = 'bold 36px "Inter", sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText('PROBABILITY THEME PARK', 512, 410);
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 400);
     } else {
-      // Cyber Arcade Matrix Screen for Slot 4
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
-      grad.addColorStop(0, '#2e1065');
-      grad.addColorStop(0.5, '#581c87');
-      grad.addColorStop(1, '#0f0a1e');
+      grad.addColorStop(0, '#6b21a8');
+      grad.addColorStop(0.5, '#a855f7');
+      grad.addColorStop(1, '#4c1d95');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 768);
 
-      ctx.strokeStyle = '#c084fc';
+      ctx.strokeStyle = '#f0abfc';
       ctx.lineWidth = 12;
       ctx.strokeRect(120, 120, 784, 528);
 
-      ctx.fillStyle = '#f0abfc';
+      ctx.fillStyle = '#ffffff';
       ctx.font = '900 72px "Impact", "Arial Black", sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('★ COMING SOON ★', 512, 350);
+      ctx.fillText('★ COMING SOON ★', 512, 340);
       ctx.font = 'bold 34px "Inter", sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('NEW ACTIVITY IN PRODUCTION', 512, 430);
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 420);
     }
 
     // CRT Scanlines
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.22)';
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
     for (let y = 0; y < 768; y += 8) {
       ctx.fillRect(0, y, 1024, 4);
     }
@@ -190,59 +195,65 @@ export const ArcadeCabinet3D: React.FC<{
     return tex;
   }, [config]);
 
-  // Procedural Canvas Texture for Illuminated Top Marquee Sign
+  // Procedural Canvas Texture for Physical Top Marquee Lightbox
   const marqueeTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
-    canvas.height = 320;
+    canvas.height = 340;
     const ctx = canvas.getContext('2d');
     if (!ctx) return null;
 
     const bgGrad = ctx.createLinearGradient(0, 0, 1024, 0);
     if (config.id === 'math-escape-vault') {
-      bgGrad.addColorStop(0, '#451a03');
+      bgGrad.addColorStop(0, '#1e3a8a');
       bgGrad.addColorStop(0.5, '#f59e0b');
-      bgGrad.addColorStop(1, '#b45309');
+      bgGrad.addColorStop(1, '#1e3a8a');
     } else if (config.id === 'number-railway') {
-      bgGrad.addColorStop(0, '#0c4a6e');
+      bgGrad.addColorStop(0, '#0369a1');
       bgGrad.addColorStop(0.5, '#38bdf8');
       bgGrad.addColorStop(1, '#0284c7');
     } else if (config.id === 'carnival-of-chance') {
-      bgGrad.addColorStop(0, '#7f1d1d');
+      bgGrad.addColorStop(0, '#991b1b');
       bgGrad.addColorStop(0.5, '#fbbf24');
       bgGrad.addColorStop(1, '#dc2626');
     } else {
-      bgGrad.addColorStop(0, '#3b0764');
+      bgGrad.addColorStop(0, '#581c87');
       bgGrad.addColorStop(0.5, '#c084fc');
       bgGrad.addColorStop(1, '#7e22ce');
     }
 
     ctx.fillStyle = bgGrad;
-    ctx.fillRect(0, 0, 1024, 320);
+    ctx.fillRect(0, 0, 1024, 340);
 
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 14;
-    ctx.strokeRect(10, 10, 1004, 300);
+    ctx.strokeRect(10, 10, 1004, 320);
 
     ctx.strokeStyle = '#020617';
     ctx.lineWidth = 8;
-    ctx.strokeRect(24, 24, 976, 272);
+    ctx.strokeRect(24, 24, 976, 292);
 
     ctx.fillStyle = '#020617';
     ctx.font = '900 32px "Inter", "Arial Black", sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`★ CABINET #${config.number} • ${config.grade.toUpperCase()} ★`, 512, 72);
 
-    ctx.font = '900 68px "Impact", "Arial Black", sans-serif';
+    ctx.font = '900 70px "Impact", "Arial Black", sans-serif';
     ctx.fillStyle = '#000000';
-    ctx.fillText(config.title, 515, 185);
+    ctx.fillText(config.title, 515, 175);
     ctx.fillStyle = config.theme.marqueeTextColor || '#ffffff';
-    ctx.fillText(config.title, 512, 182);
+    ctx.fillText(config.title, 512, 172);
 
-    ctx.font = 'bold 30px "Inter", sans-serif';
     ctx.fillStyle = '#020617';
-    ctx.fillText(config.subtitle.toUpperCase(), 512, 256);
+    ctx.fillRect(150, 220, 724, 70);
+    ctx.strokeStyle = config.theme.tMoldingColor;
+    ctx.lineWidth = 4;
+    ctx.strokeRect(150, 220, 724, 70);
+
+    ctx.font = '900 34px "Inter", "Arial Black", sans-serif';
+    ctx.fillStyle = config.theme.tMoldingColor;
+    ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 268);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -262,29 +273,29 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.fillRect(0, 0, 512, 1024);
 
     ctx.strokeStyle = config.theme.sideArtAccent;
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 14;
     ctx.beginPath();
     ctx.moveTo(0, 150);
     ctx.bezierCurveTo(200, 250, 300, 550, 512, 600);
     ctx.stroke();
 
-    ctx.lineWidth = 5;
+    ctx.lineWidth = 8;
     ctx.beginPath();
     ctx.moveTo(0, 220);
     ctx.bezierCurveTo(220, 320, 320, 620, 512, 670);
     ctx.stroke();
 
-    ctx.fillStyle = '#020617';
+    ctx.fillStyle = config.theme.secondaryColor || '#ffffff';
     ctx.beginPath();
-    ctx.arc(256, 420, 110, 0, Math.PI * 2);
+    ctx.arc(256, 420, 115, 0, Math.PI * 2);
     ctx.fill();
-    ctx.strokeStyle = config.theme.tMoldingEmissive;
-    ctx.lineWidth = 8;
+    ctx.strokeStyle = config.theme.tMoldingColor;
+    ctx.lineWidth = 10;
     ctx.stroke();
 
-    ctx.fillStyle = config.theme.sideArtAccent;
+    ctx.fillStyle = config.theme.cabinetColor;
     ctx.beginPath();
-    ctx.arc(256, 420, 85, 0, Math.PI * 2);
+    ctx.arc(256, 420, 88, 0, Math.PI * 2);
     ctx.fill();
 
     ctx.fillStyle = '#ffffff';
@@ -367,7 +378,7 @@ export const ArcadeCabinet3D: React.FC<{
         <meshBasicMaterial
           color={config.theme.floorGlowColor}
           transparent
-          opacity={hovered ? 0.65 : 0.35}
+          opacity={hovered ? 0.75 : 0.4}
         />
       </mesh>
 
@@ -375,7 +386,7 @@ export const ArcadeCabinet3D: React.FC<{
       <group position={[0, 0.12, 0]}>
         <mesh receiveShadow castShadow>
           <boxGeometry args={[1.5, 0.24, 1.3]} />
-          <meshStandardMaterial color="#020617" roughness={0.9} />
+          <meshStandardMaterial color={config.theme.secondaryColor || '#1e293b'} roughness={0.7} />
         </mesh>
         {[
           [-0.65, -0.1, 0.55],
@@ -385,7 +396,7 @@ export const ArcadeCabinet3D: React.FC<{
         ].map(([fx, fy, fz], i) => (
           <mesh key={`foot-${i}`} position={[fx, fy, fz]}>
             <cylinderGeometry args={[0.07, 0.08, 0.08, 12]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.9} metalness={0.2} />
+            <meshStandardMaterial color="#0f172a" roughness={0.9} metalness={0.2} />
           </mesh>
         ))}
       </group>
@@ -394,7 +405,7 @@ export const ArcadeCabinet3D: React.FC<{
       <group position={[0, 0.9, 0]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.44, 1.32, 1.25]} />
-          <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.6} />
+          <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.5} />
         </mesh>
 
         <mesh position={[0, 0, 0.63]} receiveShadow castShadow>
@@ -405,7 +416,7 @@ export const ArcadeCabinet3D: React.FC<{
         <group position={[0, -0.05, 0.66]}>
           <mesh castShadow>
             <boxGeometry args={[0.62, 0.82, 0.05]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
+            <meshStandardMaterial color={config.theme.secondaryColor || '#1e293b'} roughness={0.3} metalness={0.7} />
           </mesh>
 
           {[-0.16, 0.16].map((cx, i) => (
@@ -441,12 +452,12 @@ export const ArcadeCabinet3D: React.FC<{
       <group position={[0, 1.68, 0.58]} rotation={[0.3, 0, 0]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.56, 0.12, 0.72]} />
-          <meshStandardMaterial color={config.theme.deckColor} roughness={0.3} metalness={0.4} />
+          <meshStandardMaterial color={config.theme.deckColor} roughness={0.3} metalness={0.3} />
         </mesh>
 
         <mesh position={[0, 0.065, 0]}>
           <boxGeometry args={[1.52, 0.01, 0.68]} />
-          <meshStandardMaterial color="#020617" roughness={0.8} />
+          <meshStandardMaterial color={config.theme.secondaryColor || '#0f172a'} roughness={0.8} />
         </mesh>
 
         {/* Player 1 Controls */}
@@ -454,7 +465,7 @@ export const ArcadeCabinet3D: React.FC<{
           <group ref={p1StickRef}>
             <mesh>
               <cylinderGeometry args={[0.14, 0.14, 0.02, 24]} />
-              <meshStandardMaterial color="#020617" roughness={0.9} />
+              <meshStandardMaterial color="#0f172a" roughness={0.9} />
             </mesh>
             <mesh position={[0, 0.12, 0]}>
               <cylinderGeometry args={[0.024, 0.024, 0.22, 12]} />
@@ -483,8 +494,8 @@ export const ArcadeCabinet3D: React.FC<{
               <meshStandardMaterial
                 color={String(bColor)}
                 emissive={String(bColor)}
-                emissiveIntensity={0.5}
-                roughness={0.3}
+                emissiveIntensity={0.6}
+                roughness={0.2}
               />
             </mesh>
           ))}
@@ -505,7 +516,7 @@ export const ArcadeCabinet3D: React.FC<{
           <group ref={p2StickRef}>
             <mesh>
               <cylinderGeometry args={[0.14, 0.14, 0.02, 24]} />
-              <meshStandardMaterial color="#020617" roughness={0.9} />
+              <meshStandardMaterial color="#0f172a" roughness={0.9} />
             </mesh>
             <mesh position={[0, 0.12, 0]}>
               <cylinderGeometry args={[0.024, 0.024, 0.22, 12]} />
@@ -534,8 +545,8 @@ export const ArcadeCabinet3D: React.FC<{
               <meshStandardMaterial
                 color={String(bColor)}
                 emissive={String(bColor)}
-                emissiveIntensity={0.5}
-                roughness={0.3}
+                emissiveIntensity={0.6}
+                roughness={0.2}
               />
             </mesh>
           ))}
@@ -546,7 +557,7 @@ export const ArcadeCabinet3D: React.FC<{
       <group position={[0, 2.45, 0.08]} rotation={[-0.32, 0, 0]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.44, 1.25, 0.22]} />
-          <meshStandardMaterial color="#020617" roughness={0.8} />
+          <meshStandardMaterial color={config.theme.secondaryColor || '#0f172a'} roughness={0.7} />
         </mesh>
 
         <mesh position={[0, 0, 0.1]} receiveShadow>
@@ -594,7 +605,7 @@ export const ArcadeCabinet3D: React.FC<{
       <group position={[0, 3.32, 0.36]} rotation={[0.22, 0, 0]}>
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.52, 0.62, 0.44]} />
-          <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.5} />
+          <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.4} />
         </mesh>
 
         <mesh position={[0, 0, 0.22]}>
@@ -637,7 +648,7 @@ export const ArcadeCabinet3D: React.FC<{
         </mesh>
         <mesh position={[-0.04, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.26, 0.26, 0.03, 32]} />
-          <meshStandardMaterial color="#020617" roughness={0.4} metalness={0.7} />
+          <meshStandardMaterial color={config.theme.secondaryColor || '#1e293b'} roughness={0.4} metalness={0.7} />
         </mesh>
         <mesh position={[-0.058, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.2, 0.2, 0.01, 32]} />
@@ -669,7 +680,7 @@ export const ArcadeCabinet3D: React.FC<{
         </mesh>
         <mesh position={[0.04, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.26, 0.26, 0.03, 32]} />
-          <meshStandardMaterial color="#020617" roughness={0.4} metalness={0.7} />
+          <meshStandardMaterial color={config.theme.secondaryColor || '#1e293b'} roughness={0.4} metalness={0.7} />
         </mesh>
         <mesh position={[0.058, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
           <cylinderGeometry args={[0.2, 0.2, 0.01, 32]} />
@@ -681,23 +692,60 @@ export const ArcadeCabinet3D: React.FC<{
         </mesh>
       </group>
 
-      {/* ── 3D FLOATING HUD BADGE OVERHEAD (Appears on Hover) ── */}
-      {hovered && (
-        <Html position={[0, 3.82, 0.5]} center distanceFactor={8}>
-          <div className="flex flex-col items-center pointer-events-none select-none animate-bounce">
+      {/* ── 3D PROMINENT FLOATING NAME & TOPIC CARD OVERHEAD ── */}
+      <Html position={[0, 4.05, 0.3]} center distanceFactor={8.5}>
+        <div
+          className={`flex flex-col items-center select-none transition-all duration-300 transform pointer-events-auto cursor-pointer ${
+            hovered ? 'scale-105 -translate-y-2' : 'scale-95 opacity-95'
+          }`}
+          onClick={handleClick}
+        >
+          <div
+            className="px-3 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-2xl flex flex-col items-center text-center gap-1 w-[185px]"
+            style={{
+              border: `2.5px solid ${config.theme.cardBorderColor || config.theme.tMoldingColor}`,
+              boxShadow: hovered
+                ? `0 12px 30px ${config.theme.tMoldingEmissive}88, 0 0 20px ${config.theme.tMoldingColor}66`
+                : `0 8px 20px rgba(0,0,0,0.15)`,
+            }}
+          >
+            {/* Header Tag */}
+            <div className="flex items-center gap-1 text-[9px] font-black font-game tracking-widest uppercase text-slate-500">
+              <span>CABINET #{config.number}</span>
+              <span>•</span>
+              <span className="text-amber-600 font-bold">{config.grade}</span>
+            </div>
+
+            {/* Main Machine Name */}
+            <h3 className="text-xs font-black font-bank uppercase tracking-wider text-slate-950 leading-tight">
+              {config.title}
+            </h3>
+
+            {/* Topic Badge */}
+            <div
+              className="px-2 py-0.5 rounded-full text-[10px] font-black font-game uppercase tracking-tight shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-full"
+              style={{
+                backgroundColor: config.theme.topicBadgeBg,
+                color: config.theme.topicBadgeText,
+              }}
+            >
+              {config.topic}
+            </div>
+
+            {/* Play Indicator on Hover */}
             {config.status === 'active' ? (
-              <div className="px-4 py-1.5 rounded-full bg-amber-400 border-2 border-slate-950 text-slate-950 font-black text-xs font-game uppercase tracking-widest shadow-[0_6px_25px_rgba(245,158,11,1)] flex items-center gap-2 whitespace-nowrap">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-600 animate-ping" />
-                <span>★ CLICK TO PLAY ★</span>
+              <div className="mt-0.5 flex items-center gap-1 text-[9px] font-bold text-emerald-700 font-game tracking-wider">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                <span>CLICK TO PLAY →</span>
               </div>
             ) : (
-              <div className="px-3.5 py-1.5 rounded-full bg-purple-950 border-2 border-purple-400 text-purple-200 font-bold text-xs font-game uppercase tracking-wider shadow whitespace-nowrap">
+              <div className="mt-0.5 text-[8.5px] font-bold text-purple-700 font-game tracking-wider">
                 COMING SOON
               </div>
             )}
           </div>
-        </Html>
-      )}
+        </div>
+      </Html>
     </group>
   );
 };
