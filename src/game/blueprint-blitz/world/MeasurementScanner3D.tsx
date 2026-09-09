@@ -1,15 +1,13 @@
 // ============================================================
-// BLUEPRINT BLITZ — Signature 3D Measurement Scanner
-// The iconic precision inspection machine featuring:
-// - Industrial gantry posts with hydraulic pistons & warning strobes
-// - Sweeping holographic laser plane with coordinate grid projection
-// - Digital LED measurement readout computing L, W, H, Area & Volume
-// - Smooth mechanical scan animation and laser wave effects
+// BLUEPRINT BLITZ — 3D Measurement Scanner & Inspection Gantry
+// Clean industrial laser scanner arches:
+// - Safety yellow steel gantry arches with hazard markings & warning beacons
+// - Sweeping holographic laser beam during inspection scan
+// - Clean structure: Removed all floating text from 3D world (displayed in HUD only)
 // ============================================================
 
 import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { TeamId } from '../types';
 
@@ -33,7 +31,6 @@ export const MeasurementScanner3D: React.FC<MeasurementScanner3DProps> = ({
   position = [0, 0, 0],
 }) => {
   const laserBeamRef = useRef<THREE.Group>(null);
-  const scanPlaneRef = useRef<THREE.Mesh>(null);
 
   const spanWidth = Math.max(length + 2.5, 6);
   const spanDepth = Math.max(width + 2.5, 6);
@@ -74,9 +71,9 @@ export const MeasurementScanner3D: React.FC<MeasurementScanner3DProps> = ({
         <mesh position={[0, gantryHeight + 0.2, 0]}>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 12]} />
           <meshStandardMaterial
-            color={isScanning ? '#ef4444' : '#64748b'}
-            emissive={isScanning ? '#ef4444' : '#000000'}
-            emissiveIntensity={isScanning ? 1.5 : 0}
+            color={isScanning ? '#22c55e' : '#f59e0b'}
+            emissive={isScanning ? '#22c55e' : '#f59e0b'}
+            emissiveIntensity={isScanning ? 1.5 : 0.3}
           />
         </mesh>
       </group>
@@ -97,9 +94,9 @@ export const MeasurementScanner3D: React.FC<MeasurementScanner3DProps> = ({
         <mesh position={[0, gantryHeight + 0.2, 0]}>
           <cylinderGeometry args={[0.15, 0.15, 0.3, 12]} />
           <meshStandardMaterial
-            color={isScanning ? '#ef4444' : '#64748b'}
-            emissive={isScanning ? '#ef4444' : '#000000'}
-            emissiveIntensity={isScanning ? 1.5 : 0}
+            color={isScanning ? '#22c55e' : '#f59e0b'}
+            emissive={isScanning ? '#22c55e' : '#f59e0b'}
+            emissiveIntensity={isScanning ? 1.5 : 0.3}
           />
         </mesh>
       </group>
@@ -109,42 +106,6 @@ export const MeasurementScanner3D: React.FC<MeasurementScanner3DProps> = ({
         <boxGeometry args={[spanWidth + 0.4, 0.45, 0.6]} />
         <meshStandardMaterial color="#334155" roughness={0.5} metalness={0.5} />
       </mesh>
-
-      {/* ── DIGITAL MEASUREMENT SCANNER HUD DISPLAY ── */}
-      <group position={[0, gantryHeight + 0.8, 0]}>
-        {/* Display Shell */}
-        <mesh>
-          <boxGeometry args={[3.6, 0.9, 0.3]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
-        </mesh>
-        {/* Glass Screen */}
-        <mesh position={[0, 0, 0.16]}>
-          <planeGeometry args={[3.4, 0.7]} />
-          <meshBasicMaterial color="#020617" />
-        </mesh>
-
-        <Text
-          position={[0, 0.16, 0.18]}
-          fontSize={0.24}
-          color={isScanning ? '#38bdf8' : '#94a3b8'}
-          anchorX="center"
-          anchorY="middle"
-          outlineWidth={0.02}
-          outlineColor="#0284c7"
-        >
-          {isScanning ? '⚡ SCANNING DIMENSIONS...' : '📐 MEASUREMENT GANTRY READY'}
-        </Text>
-
-        <Text
-          position={[0, -0.16, 0.18]}
-          fontSize={0.28}
-          color="#facc15"
-          anchorX="center"
-          anchorY="middle"
-        >
-          {`L: ${length}m | W: ${width}m | H: ${height}m`}
-        </Text>
-      </group>
 
       {/* ── ACTIVE SWEEPING LASER EMITTER BEAM & HOLOGRAPHIC PLANE ── */}
       <group ref={laserBeamRef} position={[0, 0, 0]}>
@@ -159,22 +120,15 @@ export const MeasurementScanner3D: React.FC<MeasurementScanner3DProps> = ({
           />
         </mesh>
 
-        {/* Vertical Holographic Laser Curtain / Scan Sheet */}
-        <mesh ref={scanPlaneRef} position={[0, gantryHeight * 0.5, 0]}>
-          <planeGeometry args={[spanWidth - 0.2, gantryHeight]} />
+        {/* Sweeping Laser Plane Sheet */}
+        <mesh position={[0, (gantryHeight - 0.2) * 0.5, 0]}>
+          <planeGeometry args={[spanWidth - 0.2, gantryHeight - 0.4]} />
           <meshBasicMaterial
             color="#38bdf8"
             transparent
             opacity={0.35}
             side={THREE.DoubleSide}
-            depthWrite={false}
           />
-        </mesh>
-
-        {/* Floor Laser Line Focus */}
-        <mesh position={[0, 0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[spanWidth - 0.2, 0.15]} />
-          <meshBasicMaterial color="#38bdf8" transparent opacity={0.8} />
         </mesh>
       </group>
     </group>

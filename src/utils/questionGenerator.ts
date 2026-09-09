@@ -441,11 +441,11 @@ export function generateQuestion(
     generatedData = fn(difficulty);
   }
 
-  // Target timer according to difficulty specification:
-  // Hard: 30-40s (35s)
-  // Medium: 20-30s (25s)
-  // Easy: 10-20s (15s)
-  const timeLimit = difficulty === 'hard' ? 35 : difficulty === 'medium' ? 25 : 15;
+  // Target timer according to Grade 6 classroom specification (45s to 1 min):
+  // Hard: 60s (1 min)
+  // Medium: 50s
+  // Easy: 45s
+  const timeLimit = difficulty === 'hard' ? 60 : difficulty === 'medium' ? 50 : 45;
 
   return {
     id: `g6-q-${idSuffix}-${Math.random().toString(36).substring(2, 7)}`,

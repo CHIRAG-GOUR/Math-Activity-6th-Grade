@@ -49,7 +49,7 @@ export const ScannerResultCard: React.FC = () => {
         className={`flex-1 flex flex-col gap-3 p-4 rounded-2xl border-4 ${
           isCorrect
             ? 'bg-emerald-50 border-emerald-500 shadow-xl'
-            : 'bg-amber-50 border-amber-500 shadow-xl'
+            : 'bg-red-50 border-red-500 shadow-xl'
         } text-slate-950 select-none relative`}
       >
         {/* Top Rivets & Header */}
@@ -65,22 +65,24 @@ export const ScannerResultCard: React.FC = () => {
             <div className="flex items-center gap-1.5">
               <span
                 className={`w-3 h-3 rounded-full border border-slate-950 ${
-                  isCorrect ? 'bg-emerald-500 animate-pulse' : 'bg-amber-500'
+                  isCorrect ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'
                 }`}
               />
               <span
                 className={`font-black text-xs sm:text-sm uppercase tracking-wider ${
-                  isCorrect ? 'text-emerald-700' : 'text-amber-800'
+                  isCorrect ? 'text-emerald-700' : 'text-red-700'
                 }`}
               >
-                {isCorrect ? 'INSPECTION PASSED' : 'BUILD NEEDS ADJUSTMENT'}
+                {isCorrect ? '✓ INSPECTION PASSED' : '✕ BUILD MISMATCH'}
               </span>
             </div>
           </div>
 
-          <div className="flex items-center gap-1 text-amber-700 font-black text-sm">
-            <Award className="w-4 h-4" />
-            <span>+{res.scoreBreakdown.total} PTS</span>
+          <div className="flex items-center gap-1 text-slate-800 font-black text-sm">
+            <Award className={`w-4 h-4 ${isCorrect ? 'text-emerald-600' : 'text-slate-400'}`} />
+            <span className={isCorrect ? 'text-emerald-700 font-black' : 'text-slate-500'}>
+              +{res.scoreBreakdown.total} PTS
+            </span>
           </div>
         </div>
 
@@ -113,22 +115,23 @@ export const ScannerResultCard: React.FC = () => {
           </div>
         </div>
 
-        {/* Stamped Status & Adjustment Required Banner */}
+        {/* Stamped Status & Adjustment Required Banner (Green if Approved, Red if Wrong) */}
+        {/* Stamped Status (Green if Approved, Red if Wrong) */}
         <div
           className={`p-2.5 rounded-xl border-2 flex items-start gap-2 ${
             isCorrect
               ? 'bg-emerald-100 border-emerald-400 text-emerald-900'
-              : 'bg-amber-100 border-amber-400 text-amber-950'
+              : 'bg-red-100 border-red-400 text-red-950'
           }`}
         >
           {isCorrect ? (
             <CheckCircle2 className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
           ) : (
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <AlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
           )}
           <div className="flex flex-col text-xs leading-tight">
             <span className="font-black uppercase tracking-wider">
-              {isCorrect ? 'STAMP: APPROVED ✓' : 'STAMP: REVISION REQUIRED ⚠️'}
+              {isCorrect ? 'STAMP: APPROVED ✓' : 'STAMP: REVISION REQUIRED ✕'}
             </span>
             <span className="text-[11px] mt-0.5 font-medium">
               {isCorrect ? 'Satisfies all architectural blueprint specifications.' : res.diffMessage}
@@ -136,16 +139,13 @@ export const ScannerResultCard: React.FC = () => {
           </div>
         </div>
 
-        {/* Second Chance Recovery Action */}
-        {!isCorrect && (
-          <button
-            onClick={() => allowSecondChance(teamId)}
-            className="w-full py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-1.5 shadow border-2 border-slate-950 transition-all"
-          >
-            <RotateCcw className="w-4 h-4" />
-            <span>MODIFY & RESUBMIT (RECOVERY)</span>
-          </button>
-        )}
+        {/* Stamped Inspection Result Status */}
+        <div className="flex items-center justify-between text-xs font-black text-slate-700 bg-white p-2 rounded-lg border border-slate-200">
+          <span>CHANCES USED:</span>
+          <span className="font-mono text-slate-950 font-black">
+            {team.attemptCount} / 2 {isCorrect ? '(APPROVED)' : '(MISMATCH)'}
+          </span>
+        </div>
       </div>
     );
   };

@@ -96,6 +96,8 @@ const createInitialTeam = (id: TeamId, name: string): TeamGameState => ({
   score: 0,
   roundScore: 0,
   completedChallengesCount: 0,
+  attemptsLeft: 2,
+  attemptCount: 0,
   build: { ...DEFAULT_BUILD },
   scanResult: null,
   hasSecondChance: false,
@@ -109,7 +111,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   usedChallengeIds: [],
   cameraFocus: 'overview',
 
-  timeRemaining: 45,
+  timeRemaining: 50,
   isTimerRunning: false,
 
   blueTeam: createInitialTeam('blue', 'BLUE SQUAD'),
@@ -117,7 +119,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
 
   winner: null,
   settings: {
-    roundDuration: 45,
+    roundDuration: 50,
     isMuted: false,
     soundVolume: 0.8,
     maxRounds: 5,
@@ -142,7 +144,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       currentRound: 1,
       activeChallenge: firstChallenge,
       usedChallengeIds: [firstChallenge.id],
-      timeRemaining: firstChallenge.timeLimit,
+      timeRemaining: firstChallenge.timeLimit || 50,
       isTimerRunning: false,
       cameraFocus: 'overview',
       blueTeam: {
@@ -170,7 +172,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     set({
       phase: 'building',
       isTimerRunning: true,
-      timeRemaining: activeChallenge?.timeLimit || 45,
+      timeRemaining: activeChallenge?.timeLimit || 50,
       cameraFocus: 'overview',
     });
   },
@@ -180,7 +182,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     if (!isTimerRunning || phase !== 'building') return;
 
     if (timeRemaining <= 1) {
-      // Time is up - automatically trigger measurement scan
+      // Time is up - automatically evaluate remaining builds
       set({ timeRemaining: 0, isTimerRunning: false });
       get().triggerScanAndEvaluate();
     } else {
@@ -189,7 +191,8 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   },
 
   setCameraFocus: (focus) => {
-    set({ cameraFocus: focus });
+    // Keep camera on balanced overview so both sides have a fair view
+    set({ cameraFocus: 'overview' });
   },
 
   adjustDimension: (teamId, dim, delta) => {
@@ -203,7 +206,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     if (currentVal === nextVal) return;
 
     if (delta > 0) {
-      blueprintAudio.playBlockPlace();
+      if (team.build.shapeType === 'wood') {
+        blueprintAudio.playWoodPlace();
+      } else {
+        blueprintAudio.playStonePlace();
+      }
     } else {
       blueprintAudio.playBlockRemove();
     }
@@ -262,7 +269,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     if (currentBlocks === nextBlocks) return;
 
     if (delta > 0) {
-      blueprintAudio.playBlockPlace();
+      if (team.build.shapeType === 'wood') {
+        blueprintAudio.playWoodPlace();
+      } else {
+        blueprintAudio.playStonePlace();
+      }
     } else {
       blueprintAudio.playBlockRemove();
     }
@@ -349,117 +360,102 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     }
   },
 
+  // ── INDEPENDENT SUBMIT WITH 2 CHANCES PER TEAM ──
   submitBuild: (teamId) => {
     const state = get();
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    blueprintAudio.playButtonTap();
+    const { activeChallenge } = state;
+    if (!activeChallenge) return;
 
-    const nextBuild = { ...team.build, isConfirmed: true, isLocked: true };
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
+    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
+    if (team.attemptsLeft <= 0 || (team.scanResult && team.scanResult.isCorrect)) return;
+
+    const nextAttemptCount = team.attemptCount + 1;
+    const nextAttemptsLeft = Math.max(0, team.attemptsLeft - 1);
+    const evalResult = validateChallengeSolution(activeChallenge, team.build);
+
+    const isFirstAttempt = nextAttemptCount === 1;
+    const speedBonus = isFirstAttempt ? 25 : 10;
+    const basePts = evalResult.isValid ? activeChallenge.basePoints : 0;
+    const totalAward = evalResult.isValid ? basePts + speedBonus : 0;
+
+    const scoreBreakdown: ScoreBreakdown = {
+      base: basePts,
+      speed: evalResult.isValid ? speedBonus : 0,
+      precision: evalResult.isValid ? 30 : 0,
+      efficiency: evalResult.isValid ? 20 : 0,
+      total: totalAward,
+    };
+
+    const scanResult: ScanResult = {
+      teamId,
+      measuredLength: team.build.length,
+      measuredWidth: team.build.width,
+      measuredHeight: team.build.height,
+      measuredArea: team.build.length * team.build.width,
+      measuredVolume: team.build.length * team.build.width * team.build.height,
+      targetDescription: activeChallenge.target.description,
+      isCorrect: evalResult.isValid,
+      statusMessage: evalResult.isValid
+        ? '✓ BUILD APPROVED!'
+        : nextAttemptsLeft > 0
+          ? '✕ CHANCE 1 WRONG — 1 CHANCE LEFT!'
+          : '✕ OUT OF CHANCES',
+      diffMessage: evalResult.diffMessage,
+      formula: evalResult.formula,
+      scoreBreakdown,
+      timestamp: Date.now(),
+    };
+
+    // Play appropriate sound feedback
+    if (evalResult.isValid) {
+      blueprintAudio.playBuildApproved();
     } else {
-      set({ redTeam: { ...team, build: nextBuild } });
+      blueprintAudio.playBuildMismatch();
     }
 
-    // Check if both teams have submitted
+    const isNowLocked = evalResult.isValid || nextAttemptsLeft <= 0;
+    const updatedTeam: TeamGameState = {
+      ...team,
+      score: team.score + totalAward,
+      roundScore: totalAward,
+      completedChallengesCount: team.completedChallengesCount + (evalResult.isValid ? 1 : 0),
+      attemptsLeft: nextAttemptsLeft,
+      attemptCount: nextAttemptCount,
+      scanResult,
+      build: {
+        ...team.build,
+        isConfirmed: evalResult.isValid,
+        isLocked: isNowLocked,
+      },
+    };
+
+    if (teamId === 'blue') {
+      set({ blueTeam: updatedTeam });
+    } else {
+      set({ redTeam: updatedTeam });
+    }
+
+    // Check if both teams are done
     const otherTeam = teamId === 'blue' ? state.redTeam : state.blueTeam;
-    if (otherTeam.build.isConfirmed || state.timeRemaining <= 0) {
-      get().triggerScanAndEvaluate();
+    const otherDone = (otherTeam.scanResult && otherTeam.scanResult.isCorrect) || otherTeam.attemptsLeft <= 0;
+    const thisDone = isNowLocked;
+
+    if (thisDone && otherDone) {
+      setTimeout(() => {
+        set({ phase: 'round-result', cameraFocus: 'overview' });
+      }, 1500);
     }
   },
 
   triggerScanAndEvaluate: () => {
-    const { activeChallenge, blueTeam, redTeam, timeRemaining } = get();
+    const { activeChallenge, blueTeam, redTeam } = get();
     if (!activeChallenge) return;
 
-    set({ phase: 'scanning', isTimerRunning: false, cameraFocus: 'scanner' });
-    blueprintAudio.playScannerSweep();
+    // Evaluate remaining teams if timer ran out
+    if (!blueTeam.scanResult) get().submitBuild('blue');
+    if (!redTeam.scanResult) get().submitBuild('red');
 
-    // Perform scanner evaluation after cinematic scan sweep (1.8s)
-    setTimeout(() => {
-      const timeElapsed = activeChallenge.timeLimit - Math.max(0, timeRemaining);
-      const speedBonus = Math.max(0, Math.round(((activeChallenge.timeLimit - timeElapsed) / activeChallenge.timeLimit) * 20));
-
-      // Evaluate Blue Team
-      const blueEval = validateChallengeSolution(activeChallenge, blueTeam.build);
-      const blueBreakdown: ScoreBreakdown = {
-        base: blueEval.isValid ? activeChallenge.basePoints : 0,
-        speed: blueEval.isValid ? speedBonus : 0,
-        precision: blueEval.isValid ? 30 : 0,
-        efficiency: blueEval.isValid ? 20 : 0,
-        total: blueEval.isValid ? activeChallenge.basePoints + speedBonus + 30 + 20 : 0,
-      };
-
-      const blueScanResult: ScanResult = {
-        teamId: 'blue',
-        measuredLength: blueTeam.build.length,
-        measuredWidth: blueTeam.build.width,
-        measuredHeight: blueTeam.build.height,
-        measuredArea: blueTeam.build.length * blueTeam.build.width,
-        measuredVolume: blueTeam.build.length * blueTeam.build.width * blueTeam.build.height,
-        targetDescription: activeChallenge.target.description,
-        isCorrect: blueEval.isValid,
-        statusMessage: blueEval.isValid ? 'BUILD APPROVED' : 'NOT THERE YET',
-        diffMessage: blueEval.diffMessage,
-        formula: blueEval.formula,
-        scoreBreakdown: blueBreakdown,
-        timestamp: Date.now(),
-      };
-
-      // Evaluate Red Team
-      const redEval = validateChallengeSolution(activeChallenge, redTeam.build);
-      const redBreakdown: ScoreBreakdown = {
-        base: redEval.isValid ? activeChallenge.basePoints : 0,
-        speed: redEval.isValid ? speedBonus : 0,
-        precision: redEval.isValid ? 30 : 0,
-        efficiency: redEval.isValid ? 20 : 0,
-        total: redEval.isValid ? activeChallenge.basePoints + speedBonus + 30 + 20 : 0,
-      };
-
-      const redScanResult: ScanResult = {
-        teamId: 'red',
-        measuredLength: redTeam.build.length,
-        measuredWidth: redTeam.build.width,
-        measuredHeight: redTeam.build.height,
-        measuredArea: redTeam.build.length * redTeam.build.width,
-        measuredVolume: redTeam.build.length * redTeam.build.width * redTeam.build.height,
-        targetDescription: activeChallenge.target.description,
-        isCorrect: redEval.isValid,
-        statusMessage: redEval.isValid ? 'BUILD APPROVED' : 'NOT THERE YET',
-        diffMessage: redEval.diffMessage,
-        formula: redEval.formula,
-        scoreBreakdown: redBreakdown,
-        timestamp: Date.now(),
-      };
-
-      // Play audio feedback
-      if (blueEval.isValid || redEval.isValid) {
-        blueprintAudio.playBuildApproved();
-      } else {
-        blueprintAudio.playBuildMismatch();
-      }
-
-      set((prev) => ({
-        phase: 'round-result',
-        cameraFocus: 'overview',
-        blueTeam: {
-          ...prev.blueTeam,
-          score: prev.blueTeam.score + blueBreakdown.total,
-          roundScore: blueBreakdown.total,
-          completedChallengesCount: prev.blueTeam.completedChallengesCount + (blueEval.isValid ? 1 : 0),
-          scanResult: blueScanResult,
-          hasSecondChance: !blueEval.isValid,
-        },
-        redTeam: {
-          ...prev.redTeam,
-          score: prev.redTeam.score + redBreakdown.total,
-          roundScore: redBreakdown.total,
-          completedChallengesCount: prev.redTeam.completedChallengesCount + (redEval.isValid ? 1 : 0),
-          scanResult: redScanResult,
-          hasSecondChance: !redEval.isValid,
-        },
-      }));
-    }, 1800);
+    set({ phase: 'round-result', cameraFocus: 'overview' });
   },
 
   allowSecondChance: (teamId) => {
@@ -475,7 +471,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
         phase: 'building',
         isTimerRunning: true,
         timeRemaining: 25, // 25 bonus seconds to refine & fix build
-        cameraFocus: teamId === 'blue' ? 'blue' : 'red',
+        cameraFocus: 'overview',
         [teamId === 'blue' ? 'blueTeam' : 'redTeam']: updatedTeam,
       };
     });
@@ -536,6 +532,8 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       blueTeam: {
         ...blueTeam,
         roundScore: 0,
+        attemptsLeft: 2,
+        attemptCount: 0,
         build: initialBlueBuild,
         scanResult: null,
         hasSecondChance: false,
@@ -543,6 +541,8 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       redTeam: {
         ...redTeam,
         roundScore: 0,
+        attemptsLeft: 2,
+        attemptCount: 0,
         build: initialRedBuild,
         scanResult: null,
         hasSecondChance: false,

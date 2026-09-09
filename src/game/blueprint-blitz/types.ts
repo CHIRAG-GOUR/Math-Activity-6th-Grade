@@ -115,6 +115,8 @@ export interface TeamGameState {
   score: number;
   roundScore: number;
   completedChallengesCount: number;
+  attemptsLeft: number;
+  attemptCount: number;
   build: TeamBuild;
   scanResult: ScanResult | null;
   hasSecondChance: boolean;

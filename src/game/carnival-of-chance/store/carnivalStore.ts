@@ -96,7 +96,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
   batchTrialResults: [],
   isMuted: false,
 
-  timeRemaining: 30,
+  timeRemaining: 50,
   timerActive: false,
 
   openActivity: (id: ActivityId) => {
@@ -121,7 +121,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       toastMessage: null,
       drawnOutcome: null,
       batchTrialResults: [],
-      timeRemaining: 30,
+      timeRemaining: 50,
       timerActive: true,
       blueTeam: {
         ...state.blueTeam,
@@ -170,7 +170,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
   },
 
   startPredicting: () => {
-    set({ phase: 'predicting', timeRemaining: 30, timerActive: true });
+    set({ phase: 'predicting', timeRemaining: 50, timerActive: true });
   },
 
   selectChoice: (team: TeamId, choiceId: string) => {
@@ -388,7 +388,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
         toastMessage: null,
         drawnOutcome: null,
         batchTrialResults: [],
-        timeRemaining: 30,
+        timeRemaining: 50,
         timerActive: true,
         blueTeam: {
           ...s.blueTeam,

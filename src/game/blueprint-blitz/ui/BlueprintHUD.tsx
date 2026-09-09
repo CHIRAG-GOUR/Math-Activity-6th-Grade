@@ -67,115 +67,125 @@ export const BlueprintHUD: React.FC = () => {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-4 select-none">
-      {/* ── TOP INDUSTRIAL GANTRY HEADER BAR (Daytime Styling) ── */}
-      <header className="flex items-center justify-between w-full pointer-events-auto gap-3">
-        {/* Left: Back to Arcade & Site Identity */}
-        <div className="flex items-center gap-2.5 bg-[#fff8e7] px-3.5 py-2 rounded-2xl border-4 border-slate-950 shadow-xl">
-          <button
-            onClick={handleReturnToArcade}
-            className="p-2 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black border-2 border-slate-950 shadow transition-all"
-            title="Return to Arcade Lobby"
-          >
-            <Home className="w-4 h-4 stroke-[3]" />
-          </button>
+      {/* ── TOP INDUSTRIAL GANTRY & PROJECT MISSION SIGNBOARD (Always Prominent) ── */}
+      <div className="w-full flex flex-col items-center gap-2 pointer-events-none z-30 shrink-0">
+        {/* Row 1: Header Bar with Brand, Round Badge, Timer & Sound Controls */}
+        <header className="flex items-center justify-between w-full pointer-events-auto gap-2">
+          {/* Left: Site Identity & Home */}
+          <div className="flex items-center gap-2 bg-[#fff8e7] px-3 py-1.5 rounded-2xl border-4 border-slate-950 shadow-xl">
+            <button
+              onClick={handleReturnToArcade}
+              className="p-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black border-2 border-slate-950 shadow transition-all"
+              title="Return to Arcade Lobby"
+            >
+              <Home className="w-4 h-4 stroke-[3]" />
+            </button>
 
-          <div className="flex flex-col pr-1">
-            <span className="text-[10px] font-black tracking-widest text-amber-700 uppercase">
-              ACTIVITY #04
-            </span>
-            <span className="text-sm sm:text-base font-black text-slate-950 tracking-wide flex items-center gap-1.5">
-              <HardHat className="w-4 h-4 text-amber-600" />
-              <span>BLUEPRINT BLITZ</span>
-            </span>
-          </div>
-        </div>
-
-        {/* Center: Mission Round & High-Contrast LED Timer */}
-        <div className="flex items-center gap-2.5">
-          {/* Round Counter Box */}
-          <div className="bg-[#fff8e7] px-4 py-1.5 rounded-2xl border-4 border-slate-950 text-center shadow-xl">
-            <span className="text-[9px] font-black text-slate-600 uppercase tracking-widest block">
-              SITE PHASE
-            </span>
-            <span className="text-base font-black text-amber-700 font-mono">
-              PROJECT {currentRound}/{maxRounds}
-            </span>
-          </div>
-
-          {/* Central Countdown Timer Box */}
-          <div
-            className={`flex items-center gap-2 px-4 py-1.5 rounded-2xl border-4 border-slate-950 shadow-2xl transition-all ${
-              isUrgent
-                ? 'bg-red-500 text-white animate-pulse'
-                : 'bg-amber-400 text-slate-950'
-            }`}
-          >
-            <Timer className={`w-5 h-5 ${isUrgent ? 'text-white' : 'text-slate-950'}`} />
-            <span className="text-xl sm:text-2xl font-black font-mono tracking-wider">
-              {timeRemaining}s
-            </span>
-          </div>
-        </div>
-
-        {/* Right: Audio Control & Quick Restart */}
-        <div className="flex items-center gap-2 bg-[#fff8e7] p-1.5 rounded-2xl border-4 border-slate-950 shadow-xl">
-          <button
-            onClick={toggleMute}
-            className="p-2 rounded-xl bg-amber-100 hover:bg-amber-200 active:scale-95 text-slate-900 border-2 border-slate-950 transition-all"
-            title={settings.isMuted ? 'Unmute Audio' : 'Mute Audio'}
-          >
-            {settings.isMuted ? (
-              <VolumeX className="w-4 h-4 text-red-600 stroke-[2.5]" />
-            ) : (
-              <Volume2 className="w-4 h-4 text-emerald-700 stroke-[2.5]" />
-            )}
-          </button>
-        </div>
-      </header>
-
-      {/* ── ULTRA-READABLE DAYTIME PROJECT MISSION SIGNBOARD (Top-Center) ── */}
-      {activeChallenge && phase !== 'intro' && phase !== 'game-over' && (
-        <div className="self-center pointer-events-auto max-w-2xl w-full mx-auto -mt-1 bg-[#fffdf5] border-4 border-slate-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-950">
-          {/* Top Yellow Header Bar */}
-          <div className="bg-amber-400 px-4 py-1.5 border-b-3 border-slate-950 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Ruler className="w-4 h-4 text-slate-950" />
-              <span className="text-xs sm:text-sm font-black tracking-wide text-slate-950 uppercase">
-                📐 PROJECT #{currentRound}: {activeChallenge.title}
+            <div className="flex flex-col pr-1">
+              <span className="text-[9px] font-black tracking-widest text-amber-700 uppercase">
+                ACTIVITY #04
               </span>
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-950 text-amber-300 uppercase">
-                ★ {activeChallenge.basePoints} PTS
+              <span className="text-xs sm:text-sm font-black text-slate-950 tracking-wide flex items-center gap-1">
+                <HardHat className="w-3.5 h-3.5 text-amber-600" />
+                <span>BLUEPRINT BLITZ</span>
               </span>
             </div>
           </div>
 
-          {/* Main Question Body & Clear Grade 6 Prompt */}
-          <div className="p-3.5 flex flex-col gap-2 bg-white">
-            {/* Main Prompt Text in Large Bold Type */}
-            <h2 className="text-base sm:text-lg font-black text-slate-950 leading-snug tracking-tight">
-              {activeChallenge.prompt}
-            </h2>
+          {/* Center: Mission Round & High-Contrast LED Countdown Timer */}
+          <div className="flex items-center gap-2">
+            {/* Round Counter Box */}
+            <div className="bg-[#fff8e7] px-3.5 py-1 rounded-2xl border-4 border-slate-950 text-center shadow-xl">
+              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest block">
+                SITE ROUND
+              </span>
+              <span className="text-sm sm:text-base font-black text-amber-700 font-mono">
+                {currentRound} / {maxRounds}
+              </span>
+            </div>
 
-            {/* Helpful Hint & Target Spec Strip */}
-            <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-3.5 py-2 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
-              <div className="flex items-center gap-1.5 text-amber-950 font-bold">
-                <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
-                <span>{activeChallenge.missionBrief}</span>
+            {/* Central Countdown Timer Box */}
+            <div
+              className={`flex items-center gap-1.5 px-3.5 py-1 rounded-2xl border-4 border-slate-950 shadow-2xl transition-all ${
+                isUrgent
+                  ? 'bg-red-500 text-white animate-pulse'
+                  : 'bg-amber-400 text-slate-950'
+              }`}
+            >
+              <Timer className={`w-4 h-4 ${isUrgent ? 'text-white' : 'text-slate-950'}`} />
+              <span className="text-lg sm:text-xl font-black font-mono tracking-wider">
+                {timeRemaining}s
+              </span>
+            </div>
+          </div>
+
+          {/* Right: Audio Control & Reset */}
+          <div className="flex items-center gap-1.5 bg-[#fff8e7] p-1 rounded-2xl border-4 border-slate-950 shadow-xl">
+            <button
+              onClick={toggleMute}
+              className="p-1.5 rounded-xl bg-amber-100 hover:bg-amber-200 active:scale-95 text-slate-900 border-2 border-slate-950 transition-all"
+              title={settings.isMuted ? 'Unmute Audio' : 'Mute Audio'}
+            >
+              {settings.isMuted ? (
+                <VolumeX className="w-4 h-4 text-red-600 stroke-[2.5]" />
+              ) : (
+                <Volume2 className="w-4 h-4 text-emerald-700 stroke-[2.5]" />
+              )}
+            </button>
+            <button
+              onClick={restartGame}
+              className="p-1.5 rounded-xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 border-2 border-slate-950 transition-all"
+              title="Restart Game"
+            >
+              <RotateCcw className="w-4 h-4 stroke-[2.5]" />
+            </button>
+          </div>
+        </header>
+
+        {/* Row 2: ULTRA-READABLE DAYTIME PROJECT MISSION SIGNBOARD (Centered Billboard) */}
+        {activeChallenge && phase !== 'game-over' && (
+          <div className="pointer-events-auto max-w-3xl w-full mx-auto bg-[#fffdf5] border-4 border-slate-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-950">
+            {/* Top Yellow Header Bar */}
+            <div className="bg-amber-400 px-3.5 py-1.5 border-b-3 border-slate-950 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Ruler className="w-4 h-4 text-slate-950 stroke-[2.5]" />
+                <span className="text-xs sm:text-sm font-black tracking-wide text-slate-950 uppercase">
+                  📐 MISSION QUESTION #{currentRound}: {activeChallenge.title}
+                </span>
               </div>
-              <div className="flex items-center gap-1 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-lg border border-slate-950 font-black shrink-0">
-                <Target className="w-3.5 h-3.5" />
-                <span>SPEC: {activeChallenge.target.description}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full bg-slate-950 text-amber-300 uppercase">
+                  ★ {activeChallenge.basePoints} PTS
+                </span>
+              </div>
+            </div>
+
+            {/* Main Question Body & Clear Grade 6 Prompt */}
+            <div className="px-4 py-2.5 flex flex-col gap-1.5 bg-white">
+              {/* Main Prompt Text in Large Bold Type */}
+              <h2 className="text-base sm:text-lg font-black text-slate-950 leading-snug tracking-tight">
+                {activeChallenge.prompt}
+              </h2>
+
+              {/* Helpful Hint & Target Spec Strip */}
+              <div className="bg-amber-50 border-2 border-amber-300 rounded-xl px-3 py-1.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-amber-950 font-bold">
+                  <Lightbulb className="w-4 h-4 text-amber-600 shrink-0" />
+                  <span className="leading-tight">{activeChallenge.missionBrief}</span>
+                </div>
+                <div className="flex items-center gap-1 bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-lg border border-slate-950 font-black shrink-0 text-[11px]">
+                  <Target className="w-3.5 h-3.5" />
+                  <span>TARGET: {activeChallenge.target.description}</span>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
       {/* ── DUAL-WORKSTATION BATTLE ARENA (BLUE LEFT, RED RIGHT, 64% CENTER) ── */}
-      <div className="flex items-end justify-between w-full h-full pb-2 gap-4">
-        {/* LEFT 18%: BLUE WORKSTATION CONSOLE */}
+      <div className="flex-1 min-h-0 flex items-end justify-between w-full pb-1 gap-3 pointer-events-none">
+        {/* LEFT: BLUE WORKSTATION CONSOLE */}
         <div className="pointer-events-auto flex flex-col justify-end">
           <TeamControlPanel
             teamId="blue"
@@ -188,7 +198,7 @@ export const BlueprintHUD: React.FC = () => {
           />
         </div>
 
-        {/* CENTER 64%: 3D CONSTRUCTION SITE VIEWPORT */}
+        {/* CENTER: 3D CONSTRUCTION SITE VIEWPORT SCANNER OVERLAY */}
         <div className="flex-1 pointer-events-none flex items-center justify-center">
           {/* Active Site Inspector Scan Indicator */}
           {isScanning && (
@@ -197,14 +207,14 @@ export const BlueprintHUD: React.FC = () => {
                 <span>⚡</span>
                 <span>SITE INSPECTOR GANTRY ACTIVE</span>
               </div>
-              <div className="text-2xl font-black text-slate-950 mt-1">
+              <div className="text-xl sm:text-2xl font-black text-slate-950 mt-1">
                 SCANNING PHYSICAL DIMENSIONS...
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT 18%: RED WORKSTATION CONSOLE */}
+        {/* RIGHT: RED WORKSTATION CONSOLE */}
         <div className="pointer-events-auto flex flex-col justify-end">
           <TeamControlPanel
             teamId="red"

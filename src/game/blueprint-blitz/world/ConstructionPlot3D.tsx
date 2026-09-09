@@ -13,10 +13,12 @@ import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { MechanicType, TeamBuild, TeamId } from '../types';
+import { useBlueprintStore } from '../store/blueprintStore';
 import { PhysicalTileGrid3D } from './PhysicalTileGrid3D';
 import { PhysicalCubeStack3D } from './PhysicalCubeStack3D';
 import { CraneRig3D } from './CraneRig3D';
 import { MeasurementScanner3D } from './MeasurementScanner3D';
+import { HouseBuildingStage3D } from './HouseBuildingStage3D';
 
 interface ConstructionPlot3DProps {
   teamId: TeamId;
@@ -37,6 +39,9 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
   isScanning,
   position,
 }) => {
+  const { currentRound, blueTeam, redTeam, phase } = useBlueprintStore();
+  const team = teamId === 'blue' ? blueTeam : redTeam;
+  const isGameOver = phase === 'game-over';
   const [scanProgress, setScanProgress] = useState(0);
 
   const isBlue = teamId === 'blue';
@@ -164,6 +169,14 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
           scanProgress={scanProgress}
         />
       )}
+
+      {/* ── 5B. HOUSE BUILDING STAGE PROGRESSION (Rounds 1-5) ── */}
+      <HouseBuildingStage3D
+        teamId={teamId}
+        currentRound={currentRound}
+        completedStages={team.completedChallengesCount}
+        isGameOver={isGameOver}
+      />
 
       {/* ── 6. DEDICATED SITE TOWER CRANE RIG ── */}
       <CraneRig3D

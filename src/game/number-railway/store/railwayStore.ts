@@ -140,7 +140,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   zoomLevel: 1.0,
 
   isMuted: false,
-  timeRemaining: 35,
+  timeRemaining: 50,
   timerActive: false,
   toastMessage: null,
 

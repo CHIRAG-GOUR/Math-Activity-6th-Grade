@@ -224,24 +224,21 @@ export const ConstructionDistrict3D: React.FC = () => {
       </group>
 
       {/* ── 8. ACTIVE 3D HEAVY MACHINERY FLEET ── */}
-      {/* 🚜 1. BACKGROUND MOBILE WORKING JCB CRANE (Drives back and forth doing work without colliding!) */}
-      <MobileJCB3D />
-
-      {/* 🚜 2. FOREGROUND STATIONARY WORKING JCB CRANE (Left Outskirts with Non-Clipping Hoist) */}
+      {/* 🚜 1. HIGH-GRAPHIC STATIONARY WORKING JCB EXCAVATION STATION (Digs Sand & Dumps into Hopper in 9s Cycle) */}
       <JCBBackhoeCrane3D
-        position={[-15.2, 0, 6.2]}
-        rotation={[0, 0.4, 0]}
-        scale={1.1}
+        position={[0, 0, -12.5]}
+        rotation={[0, 0, 0]}
+        scale={1.15}
       />
 
-      {/* 🚜 3. Heavy Yellow Tracked Excavator (Far Left Digging Zone) */}
+      {/* 🚜 2. Heavy Yellow Tracked Excavator (Left Digging Zone) */}
       <Excavator3D position={[-16.5, 0, 1.2]} rotation={[0, 0.6, 0]} />
 
-      {/* 🚛 4. Articulated Heavy Red Dump Truck (Right Haul Road) */}
-      <DumpTruck3D position={[15.5, 0, 1.5]} rotation={[0, -0.7, 0]} />
+      {/* 🚛 3. Articulated Heavy Red Dump Truck (Right Haul Road) */}
+      <DumpTruck3D position={[16.0, 0, 2.0]} rotation={[0, -0.7, 0]} />
 
-      {/* 🚚 5. Rotating Cement Mixer Truck (Rear Center-Left) */}
-      <CementMixer3D position={[-6.8, 0, -10.5]} rotation={[0, 0.4, 0]} />
+      {/* 🚚 4. Rotating Cement Mixer Truck (Rear Left Haul Road) */}
+      <CementMixer3D position={[-12.5, 0, -11.0]} rotation={[0, 0.4, 0]} />
 
       {/* Distant Active Tower Crane */}
       <group ref={bgCraneRef} position={[16, 0, -26]}>

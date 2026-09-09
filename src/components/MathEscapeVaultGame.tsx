@@ -31,7 +31,7 @@ const INITIAL_SETTINGS: GameSettings = {
   topics: ['addition', 'subtraction', 'multiplication', 'division', 'mixed'],
   difficulty: 'medium',
   totalRounds: 5,
-  timePerRound: 25,
+  timePerRound: 50,
   soundEnabled: true,
   teamBlueName: 'TEAM 1',
   teamRedName: 'TEAM 2',
