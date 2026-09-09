@@ -1,10 +1,11 @@
 // ============================================================
 // BLUEPRINT BLITZ — Physical Construction Workstation Console
 // Heavy-duty industrial control console for Blue (LEFT) and Red (RIGHT):
-// - Bolted steel casing with hazard safety striping
-// - Large mechanical steppers (70-90px touch targets) for L, W, H
-// - Material Selection Station (Brick, Concrete, Wood, Tile, Cube)
-// - Industrial Area/Volume gauges & Heavy "TEST BUILD" switch
+// - Solid Cream (#FFF8E7) casing with safety hazard trim & metallic bolts
+// - Bright, high-contrast daytime gauges for Area & Volume (Zero dark slate!)
+// - Material Selection Station (Brick 🧱, Concrete 🔲, Wood 🪵, Tile ◻️, Cube 📦)
+// - Chunky mechanical steppers (70-90px touch targets) with bold black numbers
+// - Heavy industrial "LOCK & TEST BUILD" actuator switch
 // ============================================================
 
 import React from 'react';
@@ -12,14 +13,12 @@ import {
   Plus,
   Minus,
   CheckCircle2,
-  Layers,
   RotateCw,
   RotateCcw,
   ArrowUp,
   ArrowDown,
   Hammer,
   Boxes,
-  Compass,
   Gauge,
 } from 'lucide-react';
 import { MechanicType, TeamBuild, TeamId } from '../types';
@@ -92,63 +91,65 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[340px] flex flex-col gap-2.5 p-3 rounded-2xl ${workstationClass} select-none text-slate-100 z-20`}
+      className={`w-full max-w-[340px] flex flex-col gap-2.5 p-3 rounded-2xl ${workstationClass} select-none z-20 text-slate-950`}
     >
-      {/* ── TOP BOLTS & HAZARD TRIM ── */}
+      {/* ── TOP BOLTS & HAZARD SAFETY STRIPING ── */}
       <div className="flex items-center justify-between px-1">
         <div className="bb-bolt" />
-        <div className="h-1.5 flex-1 mx-3 rounded-full bb-hazard-stripe" />
+        <div className="h-2 flex-1 mx-3 rounded-full bb-hazard-stripe border border-slate-950" />
         <div className="bb-bolt" />
       </div>
 
-      {/* ── CONSOLE WORKSTATION HEADER ── */}
+      {/* ── CONSOLE WORKSTATION TEAM BANNER ── */}
       <div
-        className={`flex items-center justify-between px-3 py-2 rounded-xl font-black ${headerBgClass} shadow-md border-2 border-slate-950`}
+        className={`flex items-center justify-between px-3 py-2 rounded-xl font-black ${headerBgClass} shadow-md border-3 border-slate-950`}
       >
         <div className="flex items-center gap-2">
           <Hammer className="w-5 h-5 stroke-[2.5]" />
-          <span className="text-sm tracking-wider uppercase">{teamName}</span>
+          <span className="text-sm tracking-wider uppercase drop-shadow">{teamName}</span>
         </div>
-        <div className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-lg text-xs font-black flex items-center gap-1 shadow-inner border border-slate-950">
+        <div className="bg-amber-400 text-slate-950 px-2.5 py-0.5 rounded-lg text-xs font-black flex items-center gap-1 shadow border border-slate-950">
           <span>★</span>
           <span>{score} PTS</span>
         </div>
       </div>
 
-      {/* ── PHYSICAL INDUSTRIAL GAUGES (AREA & VOLUME) ── */}
-      <div className="grid grid-cols-2 gap-2 bg-slate-950 p-2 rounded-xl border-2 border-slate-800 shadow-inner">
-        <div className="flex flex-col items-center justify-center p-1 bg-slate-900 rounded-lg border border-slate-800">
-          <span className="text-[9px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1">
-            <Gauge className="w-3 h-3 text-amber-400" />
+      {/* ── BRIGHT INDUSTRIAL GAUGES (AREA & VOLUME) ── */}
+      <div className="grid grid-cols-2 gap-2 bg-amber-50 p-2 rounded-xl border-2 border-amber-300 shadow-sm">
+        {/* Area Gauge */}
+        <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border-2 border-amber-400 shadow-sm">
+          <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1">
+            <Gauge className="w-3.5 h-3.5 text-amber-600" />
             AREA METER
           </span>
-          <span className="text-lg font-black text-white">
+          <span className="text-2xl font-black text-slate-950 font-mono mt-0.5">
             {build.length * build.width} m²
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">
+          <span className="text-xs text-amber-900 font-mono font-black">
             {build.length} × {build.width}
           </span>
         </div>
 
-        <div className="flex flex-col items-center justify-center p-1 bg-slate-900 rounded-lg border border-slate-800">
-          <span className="text-[9px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1">
-            <Boxes className="w-3 h-3 text-cyan-400" />
+        {/* Volume Gauge */}
+        <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border-2 border-cyan-400 shadow-sm">
+          <span className="text-[10px] font-black text-cyan-800 uppercase tracking-widest flex items-center gap-1">
+            <Boxes className="w-3.5 h-3.5 text-cyan-600" />
             VOLUME METER
           </span>
-          <span className="text-lg font-black text-white">
+          <span className="text-2xl font-black text-slate-950 font-mono mt-0.5">
             {build.length * build.width * build.height} m³
           </span>
-          <span className="text-[10px] text-slate-400 font-mono">
+          <span className="text-xs text-cyan-900 font-mono font-black">
             {build.length * build.width} × {build.height}
           </span>
         </div>
       </div>
 
-      {/* ── MATERIAL PALLET STATION (Touch to Select & Spawn) ── */}
-      <div className="bg-slate-950 p-2 rounded-xl border-2 border-slate-800 flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-[10px] font-black text-slate-400 uppercase tracking-wider px-1">
+      {/* ── MATERIAL PALLET STATION (Daytime Palette) ── */}
+      <div className="bg-white p-2 rounded-xl border-2 border-amber-300 shadow-sm flex flex-col gap-1.5">
+        <div className="flex items-center justify-between text-[10px] font-black text-slate-700 uppercase tracking-wider px-1">
           <span>MATERIAL PALLET</span>
-          <span className="text-amber-400">ACTIVE: {build.shapeType.toUpperCase()}</span>
+          <span className="text-amber-700 font-black">ACTIVE: {build.shapeType.toUpperCase()}</span>
         </div>
         <div className="grid grid-cols-5 gap-1">
           {MATERIALS.map((mat) => {
@@ -160,12 +161,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
                 disabled={isLocked}
                 className={`flex flex-col items-center justify-center p-1 rounded-lg border-2 transition-all active:scale-95 disabled:opacity-50 ${
                   isActive
-                    ? 'bg-amber-400/20 border-amber-400 text-amber-300 shadow-md'
-                    : 'bg-slate-900 border-slate-700 text-slate-300 hover:border-slate-500'
+                    ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-md font-black ring-2 ring-amber-300'
+                    : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-amber-50 hover:border-amber-400'
                 }`}
                 title={mat.name}
               >
-                <span className="text-sm">{mat.icon}</span>
+                <span className="text-base">{mat.icon}</span>
                 <span className="text-[8px] font-black tracking-tight mt-0.5 truncate w-full text-center">
                   {mat.name.split(' ')[0]}
                 </span>
@@ -178,12 +179,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
       {/* ── MECHANICAL STEPPER CONTROLS (70-90PX TOUCH TARGETS) ── */}
       <div className="flex flex-col gap-2">
         {/* LENGTH DIAL */}
-        <div className="bg-slate-950 p-1.5 rounded-xl border-2 border-slate-800 flex items-center justify-between">
-          <div className="flex flex-col pl-1.5">
-            <span className="text-[11px] font-black text-amber-300 uppercase tracking-wide">
+        <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
+          <div className="flex flex-col pl-1">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
               LENGTH (L)
             </span>
-            <span className="text-[10px] text-slate-400">Columns</span>
+            <span className="text-[10px] font-bold text-slate-500">Columns</span>
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -194,8 +195,8 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
             >
               <Minus className="w-5 h-5 stroke-[3]" />
             </button>
-            <div className="w-12 h-12 bg-slate-900 rounded-xl border-2 border-amber-400/50 flex items-center justify-center shadow-inner">
-              <span className="text-xl font-black text-amber-300">{build.length}m</span>
+            <div className="w-14 h-12 bg-amber-50 rounded-xl border-2 border-amber-400 flex items-center justify-center shadow-inner">
+              <span className="text-2xl font-black text-slate-950 font-mono">{build.length}m</span>
             </div>
             <button
               onClick={() => adjustDimension(teamId, 'length', 1)}
@@ -209,12 +210,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
         </div>
 
         {/* WIDTH DIAL */}
-        <div className="bg-slate-950 p-1.5 rounded-xl border-2 border-slate-800 flex items-center justify-between">
-          <div className="flex flex-col pl-1.5">
-            <span className="text-[11px] font-black text-amber-300 uppercase tracking-wide">
+        <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
+          <div className="flex flex-col pl-1">
+            <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
               WIDTH (W)
             </span>
-            <span className="text-[10px] text-slate-400">Rows</span>
+            <span className="text-[10px] font-bold text-slate-500">Rows</span>
           </div>
           <div className="flex items-center gap-1.5">
             <button
@@ -225,8 +226,8 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
             >
               <Minus className="w-5 h-5 stroke-[3]" />
             </button>
-            <div className="w-12 h-12 bg-slate-900 rounded-xl border-2 border-amber-400/50 flex items-center justify-center shadow-inner">
-              <span className="text-xl font-black text-amber-300">{build.width}m</span>
+            <div className="w-14 h-12 bg-amber-50 rounded-xl border-2 border-amber-400 flex items-center justify-center shadow-inner">
+              <span className="text-2xl font-black text-slate-950 font-mono">{build.width}m</span>
             </div>
             <button
               onClick={() => adjustDimension(teamId, 'width', 1)}
@@ -241,12 +242,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
         {/* HEIGHT LEVER */}
         {showHeight && (
-          <div className="bg-slate-950 p-1.5 rounded-xl border-2 border-slate-800 flex items-center justify-between">
-            <div className="flex flex-col pl-1.5">
-              <span className="text-[11px] font-black text-cyan-300 uppercase tracking-wide">
+          <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
+            <div className="flex flex-col pl-1">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
                 HEIGHT (H)
               </span>
-              <span className="text-[10px] text-slate-400">Layers</span>
+              <span className="text-[10px] font-bold text-slate-500">Layers</span>
             </div>
             <div className="flex items-center gap-1.5">
               <button
@@ -257,8 +258,8 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
               >
                 <Minus className="w-5 h-5 stroke-[3]" />
               </button>
-              <div className="w-12 h-12 bg-slate-900 rounded-xl border-2 border-cyan-400/50 flex items-center justify-center shadow-inner">
-                <span className="text-xl font-black text-cyan-300">{build.height}m</span>
+              <div className="w-14 h-12 bg-cyan-50 rounded-xl border-2 border-cyan-400 flex items-center justify-center shadow-inner">
+                <span className="text-2xl font-black text-slate-950 font-mono">{build.height}m</span>
               </div>
               <button
                 onClick={() => adjustDimension(teamId, 'height', 1)}
@@ -274,12 +275,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
         {/* MODIFY BLOCKS STEPPER */}
         {showBlocks && (
-          <div className="bg-slate-950 p-1.5 rounded-xl border-2 border-slate-800 flex items-center justify-between">
-            <div className="flex flex-col pl-1.5">
-              <span className="text-[11px] font-black text-emerald-300 uppercase tracking-wide">
+          <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
+            <div className="flex flex-col pl-1">
+              <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
                 BLOCKS
               </span>
-              <span className="text-[10px] text-slate-400">Add / Del</span>
+              <span className="text-[10px] font-bold text-slate-500">Add / Del</span>
             </div>
             <div className="flex items-center gap-1.5">
               <button
@@ -289,8 +290,8 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
               >
                 <Minus className="w-5 h-5 stroke-[3]" />
               </button>
-              <div className="w-12 h-12 bg-slate-900 rounded-xl border-2 border-emerald-400/50 flex items-center justify-center shadow-inner">
-                <span className="text-xl font-black text-emerald-300">{build.blocks}</span>
+              <div className="w-14 h-12 bg-emerald-50 rounded-xl border-2 border-emerald-400 flex items-center justify-center shadow-inner">
+                <span className="text-2xl font-black text-slate-950 font-mono">{build.blocks}</span>
               </div>
               <button
                 onClick={() => adjustBlocks(teamId, 1)}
@@ -306,12 +307,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
       {/* ── CRANE D-PAD & WINCH CONTROLS (When active) ── */}
       {showCrane && (
-        <div className="bg-slate-950 p-2 rounded-xl border-2 border-amber-500/50 flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[10px] font-black text-amber-400">
+        <div className="bg-amber-50 p-2 rounded-xl border-2 border-amber-400 shadow-sm flex flex-col gap-1.5">
+          <div className="flex items-center justify-between text-[10px] font-black text-amber-900">
             <span>🏗️ TOWER CRANE RIG</span>
             <button
               onClick={() => setCameraFocus(isBlue ? 'blue' : 'red')}
-              className="text-[9px] underline text-slate-300 hover:text-white"
+              className="text-[9px] underline text-slate-700 hover:text-slate-950 font-bold"
             >
               Focus Site
             </button>
@@ -319,40 +320,40 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
           <div className="grid grid-cols-3 gap-1">
             <button
               onClick={() => operateCrane(teamId, 'rotate_left')}
-              className="py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 text-white"
+              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
             >
               <RotateCcw className="w-3 h-3" /> ROT L
             </button>
             <button
               onClick={() => operateCrane(teamId, 'up')}
-              className="py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 text-white"
+              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
             >
               <ArrowUp className="w-3 h-3" /> HOIST
             </button>
             <button
               onClick={() => operateCrane(teamId, 'rotate_right')}
-              className="py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 text-white"
+              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
             >
               <RotateCw className="w-3 h-3" /> ROT R
             </button>
             <button
               onClick={() => operateCrane(teamId, 'move_back')}
-              className="py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 text-white"
+              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
             >
               ← BACK
             </button>
             <button
               onClick={() => operateCrane(teamId, 'down')}
-              className="py-1.5 bg-slate-800 hover:bg-slate-700 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border border-slate-700 text-white"
+              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
             >
               <ArrowDown className="w-3 h-3" /> LOWER
             </button>
             <button
               onClick={() => operateCrane(teamId, 'grab_release')}
-              className={`py-1.5 rounded-lg text-[10px] font-black flex items-center justify-center gap-1 shadow-md ${
+              className={`py-1.5 rounded-lg text-[10px] font-black flex items-center justify-center gap-1 border-2 border-slate-950 shadow-md ${
                 build.craneHolding
                   ? 'bg-amber-400 text-slate-950 font-black'
-                  : 'bg-emerald-600 text-white'
+                  : 'bg-emerald-500 text-white font-black'
               }`}
             >
               {build.craneHolding ? 'RELEASE' : 'GRAB'}
@@ -361,7 +362,7 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
         </div>
       )}
 
-      {/* ── HEAVY INDUSTRIAL "TEST BUILD" SWITCH BUTTON ── */}
+      {/* ── HEAVY INDUSTRIAL "LOCK & TEST BUILD" SWITCH BUTTON ── */}
       <button
         onClick={() => submitBuild(teamId)}
         disabled={isLocked || isConfirmed}
@@ -374,7 +375,7 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
           </>
         ) : (
           <>
-            <CheckCircle2 className="w-5 h-5" />
+            <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
             <span>LOCK & TEST BUILD</span>
           </>
         )}

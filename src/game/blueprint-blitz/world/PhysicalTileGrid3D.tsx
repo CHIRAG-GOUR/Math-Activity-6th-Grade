@@ -4,6 +4,7 @@
 // - Supports different physical materials (Brick, Concrete, Wood, Tile, Cube)
 // - Edge coordinate rulers and live area formula display
 // - Laser scanning wave effect during Site Inspection
+// - 100% Sunny Daytime palette — Zero Dark Navy / Black surfaces
 // ============================================================
 
 import React, { useMemo, useRef } from 'react';
@@ -86,10 +87,10 @@ export const PhysicalTileGrid3D: React.FC<PhysicalTileGrid3DProps> = ({
 
   return (
     <group ref={groupRef}>
-      {/* Base Floor Foundation Tray */}
+      {/* Base Floor Foundation Tray (Light Galvanized Steel/Concrete) */}
       <mesh position={[0, -0.12, 0]} receiveShadow>
         <boxGeometry args={[length + 0.6, 0.16, width + 0.6]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.7} metalness={0.2} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} metalness={0.3} />
       </mesh>
 
       {/* Hazard Warning Trim Frame */}
@@ -145,17 +146,17 @@ export const PhysicalTileGrid3D: React.FC<PhysicalTileGrid3DProps> = ({
       {/* Length Dimension Indicator (Front Edge) */}
       <group position={[0, 0.2, (width * 0.5) + 0.55]}>
         <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[length, 0.06, 0.12]} />
-          <meshStandardMaterial color="#0f172a" />
+          <boxGeometry args={[length, 0.08, 0.14]} />
+          <meshStandardMaterial color="#f59e0b" roughness={0.3} />
         </mesh>
         <Text
           position={[0, 0.25, 0]}
           fontSize={0.42}
-          color="#ffffff"
+          color="#0f172a"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#0f172a"
+          outlineWidth={0.03}
+          outlineColor="#ffffff"
         >
           {`LENGTH: ${length} m`}
         </Text>
@@ -164,17 +165,17 @@ export const PhysicalTileGrid3D: React.FC<PhysicalTileGrid3DProps> = ({
       {/* Width Dimension Indicator (Left Edge) */}
       <group position={[-(length * 0.5) - 0.55, 0.2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[width, 0.06, 0.12]} />
-          <meshStandardMaterial color="#0f172a" />
+          <boxGeometry args={[width, 0.08, 0.14]} />
+          <meshStandardMaterial color="#f59e0b" roughness={0.3} />
         </mesh>
         <Text
           position={[0, 0.25, 0]}
           fontSize={0.42}
-          color="#ffffff"
+          color="#0f172a"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#0f172a"
+          outlineWidth={0.03}
+          outlineColor="#ffffff"
         >
           {`WIDTH: ${width} m`}
         </Text>

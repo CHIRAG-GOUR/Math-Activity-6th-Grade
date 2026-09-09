@@ -4,6 +4,7 @@
 // - Supports Brick, Concrete Block, Wood Beam, Ceramic Tile & Unit Cube materials
 // - Dimensional markers for Length, Width, Height
 // - Realtime volume calculation and laser scanning glow
+// - 100% Sunny Daytime palette — Zero Dark Navy / Black surfaces
 // ============================================================
 
 import React, { useMemo, useRef } from 'react';
@@ -95,28 +96,28 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
 
   return (
     <group ref={groupRef}>
-      {/* Heavy Steel Base Grid Platform */}
+      {/* Light Steel Base Grid Platform */}
       <mesh position={[0, -0.1, 0]} receiveShadow>
         <boxGeometry args={[length + 0.8, 0.2, width + 0.8]} />
-        <meshStandardMaterial color="#334155" roughness={0.6} metalness={0.4} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.6} metalness={0.4} />
       </mesh>
 
       {/* Concrete Support Blocks under Platform */}
       <mesh position={[-(length * 0.5) - 0.2, -0.3, -(width * 0.5) - 0.2]}>
         <cylinderGeometry args={[0.2, 0.25, 0.4, 8]} />
-        <meshStandardMaterial color="#64748b" />
+        <meshStandardMaterial color="#94a3b8" />
       </mesh>
       <mesh position={[(length * 0.5) + 0.2, -0.3, -(width * 0.5) - 0.2]}>
         <cylinderGeometry args={[0.2, 0.25, 0.4, 8]} />
-        <meshStandardMaterial color="#64748b" />
+        <meshStandardMaterial color="#94a3b8" />
       </mesh>
       <mesh position={[-(length * 0.5) - 0.2, -0.3, (width * 0.5) + 0.2]}>
         <cylinderGeometry args={[0.2, 0.25, 0.4, 8]} />
-        <meshStandardMaterial color="#64748b" />
+        <meshStandardMaterial color="#94a3b8" />
       </mesh>
       <mesh position={[(length * 0.5) + 0.2, -0.3, (width * 0.5) + 0.2]}>
         <cylinderGeometry args={[0.2, 0.25, 0.4, 8]} />
-        <meshStandardMaterial color="#64748b" />
+        <meshStandardMaterial color="#94a3b8" />
       </mesh>
 
       {/* Render Individual Physical 3D Cubes */}
@@ -152,19 +153,19 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
             {/* Corner Bolts */}
             <mesh position={[0.38, 0.38, 0.48]}>
               <cylinderGeometry args={[0.04, 0.04, 0.04, 6]} />
-              <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
+              <meshStandardMaterial color="#ffffff" metalness={0.8} />
             </mesh>
             <mesh position={[-0.38, 0.38, 0.48]}>
               <cylinderGeometry args={[0.04, 0.04, 0.04, 6]} />
-              <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
+              <meshStandardMaterial color="#ffffff" metalness={0.8} />
             </mesh>
             <mesh position={[0.38, -0.38, 0.48]}>
               <cylinderGeometry args={[0.04, 0.04, 0.04, 6]} />
-              <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
+              <meshStandardMaterial color="#ffffff" metalness={0.8} />
             </mesh>
             <mesh position={[-0.38, -0.38, 0.48]}>
               <cylinderGeometry args={[0.04, 0.04, 0.04, 6]} />
-              <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
+              <meshStandardMaterial color="#ffffff" metalness={0.8} />
             </mesh>
           </group>
         );
@@ -174,17 +175,17 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
       <group position={[(length * 0.5) + 0.6, height * 0.5, (width * 0.5) + 0.4]}>
         <mesh position={[0, 0, 0]}>
           <boxGeometry args={[0.12, height, 0.12]} />
-          <meshStandardMaterial color="#0f172a" />
+          <meshStandardMaterial color="#f59e0b" />
         </mesh>
         <Text
           position={[0.4, 0, 0]}
           rotation={[0, -Math.PI / 6, 0]}
           fontSize={0.38}
-          color="#ffffff"
+          color="#0f172a"
           anchorX="left"
           anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#0f172a"
+          outlineWidth={0.03}
+          outlineColor="#ffffff"
         >
           {`HEIGHT: ${height} m`}
         </Text>
@@ -195,41 +196,43 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
         <Text
           position={[0, 0, 0]}
           fontSize={0.38}
-          color="#ffffff"
+          color="#0f172a"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#0f172a"
+          outlineWidth={0.03}
+          outlineColor="#ffffff"
         >
           {`LENGTH: ${length} m`}
         </Text>
       </group>
 
-      {/* Live Volume Floating Header */}
-      <group position={[0, height + 0.6, 0]}>
-        <mesh position={[0, 0, -0.05]}>
-          <planeGeometry args={[4.2, 0.8]} />
-          <meshBasicMaterial color="#0f172a" opacity={0.9} transparent />
-        </mesh>
+      {/* Width Dimension Indicator (Left) */}
+      <group position={[-(length * 0.5) - 0.65, 0.2, 0]} rotation={[0, Math.PI / 2, 0]}>
         <Text
-          position={[0, 0.15, 0]}
-          fontSize={0.32}
-          color="#38bdf8"
+          position={[0, 0, 0]}
+          fontSize={0.38}
+          color="#0f172a"
           anchorX="center"
           anchorY="middle"
+          outlineWidth={0.03}
+          outlineColor="#ffffff"
         >
-          {`${length} × ${width} × ${height}`}
+          {`WIDTH: ${width} m`}
         </Text>
+      </group>
+
+      {/* Live Volume Hologram Readout */}
+      <group position={[0, height + 0.65, 0]}>
         <Text
-          position={[0, -0.15, 0]}
-          fontSize={0.44}
-          color="#facc15"
+          position={[0, 0, 0]}
+          fontSize={0.55}
+          color="#ffffff"
           anchorX="center"
           anchorY="middle"
-          outlineWidth={0.04}
-          outlineColor="#000000"
+          outlineWidth={0.06}
+          outlineColor={teamColors.cubeTrim}
         >
-          {`VOLUME = ${totalVolume} m³`}
+          {`${length} × ${width} × ${height} = ${totalVolume} m³`}
         </Text>
       </group>
     </group>
