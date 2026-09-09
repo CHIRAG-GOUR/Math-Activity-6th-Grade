@@ -1,0 +1,101 @@
+/* ============================================================
+   BLUEPRINT BLITZ — High-Contrast Comic/Arcade Construction Styles
+   Tactile, opaque, responsive styling for classroom touchscreens
+   ============================================================ */
+
+/* Blueprint Grid Background Pattern */
+.bg-blueprint-grid {
+  background-color: #0f2b48;
+  background-image: 
+    linear-gradient(rgba(56, 189, 248, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(56, 189, 248, 0.15) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Construction Hazard Caution Stripes */
+.bg-caution-stripes {
+  background: repeating-linear-gradient(
+    -45deg,
+    #fbbf24,
+    #fbbf24 14px,
+    #1e293b 14px,
+    #1e293b 28px
+  );
+}
+
+.bg-caution-stripes-sm {
+  background: repeating-linear-gradient(
+    -45deg,
+    #fbbf24,
+    #fbbf24 8px,
+    #0f172a 8px,
+    #0f172a 16px
+  );
+}
+
+/* Opaque Arcade Construction Card Base */
+.arcade-card-opaque {
+  background: #ffffff;
+  border: 3px solid #0f172a;
+  box-shadow: 0 6px 0 #0f172a, 0 12px 24px rgba(15, 23, 42, 0.18);
+}
+
+/* Team Blue Opaque Container */
+.team-blue-card {
+  background: #f0f7ff;
+  border: 3px solid #1d4ed8;
+  box-shadow: 0 6px 0 #1e40af, 0 10px 20px rgba(29, 78, 216, 0.2);
+}
+
+/* Team Red Opaque Container */
+.team-red-card {
+  background: #fff5f5;
+  border: 3px solid #dc2626;
+  box-shadow: 0 6px 0 #991b1b, 0 10px 20px rgba(220, 38, 38, 0.2);
+}
+
+/* Tactile 3D Button Press Effect */
+.arcade-touch-btn {
+  transition: all 0.1s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 0 #0f172a;
+  transform: translateY(0);
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.arcade-touch-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 0 0 #0f172a;
+}
+
+/* Stepper Large Button */
+.stepper-btn {
+  min-width: 54px;
+  min-height: 54px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 22px;
+  border-radius: 14px;
+  border: 2px solid #0f172a;
+  box-shadow: 0 3px 0 #0f172a;
+  transition: all 0.08s ease;
+}
+
+.stepper-btn:active {
+  transform: translateY(3px);
+  box-shadow: 0 0 0 #0f172a;
+}
+
+/* Pulsing Scanner Beam */
+@keyframes laser-sweep {
+  0% { transform: translateY(-100%); opacity: 0.8; }
+  50% { transform: translateY(100%); opacity: 1; }
+  100% { transform: translateY(-100%); opacity: 0.8; }
+}
+
+.animate-laser-sweep {
+  animation: laser-sweep 2s infinite ease-in-out;
+}
