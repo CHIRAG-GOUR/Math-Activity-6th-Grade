@@ -1,11 +1,10 @@
 // ============================================================
-// BLUEPRINT BLITZ — Main HUD Interface Component
-// Strict Layout Architecture:
-// - Left 18%: Blue Team Control Panel (LEFT)
-// - Center 64%: Live 3D Construction District Viewport
-// - Right 18%: Red Team Control Panel (RIGHT)
-// - Top Bar: Shared Timer, Round Counter, Audio & Back to Arcade
-// - Physical Architectural Blueprint Board at top-center
+// BLUEPRINT BLITZ — Physical Construction Site HUD & Blueprint Board
+// Features:
+// - Pinned Architectural Blueprint Drafting Board at center top
+// - Industrial Top Gantry with LED countdown clock & site round badge
+// - Blue Workstation on LEFT, Red Workstation on RIGHT
+// - Zero glassmorphism, 100% solid construction materials & vector iconography
 // ============================================================
 
 import React, { useEffect } from 'react';
@@ -15,11 +14,14 @@ import {
   Volume2,
   VolumeX,
   Timer,
-  FileText,
+  FileSpreadsheet,
   Play,
   Hammer,
-  Zap,
   RotateCcw,
+  Ruler,
+  HardHat,
+  CheckCircle,
+  AlertOctagon,
 } from 'lucide-react';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { TeamControlPanel } from './TeamControlPanel';
@@ -64,105 +66,112 @@ export const BlueprintHUD: React.FC = () => {
   const isUrgent = timeRemaining <= 10;
 
   return (
-    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-4 select-none">
-      {/* ── TOP STAGE HEADER BAR ── */}
-      <header className="flex items-center justify-between w-full pointer-events-auto gap-4">
-        {/* Left: Back to Arcade & Game Title */}
-        <div className="flex items-center gap-3 bg-slate-900/90 p-2 rounded-2xl border-2 border-slate-700 shadow-xl backdrop-blur-md">
+    <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-4 select-none">
+      {/* ── TOP INDUSTRIAL GANTRY HEADER BAR ── */}
+      <header className="flex items-center justify-between w-full pointer-events-auto gap-3">
+        {/* Left: Back to Arcade & Site Identity */}
+        <div className="flex items-center gap-2.5 bg-slate-900 px-3 py-2 rounded-2xl border-4 border-slate-950 shadow-xl">
           <button
             onClick={handleReturnToArcade}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white border border-slate-600 transition-all"
+            className="p-2 rounded-xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black border-2 border-slate-950 shadow transition-all"
             title="Return to Arcade Lobby"
           >
-            <Home className="w-5 h-5" />
+            <Home className="w-4 h-4 stroke-[3]" />
           </button>
 
-          <div className="flex flex-col pr-2">
-            <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
+          <div className="flex flex-col pr-1">
+            <span className="text-[10px] font-black tracking-widest text-amber-400 uppercase">
               ACTIVITY #04
             </span>
-            <span className="text-base font-black text-white tracking-wide flex items-center gap-1.5">
-              <span>🏗️</span> BLUEPRINT BLITZ
+            <span className="text-sm sm:text-base font-black text-white tracking-wide flex items-center gap-1.5">
+              <HardHat className="w-4 h-4 text-amber-400" />
+              <span>BLUEPRINT BLITZ</span>
             </span>
           </div>
         </div>
 
-        {/* Center: Shared Timer & Round Badge */}
-        <div className="flex items-center gap-3">
-          {/* Round Counter */}
-          <div className="bg-slate-900/90 px-4 py-2 rounded-2xl border-2 border-slate-700 text-center shadow-xl">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block">
-              MISSION ROUND
+        {/* Center: Mission Round & High-Contrast LED Timer */}
+        <div className="flex items-center gap-2.5">
+          {/* Round Counter Box */}
+          <div className="bg-slate-900 px-3.5 py-1.5 rounded-2xl border-4 border-slate-950 text-center shadow-xl">
+            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block">
+              SITE PHASE
             </span>
-            <span className="text-lg font-black text-amber-400">
-              {currentRound} / {maxRounds}
+            <span className="text-base font-black text-amber-400 font-mono">
+              PROJECT {currentRound}/{maxRounds}
             </span>
           </div>
 
-          {/* Central Countdown Timer */}
+          {/* Central LED Countdown Timer Box */}
           <div
-            className={`flex items-center gap-2.5 px-5 py-2 rounded-2xl border-4 shadow-2xl transition-all ${
+            className={`flex items-center gap-2 px-4 py-1.5 rounded-2xl border-4 shadow-2xl transition-all ${
               isUrgent
-                ? 'bg-red-950/90 border-red-500 text-red-300 animate-pulse'
-                : 'bg-slate-900/90 border-amber-400 text-amber-300'
+                ? 'bg-red-950 border-red-500 text-red-300 animate-pulse'
+                : 'bg-slate-900 border-amber-400 text-amber-300'
             }`}
           >
-            <Timer className={`w-6 h-6 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
-            <span className="text-2xl font-black font-mono tracking-wider">
+            <Timer className={`w-5 h-5 ${isUrgent ? 'text-red-400' : 'text-amber-400'}`} />
+            <span className="text-xl sm:text-2xl font-black font-mono tracking-wider">
               {timeRemaining}s
             </span>
           </div>
         </div>
 
-        {/* Right: Audio Control */}
-        <div className="flex items-center gap-2 bg-slate-900/90 p-2 rounded-2xl border-2 border-slate-700 shadow-xl backdrop-blur-md">
+        {/* Right: Audio Control & Quick Restart */}
+        <div className="flex items-center gap-2 bg-slate-900 p-1.5 rounded-2xl border-4 border-slate-950 shadow-xl">
           <button
             onClick={toggleMute}
-            className="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white border border-slate-600 transition-all"
+            className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 hover:text-white border-2 border-slate-700 transition-all"
             title={settings.isMuted ? 'Unmute Audio' : 'Mute Audio'}
           >
             {settings.isMuted ? (
-              <VolumeX className="w-5 h-5 text-red-400" />
+              <VolumeX className="w-4 h-4 text-red-400" />
             ) : (
-              <Volume2 className="w-5 h-5 text-emerald-400" />
+              <Volume2 className="w-4 h-4 text-emerald-400" />
             )}
           </button>
         </div>
       </header>
 
-      {/* ── CENTRAL TOP ARCHITECTURAL BLUEPRINT BOARD ── */}
+      {/* ── PINNED ARCHITECTURAL PROJECT BLUEPRINT BOARD (Top-Center) ── */}
       {activeChallenge && phase !== 'intro' && phase !== 'game-over' && (
-        <div className="self-center pointer-events-auto max-w-xl w-full mx-auto -mt-2 bg-slate-900/95 border-4 border-amber-400 rounded-2xl p-3.5 shadow-2xl text-slate-100 flex flex-col gap-1.5">
-          <div className="flex items-center justify-between border-b border-slate-700 pb-1.5">
-            <div className="flex items-center gap-2">
-              <FileText className="w-4 h-4 text-amber-400" />
-              <span className="text-xs font-black tracking-wider text-amber-300 uppercase">
-                {activeChallenge.code} • {activeChallenge.title}
+        <div className="self-center pointer-events-auto max-w-xl w-full mx-auto -mt-1 bg-amber-950/90 border-4 border-amber-900 rounded-2xl p-1.5 shadow-2xl text-slate-100 flex flex-col">
+          {/* Outer Wood/Steel Drafting Board Backing */}
+          <div className="bb-blueprint-paper p-3 rounded-xl border-2 border-blue-400/60 shadow-inner flex flex-col gap-1.5">
+            {/* Top Blueprint Clip & Mission Code */}
+            <div className="flex items-center justify-between border-b border-blue-300/40 pb-1">
+              <div className="flex items-center gap-2">
+                <Ruler className="w-4 h-4 text-amber-300" />
+                <span className="text-xs font-black tracking-wider text-amber-300 uppercase">
+                  📐 PROJECT BLUEPRINT: {activeChallenge.code} • {activeChallenge.title}
+                </span>
+              </div>
+              <span className="text-[10px] font-black px-2 py-0.5 rounded bg-amber-400 text-slate-950 uppercase border border-slate-900">
+                {activeChallenge.category}
               </span>
             </div>
-            <span className="text-[11px] font-bold px-2 py-0.5 rounded bg-blue-900/80 text-blue-200 border border-blue-600 uppercase">
-              {activeChallenge.category}
-            </span>
-          </div>
 
-          <p className="text-sm font-black text-white leading-tight">
-            {activeChallenge.prompt}
-          </p>
+            {/* Main Architectural Mission Prompt */}
+            <p className="text-sm font-black text-white leading-snug drop-shadow">
+              {activeChallenge.prompt}
+            </p>
 
-          <div className="flex items-center justify-between text-xs text-slate-400 pt-0.5">
-            <span className="font-bold text-amber-400">
-              TARGET: {activeChallenge.target.description}
-            </span>
-            <span className="text-[11px] text-slate-400 italic">
-              {activeChallenge.allowedSolutionsDescription}
-            </span>
+            {/* Target Spec Strip & Inspector Status */}
+            <div className="flex items-center justify-between text-xs pt-0.5 border-t border-blue-300/30">
+              <span className="font-black text-amber-300">
+                TARGET SPEC: {activeChallenge.target.description}
+              </span>
+              <span className="text-[10px] text-blue-200 font-mono italic">
+                INSPECTOR: READY
+              </span>
+            </div>
           </div>
         </div>
       )}
 
-      {/* ── MAIN HORIZONTAL BATTLE ARENA (BLUE ON LEFT, RED ON RIGHT) ── */}
-      <div className="flex items-end justify-between w-full h-full pb-4 gap-4">
-        {/* LEFT 18%: BLUE TEAM PANEL */}
+      {/* ── DUAL-WORKSTATION BATTLE ARENA (BLUE LEFT, RED RIGHT, 64% CENTER) ── */}
+      <div className="flex items-end justify-between w-full h-full pb-2 gap-4">
+        {/* LEFT 18%: BLUE WORKSTATION CONSOLE */}
         <div className="pointer-events-auto flex flex-col justify-end">
           <TeamControlPanel
             teamId="blue"
@@ -175,22 +184,23 @@ export const BlueprintHUD: React.FC = () => {
           />
         </div>
 
-        {/* CENTER 64%: 3D CONSTRUCTION SITE (Transparent for Canvas interaction) */}
+        {/* CENTER 64%: 3D CONSTRUCTION SITE VIEWPORT */}
         <div className="flex-1 pointer-events-none flex items-center justify-center">
-          {/* Active Scanner Scanning Indicator Banner */}
+          {/* Active Site Inspector Scan Indicator */}
           {isScanning && (
-            <div className="bg-cyan-950/90 border-4 border-cyan-400 px-8 py-4 rounded-3xl text-center shadow-2xl animate-pulse">
-              <div className="text-xs font-black tracking-widest text-cyan-300 uppercase">
-                MEASUREMENT GANTRY ACTIVE
+            <div className="bg-slate-900 border-4 border-cyan-400 px-8 py-4 rounded-3xl text-center shadow-2xl animate-pulse pointer-events-auto">
+              <div className="text-xs font-black tracking-widest text-cyan-300 uppercase flex items-center justify-center gap-1.5">
+                <span>⚡</span>
+                <span>SITE INSPECTOR GANTRY ACTIVE</span>
               </div>
               <div className="text-2xl font-black text-white mt-1">
-                ⚡ SCANNING STRUCTURES...
+                SCANNING PHYSICAL DIMENSIONS...
               </div>
             </div>
           )}
         </div>
 
-        {/* RIGHT 18%: RED TEAM PANEL */}
+        {/* RIGHT 18%: RED WORKSTATION CONSOLE */}
         <div className="pointer-events-auto flex flex-col justify-end">
           <TeamControlPanel
             teamId="red"
@@ -204,50 +214,54 @@ export const BlueprintHUD: React.FC = () => {
         </div>
       </div>
 
-      {/* ── INTRO / BRIEFING OVERLAY MODAL ── */}
+      {/* ── INTRO / SITE INDUCTION MODAL ── */}
       {phase === 'intro' && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/85 backdrop-blur-md pointer-events-auto select-none">
           <div className="w-full max-w-2xl bg-slate-900 border-4 border-amber-400 rounded-3xl p-8 shadow-2xl flex flex-col items-center gap-6 text-center text-slate-100">
-            <div className="w-20 h-20 rounded-2xl bg-amber-400 flex items-center justify-center text-4xl shadow-xl">
+            <div className="w-20 h-20 rounded-2xl bg-amber-400 flex items-center justify-center text-slate-950 text-4xl shadow-xl border-4 border-slate-950">
               🏗️
             </div>
             <div>
-              <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
-                SKILLIZEE ARCADE • ACTIVITY #04
-              </span>
-              <h1 className="text-4xl font-black text-white tracking-tight mt-1">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <HardHat className="w-5 h-5 text-amber-400" />
+                <span className="text-xs font-black tracking-widest text-amber-400 uppercase">
+                  SKILLIZEE ARCADE • ACTIVITY #04
+                </span>
+              </div>
+              <h1 className="text-4xl font-black text-white tracking-tight">
                 BLUEPRINT BLITZ
               </h1>
-              <p className="text-base text-amber-300 font-bold mt-1">
+              <p className="text-base text-amber-300 font-black mt-1 uppercase tracking-wider">
                 BUILD IT • MEASURE IT • BEAT THE CLOCK
               </p>
               <p className="text-sm text-slate-300 mt-4 leading-relaxed max-w-lg mx-auto">
-                Two construction teams compete in a live 3D architectural district! Manipulate physical floor dimensions, stack 3D unit cubes, operate cranes, and pass precision measurement scanners.
+                Step onto the live 3D construction site! Blue Team (Left) and Red Team (Right) operate physical workstations, manipulate floor dimensions, stack 3D unit cubes, select building materials, and satisfy precision blueprint tolerances.
               </p>
             </div>
 
             <button
               onClick={startBriefing}
-              className="py-4 px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-lg uppercase tracking-wider flex items-center gap-3 shadow-xl transition-all"
+              className="py-4 px-8 rounded-2xl bg-amber-500 hover:bg-amber-400 active:scale-95 text-slate-950 font-black text-lg uppercase tracking-wider flex items-center gap-3 shadow-xl transition-all border-2 border-slate-950"
             >
-              <span>ENTER SITE & START</span>
+              <span>ENTER WORK SITE & START</span>
               <Play className="w-6 h-6 fill-current" />
             </button>
           </div>
         </div>
       )}
 
-      {/* ── MISSION BRIEFING MODAL ── */}
+      {/* ── PROJECT BRIEFING MODAL ── */}
       {phase === 'briefing' && activeChallenge && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/80 backdrop-blur-md pointer-events-auto">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-slate-950/85 backdrop-blur-md pointer-events-auto select-none">
           <div className="w-full max-w-2xl bg-slate-900 border-4 border-amber-400 rounded-3xl p-8 shadow-2xl flex flex-col gap-5 text-slate-100">
-            <div className="flex items-center justify-between border-b border-slate-700 pb-3">
+            <div className="flex items-center justify-between border-b-2 border-slate-700 pb-3">
               <div className="flex items-center gap-2">
+                <Ruler className="w-5 h-5 text-amber-400" />
                 <span className="text-xs font-black tracking-wider text-amber-400 uppercase">
-                  ROUND {currentRound} BRIEFING • {activeChallenge.code}
+                  SITE BRIEFING • {activeChallenge.code}
                 </span>
               </div>
-              <span className="text-xs font-black px-2.5 py-1 rounded bg-amber-400 text-slate-950 uppercase">
+              <span className="text-xs font-black px-3 py-1 rounded-lg bg-amber-400 text-slate-950 uppercase border border-slate-950">
                 ★ {activeChallenge.basePoints} PTS
               </span>
             </div>
@@ -264,16 +278,16 @@ export const BlueprintHUD: React.FC = () => {
               </p>
             </div>
 
-            <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 flex items-center justify-between text-xs">
-              <span className="font-bold text-slate-400">TIME LIMIT:</span>
-              <span className="font-black text-amber-300 text-sm">
+            <div className="bg-slate-950 p-3.5 rounded-xl border-2 border-slate-800 flex items-center justify-between text-xs">
+              <span className="font-bold text-slate-400 uppercase tracking-wide">TIME LIMIT:</span>
+              <span className="font-black text-amber-300 text-sm font-mono">
                 ⏳ {activeChallenge.timeLimit} SECONDS
               </span>
             </div>
 
             <button
               onClick={startBuilding}
-              className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-black text-lg uppercase tracking-wider flex items-center justify-center gap-3 shadow-xl transition-all"
+              className="w-full py-4 rounded-2xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-black text-lg uppercase tracking-wider flex items-center justify-center gap-3 shadow-xl transition-all border-2 border-slate-950"
             >
               <span>COMMENCE CONSTRUCTION</span>
               <Hammer className="w-6 h-6" />
@@ -282,7 +296,7 @@ export const BlueprintHUD: React.FC = () => {
         </div>
       )}
 
-      {/* ── ROUND RESULT MODAL ── */}
+      {/* ── ROUND SCANNER RESULT MODAL ── */}
       {phase === 'round-result' && (
         <div className="pointer-events-auto">
           <ScannerResultCard />

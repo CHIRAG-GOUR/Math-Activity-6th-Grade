@@ -138,12 +138,10 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ teamId }) => {
         </div>
 
         {/* ═════════════════════════════════════════════════════════════
-            PHASE 1: PREDICTING — QUESTION + ANSWER CARDS + SUBMIT ACTUATOR
+            PHASE 1: PREDICTING — ANSWER CARDS + SUBMIT ACTUATOR
             ═════════════════════════════════════════════════════════════ */}
         {isPredicting && (
-          <div className="flex-1 flex flex-col justify-between gap-1 sm:gap-1.5 my-1 min-h-0 overflow-hidden">
-            {/* Question Panel Card (Yellow with Black) */}
-            {activeChallenge && <QuestionPanel challenge={activeChallenge} />}
+          <div className="flex-1 flex flex-col justify-between gap-1.5 sm:gap-2 my-1 min-h-0 overflow-hidden">
 
             {/* Rebound Opportunity Alert Strip */}
             {isReboundOpportunity && (

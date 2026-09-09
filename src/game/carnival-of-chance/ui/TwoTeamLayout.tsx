@@ -1,18 +1,26 @@
 // ============================================================
 // THE GREAT CARNIVAL OF CHANCE — DUAL-CONSOLE CARNIVAL LAYOUT
-// Left: Team Blue Console (320px-340px) | Center: Wide 3D Machine Viewport | Right: Team Red Console (320px-340px)
-// Perfect Symmetrical Bounds, Zero Overlap, Full 3D Visibility
+// Left: Team Blue Console (320px-340px)
+// Center: Wide 3D Machine Viewport with Centered Question Banner
+// Right: Team Red Console (320px-340px)
+// Question Hides during Machine Action for 100% 3D Visibility!
 // ============================================================
 
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { TeamConsole } from './TeamConsole';
+import { QuestionPanel } from './QuestionPanel';
+import { useCarnivalStore } from '../store/carnivalStore';
 
 export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ children }) => {
   const [isMobileScreen, setIsMobileScreen] = useState(false);
   const [mobileActiveTab, setMobileActiveTab] = useState<'blue' | '3d' | 'red'>('blue');
+
+  const activeChallenge = useCarnivalStore((s) => s.activeChallenge);
+  const phase = useCarnivalStore((s) => s.phase);
+  const isPredicting = phase === 'predicting';
 
   useEffect(() => {
     const checkScreen = () => {
@@ -100,12 +108,28 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
           </motion.aside>
         )}
 
-        {/* ── CENTER: WIDE 3D MACHINE VIEWPORT (Always flex-1, fully open) ── */}
+        {/* ── CENTER: WIDE 3D MACHINE VIEWPORT + DYNAMIC CENTER QUESTION ── */}
         {(!isMobileScreen || mobileActiveTab === '3d') && (
           <div
             style={{ minWidth: isMobileScreen ? '100%' : '320px' }}
             className="flex-1 h-full relative pointer-events-none flex flex-col justify-between items-center py-1"
           >
+            {/* Centered Question Panel: ONLY visible during PREDICTING phase */}
+            <AnimatePresence>
+              {isPredicting && activeChallenge && (
+                <motion.div
+                  key={activeChallenge.id}
+                  initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -30, scale: 0.9 }}
+                  transition={{ duration: 0.25 }}
+                  className="w-full flex justify-center pointer-events-auto mb-2"
+                >
+                  <QuestionPanel challenge={activeChallenge} />
+                </motion.div>
+              )}
+            </AnimatePresence>
+
             {children}
           </div>
         )}

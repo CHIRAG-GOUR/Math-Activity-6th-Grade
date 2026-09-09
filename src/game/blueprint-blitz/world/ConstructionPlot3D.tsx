@@ -129,6 +129,7 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
             length={build.length}
             width={build.width}
             teamId={teamId}
+            materialType={build.shapeType}
             isScanning={isScanning}
             scanProgress={scanProgress}
           />
@@ -139,6 +140,7 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
             height={build.height}
             totalBlocks={build.blocks}
             teamId={teamId}
+            materialType={build.shapeType}
             isScanning={isScanning}
             scanProgress={scanProgress}
           />

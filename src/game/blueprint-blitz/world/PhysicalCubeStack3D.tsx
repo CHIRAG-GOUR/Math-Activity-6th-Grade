@@ -1,14 +1,12 @@
 // ============================================================
 // BLUEPRINT BLITZ — Physical 3D Cube Stacking & Volume Component
-// Renders authentic physical unit cubes (1x1x1) stacked in L x W x H layers
-// - Beveled cube geometry with metallic corner brackets & wood/steel faces
-// - Layer separators and precise vertical stacking without illegal clipping
-// - Dimensional markers for Length, Width, and Height
+// Renders physical unit cubes (1x1x1) stacked in L x W x H layers
+// - Supports Brick, Concrete Block, Wood Beam, Ceramic Tile & Unit Cube materials
+// - Dimensional markers for Length, Width, Height
 // - Realtime volume calculation and laser scanning glow
 // ============================================================
 
 import React, { useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
 import * as THREE from 'three';
 import { TeamId } from '../types';
@@ -18,6 +16,7 @@ interface PhysicalCubeStack3DProps {
   width: number;   // Z axis (rows)
   height: number;  // Y axis (layers)
   teamId: TeamId;
+  materialType?: string;
   totalBlocks?: number;
   isScanning?: boolean;
   scanProgress?: number;
@@ -28,6 +27,7 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
   width,
   height,
   teamId,
+  materialType = 'cube',
   totalBlocks,
   isScanning = false,
   scanProgress = 0,
@@ -40,17 +40,29 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
           cubeBody: '#3b82f6',
           cubeTrim: '#1d4ed8',
           accent: '#60a5fa',
-          glow: '#38bdf8',
-          textBg: '#1e3a8a',
         }
       : {
           cubeBody: '#ef4444',
           cubeTrim: '#b91c1c',
           accent: '#f87171',
-          glow: '#fb7185',
-          textBg: '#7f1d1d',
         };
   }, [teamId]);
+
+  // Material-specific surface appearance
+  const matColors = useMemo(() => {
+    switch (materialType) {
+      case 'brick':
+        return { body: '#c2410c', trim: '#7c2d12', roughness: 0.85, metalness: 0.1 };
+      case 'concrete':
+        return { body: '#94a3b8', trim: '#475569', roughness: 0.9, metalness: 0.2 };
+      case 'wood':
+        return { body: '#d97706', trim: '#92400e', roughness: 0.75, metalness: 0.1 };
+      case 'tile':
+        return { body: '#f1f5f9', trim: '#cbd5e1', roughness: 0.4, metalness: 0.1 };
+      default:
+        return { body: teamColors.cubeBody, trim: teamColors.cubeTrim, roughness: 0.35, metalness: 0.3 };
+    }
+  }, [materialType, teamColors]);
 
   // Generate 3D unit cubes
   const cubes = useMemo(() => {
@@ -109,7 +121,6 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
 
       {/* Render Individual Physical 3D Cubes */}
       {cubes.map((cube) => {
-        // Laser scan plane check
         const isLaserActive =
           isScanning &&
           Math.abs(cube.y - (scanProgress * height)) < 0.7;
@@ -120,35 +131,25 @@ export const PhysicalCubeStack3D: React.FC<PhysicalCubeStack3DProps> = ({
             <mesh castShadow receiveShadow>
               <boxGeometry args={[0.94, 0.94, 0.94]} />
               <meshStandardMaterial
-                color={isLaserActive ? '#fbbf24' : '#e2e8f0'}
-                roughness={0.35}
-                metalness={0.2}
+                color={isLaserActive ? '#fbbf24' : matColors.body}
+                roughness={matColors.roughness}
+                metalness={matColors.metalness}
                 emissive={isLaserActive ? '#f59e0b' : '#000000'}
                 emissiveIntensity={isLaserActive ? 0.9 : 0}
               />
             </mesh>
 
-            {/* Team Colored Reinforcement Trim / Outer Frame */}
+            {/* Reinforcement Trim / Beveled Outer Frame */}
             <mesh>
               <boxGeometry args={[0.96, 0.96, 0.96]} />
               <meshStandardMaterial
-                color={teamColors.cubeTrim}
+                color={matColors.trim}
                 wireframe
                 wireframeLinewidth={2}
               />
             </mesh>
 
-            {/* Top Surface Texture Plate */}
-            <mesh position={[0, 0.48, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[0.8, 0.8]} />
-              <meshStandardMaterial
-                color={teamColors.cubeBody}
-                roughness={0.5}
-                metalness={0.3}
-              />
-            </mesh>
-
-            {/* Rivets / Corner Bolt studs */}
+            {/* Corner Bolts */}
             <mesh position={[0.38, 0.38, 0.48]}>
               <cylinderGeometry args={[0.04, 0.04, 0.04, 6]} />
               <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
