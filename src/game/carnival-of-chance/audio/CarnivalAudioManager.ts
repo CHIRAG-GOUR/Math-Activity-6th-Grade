@@ -6,11 +6,13 @@
 
 class CarnivalAudioManager {
   private ctx: AudioContext | null = null;
-  private bgmGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
   private isMuted: boolean = false;
-  private bgmInterval: NodeJS.Timeout | null = null;
-  private isBgmPlaying: boolean = false;
+  
+  // Real BGM Audio Elements
+  private hubAudio: HTMLAudioElement | null = null;
+  private gameAudio: HTMLAudioElement | null = null;
+  private currentMode: 'hub' | 'game' | 'off' = 'off';
 
   private initContext() {
     if (!this.ctx && typeof window !== 'undefined') {
@@ -22,14 +24,26 @@ class CarnivalAudioManager {
         this.sfxGain = this.ctx.createGain();
         this.sfxGain.gain.setValueAtTime(0.45, this.ctx.currentTime);
         this.sfxGain.connect(this.ctx.destination);
-
-        this.bgmGain = this.ctx.createGain();
-        this.bgmGain.gain.setValueAtTime(0.12, this.ctx.currentTime);
-        this.bgmGain.connect(this.ctx.destination);
       }
     }
     if (this.ctx && this.ctx.state === 'suspended') {
       this.ctx.resume().catch(() => {});
+    }
+  }
+
+  private initAudioElements() {
+    if (typeof window === 'undefined') return;
+
+    if (!this.hubAudio) {
+      this.hubAudio = new Audio('/audio/Carnival bgm.mp3');
+      this.hubAudio.loop = true;
+      this.hubAudio.volume = this.isMuted ? 0 : 0.35;
+    }
+
+    if (!this.gameAudio) {
+      this.gameAudio = new Audio('/audio/Carnival game bgm.mp3');
+      this.gameAudio.loop = true;
+      this.gameAudio.volume = this.isMuted ? 0 : 0.32;
     }
   }
 
@@ -38,54 +52,60 @@ class CarnivalAudioManager {
     if (this.sfxGain && this.ctx) {
       this.sfxGain.gain.setValueAtTime(muted ? 0 : 0.45, this.ctx.currentTime);
     }
-    if (this.bgmGain && this.ctx) {
-      this.bgmGain.gain.setValueAtTime(muted ? 0 : 0.12, this.ctx.currentTime);
+    if (this.hubAudio) {
+      this.hubAudio.volume = muted ? 0 : 0.35;
+    }
+    if (this.gameAudio) {
+      this.gameAudio.volume = muted ? 0 : 0.32;
     }
   }
 
-  // ── 1. Cheerful Carnival BGM (Harmonic Music Generator) ──
-  public startBGM() {
+  public getMuted() {
+    return this.isMuted;
+  }
+
+  // ── 1. Carnival BGM Controller (Island Hub vs In-Game Mini-Games) ──
+
+  public setMode(mode: 'hub' | 'game') {
     this.initContext();
-    if (this.isBgmPlaying || !this.ctx || !this.bgmGain) return;
-    this.isBgmPlaying = true;
+    this.initAudioElements();
+    if (this.currentMode === mode) return;
+    this.currentMode = mode;
 
-    const notes = [
-      261.63, 329.63, 392.00, 523.25, // C4, E4, G4, C5
-      293.66, 369.99, 440.00, 587.33, // D4, F#4, A4, D5
-      261.63, 349.23, 392.00, 523.25, // C4, F4, G4, C5
-      392.00, 329.63, 293.66, 261.63, // G4, E4, D4, C4
-    ];
+    if (mode === 'hub') {
+      // Fade out / pause game audio, play hub audio
+      if (this.gameAudio) {
+        this.gameAudio.pause();
+        this.gameAudio.currentTime = 0;
+      }
+      if (this.hubAudio) {
+        this.hubAudio.volume = this.isMuted ? 0 : 0.35;
+        this.hubAudio.play().catch(() => {});
+      }
+    } else if (mode === 'game') {
+      // Fade out / pause hub audio, play in-game mini-game audio
+      if (this.hubAudio) {
+        this.hubAudio.pause();
+      }
+      if (this.gameAudio) {
+        this.gameAudio.volume = this.isMuted ? 0 : 0.32;
+        this.gameAudio.play().catch(() => {});
+      }
+    }
+  }
 
-    let noteIdx = 0;
-    this.bgmInterval = setInterval(() => {
-      if (this.isMuted || !this.ctx || !this.bgmGain) return;
-      try {
-        const osc = this.ctx.createOscillator();
-        const noteGain = this.ctx.createGain();
-
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(notes[noteIdx % notes.length], this.ctx.currentTime);
-
-        noteGain.gain.setValueAtTime(0.06, this.ctx.currentTime);
-        noteGain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.35);
-
-        osc.connect(noteGain);
-        noteGain.connect(this.bgmGain);
-
-        osc.start();
-        osc.stop(this.ctx.currentTime + 0.38);
-
-        noteIdx++;
-      } catch {}
-    }, 400);
+  public startBGM() {
+    this.setMode(this.currentMode === 'game' ? 'game' : 'hub');
   }
 
   public stopBGM() {
-    if (this.bgmInterval) {
-      clearInterval(this.bgmInterval);
-      this.bgmInterval = null;
+    this.currentMode = 'off';
+    if (this.hubAudio) {
+      this.hubAudio.pause();
     }
-    this.isBgmPlaying = false;
+    if (this.gameAudio) {
+      this.gameAudio.pause();
+    }
   }
 
   // ── 2. Physical Carnival SFX Generators ──

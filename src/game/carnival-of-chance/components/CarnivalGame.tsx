@@ -19,7 +19,7 @@ export const CarnivalGame: React.FC = () => {
   // Initialize audio context on first user interaction
   useEffect(() => {
     const handleFirstTouch = () => {
-      carnivalAudio.startBGM();
+      carnivalAudio.setMode(activeActivity === 'hub' ? 'hub' : 'game');
       window.removeEventListener('pointerdown', handleFirstTouch);
     };
     window.addEventListener('pointerdown', handleFirstTouch);
@@ -28,6 +28,11 @@ export const CarnivalGame: React.FC = () => {
       carnivalAudio.stopBGM();
     };
   }, []);
+
+  // Switch BGM dynamically when transitioning between Island Hub and Mini-Games
+  useEffect(() => {
+    carnivalAudio.setMode(activeActivity === 'hub' ? 'hub' : 'game');
+  }, [activeActivity]);
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-slate-950 select-none">
