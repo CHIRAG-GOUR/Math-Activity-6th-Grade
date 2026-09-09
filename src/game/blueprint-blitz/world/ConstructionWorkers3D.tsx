@@ -42,6 +42,7 @@ interface WorkerModelProps {
   isDumpingIntoCart?: boolean;
   shovelPitch?: number;
   shovelRoll?: number;
+  carryingChunk?: boolean;
 }
 
 export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
@@ -65,6 +66,7 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
   isDumpingIntoCart = false,
   shovelPitch = 0.3,
   shovelRoll = 0,
+  carryingChunk = false,
 }) => {
   return (
     <group>
@@ -124,6 +126,20 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
           <meshStandardMaterial color="#fbbf24" metalness={0.9} />
         </mesh>
 
+        {/* ── 3D BROKEN STONE CHUNK HELD IN HANDS AT WAIST/CHEST ── */}
+        {carryingChunk && (
+          <group position={[0, 0.18, 0.38]} rotation={[0.1, 0.2, 0]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.3, 0.22, 0.26]} />
+              <meshStandardMaterial color="#94a3b8" roughness={0.9} />
+            </mesh>
+            <mesh position={[0.05, 0.06, 0.04]} rotation={[0.2, 0.3, 0.1]} castShadow>
+              <boxGeometry args={[0.22, 0.16, 0.18]} />
+              <meshStandardMaterial color="#64748b" roughness={0.95} />
+            </mesh>
+          </group>
+        )}
+
         {/* ── LEFT ARM ── */}
         <group position={[-0.28, 0.52, 0]} rotation={[leftArmAngle, leftArmY, leftArmZ]}>
           <mesh position={[0, -0.22, 0]} castShadow>
@@ -170,32 +186,32 @@ export const HumanoidWorkerBody: React.FC<WorkerModelProps> = ({
             <meshStandardMaterial color="#334155" />
           </mesh>
 
-          {/* Heavy Steel Sledge / Mason Hammer (Held firmly in fist, striking straight down) */}
+          {/* Heavy Steel Sledge / Mason Hammer (Held firmly in fist, extending straight forward/down) */}
           {toolHeld === 'hammer' && (
-            <group position={[0, -0.45, 0.06]} rotation={[0.45, 0, 0]}>
-              {/* Ash Wood Handle */}
-              <mesh position={[0, 0.20, 0]} castShadow>
-                <cylinderGeometry args={[0.022, 0.022, 0.65, 8]} />
+            <group position={[0, -0.46, 0.02]} rotation={[0.20, 0, 0]}>
+              {/* Ash Wood Handle extending forward along Z */}
+              <mesh position={[0, -0.04, 0.22]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+                <cylinderGeometry args={[0.022, 0.022, 0.60, 8]} />
                 <meshStandardMaterial color="#b45309" roughness={0.7} />
               </mesh>
               {/* Textured Black Rubber Grip in Hand */}
-              <mesh position={[0, -0.04, 0]}>
-                <cylinderGeometry args={[0.028, 0.028, 0.18, 8]} />
+              <mesh position={[0, -0.04, 0.02]} rotation={[Math.PI / 2, 0, 0]}>
+                <cylinderGeometry args={[0.028, 0.028, 0.16, 8]} />
                 <meshStandardMaterial color="#0f172a" roughness={0.9} />
               </mesh>
-              {/* Solid Heavy Cast Steel Mallet Head */}
-              <group position={[0, 0.52, 0]}>
+              {/* Solid Heavy Cast Steel Mallet Head at distal tip */}
+              <group position={[0, -0.04, 0.50]}>
                 <mesh castShadow>
-                  <boxGeometry args={[0.15, 0.13, 0.22]} />
-                  <meshStandardMaterial color="#334155" metalness={0.9} roughness={0.2} />
+                  <boxGeometry args={[0.14, 0.16, 0.20]} />
+                  <meshStandardMaterial color="#334155" metalness={0.92} roughness={0.2} />
                 </mesh>
-                {/* Steel Striking Faces (Front & Back) */}
-                <mesh position={[0, 0, 0.115]}>
-                  <boxGeometry args={[0.13, 0.11, 0.02]} />
+                {/* Flat Striking Faces (Bottom & Top) */}
+                <mesh position={[0, -0.085, 0]}>
+                  <boxGeometry args={[0.12, 0.02, 0.18]} />
                   <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.1} />
                 </mesh>
-                <mesh position={[0, 0, -0.115]}>
-                  <boxGeometry args={[0.13, 0.11, 0.02]} />
+                <mesh position={[0, 0.085, 0]}>
+                  <boxGeometry args={[0.12, 0.02, 0.18]} />
                   <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.1} />
                 </mesh>
               </group>
@@ -704,134 +720,342 @@ export const SandHaulerWorkerWithWheelbarrow3D: React.FC = () => {
   );
 };
 
-// ── 3. STATIONARY MASON / BRICKLAYER BUILDER (Blue Team Site) ──
-// Rhythmic, powerful, straight-downward hammer strike onto the foundation chisel block!
+// ── 3. MASON BUILDER WITH RUBBLE BREAK & HAUL (10-Second Physical Cycle) ──
+// 1. Stands straight facing forward toward concrete block & chisel (near Blue Site)
+// 2. Swings hammer straight down squarely onto the chisel with sparks
+// 3. Breaks off a small stone chunk, bends down and picks it up in both hands
+// 4. Walks straight with the rock to the rear rubble/sand dump, drops it in, and walks back every 10 seconds!
 export const StationaryMasonBuilder3D: React.FC = () => {
   const [anim, setAnim] = React.useState({
-    rightArm: 0.25,
-    leftArm: 0.45,
-    torsoBend: 0.18,
-    headX: 0.35,
+    workerZ: 2.4,
+    workerRotY: 0,
+    rightArm: 0.15,
+    leftArm: 0.35,
+    leftArmZ: 0.15,
+    rightArmZ: 0,
+    torsoBend: 0.14,
+    headX: 0.32,
     sparkVisible: false,
+    toolHeld: 'hammer' as 'hammer' | 'none',
+    carryingChunk: false,
+    chunkOnBlock: false,
+    chunkAtDump: false,
+    leftLegAngle: 0,
+    rightLegAngle: 0,
   });
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    const cycle = (t * 0.7) % 1.6; // 1.6s rhythm: windup -> straight downward smack -> impact recoil -> reset
+    const cycle = t % 10.0; // 10.0 second full physical cycle
 
-    let rightArm = 0.25;
-    let leftArm = 0.45;
-    let torsoBend = 0.18;
-    let headX = 0.35;
+    let workerZ = 2.4;
+    let workerRotY = 0;
+    let rightArm = 0.15;
+    let leftArm = 0.35;
+    let leftArmZ = 0.15;
+    let rightArmZ = 0;
+    let torsoBend = 0.14;
+    let headX = 0.32;
     let sparkVisible = false;
+    let toolHeld: 'hammer' | 'none' = 'hammer';
+    let carryingChunk = false;
+    let chunkOnBlock = false;
+    let chunkAtDump = false;
+    let leftLegAngle = 0;
+    let rightLegAngle = 0;
 
-    // Phase A: Wind-up / Raising the Hammer (0.0s - 0.7s)
-    if (cycle < 0.7) {
-      const p = cycle / 0.7;
-      const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
-      rightArm = 0.25 - smoothP * 0.70; // Cocks arm backward/upward (-0.45 rad)
-      torsoBend = 0.22 - smoothP * 0.12; // Straightens slightly
-      headX = 0.32 + smoothP * 0.08; // Eyes locked on chisel
+    // ── Phase 1: Straight-Downward Hammering & Breaking Stone Chunk (0.0s - 2.8s) ──
+    if (cycle < 2.8) {
+      workerZ = 2.4;
+      workerRotY = 0; // Standing straight facing forward toward stone block & camera
+      toolHeld = 'hammer';
+
+      // Strike 1 (0.0s - 1.3s)
+      if (cycle < 1.3) {
+        if (cycle < 0.6) {
+          const p = cycle / 0.6;
+          const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+          rightArm = 0.15 - smoothP * 0.75; // Windup hammer high (-0.60 rad)
+          torsoBend = 0.14 - smoothP * 0.06;
+          headX = 0.32 - smoothP * 0.08;
+        } else if (cycle < 0.85) {
+          const p = (cycle - 0.6) / 0.25;
+          const powerP = Math.pow(p, 2.2);
+          rightArm = -0.60 + powerP * 1.02; // Power swing straight down to +0.42 rad
+          torsoBend = 0.08 + powerP * 0.14;
+          headX = 0.24 + powerP * 0.14;
+          sparkVisible = p > 0.85;
+        } else {
+          const p = (cycle - 0.85) / 0.45;
+          rightArm = 0.42 - p * 0.27; // Rebound to neutral (+0.15 rad)
+          torsoBend = 0.22 - p * 0.08;
+          headX = 0.38 - p * 0.06;
+        }
+      }
+      // Strike 2 (1.3s - 2.8s) -> Breaks Chunk!
+      else {
+        const strike2T = cycle - 1.3;
+        if (strike2T < 0.55) {
+          const p = strike2T / 0.55;
+          const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+          rightArm = 0.15 - smoothP * 0.80; // High windup (-0.65 rad)
+          torsoBend = 0.14 - smoothP * 0.06;
+          headX = 0.32 - smoothP * 0.08;
+        } else if (strike2T < 0.80) {
+          const p = (strike2T - 0.55) / 0.25;
+          const powerP = Math.pow(p, 2.2);
+          rightArm = -0.65 + powerP * 1.07; // Heavy strike down to +0.42 rad
+          torsoBend = 0.08 + powerP * 0.16;
+          headX = 0.24 + powerP * 0.16;
+          sparkVisible = p > 0.85;
+        } else {
+          const p = (strike2T - 0.80) / 0.70;
+          rightArm = 0.42 - p * 0.22;
+          torsoBend = 0.24 - p * 0.08;
+          headX = 0.40;
+        }
+        chunkOnBlock = strike2T >= 0.75; // Broken stone chunk chips off onto block!
+      }
     }
-    // Phase B: Powerful Straight Downward Smack (0.7s - 0.95s)
-    else if (cycle < 0.95) {
-      const p = (cycle - 0.7) / 0.25;
-      const powerP = Math.pow(p, 2.2); // Accelerates rapidly down
-      rightArm = -0.45 + powerP * 1.28; // Drives down squarely to +0.83 rad
-      torsoBend = 0.10 + powerP * 0.28; // Torso hinges forward with body weight
-      headX = 0.40 + powerP * 0.08;
-      sparkVisible = p > 0.85; // Impact spark triggers at bottom of stroke
+    // ── Phase 2: Bend Down & Pick Up the Stone Chunk in Both Hands (2.8s - 4.0s) ──
+    else if (cycle < 4.0) {
+      workerZ = 2.4;
+      workerRotY = 0;
+      toolHeld = 'none'; // Hammer rests on block
+
+      if (cycle < 3.4) {
+        // Bend down reaching for chunk
+        const p = (cycle - 2.8) / 0.6;
+        const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+        torsoBend = 0.16 + smoothP * 0.32; // Bends down to 0.48 rad
+        rightArm = 0.20 + smoothP * 0.40; // Arms reach down
+        leftArm = 0.35 + smoothP * 0.25;
+        headX = 0.40 + smoothP * 0.15;
+        chunkOnBlock = true;
+        carryingChunk = false;
+      } else {
+        // Lift chunk and stand upright
+        const p = (cycle - 3.4) / 0.6;
+        const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
+        torsoBend = 0.48 - smoothP * 0.34; // Straightens to 0.14 rad
+        rightArm = 0.60 - smoothP * 0.10;
+        leftArm = 0.60 - smoothP * 0.10;
+        leftArmZ = -0.22; // Arms hugging chunk inward
+        rightArmZ = 0.22;
+        headX = 0.55 - smoothP * 0.25;
+        carryingChunk = true;
+        chunkOnBlock = false;
+      }
     }
-    // Phase C: Impact Dwell & Elastic Recoil (0.95s - 1.25s)
-    else if (cycle < 1.25) {
-      const p = (cycle - 0.95) / 0.30;
-      rightArm = 0.83 - Math.sin(p * Math.PI) * 0.24; // Recoils slightly up to +0.59 rad
-      torsoBend = 0.38 - p * 0.10;
-      sparkVisible = p < 0.25;
+    // ── Phase 3: Walk with Stone Chunk to Rear Rubble Dump (4.0s - 6.8s) ──
+    else if (cycle < 6.8) {
+      const p = (cycle - 4.0) / 2.8;
+      workerZ = 2.4 - p * 6.9; // Moves smoothly from +2.4 to -4.5
+      workerRotY = Math.PI; // Turned facing rear haul path
+      toolHeld = 'none';
+      carryingChunk = true;
+
+      const walkFreq = cycle * 8.0;
+      leftLegAngle = Math.sin(walkFreq) * 0.55;
+      rightLegAngle = -Math.sin(walkFreq) * 0.55;
+
+      // Both hands holding chunk securely in front of chest
+      rightArm = 0.50;
+      leftArm = 0.50;
+      leftArmZ = -0.22;
+      rightArmZ = 0.22;
+      torsoBend = 0.14;
+      headX = 0.18;
     }
-    // Phase D: Reset & Settle for Next Strike (1.25s - 1.6s)
+    // ── Phase 4: Drop Stone Chunk into Rear Dump Mound (6.8s - 8.0s) ──
+    else if (cycle < 8.0) {
+      const p = (cycle - 6.8) / 1.2;
+      const dropBend = Math.sin(p * Math.PI);
+      workerZ = -4.5;
+      workerRotY = Math.PI;
+      toolHeld = 'none';
+
+      torsoBend = 0.14 + dropBend * 0.28;
+      rightArm = 0.50 + dropBend * 0.18;
+      leftArm = 0.50 + dropBend * 0.18;
+      headX = 0.25 + dropBend * 0.20;
+
+      carryingChunk = p < 0.40;
+      chunkAtDump = p >= 0.40 && p <= 0.90; // Chunk tumbles into rear rubble mound
+    }
+    // ── Phase 5: Turn & Walk Back to Front Station (8.0s - 10.0s) ──
     else {
-      const p = (cycle - 1.25) / 0.35;
-      rightArm = 0.59 - p * 0.34; // Returns to neutral +0.25 rad
-      torsoBend = 0.28 - p * 0.06;
-      headX = 0.48 - p * 0.16;
+      const p = (cycle - 8.0) / 2.0;
+      workerZ = -4.5 + p * 6.9; // Moves back from -4.5 to +2.4
+      workerRotY = 0; // Turned facing front
+      toolHeld = 'none';
+      carryingChunk = false;
+
+      const walkFreq = cycle * 8.0;
+      leftLegAngle = Math.sin(walkFreq) * 0.55;
+      rightLegAngle = -Math.sin(walkFreq) * 0.55;
+
+      rightArm = 0.25 + Math.sin(walkFreq) * 0.20;
+      leftArm = 0.25 - Math.sin(walkFreq) * 0.20;
+      leftArmZ = 0.1;
+      rightArmZ = -0.1;
+      torsoBend = 0.12;
+      headX = 0.15;
     }
 
-    setAnim({ rightArm, leftArm, torsoBend, headX, sparkVisible });
+    setAnim({
+      workerZ,
+      workerRotY,
+      rightArm,
+      leftArm,
+      leftArmZ,
+      rightArmZ,
+      torsoBend,
+      headX,
+      sparkVisible,
+      toolHeld,
+      carryingChunk,
+      chunkOnBlock,
+      chunkAtDump,
+      leftLegAngle,
+      rightLegAngle,
+    });
   });
 
+  const isHammeringAtStation = anim.workerZ > 2.0 && anim.toolHeld === 'hammer';
+
   return (
-    <group position={[-5.5, 0, 2.0]} rotation={[0, 2.1, 0]}>
-      {/* Mason Humanoid (Blue Team Colors) */}
-      <HumanoidWorkerBody
-        hatColor="#2563eb"
-        vestColor="#ea580c"
-        pantsColor="#1e3a8a"
-        torsoBend={anim.torsoBend}
-        headRotX={anim.headX}
-        rightArmAngle={anim.rightArm}
-        leftArmAngle={anim.leftArm}
-        toolHeld="hammer"
-      />
-
-      {/* Foundation Concrete Target Block in Front of Right Hand */}
-      <group position={[0.22, 0, 0.55]}>
-        {/* Solid Concrete Ashlar Block */}
-        <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
-          <boxGeometry args={[0.55, 0.44, 0.55]} />
-          <meshStandardMaterial color="#94a3b8" roughness={0.8} />
-        </mesh>
-
-        {/* Steel Chisel Tool Sitting on Top (Target of Hammer Smack) */}
-        <group position={[0, 0.46, 0]} rotation={[0, 0, 0.1]}>
-          <mesh castShadow>
-            <cylinderGeometry args={[0.025, 0.015, 0.16, 6]} />
-            <meshStandardMaterial color="#475569" metalness={0.9} roughness={0.2} />
+    <group position={[-5.8, 0, 0]}>
+      {/* ── 1. STATIC WORK STATION AT FRONT (Z = 2.4) ── */}
+      <group position={[0, 0, 0]}>
+        {/* Foundation Concrete Ashlar Target Block in Front of Worker */}
+        <group position={[0.28, 0, 2.95]}>
+          <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
+            <boxGeometry args={[0.55, 0.44, 0.55]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.8} />
           </mesh>
-          {/* Chisel Striking Head Cap */}
-          <mesh position={[0, 0.08, 0]}>
-            <cylinderGeometry args={[0.035, 0.035, 0.03, 6]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.95} />
-          </mesh>
-        </group>
 
-        {/* Yellow Spirit Level Resting on Side */}
-        <mesh position={[-0.18, 0.45, 0.14]} rotation={[0, 0.3, 0]}>
-          <boxGeometry args={[0.35, 0.04, 0.04]} />
-          <meshStandardMaterial color="#facc15" />
-        </mesh>
-
-        {/* Impact Sparks on Hammer Contact */}
-        {anim.sparkVisible && (
-          <group position={[0, 0.52, 0]}>
-            <mesh>
-              <sphereGeometry args={[0.16, 8, 8]} />
-              <meshBasicMaterial color="#fef08a" />
+          {/* Hardened Steel Chisel Tool Sitting on Top */}
+          <group position={[0, 0.46, 0]} rotation={[0, 0, 0.05]}>
+            <mesh castShadow>
+              <cylinderGeometry args={[0.025, 0.015, 0.16, 6]} />
+              <meshStandardMaterial color="#475569" metalness={0.9} roughness={0.2} />
             </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.15, 0.32, 12]} />
-              <meshBasicMaterial color="#fbbf24" transparent opacity={0.8} />
+            <mesh position={[0, 0.08, 0]}>
+              <cylinderGeometry args={[0.035, 0.035, 0.03, 6]} />
+              <meshStandardMaterial color="#cbd5e1" metalness={0.95} />
             </mesh>
           </group>
-        )}
+
+          {/* Yellow Spirit Level Resting on Block */}
+          <mesh position={[-0.18, 0.45, 0.14]} rotation={[0, 0.3, 0]}>
+            <boxGeometry args={[0.35, 0.04, 0.04]} />
+            <meshStandardMaterial color="#facc15" />
+          </mesh>
+
+          {/* Hammer Resting on Block when Worker is Walking Away */}
+          {!isHammeringAtStation && (
+            <group position={[0.16, 0.46, -0.05]} rotation={[0, 0.6, Math.PI / 2]}>
+              <mesh>
+                <cylinderGeometry args={[0.018, 0.018, 0.5, 6]} />
+                <meshStandardMaterial color="#b45309" />
+              </mesh>
+              <mesh position={[0, 0.22, 0]}>
+                <boxGeometry args={[0.12, 0.1, 0.16]} />
+                <meshStandardMaterial color="#334155" metalness={0.9} />
+              </mesh>
+            </group>
+          )}
+
+          {/* Broken Stone Chunk on Block (Visible after strike before pick-up) */}
+          {anim.chunkOnBlock && (
+            <mesh position={[0.08, 0.48, 0.08]} rotation={[0.2, 0.4, 0.1]} castShadow>
+              <boxGeometry args={[0.22, 0.16, 0.18]} />
+              <meshStandardMaterial color="#64748b" roughness={0.95} />
+            </mesh>
+          )}
+
+          {/* Impact Sparks on Hammer Contact */}
+          {anim.sparkVisible && (
+            <group position={[0, 0.54, 0]}>
+              <mesh>
+                <sphereGeometry args={[0.18, 8, 8]} />
+                <meshBasicMaterial color="#fef08a" />
+              </mesh>
+              <mesh rotation={[Math.PI / 2, 0, 0]}>
+                <ringGeometry args={[0.15, 0.35, 12]} />
+                <meshBasicMaterial color="#fbbf24" transparent opacity={0.8} />
+              </mesh>
+            </group>
+          )}
+        </group>
+
+        {/* Pallet of Stacked Red Bricks & Mortar Pan (Beside Work Station) */}
+        <group position={[-0.85, 0, 2.5]} rotation={[0, 0.2, 0]}>
+          <mesh position={[0, 0.06, 0]} castShadow>
+            <boxGeometry args={[0.9, 0.12, 0.9]} />
+            <meshStandardMaterial color="#92400e" roughness={0.8} />
+          </mesh>
+          {[0.16, 0.32, 0.48].map((by, bidx) => (
+            <mesh key={bidx} position={[0, by, 0]} castShadow>
+              <boxGeometry args={[0.7, 0.14, 0.7]} />
+              <meshStandardMaterial color="#b91c1c" roughness={0.9} />
+            </mesh>
+          ))}
+          <mesh position={[0.35, 0.62, 0.35]} castShadow>
+            <cylinderGeometry args={[0.18, 0.14, 0.16, 10]} />
+            <meshStandardMaterial color="#475569" roughness={0.6} />
+          </mesh>
+        </group>
       </group>
 
-      {/* ── SUPPLY PALLET WITH STACKED BRICKS & MORTAR TUB (BESIDE WORKER) ── */}
-      <group position={[-0.9, 0, 0.2]} rotation={[0, 0.3, 0]}>
-        <mesh position={[0, 0.06, 0]} castShadow>
-          <boxGeometry args={[0.9, 0.12, 0.9]} />
-          <meshStandardMaterial color="#92400e" roughness={0.8} />
+      {/* ── 2. REAR RUBBLE & GRAVEL DUMP MOUND (Z = -4.5) ── */}
+      <group position={[0.2, 0, -4.5]}>
+        <mesh position={[0, 0.35, 0]} castShadow receiveShadow>
+          <coneGeometry args={[1.5, 0.75, 14]} />
+          <meshStandardMaterial color="#64748b" roughness={0.95} />
         </mesh>
-        {[0.16, 0.32, 0.48].map((by, bidx) => (
-          <mesh key={bidx} position={[0, by, 0]} castShadow>
-            <boxGeometry args={[0.7, 0.14, 0.7]} />
-            <meshStandardMaterial color="#b91c1c" roughness={0.9} />
+        <mesh position={[-0.35, 0.2, 0.25]}>
+          <sphereGeometry args={[0.5, 8, 8]} />
+          <meshStandardMaterial color="#475569" roughness={0.95} />
+        </mesh>
+        <mesh position={[0.4, 0.15, -0.2]}>
+          <sphereGeometry args={[0.4, 8, 8]} />
+          <meshStandardMaterial color="#d4b895" roughness={0.95} />
+        </mesh>
+      </group>
+
+      {/* Falling Rock Chunk at Rear Dump Mound */}
+      {anim.chunkAtDump && (
+        <group position={[0.2, 0.25, -4.5]}>
+          <mesh position={[0, 0.1, 0]} rotation={[0.4, 0.6, 0.2]} castShadow>
+            <boxGeometry args={[0.24, 0.18, 0.2]} />
+            <meshStandardMaterial color="#64748b" roughness={0.95} />
           </mesh>
-        ))}
-        <mesh position={[0.35, 0.62, 0.35]} castShadow>
-          <cylinderGeometry args={[0.18, 0.14, 0.16, 10]} />
-          <meshStandardMaterial color="#475569" roughness={0.6} />
-        </mesh>
+          <mesh position={[0, 0.05, 0]}>
+            <sphereGeometry args={[0.22, 8, 8]} />
+            <meshStandardMaterial color="#d4b895" transparent opacity={0.6} />
+          </mesh>
+        </group>
+      )}
+
+      {/* ── 3. ANIMATED MOVING MASON WORKER ── */}
+      <group position={[0, 0, anim.workerZ]} rotation={[0, anim.workerRotY, 0]}>
+        <HumanoidWorkerBody
+          hatColor="#2563eb"
+          vestColor="#ea580c"
+          pantsColor="#1e3a8a"
+          torsoBend={anim.torsoBend}
+          headRotX={anim.headX}
+          rightArmAngle={anim.rightArm}
+          leftArmAngle={anim.leftArm}
+          leftArmZ={anim.leftArmZ}
+          rightArmZ={anim.rightArmZ}
+          leftLegAngle={anim.leftLegAngle}
+          rightLegAngle={anim.rightLegAngle}
+          toolHeld={anim.toolHeld}
+          carryingChunk={anim.carryingChunk}
+        />
       </group>
     </group>
   );
@@ -841,10 +1065,10 @@ export const StationaryMasonBuilder3D: React.FC = () => {
 // Heavy equipment mechanic: Yellow hat, High-Vis Green vest, smacking hammer straight onto steel maintenance anvil beside the JCB!
 export const JCBMaintenanceHammerWorker3D: React.FC = () => {
   const [anim, setAnim] = React.useState({
-    rightArm: 0.25,
-    leftArm: 0.45,
-    torsoBend: 0.18,
-    headX: 0.35,
+    rightArm: 0.15,
+    leftArm: 0.35,
+    torsoBend: 0.14,
+    headX: 0.32,
     sparkVisible: false,
   });
 
@@ -852,42 +1076,42 @@ export const JCBMaintenanceHammerWorker3D: React.FC = () => {
     const t = state.clock.getElapsedTime();
     const cycle = (t * 0.75 + 0.4) % 1.6; // Offset cadence from mason
 
-    let rightArm = 0.25;
-    let leftArm = 0.45;
-    let torsoBend = 0.18;
-    let headX = 0.35;
+    let rightArm = 0.15;
+    let leftArm = 0.35;
+    let torsoBend = 0.14;
+    let headX = 0.32;
     let sparkVisible = false;
 
-    // Phase A: Windup (0.0s - 0.7s)
+    // Phase A: High Windup (0.0s - 0.7s)
     if (cycle < 0.7) {
       const p = cycle / 0.7;
       const smoothP = 0.5 - 0.5 * Math.cos(p * Math.PI);
-      rightArm = 0.25 - smoothP * 0.72;
-      torsoBend = 0.22 - smoothP * 0.12;
-      headX = 0.32 + smoothP * 0.08;
+      rightArm = 0.15 - smoothP * 0.75;
+      torsoBend = 0.14 - smoothP * 0.06;
+      headX = 0.32 - smoothP * 0.08;
     }
     // Phase B: Power Straight Smack on Anvil (0.7s - 0.95s)
     else if (cycle < 0.95) {
       const p = (cycle - 0.7) / 0.25;
       const powerP = Math.pow(p, 2.2);
-      rightArm = -0.47 + powerP * 1.30;
-      torsoBend = 0.10 + powerP * 0.28;
-      headX = 0.40 + powerP * 0.08;
+      rightArm = -0.60 + powerP * 1.02;
+      torsoBend = 0.08 + powerP * 0.16;
+      headX = 0.24 + powerP * 0.16;
       sparkVisible = p > 0.85;
     }
     // Phase C: Recoil (0.95s - 1.25s)
     else if (cycle < 1.25) {
       const p = (cycle - 0.95) / 0.30;
-      rightArm = 0.83 - Math.sin(p * Math.PI) * 0.24;
-      torsoBend = 0.38 - p * 0.10;
+      rightArm = 0.42 - Math.sin(p * Math.PI) * 0.15;
+      torsoBend = 0.24 - p * 0.08;
       sparkVisible = p < 0.25;
     }
     // Phase D: Reset (1.25s - 1.6s)
     else {
       const p = (cycle - 1.25) / 0.35;
-      rightArm = 0.59 - p * 0.34;
-      torsoBend = 0.28 - p * 0.06;
-      headX = 0.48 - p * 0.16;
+      rightArm = 0.27 - p * 0.12;
+      torsoBend = 0.16 - p * 0.02;
+      headX = 0.40 - p * 0.08;
     }
 
     setAnim({ rightArm, leftArm, torsoBend, headX, sparkVisible });
