@@ -16,7 +16,11 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { ArcadeCabinet3D, ArcadeCabinetConfig } from './ArcadeCabinet3D';
 
-export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
+export const PAGE_SPACING = 13.6;
+export const MACHINES_PER_PAGE = 4;
+
+export const RAW_ARCADE_CABINET_DATA: Omit<ArcadeCabinetConfig, 'position' | 'rotation'>[] = [
+  // ── WING 1 (MACHINES #01 - #04) ──
   {
     id: 'math-escape-vault',
     number: '01',
@@ -28,8 +32,6 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/math-vault-card.jpg',
     route: '/math-vault',
-    position: [-4.6, 0, -0.1],
-    rotation: [0, 0.22, 0],
     theme: {
       cabinetColor: '#1d4ed8',
       secondaryColor: '#3b82f6',
@@ -63,8 +65,6 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/number-railway-card.jpg',
     route: '/number-railway',
-    position: [-1.55, 0, 0.15],
-    rotation: [0, 0.07, 0],
     theme: {
       cabinetColor: '#0284c7',
       secondaryColor: '#0ea5e9',
@@ -98,8 +98,6 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'active',
     image: '/images/carnival-card.jpg',
     route: '/carnival-of-chance',
-    position: [1.55, 0, 0.15],
-    rotation: [0, -0.07, 0],
     theme: {
       cabinetColor: '#dc2626',
       secondaryColor: '#ef4444',
@@ -133,8 +131,6 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
     status: 'planned',
     image: '/images/math-vault-card.jpg',
     route: '#',
-    position: [4.6, 0, -0.1],
-    rotation: [0, -0.22, 0],
     theme: {
       cabinetColor: '#7e22ce',
       secondaryColor: '#9333ea',
@@ -157,37 +153,211 @@ export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = [
       cardBorderColor: '#a855f7',
     },
   },
+
+  // ── WING 2 (MACHINES #05 - #08) ──
+  {
+    id: 'geometry-quest',
+    number: '05',
+    title: 'GEOMETRY QUEST',
+    subtitle: '2D & 3D Spatial Adventure',
+    topic: '2D & 3D Shapes',
+    grade: 'Grade 6',
+    category: 'Geometry & Angles',
+    status: 'planned',
+    image: '/images/math-vault-card.jpg',
+    route: '#',
+    theme: {
+      cabinetColor: '#059669',
+      secondaryColor: '#10b981',
+      tMoldingColor: '#34d399',
+      tMoldingEmissive: '#059669',
+      marqueeBg: '#059669',
+      marqueeTextColor: '#ffffff',
+      marqueeGlow: '#34d399',
+      screenBezelColor: '#047857',
+      screenGlowColor: '#34d399',
+      deckColor: '#065f46',
+      joystickBallColor: '#34d399',
+      joystickBallEmissive: '#059669',
+      buttonColors: ['#34d399', '#6ee7b7', '#fbbf24', '#38bdf8'],
+      coinDoorColor: '#047857',
+      sideArtAccent: '#a7f3d0',
+      floorGlowColor: '#34d399',
+      topicBadgeBg: '#d1fae5',
+      topicBadgeText: '#065f46',
+      cardBorderColor: '#10b981',
+    },
+  },
+  {
+    id: 'fraction-odyssey',
+    number: '06',
+    title: 'FRACTION ODYSSEY',
+    subtitle: 'Fractions & Decimals Galactic Expedition',
+    topic: 'Fractions & Decimals',
+    grade: 'Grade 6',
+    category: 'Space & Expedition',
+    status: 'planned',
+    image: '/images/math-vault-card.jpg',
+    route: '#',
+    theme: {
+      cabinetColor: '#ea580c',
+      secondaryColor: '#f97316',
+      tMoldingColor: '#fbbf24',
+      tMoldingEmissive: '#f59e0b',
+      marqueeBg: '#ea580c',
+      marqueeTextColor: '#ffffff',
+      marqueeGlow: '#fbbf24',
+      screenBezelColor: '#c2410c',
+      screenGlowColor: '#fbbf24',
+      deckColor: '#9a3412',
+      joystickBallColor: '#fbbf24',
+      joystickBallEmissive: '#f59e0b',
+      buttonColors: ['#fbbf24', '#f97316', '#38bdf8', '#a855f7'],
+      coinDoorColor: '#c2410c',
+      sideArtAccent: '#fed7aa',
+      floorGlowColor: '#ea580c',
+      topicBadgeBg: '#ffedd5',
+      topicBadgeText: '#9a3412',
+      cardBorderColor: '#f97316',
+    },
+  },
+  {
+    id: 'algebra-arena',
+    number: '07',
+    title: 'ALGEBRA ARENA',
+    subtitle: 'Variables & Equations Head-to-Head',
+    topic: 'Algebraic Equations',
+    grade: 'Grade 6',
+    category: 'Cyber Duel',
+    status: 'planned',
+    image: '/images/math-vault-card.jpg',
+    route: '#',
+    theme: {
+      cabinetColor: '#4f46e5',
+      secondaryColor: '#6366f1',
+      tMoldingColor: '#06b6d4',
+      tMoldingEmissive: '#0891b2',
+      marqueeBg: '#4f46e5',
+      marqueeTextColor: '#ffffff',
+      marqueeGlow: '#06b6d4',
+      screenBezelColor: '#3730a3',
+      screenGlowColor: '#06b6d4',
+      deckColor: '#312e81',
+      joystickBallColor: '#06b6d4',
+      joystickBallEmissive: '#0891b2',
+      buttonColors: ['#06b6d4', '#818cf8', '#fbbf24', '#f43f5e'],
+      coinDoorColor: '#3730a3',
+      sideArtAccent: '#c7d2fe',
+      floorGlowColor: '#4f46e5',
+      topicBadgeBg: '#e0e7ff',
+      topicBadgeText: '#312e81',
+      cardBorderColor: '#6366f1',
+    },
+  },
+  {
+    id: 'math-championship',
+    number: '08',
+    title: 'MATH CHAMPIONSHIP',
+    subtitle: 'Grade 6 Ultimate Grand Prix',
+    topic: 'All Grade 6 Topics',
+    grade: 'Grade 6',
+    category: 'Grand Prix Finals',
+    status: 'planned',
+    image: '/images/math-vault-card.jpg',
+    route: '#',
+    theme: {
+      cabinetColor: '#d97706',
+      secondaryColor: '#f59e0b',
+      tMoldingColor: '#fde047',
+      tMoldingEmissive: '#eab308',
+      marqueeBg: '#d97706',
+      marqueeTextColor: '#ffffff',
+      marqueeGlow: '#fde047',
+      screenBezelColor: '#b45309',
+      screenGlowColor: '#fde047',
+      deckColor: '#78350f',
+      joystickBallColor: '#fde047',
+      joystickBallEmissive: '#eab308',
+      buttonColors: ['#fde047', '#fb923c', '#38bdf8', '#ec4899'],
+      coinDoorColor: '#b45309',
+      sideArtAccent: '#fef08a',
+      floorGlowColor: '#f59e0b',
+      topicBadgeBg: '#fef9c3',
+      topicBadgeText: '#713f12',
+      cardBorderColor: '#f59e0b',
+    },
+  },
 ];
 
+// Computed list with dynamic 3D continuous corridor positions
+export const ARCADE_CABINET_DATA: ArcadeCabinetConfig[] = RAW_ARCADE_CABINET_DATA.map((cab, idx) => {
+  const pageIndex = Math.floor(idx / MACHINES_PER_PAGE);
+  const slot = idx % MACHINES_PER_PAGE;
+  const offsets = [-4.6, -1.55, 1.55, 4.6];
+  const rotations: [number, number, number][] = [
+    [0, 0.22, 0],
+    [0, 0.07, 0],
+    [0, -0.07, 0],
+    [0, -0.22, 0],
+  ];
+  const zOffsets = [-0.1, 0.15, 0.15, -0.1];
+
+  return {
+    ...cab,
+    position: [pageIndex * PAGE_SPACING + offsets[slot], 0, zOffsets[slot]] as [number, number, number],
+    rotation: rotations[slot],
+  };
+});
+
 // ============================================================
-// CAMERA RIG: Soft Parallax & Smooth Category Focusing
+// CAMERA RIG: Soft Parallax, Wing Panning & Smooth Machine Focusing
 // ============================================================
-const ArcadeCameraRig: React.FC<{ selectedCategory: string }> = ({ selectedCategory }) => {
+const ArcadeCameraRig: React.FC<{
+  activePage: number;
+  selectedCategory: string;
+}> = ({ activePage, selectedCategory }) => {
   const { camera, pointer } = useThree();
   const targetPos = useRef(new THREE.Vector3(0, 2.15, 9.2));
   const lookAtPos = useRef(new THREE.Vector3(0, 1.85, 0));
 
   useFrame(() => {
-    let focusX = 0;
+    const pageBaseX = activePage * PAGE_SPACING;
+    let focusX = pageBaseX;
     let focusZ = 9.2;
-    let targetLookX = 0;
+    let targetLookX = pageBaseX;
 
-    if (selectedCategory === 'Heist & Escape' || selectedCategory === '#01 MATH VAULT') {
-      focusX = -4.0;
+    if (selectedCategory === 'Heist & Escape' || selectedCategory.includes('#01')) {
+      focusX = 0 * PAGE_SPACING - 4.0;
       focusZ = 6.8;
-      targetLookX = -4.6;
-    } else if (selectedCategory === 'Adventure & Strategy' || selectedCategory === '#02 NUMBER RAILWAY') {
-      focusX = -1.3;
+      targetLookX = 0 * PAGE_SPACING - 4.6;
+    } else if (selectedCategory === 'Adventure & Strategy' || selectedCategory.includes('#02')) {
+      focusX = 0 * PAGE_SPACING - 1.3;
       focusZ = 6.6;
-      targetLookX = -1.55;
-    } else if (selectedCategory === 'Theme Park & Chance' || selectedCategory === '#03 CARNIVAL OF CHANCE') {
-      focusX = 1.3;
+      targetLookX = 0 * PAGE_SPACING - 1.55;
+    } else if (selectedCategory === 'Theme Park & Chance' || selectedCategory.includes('#03')) {
+      focusX = 0 * PAGE_SPACING + 1.3;
       focusZ = 6.6;
-      targetLookX = 1.55;
-    } else if (selectedCategory === 'Arcade Arena' || selectedCategory === '#04 COMING SOON') {
-      focusX = 4.0;
+      targetLookX = 0 * PAGE_SPACING + 1.55;
+    } else if (selectedCategory === 'Arcade Arena' || selectedCategory.includes('#04')) {
+      focusX = 0 * PAGE_SPACING + 4.0;
       focusZ = 6.8;
-      targetLookX = 4.6;
+      targetLookX = 0 * PAGE_SPACING + 4.6;
+    } else if (selectedCategory.includes('#05')) {
+      focusX = 1 * PAGE_SPACING - 4.0;
+      focusZ = 6.8;
+      targetLookX = 1 * PAGE_SPACING - 4.6;
+    } else if (selectedCategory.includes('#06')) {
+      focusX = 1 * PAGE_SPACING - 1.3;
+      focusZ = 6.6;
+      targetLookX = 1 * PAGE_SPACING - 1.55;
+    } else if (selectedCategory.includes('#07')) {
+      focusX = 1 * PAGE_SPACING + 1.3;
+      focusZ = 6.6;
+      targetLookX = 1 * PAGE_SPACING + 1.55;
+    } else if (selectedCategory.includes('#08')) {
+      focusX = 1 * PAGE_SPACING + 4.0;
+      focusZ = 6.8;
+      targetLookX = 1 * PAGE_SPACING + 4.6;
     }
 
     const parallaxX = pointer.x * 0.45;
@@ -196,7 +366,7 @@ const ArcadeCameraRig: React.FC<{ selectedCategory: string }> = ({ selectedCateg
     targetPos.current.set(focusX + parallaxX, 2.1 + parallaxY, focusZ);
     lookAtPos.current.set(targetLookX + parallaxX * 0.18, 1.85 + parallaxY * 0.12, 0);
 
-    camera.position.lerp(targetPos.current, 0.05);
+    camera.position.lerp(targetPos.current, 0.055);
     camera.lookAt(lookAtPos.current);
   });
 
@@ -233,36 +403,7 @@ const ArcadeRoomEnvironment: React.FC = () => {
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(6, 6);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    return tex;
-  }, []);
-
-  const signTexture = useMemo(() => {
-    if (typeof document === 'undefined') return null;
-    const canvas = document.createElement('canvas');
-    canvas.width = 1024;
-    canvas.height = 256;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return null;
-
-    ctx.fillStyle = '#090d16';
-    ctx.fillRect(0, 0, 1024, 256);
-
-    ctx.strokeStyle = '#f59e0b';
-    ctx.lineWidth = 12;
-    ctx.strokeRect(10, 10, 1004, 236);
-
-    ctx.fillStyle = '#f59e0b';
-    ctx.font = 'bold 64px Arial, sans-serif';
-    ctx.textAlign = 'center';
-    ctx.fillText('★ SKILLIZEE ARCADE ARENA ★', 512, 135);
-
-    ctx.font = 'bold 28px Arial, sans-serif';
-    ctx.fillStyle = '#ffffff';
-    ctx.fillText('GRADE 6 MATHEMATICS • CLASSROOM DUEL ARENA', 512, 195);
-
-    const tex = new THREE.CanvasTexture(canvas);
+    tex.repeat.set(14, 6);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }, []);
@@ -273,42 +414,51 @@ const ArcadeRoomEnvironment: React.FC = () => {
       <ambientLight color="#fffbeb" intensity={1.5} />
       <hemisphereLight color="#fde68a" groundColor="#0f172a" intensity={1.1} />
       <directionalLight
-        position={[0, 9, 7]}
+        position={[7, 9, 7]}
         intensity={1.6}
         castShadow
         shadow-mapSize={[1024, 1024]}
       />
 
-      {/* ── INDIVIDUAL SPOTLIGHTS OVER EACH CABINET ── */}
-      <spotLight position={[-4.6, 7, 2]} target-position={[-4.6, 0, 0]} color="#fbbf24" intensity={2.8} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[-1.55, 7, 2]} target-position={[-1.55, 0, 0]} color="#38bdf8" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[1.55, 7, 2]} target-position={[1.55, 0, 0]} color="#f43f5e" intensity={2.6} angle={0.5} penumbra={0.6} castShadow />
-      <spotLight position={[4.6, 7, 2]} target-position={[4.6, 0, 0]} color="#c084fc" intensity={2.4} angle={0.5} penumbra={0.6} castShadow />
+      {/* ── INDIVIDUAL SPOTLIGHTS OVER EVERY ACTIVE CABINET ── */}
+      {ARCADE_CABINET_DATA.map((cab) => (
+        <spotLight
+          key={`spot-${cab.id}`}
+          position={[cab.position[0], 7, 2]}
+          target-position={[cab.position[0], 0, 0]}
+          color={cab.theme.tMoldingColor}
+          intensity={2.6}
+          angle={0.5}
+          penumbra={0.6}
+          castShadow
+        />
+      ))}
 
-      {/* ── BACK ARCADE ACCENT WALL (`z = -2.2`) ── */}
-      <group position={[0, 3.5, -2.2]}>
+      {/* ── CONTINUOUS BACK ARCADE ACCENT WALL (`z = -2.2`) ── */}
+      <group position={[7, 3.5, -2.2]}>
         <mesh receiveShadow>
-          <planeGeometry args={[28, 10]} />
+          <planeGeometry args={[64, 10]} />
           <meshStandardMaterial color="#fef3c7" roughness={0.7} />
         </mesh>
 
         <mesh position={[0, -2.6, 0.05]} receiveShadow>
-          <boxGeometry args={[28, 2.2, 0.1]} />
+          <boxGeometry args={[64, 2.2, 0.1]} />
           <meshStandardMaterial color="#d97706" roughness={0.4} />
         </mesh>
 
         <mesh position={[0, -1.48, 0.12]}>
-          <boxGeometry args={[28, 0.08, 0.05]} />
+          <boxGeometry args={[64, 0.08, 0.05]} />
           <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} />
         </mesh>
 
-        {[-4.2, -1.4, 1.4, 4.2].map((nx, i) => (
-          <group key={`neon-wall-${i}`} position={[nx, 1.8, 0.08]}>
+        {/* Neon Accent Trim along the Hall */}
+        {ARCADE_CABINET_DATA.map((cab, idx) => (
+          <group key={`neon-wall-${idx}`} position={[cab.position[0] - 7, 1.8, 0.08]}>
             <mesh>
               <boxGeometry args={[2.4, 0.06, 0.04]} />
               <meshStandardMaterial
-                color={i === 0 ? '#f59e0b' : i === 1 ? '#38bdf8' : i === 2 ? '#f43f5e' : '#c084fc'}
-                emissive={i === 0 ? '#f59e0b' : i === 1 ? '#0284c7' : i === 2 ? '#e11d48' : '#9333ea'}
+                color={cab.theme.tMoldingColor}
+                emissive={cab.theme.tMoldingEmissive}
                 emissiveIntensity={1.2}
               />
             </mesh>
@@ -318,7 +468,7 @@ const ArcadeRoomEnvironment: React.FC = () => {
 
       {/* ── CEILING STEEL TRUSSES ── */}
       <group position={[0, 6.8, 0]}>
-        {[-5, -2, 1, 4].map((tx, idx) => (
+        {[-5, -2, 1, 4, 8, 12, 16, 20].map((tx, idx) => (
           <mesh key={`truss-${idx}`} position={[tx, 0, 0]}>
             <boxGeometry args={[0.08, 0.4, 12]} />
             <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
@@ -326,9 +476,9 @@ const ArcadeRoomEnvironment: React.FC = () => {
         ))}
       </group>
 
-      {/* ── POLISHED HONEY WOOD FLOOR PLANE (`y = 0`) ── */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
-        <planeGeometry args={[30, 22]} />
+      {/* ── CONTINUOUS POLISHED HONEY WOOD FLOOR PLANE (`y = 0`) ── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[7, 0, 0]} receiveShadow>
+        <planeGeometry args={[66, 22]} />
         <meshStandardMaterial
           map={woodFloorTexture || undefined}
           color={woodFloorTexture ? '#ffffff' : '#d97706'}
@@ -337,8 +487,8 @@ const ArcadeRoomEnvironment: React.FC = () => {
         />
       </mesh>
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, -1.9]}>
-        <planeGeometry args={[28, 0.08]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[7, 0.01, -1.9]}>
+        <planeGeometry args={[64, 0.08]} />
         <meshBasicMaterial color="#f59e0b" />
       </mesh>
     </group>
@@ -349,9 +499,10 @@ const ArcadeRoomEnvironment: React.FC = () => {
 // MAIN EXPORTED 3D ARCADE LOBBY SCENE COMPONENT
 // ============================================================
 export const ArcadeLobbyScene: React.FC<{
+  activePage?: number;
   selectedCategory?: string;
   onSelectCabinet?: (id: string) => void;
-}> = ({ selectedCategory = 'all', onSelectCabinet }) => {
+}> = ({ activePage = 0, selectedCategory = 'all', onSelectCabinet }) => {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -377,10 +528,10 @@ export const ArcadeLobbyScene: React.FC<{
         dpr={[1, 2]}
       >
         <color attach="background" args={['#fffbeb']} />
-        <ArcadeCameraRig selectedCategory={selectedCategory} />
+        <ArcadeCameraRig activePage={activePage} selectedCategory={selectedCategory} />
         <ArcadeRoomEnvironment />
 
-        {/* 4 Physical 3D Arcade Machines */}
+        {/* Physical 3D Arcade Machines across continuous wings */}
         <group position={[0, 0, 0]}>
           {ARCADE_CABINET_DATA.map((config) => (
             <ArcadeCabinet3D
