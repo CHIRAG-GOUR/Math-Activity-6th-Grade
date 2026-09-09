@@ -31,13 +31,22 @@ const ARCADE_GAMES: ArcadeGameData[] = [
     description: 'Fast 2-team head-to-head keypad battle. Solve 5 progressive codes to crack the bank vault into the GTA V Treasury!',
     tags: ['BODMAS', 'Integers', 'Fractions', 'Percentages', 'Equations', 'Ratios'],
     theme: {
-      cabinetColor: 'bg-gradient-to-b from-[#1e3a8a] via-[#172554] to-[#0f172a]',
-      marqueeBg: 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500',
+      cabinetColor: 'bg-gradient-to-b from-[#172554] via-[#0f172a] to-[#020617]',
+      tMoldingColor: 'bg-gradient-to-b from-amber-300 via-amber-400 to-amber-600 shadow-[0_0_12px_rgba(245,158,11,0.8)]',
+      marqueeBg: 'bg-gradient-to-r from-amber-500 via-yellow-300 to-amber-500',
       marqueeText: 'text-slate-950',
-      bezelBorder: 'border-amber-400',
-      joystickColor: 'bg-blue-500',
-      buttonColors: ['bg-yellow-400', 'bg-cyan-400', 'bg-blue-600', 'bg-amber-500'],
-      accentGlow: 'rgba(245,158,11,0.5)',
+      marqueeGlow: 'rgba(245,158,11,0.6)',
+      bezelBorder: 'border-amber-400/90',
+      screenGlow: 'rgba(245,158,11,0.25)',
+      deckBg: 'bg-gradient-to-b from-slate-700 via-slate-800 to-slate-950',
+      deckPattern: 'checker',
+      sideArtGradient: 'from-blue-950 via-slate-900 to-amber-950/40',
+      sideArtAccent: 'text-amber-400',
+      joystickColor: 'bg-gradient-to-tr from-blue-700 via-blue-500 to-cyan-400',
+      buttonColors: ['bg-yellow-400', 'bg-cyan-400', 'bg-blue-500', 'bg-amber-500'],
+      accentGlow: 'rgba(245,158,11,0.6)',
+      coinDoorColor: 'bg-slate-900 border-slate-700',
+      cabinetBadge: 'HEIST KEYPAD ARENA',
     },
   },
   {
@@ -53,13 +62,22 @@ const ARCADE_GAMES: ArcadeGameData[] = [
     description: 'Operate a 3D railway network! Use place value and rounding to load cargo, board passengers, operate switches, and cruise between stations.',
     tags: ['Place Value', 'Rounding', 'Railway', '3D World', 'Train Operations'],
     theme: {
-      cabinetColor: 'bg-gradient-to-b from-[#1e3a5f] via-[#0f2340] to-[#0a1628]',
-      marqueeBg: 'bg-gradient-to-r from-sky-400 via-cyan-300 to-teal-400',
+      cabinetColor: 'bg-gradient-to-b from-[#0f2d4a] via-[#081d33] to-[#030d17]',
+      tMoldingColor: 'bg-gradient-to-b from-cyan-300 via-sky-400 to-teal-500 shadow-[0_0_12px_rgba(14,165,233,0.8)]',
+      marqueeBg: 'bg-gradient-to-r from-sky-400 via-cyan-200 to-teal-400',
       marqueeText: 'text-slate-950',
-      bezelBorder: 'border-sky-400',
-      joystickColor: 'bg-cyan-500',
-      buttonColors: ['bg-sky-400', 'bg-teal-400', 'bg-amber-400', 'bg-red-500'],
-      accentGlow: 'rgba(14,165,233,0.5)',
+      marqueeGlow: 'rgba(14,165,233,0.6)',
+      bezelBorder: 'border-sky-400/90',
+      screenGlow: 'rgba(14,165,233,0.25)',
+      deckBg: 'bg-gradient-to-b from-[#78350f] via-[#451a03] to-[#1c0a00]',
+      deckPattern: 'wood',
+      sideArtGradient: 'from-sky-950 via-slate-900 to-cyan-950/40',
+      sideArtAccent: 'text-cyan-400',
+      joystickColor: 'bg-gradient-to-tr from-cyan-600 via-sky-400 to-white',
+      buttonColors: ['bg-sky-400', 'bg-teal-400', 'bg-amber-400', 'bg-rose-500'],
+      accentGlow: 'rgba(14,165,233,0.6)',
+      coinDoorColor: 'bg-slate-900 border-sky-800',
+      cabinetBadge: 'STEAM OPERATOR DUEL',
     },
   },
   {
@@ -75,13 +93,22 @@ const ARCADE_GAMES: ArcadeGameData[] = [
     description: 'Explore a 3D physical carnival island! Predict outcomes, operate probability wheels, drop balls through tubes, and run live multi-trial experiments.',
     tags: ['Probability', 'Chance', 'Theoretical vs Experimental', '3D Island', 'Ratios'],
     theme: {
-      cabinetColor: 'bg-gradient-to-b from-[#854d0e] via-[#713f12] to-[#451a03]',
-      marqueeBg: 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500',
+      cabinetColor: 'bg-gradient-to-b from-[#7f1d1d] via-[#450a0a] to-[#1a0404]',
+      tMoldingColor: 'bg-gradient-to-b from-yellow-300 via-amber-400 to-rose-500 shadow-[0_0_14px_rgba(251,191,36,0.9)]',
+      marqueeBg: 'bg-gradient-to-r from-rose-600 via-amber-400 to-rose-600',
       marqueeText: 'text-slate-950',
-      bezelBorder: 'border-amber-400',
-      joystickColor: 'bg-amber-500',
-      buttonColors: ['bg-amber-400', 'bg-yellow-400', 'bg-emerald-500', 'bg-red-500'],
-      accentGlow: 'rgba(245,158,11,0.5)',
+      marqueeGlow: 'rgba(225,29,72,0.6)',
+      bezelBorder: 'border-yellow-400/90',
+      screenGlow: 'rgba(251,191,36,0.3)',
+      deckBg: 'bg-gradient-to-b from-[#991b1b] via-[#7f1d1d] to-[#450a0a]',
+      deckPattern: 'circus',
+      sideArtGradient: 'from-red-950 via-amber-950 to-rose-950/50',
+      sideArtAccent: 'text-yellow-400',
+      joystickColor: 'bg-gradient-to-tr from-amber-600 via-yellow-400 to-amber-200',
+      buttonColors: ['bg-yellow-400', 'bg-rose-500', 'bg-emerald-400', 'bg-sky-400'],
+      accentGlow: 'rgba(244,63,94,0.6)',
+      coinDoorColor: 'bg-[#2a0808] border-amber-600',
+      cabinetBadge: 'PROBABILITY THEME PARK',
     },
   },
   {
@@ -97,13 +124,22 @@ const ARCADE_GAMES: ArcadeGameData[] = [
     description: 'The next exciting 3D mathematics club activity is currently under development.',
     tags: ['Upcoming', 'Mathematics', 'Classroom Duel'],
     theme: {
-      cabinetColor: 'bg-gradient-to-b from-[#064e3b] via-[#022c22] to-[#01140e]',
-      marqueeBg: 'bg-gradient-to-r from-emerald-400 via-teal-300 to-emerald-500',
-      marqueeText: 'text-slate-950',
-      bezelBorder: 'border-emerald-400',
-      joystickColor: 'bg-emerald-400',
-      buttonColors: ['bg-emerald-400', 'bg-teal-400', 'bg-yellow-400', 'bg-slate-600'],
+      cabinetColor: 'bg-gradient-to-b from-[#3b0764] via-[#1e1b4b] to-[#090514]',
+      tMoldingColor: 'bg-gradient-to-b from-purple-400 via-fuchsia-500 to-pink-500 shadow-[0_0_12px_rgba(168,85,247,0.8)]',
+      marqueeBg: 'bg-gradient-to-r from-purple-600 via-fuchsia-400 to-pink-600',
+      marqueeText: 'text-white',
+      marqueeGlow: 'rgba(168,85,247,0.6)',
+      bezelBorder: 'border-purple-500/70',
+      screenGlow: 'rgba(168,85,247,0.2)',
+      deckBg: 'bg-gradient-to-b from-purple-950 via-slate-900 to-black',
+      deckPattern: 'matrix',
+      sideArtGradient: 'from-purple-950 via-slate-900 to-fuchsia-950/40',
+      sideArtAccent: 'text-purple-400',
+      joystickColor: 'bg-gradient-to-tr from-purple-600 via-fuchsia-400 to-pink-300',
+      buttonColors: ['bg-purple-400', 'bg-fuchsia-400', 'bg-pink-400', 'bg-slate-700'],
       accentGlow: 'rgba(168,85,247,0.5)',
+      coinDoorColor: 'bg-slate-950 border-purple-900',
+      cabinetBadge: 'IN PRODUCTION',
     },
   },
 ];
@@ -259,7 +295,7 @@ export const ArcadeHubDashboard: React.FC = () => {
       {/* FOOTER STATS BAR */}
       <footer className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 py-3 flex flex-wrap items-center justify-between border-t-2 border-amber-400/50 bg-white/90 backdrop-blur-md rounded-t-2xl text-xs font-game tracking-wider text-slate-700 shadow-lg">
         <div className="flex items-center gap-4">
-          <span>⚡ LIVE CABINETS: <strong>#01 MATH VAULT</strong> & <strong>#02 NUMBER FORGE</strong></span>
+          <span>⚡ LIVE CABINETS: <strong>#01 MATH VAULT</strong> • <strong>#02 NUMBER RAILWAY</strong> • <strong>#03 CARNIVAL OF CHANCE</strong></span>
           <span className="hidden sm:inline">•</span>
           <span className="hidden sm:inline">CURRICULUM: <strong>GRADE 6 NCERT & CAMBRIDGE</strong></span>
         </div>
@@ -299,7 +335,7 @@ export const ArcadeHubDashboard: React.FC = () => {
               </div>
 
               <p className="text-xs text-slate-600 leading-relaxed font-game">
-                Cabinet #01 (<strong>Math Escape Vault</strong>) and Cabinet #02 (<strong>Number Forge</strong>) are live. Remaining slots display <code className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">COMING SOON</code>!
+                Cabinets #01 (<strong>Math Escape Vault</strong>), #02 (<strong>The Great Number Railway</strong>), and #03 (<strong>The Great Carnival of Chance</strong>) are live! Remaining slots display <code className="text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-300">COMING SOON</code>.
               </p>
 
               <div className="p-3 bg-slate-50 rounded-2xl border border-slate-200 flex flex-col gap-2 text-xs font-mono text-slate-700">
@@ -309,15 +345,15 @@ export const ArcadeHubDashboard: React.FC = () => {
                 </div>
                 <div className="flex justify-between">
                   <span>Cabinet #02:</span>
-                  <span className="text-amber-800 font-bold">Number Forge (/number-forge)</span>
+                  <span className="text-sky-700 font-bold">The Great Number Railway (/number-railway)</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Cabinet #03:</span>
-                  <span className="text-slate-500 font-semibold">Coming Soon</span>
+                  <span className="text-rose-700 font-bold">The Great Carnival of Chance (/carnival-of-chance)</span>
                 </div>
                 <div className="flex justify-between">
                   <span>Cabinet #04:</span>
-                  <span className="text-slate-500 font-semibold">Coming Soon</span>
+                  <span className="text-purple-600 font-semibold">Slot #04 (In Production)</span>
                 </div>
               </div>
 
