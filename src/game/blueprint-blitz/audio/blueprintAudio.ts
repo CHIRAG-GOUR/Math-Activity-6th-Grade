@@ -543,6 +543,14 @@ class BlueprintAudioEngine {
     }
   }
 
+  public unlockAudio() {
+    this.initCtx();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    this.resumeBgm();
+  }
+
   public pauseBgm() {
     if (this.constructionBgmAudio) this.constructionBgmAudio.pause();
     if (this.constructionSiteSoundAudio) this.constructionSiteSoundAudio.pause();
@@ -557,3 +565,13 @@ class BlueprintAudioEngine {
 }
 
 export const blueprintAudio = new BlueprintAudioEngine();
+
+if (typeof window !== 'undefined') {
+  const unlockEvents = ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'];
+  const globalUnlock = () => {
+    blueprintAudio.unlockAudio();
+    unlockEvents.forEach((evt) => window.removeEventListener(evt, globalUnlock, true));
+  };
+  unlockEvents.forEach((evt) => window.addEventListener(evt, globalUnlock, { capture: true, passive: true }));
+}
+

@@ -583,6 +583,30 @@ class CarnivalAudioManager {
       osc.stop(t + 0.55);
     });
   }
+
+  public unlockAudio() {
+    this.initContext();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    if (this.currentMode !== 'off') {
+      if (this.currentMode === 'hub' && this.hubAudio && this.hubAudio.paused && !this.isMuted) {
+        this.hubAudio.play().catch(() => {});
+      } else if (this.currentMode === 'game' && this.gameAudio && this.gameAudio.paused && !this.isMuted) {
+        this.gameAudio.play().catch(() => {});
+      }
+    }
+  }
 }
 
 export const carnivalAudio = new CarnivalAudioManager();
+
+if (typeof window !== 'undefined') {
+  const unlockEvents = ['pointerdown', 'touchstart', 'mousedown', 'keydown', 'click'];
+  const globalUnlock = () => {
+    carnivalAudio.unlockAudio();
+    unlockEvents.forEach((evt) => window.removeEventListener(evt, globalUnlock, true));
+  };
+  unlockEvents.forEach((evt) => window.addEventListener(evt, globalUnlock, { capture: true, passive: true }));
+}
+

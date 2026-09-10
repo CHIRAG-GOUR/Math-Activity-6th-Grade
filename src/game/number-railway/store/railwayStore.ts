@@ -247,7 +247,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const roundsNeeded = count === 15 ? 3 : count === 10 ? 2 : 1;
     const freshRounds = buildRounds(roundsNeeded);
     const firstRound = freshRounds[0];
-    soundManager.startRailwayBgm(0.18);
+    soundManager.startRailwayBgm(0.40);
     soundManager.playTrainHorn();
     setTimeout(() => {
       soundManager.playTrainBells(3000);
