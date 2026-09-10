@@ -119,9 +119,9 @@ const computeStepProgressAndSignals = (step: number, totalQuestions: number = 5)
 
   // ── 5-Milestone Progression (Scales smoothly for 5, 10, or 15 Question Rounds) ──
   // Milestone 1 (ratio <= 0.22): ONLY blow horns & whistles in staging yard (progress 0.0, no train movement)
-  // Milestone 2 (0.22 < ratio <= 0.44): Trains enter frame into station platforms (progress 0.10) + TT walks to middle
-  // Milestone 3 (0.44 < ratio <= 0.64): Massive steam plumes billow from locomotives in bigger amounts + loud horns + Signal 1 Green
-  // Milestone 4 (0.64 < ratio < 1.00): Trains move a little further to switch approach (micro steps from 0.10 to 0.18) + Signal 2 Green
+  // Milestone 2 (0.22 < ratio <= 0.44): BOTH trains enter frame forward into clear view (progress 0.145) + TT walks to middle
+  // Milestone 3 (0.44 < ratio <= 0.64): Massive steam plumes billow from locomotives + loud horns + Signal 1 Green
+  // Milestone 4 (0.64 < ratio < 1.00): Both trains move further to switch approach (micro steps from 0.145 to 0.21) + Signal 2 Green
   // Milestone 5 (ratio >= 1.00 / Showdown): TT decides winner, waves Green Flag toward winner, switch throws, winner leaves!
   if (ratio <= 0.22) {
     milestone = 1;
@@ -129,11 +129,11 @@ const computeStepProgressAndSignals = (step: number, totalQuestions: number = 5)
     isMoving = false;
   } else if (ratio <= 0.44) {
     milestone = 2;
-    progress = 0.10;
+    progress = 0.145;
     isMoving = true;
   } else if (ratio <= 0.64) {
     milestone = 3;
-    progress = 0.10;
+    progress = 0.145;
     signal1 = 'green';
     isMoving = false;
   } else if (ratio < 1.0) {
@@ -141,11 +141,11 @@ const computeStepProgressAndSignals = (step: number, totalQuestions: number = 5)
     signal1 = 'green';
     signal2 = 'green';
     const subRatio = (ratio - 0.64) / (1.0 - 0.64);
-    progress = Number((0.10 + subRatio * 0.08).toFixed(3));
+    progress = Number((0.145 + subRatio * 0.065).toFixed(3));
     isMoving = true;
   } else {
     milestone = 5;
-    progress = 0.18;
+    progress = 0.21;
     signal1 = 'green';
     signal2 = 'green';
     isMoving = false;
