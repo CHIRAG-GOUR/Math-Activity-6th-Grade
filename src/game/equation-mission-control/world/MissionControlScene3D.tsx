@@ -1,16 +1,16 @@
 // ============================================================
 // EQUATION MISSION CONTROL 2.0 — Master 3D Scene
 // Complete Aerospace Launch Facility with:
-// - Blue Team Rocket (Left) + Red Team Rocket (Right)
-// - Dual Launch Towers & Central Campus Infrastructure
-// - Animated Stylized Human Aerospace Workers
-// - Sunny Daytime Atmosphere & Soaring Birds
-// - Dynamic Cinematic Tracking Camera & Subtle Parallax
+// - Blue Team Rocket (Left, x = -7.0) + Red Team Rocket (Right, x = +7.0)
+// - Dual Launch Towers, Umbilicals & Central Operations Hub
+// - Animated Stylized Human Aerospace Workers & 3D Workstations
+// - Sunny Daytime Atmosphere, Clouds, Horizon Hills & Birds
+// - Dynamic Cinematic Tracking Camera & Smooth Multi-layer Parallax
 // ============================================================
 
 'use client';
 
-import React, { useRef, useEffect } from 'react';
+import React, { useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { useMissionControlStore } from '../store/missionControlStore';
@@ -19,77 +19,77 @@ import { LaunchFacility3D } from './LaunchFacility3D';
 import { AerospaceWorkers3D } from './AerospaceWorkers3D';
 import { DaytimeAtmosphere3D } from './DaytimeAtmosphere3D';
 
-// Dynamic Camera Controller with Smooth Parallax & Liftoff Tracking
+// Dynamic Camera Controller with Smooth Multi-layer Parallax & Cinematic Liftoff
 const DynamicCameraController: React.FC = () => {
   const { camera } = useThree();
   const phase = useMissionControlStore((s) => s.phase);
   const blueShip = useMissionControlStore((s) => s.blueSpacecraft);
   const redShip = useMissionControlStore((s) => s.redSpacecraft);
   const winner = useMissionControlStore((s) => s.winnerTeam);
-  const cameraTarget = useMissionControlStore((s) => s.cameraTarget);
   const currentStage = useMissionControlStore((s) => s.currentStageIndex);
   const parallaxX = useMissionControlStore((s) => s.parallaxX);
   const parallaxY = useMissionControlStore((s) => s.parallaxY);
 
-  const lookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 4.5, 0));
+  const lookAtRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 5.0, 0));
 
   useFrame((_, delta) => {
     const isHeroLaunch = phase === 'launch-cinematic';
     const heroShip = winner === 'red' ? redShip : blueShip;
 
-    let targetCamPos = new THREE.Vector3(0, 8.2, 17.5);
-    let targetLookAt = new THREE.Vector3(0, 4.5, 0);
+    // Default Campus Establishing Shot (Wide, open, sunny)
+    let targetCamPos = new THREE.Vector3(0, 8.6, 18.2);
+    let targetLookAt = new THREE.Vector3(0, 5.0, 0);
 
     // 1. Final Liftoff Cinematic Tracking Shot
     if (isHeroLaunch) {
-      const heroX = winner === 'red' ? 7.5 : winner === 'blue' ? -7.5 : 0;
+      const heroX = winner === 'red' ? 7.0 : winner === 'blue' ? -7.0 : 0;
       const shipAlt = heroShip.altitude;
 
-      if (shipAlt < 15) {
-        // Low altitude dramatic pad shot
-        targetCamPos.set(heroX + (winner === 'red' ? -3 : 3), 5.5 + shipAlt * 0.4, 12);
-        targetLookAt.set(heroX, 3.5 + shipAlt, 0);
-      } else if (shipAlt < 60) {
-        // Mid sky tracking shot
-        targetCamPos.set(heroX * 0.4, 18 + shipAlt * 0.35, 24);
-        targetLookAt.set(heroX * 0.5, shipAlt + 2, 0);
+      if (shipAlt < 12) {
+        // Low altitude dramatic pad liftoff shot
+        targetCamPos.set(heroX + (winner === 'red' ? -3.5 : 3.5), 6.0 + shipAlt * 0.45, 13.5);
+        targetLookAt.set(heroX, 4.0 + shipAlt, 0);
+      } else if (shipAlt < 55) {
+        // Mid-sky tracking shot following ascent
+        targetCamPos.set(heroX * 0.4, 18.0 + shipAlt * 0.35, 23.0);
+        targetLookAt.set(heroX * 0.5, shipAlt + 3.0, 0);
       } else {
-        // High altitude wide shot passing sunlit cloud layer
-        targetCamPos.set(0, 32, 30);
-        targetLookAt.set(heroX * 0.2, shipAlt * 0.8, 0);
+        // High altitude wide shot piercing through sunny cloud layers
+        targetCamPos.set(0, 34.0, 32.0);
+        targetLookAt.set(heroX * 0.2, shipAlt * 0.85, 0);
       }
     } else {
-      // 2. Stage-Specific Focus Camera
+      // 2. Stage-Specific Subtle Camera Focus
       if (currentStage === 0) {
         // Stage 1: Wide Pad Avionics
-        targetCamPos.set(0, 8.0, 16.5);
-        targetLookAt.set(0, 4.5, 0);
+        targetCamPos.set(0, 8.6, 18.2);
+        targetLookAt.set(0, 5.0, 0);
       } else if (currentStage === 1) {
         // Stage 2: Fuel Umbilicals Focus
-        targetCamPos.set(0, 7.2, 15.5);
-        targetLookAt.set(0, 3.8, 0);
+        targetCamPos.set(0, 7.8, 17.2);
+        targetLookAt.set(0, 4.4, 0);
       } else if (currentStage === 2) {
         // Stage 3: Rocket Engines Focus
-        targetCamPos.set(0, 6.0, 14.5);
-        targetLookAt.set(0, 2.5, 0);
+        targetCamPos.set(0, 6.8, 16.5);
+        targetLookAt.set(0, 3.2, 0);
       } else if (currentStage === 3) {
         // Stage 4: Navigation Gimbals Focus
-        targetCamPos.set(0, 8.5, 15.5);
-        targetLookAt.set(0, 5.0, 0);
+        targetCamPos.set(0, 9.0, 17.5);
+        targetLookAt.set(0, 5.4, 0);
       } else if (currentStage === 4) {
         // Stage 5: Armed Launch Pad
-        targetCamPos.set(0, 9.0, 18.0);
-        targetLookAt.set(0, 4.8, 0);
+        targetCamPos.set(0, 9.5, 19.0);
+        targetLookAt.set(0, 5.2, 0);
       }
 
-      // Add gentle subtle mouse / touch parallax
-      targetCamPos.x += parallaxX * 1.8;
-      targetCamPos.y -= parallaxY * 0.8;
+      // Add gentle subtle pointer parallax
+      targetCamPos.x += parallaxX * 2.0;
+      targetCamPos.y -= parallaxY * 0.9;
     }
 
     // Smooth camera interpolation
-    camera.position.lerp(targetCamPos, delta * 2.2);
-    lookAtRef.current.lerp(targetLookAt, delta * 2.5);
+    camera.position.lerp(targetCamPos, delta * 2.4);
+    lookAtRef.current.lerp(targetLookAt, delta * 2.6);
     camera.lookAt(lookAtRef.current);
   });
 
@@ -120,18 +120,18 @@ export const MissionControlScene3D: React.FC = () => {
     >
       <Canvas
         shadows
-        camera={{ position: [0, 8.2, 17.5], fov: 48 }}
+        camera={{ position: [0, 8.6, 18.2], fov: 48 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
           toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.15,
+          toneMappingExposure: 1.18,
         }}
       >
         {/* Dynamic Camera Choreography */}
         <DynamicCameraController />
 
-        {/* Sunny Atmosphere, Sky, Clouds & Campus */}
+        {/* Sunny Atmosphere, Sky, Clouds, Mountains & Campus */}
         <DaytimeAtmosphere3D />
 
         {/* Dual Launch Pad Facility (Left Blue, Right Red, Center Hub) */}
@@ -140,23 +140,23 @@ export const MissionControlScene3D: React.FC = () => {
           redState={redSpacecraft}
         />
 
-        {/* ── LEFT LAUNCH PAD: BLUE TEAM SPACECRAFT (x = -7.5) ── */}
+        {/* ── LEFT LAUNCH PAD: BLUE TEAM SPACECRAFT (x = -7.0) ── */}
         <Spacecraft3D
-          position={[-7.5, 0.72, 0]}
+          position={[-7.0, 0.73, 0]}
           team="blue"
           state={blueSpacecraft}
           isHeroWinner={winner === 'blue' || winner === 'draw'}
         />
 
-        {/* ── RIGHT LAUNCH PAD: RED TEAM SPACECRAFT (x = +7.5) ── */}
+        {/* ── RIGHT LAUNCH PAD: RED TEAM SPACECRAFT (x = +7.0) ── */}
         <Spacecraft3D
-          position={[7.5, 0.72, 0]}
+          position={[7.0, 0.73, 0]}
           team="red"
           state={redSpacecraft}
           isHeroWinner={winner === 'red' || winner === 'draw'}
         />
 
-        {/* Stylized Animated Aerospace Engineers */}
+        {/* Stylized Animated Aerospace Engineers & 3D Workstations */}
         <AerospaceWorkers3D
           launchStage={blueSpacecraft.launchStage}
           blueCheering={blueTeam.lastResult === 'correct'}
