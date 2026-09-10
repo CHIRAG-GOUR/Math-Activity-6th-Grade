@@ -109,15 +109,10 @@ export const ArcadeHubDashboard: React.FC = () => {
         activePage={activePage}
         selectedCategory={selectedCategory}
         onSelectCabinet={(id) => {
-          if (id === 'math-escape-vault') {
+          const target = ARCADE_CABINET_DATA.find((c) => c.id === id);
+          if (target && target.status === 'active' && target.route !== '#') {
             soundManager.playArcadeGameStart();
-            setTimeout(() => router.push('/math-vault'), 260);
-          } else if (id === 'number-railway') {
-            soundManager.playArcadeGameStart();
-            setTimeout(() => router.push('/number-railway'), 260);
-          } else if (id === 'carnival-of-chance') {
-            soundManager.playArcadeGameStart();
-            setTimeout(() => router.push('/carnival-of-chance'), 260);
+            setTimeout(() => router.push(target.route), 260);
           } else {
             soundManager.playClick();
           }
@@ -150,7 +145,7 @@ export const ArcadeHubDashboard: React.FC = () => {
         <button
           onClick={goToNextPage}
           className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-20 group flex items-center gap-2 p-2 sm:p-3 rounded-2xl bg-white/90 hover:bg-white backdrop-blur-md border-2 border-amber-400 text-slate-900 shadow-xl transition-all duration-300 transform hover:scale-110 hover:translate-x-1 cursor-pointer animate-pulse hover:animate-none"
-          title="Go to Next 4 Arcade Machines"
+          title="Go to Next Arcade Machines"
         >
           <div className="text-right hidden md:block pl-2">
             <div className="text-[9px] font-black font-game text-amber-700 uppercase tracking-widest leading-none">
@@ -170,36 +165,36 @@ export const ArcadeHubDashboard: React.FC = () => {
       <div className="flex-1 pointer-events-none" />
 
       {/* ── UNIFIED BOTTOM NAVIGATION DOCK ── */}
-      <footer className="relative z-30 w-full max-w-7xl mx-auto px-4 sm:px-8 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t-2 border-amber-400/60 bg-white/95 backdrop-blur-md rounded-t-3xl text-xs font-game tracking-wider text-slate-700 shadow-2xl pointer-events-auto mb-1">
+      <footer className="relative z-30 w-full max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t-2 border-amber-400/60 bg-white/95 backdrop-blur-md rounded-t-3xl text-xs font-game tracking-wider text-slate-700 shadow-2xl pointer-events-auto mb-1">
         
         {/* Left: Branding & Wing Badges */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2.5 shrink-0">
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-600 p-0.5 shadow-md flex items-center justify-center">
             <div className="w-full h-full bg-slate-950 rounded-[9px] flex items-center justify-center">
               <Gamepad2 className="w-5 h-5 text-amber-400" />
             </div>
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="text-sm sm:text-base font-black font-bank uppercase tracking-wider text-slate-950">
+            <div className="flex items-center gap-1.5">
+              <h1 className="text-sm font-black font-bank uppercase tracking-wider text-slate-950 leading-none">
                 SKILLIZEE <span className="text-amber-600">3D ARCADE</span>
               </h1>
-              <span className="px-2 py-0.5 rounded-md bg-amber-100 border border-amber-400 text-amber-900 text-[10px] font-black font-game uppercase tracking-widest shadow-sm">
+              <span className="px-1.5 py-0.5 rounded-md bg-amber-100 border border-amber-400 text-amber-900 text-[9px] font-black font-game uppercase tracking-widest shadow-xs">
                 GRADE 6
               </span>
             </div>
-            <p className="text-[10px] text-slate-500 font-game hidden sm:block">
-              Use side arrows or click machines to explore
+            <p className="text-[9px] text-slate-500 font-game hidden lg:block mt-0.5">
+              Explore 3D arcade machines & duels
             </p>
           </div>
         </div>
 
-        {/* Center: Machine Focus Filter Pills */}
-        <div className="flex items-center gap-2 bg-amber-50/90 p-1 rounded-2xl border border-amber-300 shadow-inner overflow-x-auto">
+        {/* Center: All Arcade Games with Full Titles & Proper Math Topics */}
+        <div className="flex-1 flex items-center gap-1.5 bg-amber-50/90 p-1.5 rounded-2xl border border-amber-300 shadow-inner overflow-x-auto scrollbar-thin min-w-0">
           
-          {/* Wing Selector Tabs (active when multi-wing is enabled) */}
+          {/* Wing Selector Tabs */}
           {totalPages > 1 && (
-            <div className="flex items-center gap-1 border-r border-amber-300/80 pr-2 mr-1">
+            <div className="flex items-center gap-1 border-r border-amber-300/80 pr-2 mr-1 shrink-0">
               {Array.from({ length: totalPages }).map((_, pIdx) => (
                 <button
                   key={`wing-${pIdx}`}
@@ -208,7 +203,7 @@ export const ArcadeHubDashboard: React.FC = () => {
                     setActivePage(pIdx);
                     setSelectedCategory('all');
                   }}
-                  className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+                  className={`px-2 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
                     activePage === pIdx
                       ? 'bg-slate-950 text-amber-400 shadow-sm'
                       : 'bg-white/80 text-slate-600 hover:bg-white hover:text-slate-950'
@@ -220,37 +215,113 @@ export const ArcadeHubDashboard: React.FC = () => {
             </div>
           )}
 
-          {/* Current Wing Category Pills */}
+          {/* ALL Overview Button */}
           <button
             onClick={() => {
               soundManager.playClick();
               setSelectedCategory('all');
             }}
-            className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-2.5 py-1.5 rounded-xl text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1 ${
               selectedCategory === 'all'
                 ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold'
-                : 'text-slate-700 hover:bg-white hover:text-slate-950'
+                : 'bg-white/70 text-slate-700 hover:bg-white hover:text-slate-950 border border-slate-200'
             }`}
           >
-            ALL
+            <span>🎮</span> ALL
           </button>
 
-          {currentWingCabinets.map((cab) => (
-            <button
-              key={cab.id}
-              onClick={() => {
-                soundManager.playClick();
-                setSelectedCategory(`#${cab.number}`);
-              }}
-              className={`px-2.5 py-1 rounded-lg text-[10px] font-black font-game uppercase tracking-wider transition-all cursor-pointer whitespace-nowrap ${
-                selectedCategory === `#${cab.number}`
-                  ? 'bg-amber-500 text-slate-950 shadow-md font-extrabold scale-105'
-                  : 'text-slate-700 hover:bg-white hover:text-slate-950'
-              }`}
-            >
-              #{cab.number} {cab.title.split(' ')[0]}
-            </button>
-          ))}
+          {/* ALL Arcade Games with Proper Names & Math Topics */}
+          {ARCADE_CABINET_DATA.map((cab, idx) => {
+            const isSelected = selectedCategory === `#${cab.number}`;
+            const targetWing = Math.floor(idx / MACHINES_PER_PAGE);
+
+            // Clean, friendly title & topic display names
+            const displayTitle =
+              cab.id === 'math-escape-vault'
+                ? 'Math Escape Vault'
+                : cab.id === 'number-railway'
+                ? 'Number Railway'
+                : cab.id === 'carnival-of-chance'
+                ? 'Carnival of Chance'
+                : cab.id === 'blueprint-blitz'
+                ? 'Blueprint Blitz'
+                : cab.id === 'equation-mission-control'
+                ? 'Equation Mission Control'
+                : cab.status === 'planned'
+                ? 'Coming Soon'
+                : cab.title;
+
+            const topicLabel =
+              cab.id === 'math-escape-vault'
+                ? 'Place Value & Decimals'
+                : cab.id === 'number-railway'
+                ? 'Operations & Rounding'
+                : cab.id === 'carnival-of-chance'
+                ? 'Probability'
+                : cab.id === 'blueprint-blitz'
+                ? 'Shapes, Area & Volume'
+                : cab.id === 'equation-mission-control'
+                ? 'Expressions & Equations'
+                : cab.status === 'planned'
+                ? 'Planned Duel'
+                : cab.topic;
+
+            return (
+              <button
+                key={cab.id}
+                onClick={() => {
+                  if (isSelected && cab.status === 'active' && cab.route !== '#') {
+                    soundManager.playArcadeGameStart();
+                    setTimeout(() => router.push(cab.route), 260);
+                  } else {
+                    soundManager.playClick();
+                    setActivePage(targetWing);
+                    setSelectedCategory(`#${cab.number}`);
+                  }
+                }}
+                title={cab.status === 'active' ? `Select ${displayTitle} (${topicLabel})` : `${displayTitle} (Coming Soon)`}
+                className={`px-2.5 py-1.5 rounded-xl text-[10.5px] font-black font-game transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 border ${
+                  isSelected
+                    ? 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-amber-600 shadow-md scale-[1.02]'
+                    : 'bg-white/90 text-slate-800 border-slate-200 hover:bg-white hover:border-amber-400 hover:text-slate-950'
+                }`}
+              >
+                {/* Cabinet Number Badge */}
+                <span
+                  className={`px-1.5 py-0.5 rounded-md text-[9px] font-black ${
+                    isSelected
+                      ? 'bg-slate-950 text-amber-300'
+                      : 'bg-slate-100 text-slate-600'
+                  }`}
+                >
+                  #{cab.number}
+                </span>
+
+                {/* Game Full Name */}
+                <span className="font-extrabold uppercase tracking-tight">
+                  {displayTitle}
+                </span>
+
+                {/* Proper Math Topic Pill */}
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[8.5px] font-bold uppercase tracking-wider ${
+                    isSelected
+                      ? 'bg-slate-900/15 text-slate-950 border border-slate-900/20'
+                      : 'bg-amber-100/90 text-amber-900 border border-amber-300/70'
+                  }`}
+                >
+                  {topicLabel}
+                </span>
+
+                {/* Active Play Indicator */}
+                {cab.status === 'active' && isSelected && (
+                  <span className="text-[8.5px] font-black text-emerald-950 bg-emerald-300 px-1.5 py-0.5 rounded-md ml-0.5 animate-pulse">
+                    PLAY →
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
         {/* Right: Sound & Fullscreen Controls */}

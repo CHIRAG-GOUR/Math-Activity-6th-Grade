@@ -163,6 +163,27 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'blueprint-blitz') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#0c4a6e');
+      grad.addColorStop(0.5, '#0284c7');
+      grad.addColorStop(1, '#075985');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 54px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('BLUEPRINT BLITZ', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else if (config.id === 'equation-mission-control') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#0f172a');
@@ -239,6 +260,10 @@ export const ArcadeCabinet3D: React.FC<{
       bgGrad.addColorStop(0, '#b91c1c');
       bgGrad.addColorStop(0.5, '#ef4444');
       bgGrad.addColorStop(1, '#b91c1c');
+    } else if (config.id === 'blueprint-blitz') {
+      bgGrad.addColorStop(0, '#0369a1');
+      bgGrad.addColorStop(0.5, '#0284c7');
+      bgGrad.addColorStop(1, '#0369a1');
     } else if (config.id === 'equation-mission-control') {
       bgGrad.addColorStop(0, '#1e3a8a');
       bgGrad.addColorStop(0.5, '#2563eb');
@@ -263,7 +288,7 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.strokeRect(36, 36, 1976, 608);
 
     // 1. Top Subheader: Grade & Cabinet (Clean, Simple Arial Font in Bright Yellow/Cyan)
-    ctx.fillStyle = config.id === 'number-railway' ? '#e0f2fe' : config.id === 'slot-04' ? '#f3e8ff' : '#fef08a';
+    ctx.fillStyle = config.id === 'number-railway' ? '#e0f2fe' : config.id === 'blueprint-blitz' ? '#e0f2fe' : '#fef08a';
     ctx.font = 'bold 52px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`★ CABINET #${config.number}  •  ${config.grade.toUpperCase()} ★`, 1024, 118);
@@ -282,6 +307,8 @@ export const ArcadeCabinet3D: React.FC<{
       ? '#0369a1' 
       : config.id === 'carnival-of-chance' 
       ? '#7f1d1d' 
+      : config.id === 'blueprint-blitz'
+      ? '#075985'
       : config.id === 'equation-mission-control'
       ? '#1e3a8a'
       : '#4c1d95';
