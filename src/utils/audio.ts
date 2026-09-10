@@ -512,244 +512,51 @@ class SoundEngine {
   }
 
   // ============================================================
-  // ── NUMBER RAILWAY PROPRIETARY HIGH-FIDELITY SOUND ENGINE ──
+  // ── NUMBER RAILWAY ORIGINAL AUDIO FILES ──
+  // Plays user's original authentic MP3 tracks exclusively
   // ============================================================
 
-  // 1. Authentic 4-Chime Nathan K3LA Train Horn (LOUD, IMMERSIVE BRASS BLAST)
-  // Plays rich brass synthesizer immediately AND parallel MP3
+  // 1. Original Locomotive Train Horn (/audio/train_horn.mp3)
   public playTrainHorn() {
     if (this.isMuted) return;
-    this.initCtx();
-
-    // ── 1. Full-Power Synthesized 4-Tone Locomotive Brass Blast (Instant, 100% Reliable) ──
-    if (this.ctx) {
-      const now = this.ctx.currentTime;
-      // Authentic Nathan K3LA American Locomotive Horn Chords: Eb4 (311Hz), F#4 (370Hz), Bb4 (466Hz), Eb5 (622Hz)
-      const hornChimes = [311.13, 369.99, 466.16, 622.25];
-
-      const masterHornGain = this.ctx.createGain();
-      masterHornGain.gain.setValueAtTime(0.01, now);
-      masterHornGain.gain.linearRampToValueAtTime(0.85, now + 0.08); // Punchy brass attack
-      masterHornGain.gain.setValueAtTime(0.85, now + 0.6);
-      masterHornGain.gain.exponentialRampToValueAtTime(0.001, now + 1.25); // Resonant echo decay
-
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'lowpass';
-      filter.frequency.setValueAtTime(1800, now);
-      filter.Q.setValueAtTime(2.5, now);
-
-      hornChimes.forEach((freq) => {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(freq, now);
-        // Subtle pitch bend of heavy air pressure surge
-        osc.frequency.linearRampToValueAtTime(freq * 1.018, now + 0.1);
-        osc.frequency.linearRampToValueAtTime(freq, now + 0.5);
-
-        osc.connect(filter);
-        osc.start(now);
-        osc.stop(now + 1.3);
-      });
-
-      filter.connect(masterHornGain);
-      masterHornGain.connect(this.ctx.destination);
-    }
-
-    // ── 2. Parallel HTML5 Audio File Playback ──
     try {
       if (typeof window !== 'undefined') {
         if (!this.trainHornAudio) {
           this.trainHornAudio = new Audio('/audio/train_horn.mp3');
         }
         this.trainHornAudio.currentTime = 0;
-        this.trainHornAudio.volume = 0.95;
+        this.trainHornAudio.volume = 1.0;
         this.trainHornAudio.play().catch(() => {});
       }
     } catch {}
   }
 
-  // 2. High-Pressure Dual/Triple Steam Whistle
+  // 2. Original Loud Steam Whistle (/audio/train_whistle_loud.mp3)
   public playLoudWhistle() {
     if (this.isMuted) return;
-    this.initCtx();
-
-    // ── 1. Full-Power Synthesized Steam Whistle with Hiss (Instant) ──
-    if (this.ctx) {
-      const now = this.ctx.currentTime;
-      // High steam whistle notes (D5, F#5, A5, D6)
-      const whistleNotes = [587.33, 739.99, 880.0, 1174.66];
-
-      const masterWhistleGain = this.ctx.createGain();
-      masterWhistleGain.gain.setValueAtTime(0.01, now);
-      masterWhistleGain.gain.linearRampToValueAtTime(0.85, now + 0.09);
-      masterWhistleGain.gain.setValueAtTime(0.85, now + 0.7);
-      masterWhistleGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
-
-      whistleNotes.forEach((freq) => {
-        if (!this.ctx) return;
-        const osc = this.ctx.createOscillator();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(freq, now);
-        osc.frequency.linearRampToValueAtTime(freq * 1.03, now + 0.12);
-        osc.frequency.linearRampToValueAtTime(freq, now + 0.6);
-
-        osc.connect(masterWhistleGain);
-        osc.start(now);
-        osc.stop(now + 1.25);
-      });
-
-      // Steam hiss layer
-      const bufferSize = Math.floor(this.ctx.sampleRate * 0.9);
-      const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const data = buffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        data[i] = Math.random() * 2 - 1;
-      }
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buffer;
-      const noiseFilter = this.ctx.createBiquadFilter();
-      noiseFilter.type = 'bandpass';
-      noiseFilter.frequency.setValueAtTime(2400, now);
-      noiseFilter.Q.setValueAtTime(3.0, now);
-
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.35, now);
-      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.9);
-
-      noise.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-
-      noise.start(now);
-      noise.stop(now + 0.95);
-
-      masterWhistleGain.connect(this.ctx.destination);
-    }
-
-    // ── 2. Parallel HTML5 Audio File Playback ──
     try {
       if (typeof window !== 'undefined') {
         if (!this.loudWhistleAudio) {
           this.loudWhistleAudio = new Audio('/audio/train_whistle_loud.mp3');
         }
         this.loudWhistleAudio.currentTime = 0;
-        this.loudWhistleAudio.volume = 0.95;
+        this.loudWhistleAudio.volume = 1.0;
         this.loudWhistleAudio.play().catch(() => {});
       }
     } catch {}
   }
 
-  // 3. Dual-Tone Soft Train Whistle (D5 + F#5)
   public playTrainWhistle() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    [587.33, 739.99].forEach((freq) => {
-      if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(freq, now);
-      osc.frequency.linearRampToValueAtTime(freq * 1.05, now + 0.15);
-      osc.frequency.linearRampToValueAtTime(freq, now + 0.45);
-
-      gain.gain.setValueAtTime(0.35, now);
-      gain.gain.linearRampToValueAtTime(0.65, now + 0.1);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(now);
-      osc.stop(now + 0.85);
-    });
+    this.playLoudWhistle();
   }
 
-  // 4. Heavy 4-Stroke Locomotive Steam Piston Chugs (chug-chug-chug-chug!)
-  public playTrainChug() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    // 4 rhythmic steam piston strokes spaced by 0.14s
-    for (let stroke = 0; stroke < 4; stroke++) {
-      const t = now + stroke * 0.14;
-      // Low sub-bass piston thump (80Hz -> 35Hz)
-      const osc = this.ctx.createOscillator();
-      const oscGain = this.ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(85, t);
-      osc.frequency.exponentialRampToValueAtTime(32, t + 0.09);
-
-      oscGain.gain.setValueAtTime(0.65, t);
-      oscGain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-
-      osc.connect(oscGain);
-      oscGain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.095);
-
-      // Steam noise puff
-      const bufSize = Math.floor(this.ctx.sampleRate * 0.08);
-      const buf = this.ctx.createBuffer(1, bufSize, this.ctx.sampleRate);
-      const d = buf.getChannelData(0);
-      for (let i = 0; i < bufSize; i++) d[i] = Math.random() * 2 - 1;
-
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = buf;
-      const filter = this.ctx.createBiquadFilter();
-      filter.type = 'bandpass';
-      filter.frequency.setValueAtTime(600, t);
-      filter.Q.setValueAtTime(2.0, t);
-
-      const nGain = this.ctx.createGain();
-      nGain.gain.setValueAtTime(0.45, t);
-      nGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
-
-      noise.connect(filter);
-      filter.connect(nGain);
-      nGain.connect(this.ctx.destination);
-      noise.start(t);
-      noise.stop(t + 0.085);
-    }
+  public playSteamRelease() {
+    this.playLoudWhistle();
   }
 
-  // 5. Heavy Bronze Station Bell (4 repeating strikes + parallel MP3)
+  // 3. Original Station Bells (/audio/train_bells.mp3)
   public playTrainBells(durationMs: number = 3000) {
     if (this.isMuted) return;
-    this.initCtx();
-
-    // ── 1. Synthesized Station Bell Strikes (Instant) ──
-    if (this.ctx) {
-      const now = this.ctx.currentTime;
-      const strikes = Math.min(6, Math.floor(durationMs / 550));
-
-      for (let i = 0; i < strikes; i++) {
-        const t = now + i * 0.55;
-        // Bell harmonics: 1174.66Hz (D6) + 1760Hz (A6) + 2349Hz (D7)
-        [1174.66, 1760.0, 2349.32].forEach((freq, idx) => {
-          if (!this.ctx) return;
-          const osc = this.ctx.createOscillator();
-          const gain = this.ctx.createGain();
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(freq, t);
-
-          const vol = (0.55 - idx * 0.12);
-          gain.gain.setValueAtTime(vol, t);
-          gain.gain.exponentialRampToValueAtTime(0.001, t + 0.95);
-
-          osc.connect(gain);
-          gain.connect(this.ctx.destination);
-          osc.start(t);
-          osc.stop(t + 1.0);
-        });
-      }
-    }
-
-    // ── 2. Parallel HTML5 Audio File Playback ──
     try {
       if (typeof window !== 'undefined') {
         if (this.bellsFadeInterval) {
@@ -760,12 +567,12 @@ class SoundEngine {
           this.trainBellsAudio = new Audio('/audio/train_bells.mp3');
         }
         this.trainBellsAudio.currentTime = 0;
-        this.trainBellsAudio.volume = 0.9;
+        this.trainBellsAudio.volume = 1.0;
         this.trainBellsAudio.play().catch(() => {});
 
         const fadeStartTime = Math.max(500, durationMs - 900);
         setTimeout(() => {
-          let vol = 0.9;
+          let vol = 1.0;
           this.bellsFadeInterval = setInterval(() => {
             vol -= 0.12;
             if (this.trainBellsAudio) {
@@ -773,7 +580,7 @@ class SoundEngine {
                 if (this.bellsFadeInterval) clearInterval(this.bellsFadeInterval);
                 this.trainBellsAudio.pause();
                 this.trainBellsAudio.currentTime = 0;
-                this.trainBellsAudio.volume = 0.9;
+                this.trainBellsAudio.volume = 1.0;
               } else {
                 this.trainBellsAudio.volume = vol;
               }
@@ -784,134 +591,9 @@ class SoundEngine {
     } catch {}
   }
 
-  // 6. 1.8-Second Pressurized Steam Release (Loud Billowing Hiss & Boiler Rumble)
-  public playSteamRelease() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const duration = 1.8;
-    const bufferSize = Math.floor(this.ctx.sampleRate * duration);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) {
-      data[i] = Math.random() * 2 - 1;
-    }
-
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(800, now);
-    filter.frequency.linearRampToValueAtTime(2200, now + 0.35);
-    filter.frequency.exponentialRampToValueAtTime(320, now + duration);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.01, now);
-    gain.gain.linearRampToValueAtTime(0.75, now + 0.18);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    noise.start(now);
-    noise.stop(now + duration + 0.05);
-
-    // Deep resonant boiler rumble
-    const hum = this.ctx.createOscillator();
-    const humGain = this.ctx.createGain();
-    hum.type = 'sine';
-    hum.frequency.setValueAtTime(95, now);
-    hum.frequency.exponentialRampToValueAtTime(50, now + 1.4);
-    humGain.gain.setValueAtTime(0.4, now);
-    humGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
-
-    hum.connect(humGain);
-    humGain.connect(this.ctx.destination);
-    hum.start(now);
-    hum.stop(now + 1.45);
-  }
-
-  // 7. Track Switch Mechanism (Heavy Iron Lever Throw & Metallic Clang)
-  public playSwitchMechanism() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    // Lever friction scrape
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(280, now);
-    osc.frequency.linearRampToValueAtTime(90, now + 0.16);
-
-    gain.gain.setValueAtTime(0.55, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
-
-    osc.connect(gain);
-    gain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 0.19);
-
-    // Metallic latch lock clank
-    const ringOsc = this.ctx.createOscillator();
-    const ringGain = this.ctx.createGain();
-    ringOsc.type = 'triangle';
-    ringOsc.frequency.setValueAtTime(1400, now + 0.15);
-    ringGain.gain.setValueAtTime(0.45, now + 0.15);
-    ringGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
-
-    ringOsc.connect(ringGain);
-    ringGain.connect(this.ctx.destination);
-    ringOsc.start(now + 0.15);
-    ringOsc.stop(now + 0.46);
-  }
-
-  // 8. Railway Signal Status Change (Ascending Electric Chime)
-  public playSignalChange() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-
-    const now = this.ctx.currentTime;
-    const signalNotes = [659.25, 880.0, 1318.51]; // E5, A5, E6
-    signalNotes.forEach((freq, idx) => {
-      if (!this.ctx) return;
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
-      const t = now + idx * 0.07;
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t);
-
-      gain.gain.setValueAtTime(0.55, t);
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
-
-      osc.connect(gain);
-      gain.connect(this.ctx.destination);
-      osc.start(t);
-      osc.stop(t + 0.46);
-    });
-  }
-
-  // 9. Continuous Train Running Track Loop
+  // 4. Original Train Running Ambience Loop (/audio/train_running.mp3)
   public playTrainRunningAudio() {
     if (this.isMuted) return;
-    this.initCtx();
-
-    // Start rhythmic synthesized chugs
-    if (this.runningChugInterval) clearInterval(this.runningChugInterval);
-    this.playTrainChug();
-    this.runningChugInterval = setInterval(() => {
-      if (!this.isMuted) {
-        this.playTrainChug();
-      }
-    }, 650);
-
-    // HTML5 running loop
     try {
       if (typeof window !== 'undefined') {
         if (!this.trainRunningAudio) {
@@ -919,23 +601,31 @@ class SoundEngine {
           this.trainRunningAudio.loop = true;
         }
         this.trainRunningAudio.currentTime = 0;
-        this.trainRunningAudio.volume = 0.85;
+        this.trainRunningAudio.volume = 1.0;
         this.trainRunningAudio.play().catch(() => {});
       }
     } catch {}
   }
 
   public stopTrainRunningAudio() {
-    if (this.runningChugInterval) {
-      clearInterval(this.runningChugInterval);
-      this.runningChugInterval = null;
-    }
     try {
       if (this.trainRunningAudio) {
         this.trainRunningAudio.pause();
         this.trainRunningAudio.currentTime = 0;
       }
     } catch {}
+  }
+
+  public playTrainChug() {
+    // Chugs are handled by original train_running.mp3
+  }
+
+  public playSignalChange() {
+    this.playCorrect();
+  }
+
+  public playSwitchMechanism() {
+    this.playClick();
   }
 
   public playTrainDepart() {
