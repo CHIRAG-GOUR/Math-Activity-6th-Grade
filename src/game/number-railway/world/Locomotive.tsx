@@ -189,7 +189,9 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
 
   const isBlue = team === 'blue';
   const primaryColor = isBlue ? '#2563eb' : '#dc2626';
-  const secondaryColor = isBlue ? '#1e3a8a' : '#7f1d1d';
+  const secondaryColor = isBlue ? '#1e3a8a' : '#991b1b';
+  const accentColor = isBlue ? '#38bdf8' : '#f87171';
+  const darkChassis = '#0f172a';
   const trimColor = '#facc15';
 
   const curve = useMemo(() => {
@@ -302,33 +304,80 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
     [0.22, 0.24, -0.45],
   ];
 
+  // Filter passengers belonging specifically to THIS team's train!
+  const teamPassengers = onboardPassengers.filter((p) => p.team === team);
+
   return (
     <group>
       {/* ========================================================= */}
       {/* ── 1. LOCOMOTIVE ENGINE WITH 3D DRIVER IN CABIN ── */}
       {/* ========================================================= */}
       <group ref={locoGroupRef} scale={[0.85, 0.85, 0.85]}>
-        {/* Boiler */}
+        {/* Main Boiler */}
         <mesh position={[0, 0.62, 0.4]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.38, 0.38, 1.3, 24]} />
-          <meshStandardMaterial color="#2d3748" roughness={0.4} metalness={0.5} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} metalness={0.25} />
         </mesh>
 
-        {/* Boiler Front Cap with Team Color */}
+        {/* Brass Boiler Straps */}
+        {[-0.1, 0.35, 0.8].map((zPos, bi) => (
+          <mesh key={`boiler-strap-${bi}`} position={[0, 0.62, zPos]} rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.385, 0.385, 0.04, 24]} />
+            <meshStandardMaterial color={trimColor} metalness={0.8} roughness={0.2} />
+          </mesh>
+        ))}
+
+        {/* Boiler Front Cap with Accent Color */}
         <mesh position={[0, 0.62, 1.05]} rotation={[Math.PI / 2, 0, 0]}>
           <cylinderGeometry args={[0.39, 0.39, 0.08, 24]} />
-          <meshStandardMaterial color={primaryColor} roughness={0.3} />
+          <meshStandardMaterial color={secondaryColor} roughness={0.3} />
         </mesh>
         <mesh position={[0, 0.62, 1.09]}>
           <sphereGeometry args={[0.37, 24, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color={primaryColor} roughness={0.3} />
+          <meshStandardMaterial color={secondaryColor} roughness={0.3} />
         </mesh>
 
-        {/* Smokestack */}
+        {/* Front Cowcatcher / Pilot Grill */}
+        <group position={[0, 0.16, 1.18]}>
+          <mesh rotation={[Math.PI / 6, 0, 0]}>
+            <boxGeometry args={[0.82, 0.22, 0.18]} />
+            <meshStandardMaterial color={secondaryColor} roughness={0.4} />
+          </mesh>
+          <mesh position={[0, 0.06, 0.06]}>
+            <boxGeometry args={[0.76, 0.04, 0.08]} />
+            <meshStandardMaterial color={trimColor} metalness={0.7} roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Front Headlamp */}
+        <group position={[0, 0.68, 1.3]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.12, 0.14, 0.14, 16]} />
+            <meshStandardMaterial color={trimColor} metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0, 0.07]}>
+            <sphereGeometry args={[0.1, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color="#fef08a" emissive="#facc15" emissiveIntensity={0.8} />
+          </mesh>
+        </group>
+
+        {/* Steam Dome & Sand Dome on Top */}
+        <group position={[0, 1.02, 0.2]}>
+          <mesh>
+            <cylinderGeometry args={[0.12, 0.14, 0.18, 16]} />
+            <meshStandardMaterial color={trimColor} metalness={0.8} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, 0.09, 0]}>
+            <sphereGeometry args={[0.12, 16, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+            <meshStandardMaterial color={trimColor} metalness={0.8} roughness={0.2} />
+          </mesh>
+        </group>
+
+        {/* Smokestack with Brass Crown */}
         <group position={[0, 1.02, 0.75]}>
           <mesh>
             <cylinderGeometry args={[0.18, 0.11, 0.48, 16]} />
-            <meshStandardMaterial color="#1e293b" roughness={0.5} />
+            <meshStandardMaterial color={darkChassis} roughness={0.5} />
           </mesh>
           <mesh position={[0, 0.24, 0]}>
             <torusGeometry args={[0.18, 0.035, 8, 16]} />
@@ -357,13 +406,21 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
           </mesh>
           <mesh position={[0, 0.52, 0]} rotation={[0, 0, Math.PI / 2]}>
             <cylinderGeometry args={[0.48, 0.48, 0.88, 16, 1, false, 0, Math.PI]} />
-            <meshStandardMaterial color={trimColor} roughness={0.25} metalness={0.2} />
+            <meshStandardMaterial color={secondaryColor} roughness={0.25} />
           </mesh>
           {/* Side Windows */}
           {[-0.45, 0.45].map((x, i) => (
             <mesh key={i} position={[x, 0.06, 0]}>
               <boxGeometry args={[0.02, 0.36, 0.4]} />
               <meshStandardMaterial color="#7dd3fc" roughness={0.1} transparent opacity={0.75} />
+            </mesh>
+          ))}
+
+          {/* Team Nameplate Banner on Cabin */}
+          {[-0.45, 0.45].map((x, i) => (
+            <mesh key={`plate-${i}`} position={[x, -0.22, 0]}>
+              <boxGeometry args={[0.025, 0.12, 0.55]} />
+              <meshStandardMaterial color={trimColor} metalness={0.7} roughness={0.3} />
             </mesh>
           ))}
 
@@ -381,10 +438,10 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
         {/* Chassis */}
         <mesh position={[0, 0.2, 0.15]}>
           <boxGeometry args={[0.88, 0.14, 2.3]} />
-          <meshStandardMaterial color="#1e293b" roughness={0.6} />
+          <meshStandardMaterial color={darkChassis} roughness={0.6} />
         </mesh>
 
-        {/* Wheels */}
+        {/* Large Drive Wheels in Team Color */}
         {[-0.47, 0.47].map((x, i) => (
           <group key={`rear-w-${i}`} position={[x, 0.24, -0.3]}>
             <mesh
@@ -394,8 +451,15 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
               <cylinderGeometry args={[0.26, 0.26, 0.08, 16]} />
               <meshStandardMaterial color={primaryColor} roughness={0.3} />
             </mesh>
+            {/* Wheel Rim */}
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <torusGeometry args={[0.26, 0.02, 8, 16]} />
+              <meshStandardMaterial color={trimColor} metalness={0.8} />
+            </mesh>
           </group>
         ))}
+
+        {/* Front Guide Wheels in Team Color */}
         {[-0.47, 0.47].map((x, i) => (
           <group key={`front-w-${i}`} position={[x, 0.18, 0.55]}>
             <mesh
@@ -404,6 +468,11 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
             >
               <cylinderGeometry args={[0.18, 0.18, 0.08, 16]} />
               <meshStandardMaterial color={primaryColor} roughness={0.3} />
+            </mesh>
+            {/* Wheel Rim */}
+            <mesh rotation={[0, 0, Math.PI / 2]}>
+              <torusGeometry args={[0.18, 0.02, 8, 16]} />
+              <meshStandardMaterial color={trimColor} metalness={0.8} />
             </mesh>
           </group>
         ))}
@@ -416,37 +485,50 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
       </group>
 
       {/* ========================================================= */}
-      {/* ── 2. CARRIAGE 1: VEHICLE FLATBED ── */}
+      {/* ── 2. CARRIAGE 1: TEAM SUPPLY FLATBED ── */}
       {/* ========================================================= */}
       <group ref={flatbedGroupRef} scale={[0.85, 0.85, 0.85]}>
+        {/* Bed Frame in Team Secondary Color */}
         <mesh position={[0, 0.2, 0]}>
           <boxGeometry args={[0.82, 0.1, 1.8]} />
-          <meshStandardMaterial color="#d97706" roughness={0.7} />
+          <meshStandardMaterial color={secondaryColor} roughness={0.5} />
         </mesh>
         {[-0.4, 0.4].map((x, i) => (
           <mesh key={i} position={[x, 0.3, 0]}>
             <boxGeometry args={[0.03, 0.14, 1.76]} />
-            <meshStandardMaterial color="#b45309" roughness={0.6} />
+            <meshStandardMaterial color={trimColor} metalness={0.6} roughness={0.3} />
           </mesh>
         ))}
 
-        {/* 3D Cyan Sports Sedan on Flatbed */}
+        {/* Wheels */}
+        {[-0.44, 0.44].map((x, xi) => (
+          <group key={`fb-w-${xi}`}>
+            {[-0.55, 0.55].map((z, zi) => (
+              <mesh key={`w-${zi}`} position={[x, 0.16, z]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.06, 14]} />
+                <meshStandardMaterial color={darkChassis} roughness={0.6} />
+              </mesh>
+            ))}
+          </group>
+        ))}
+
+        {/* Team Vehicle 1: Front Sports Car */}
         <group position={[0, 0.28, 0.4]} scale={[0.55, 0.55, 0.55]}>
           <mesh position={[0, 0.14, 0]}>
             <boxGeometry args={[0.62, 0.18, 1.05]} />
-            <meshStandardMaterial color="#0284c7" roughness={0.2} metalness={0.3} />
+            <meshStandardMaterial color={primaryColor} roughness={0.2} metalness={0.3} />
           </mesh>
           <mesh position={[0, 0.3, -0.05]}>
             <boxGeometry args={[0.48, 0.18, 0.55]} />
-            <meshStandardMaterial color="#38bdf8" roughness={0.1} />
+            <meshStandardMaterial color={accentColor} roughness={0.1} />
           </mesh>
         </group>
 
-        {/* 3D Yellow Pickup Truck on Flatbed */}
+        {/* Team Vehicle 2: Rear Utility Hauler */}
         <group position={[0, 0.28, -0.4]} scale={[0.55, 0.55, 0.55]}>
           <mesh position={[0, 0.16, 0]}>
             <boxGeometry args={[0.64, 0.22, 1.1]} />
-            <meshStandardMaterial color="#eab308" roughness={0.3} metalness={0.2} />
+            <meshStandardMaterial color={secondaryColor} roughness={0.3} metalness={0.2} />
           </mesh>
           <mesh position={[0, 0.35, 0.18]}>
             <boxGeometry args={[0.55, 0.22, 0.45]} />
@@ -456,51 +538,76 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
       </group>
 
       {/* ========================================================= */}
-      {/* ── 3. CARRIAGE 2: CARGO WAGON (LADDERS & PLANKS) ── */}
+      {/* ── 3. CARRIAGE 2: TEAM CARGO BOX WAGON ── */}
       {/* ========================================================= */}
       <group ref={cargoGroupRef} scale={[0.85, 0.85, 0.85]}>
-        <mesh position={[0, 0.28, 0]}>
-          <boxGeometry args={[0.82, 0.26, 1.8]} />
-          <meshStandardMaterial color="#78350f" roughness={0.8} />
+        {/* Wagon Walls in Team Primary Color */}
+        <mesh position={[0, 0.32, 0]}>
+          <boxGeometry args={[0.82, 0.34, 1.8]} />
+          <meshStandardMaterial color={primaryColor} roughness={0.4} />
         </mesh>
-        {/* Planks & Ladders */}
-        <group position={[0, 0.42, 0]}>
-          {[-0.22, 0, 0.22].map((x, li) => (
-            <mesh key={`plank-${li}`} position={[x, 0.08, 0]}>
-              <boxGeometry args={[0.18, 0.08, 1.4]} />
-              <meshStandardMaterial color="#b45309" roughness={0.9} />
+        <mesh position={[0, 0.5, 0]}>
+          <boxGeometry args={[0.86, 0.04, 1.84]} />
+          <meshStandardMaterial color={trimColor} metalness={0.6} roughness={0.3} />
+        </mesh>
+
+        {/* Wheels */}
+        {[-0.44, 0.44].map((x, xi) => (
+          <group key={`cg-w-${xi}`}>
+            {[-0.55, 0.55].map((z, zi) => (
+              <mesh key={`w-${zi}`} position={[x, 0.16, z]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.06, 14]} />
+                <meshStandardMaterial color={darkChassis} roughness={0.6} />
+              </mesh>
+            ))}
+          </group>
+        ))}
+
+        {/* Team Supply Cargo Crates inside Wagon */}
+        <group position={[0, 0.46, 0]}>
+          {[-0.22, 0.22].map((x, ci) => (
+            <mesh key={`crate-${ci}`} position={[x, 0.12, -0.2]}>
+              <boxGeometry args={[0.3, 0.24, 0.5]} />
+              <meshStandardMaterial color={secondaryColor} roughness={0.6} />
             </mesh>
           ))}
-          {/* Ladders on Side */}
-          {[-0.38, 0.38].map((x, i) => (
-            <group key={`ladder-${i}`} position={[x, 0.25, 0]}>
-              <mesh position={[0, 0, -0.5]}>
-                <boxGeometry args={[0.03, 0.28, 0.03]} />
-                <meshStandardMaterial color="#fed7aa" />
-              </mesh>
-              <mesh position={[0, 0, 0.5]}>
-                <boxGeometry args={[0.03, 0.28, 0.03]} />
-                <meshStandardMaterial color="#fed7aa" />
-              </mesh>
-            </group>
-          ))}
+          <mesh position={[0, 0.14, 0.38]}>
+            <boxGeometry args={[0.55, 0.28, 0.55]} />
+            <meshStandardMaterial color={accentColor} roughness={0.5} />
+          </mesh>
         </group>
       </group>
 
       {/* ========================================================= */}
-      {/* ── 4. CARRIAGE 3: PASSENGER COACH (SEATED INSIDE CABIN) ── */}
+      {/* ── 4. CARRIAGE 3: TEAM PASSENGER EXPRESS COACH ── */}
       {/* ========================================================= */}
       <group ref={coachGroupRef} scale={[0.85, 0.85, 0.85]}>
-        {/* Coach Body Shell */}
+        {/* Coach Body Shell in Team Primary Color */}
         <mesh position={[0, 0.58, 0]}>
           <boxGeometry args={[0.84, 0.65, 1.8]} />
-          <meshStandardMaterial color={secondaryColor} roughness={0.35} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} />
         </mesh>
-        {/* Roof Cap */}
+        {/* Roof Cap in Team Secondary with Trim */}
         <mesh position={[0, 0.94, 0]}>
           <boxGeometry args={[0.88, 0.08, 1.88]} />
-          <meshStandardMaterial color={trimColor} roughness={0.3} metalness={0.2} />
+          <meshStandardMaterial color={secondaryColor} roughness={0.25} metalness={0.2} />
         </mesh>
+        <mesh position={[0, 0.98, 0]}>
+          <boxGeometry args={[0.6, 0.04, 1.6]} />
+          <meshStandardMaterial color={trimColor} metalness={0.7} roughness={0.2} />
+        </mesh>
+
+        {/* Wheels */}
+        {[-0.44, 0.44].map((x, xi) => (
+          <group key={`ch-w-${xi}`}>
+            {[-0.55, 0.55].map((z, zi) => (
+              <mesh key={`w-${zi}`} position={[x, 0.16, z]} rotation={[0, 0, Math.PI / 2]}>
+                <cylinderGeometry args={[0.15, 0.15, 0.06, 14]} />
+                <meshStandardMaterial color={primaryColor} roughness={0.4} />
+              </mesh>
+            ))}
+          </group>
+        ))}
 
         {/* Clear Glass Windows */}
         {[-0.43, 0.43].map((x, si) => (
@@ -519,15 +626,15 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
           </group>
         ))}
 
-        {/* ── PASSENGERS SEATED INSIDE COACH FLOOR ── */}
+        {/* ── ONLY THIS TEAM'S PASSENGERS SEATED INSIDE COACH FLOOR ── */}
         <group position={[0, 0.28, 0]}>
-          {onboardPassengers.map((pass, idx) => {
+          {teamPassengers.map((pass, idx) => {
             const seat = seatPositions[idx % seatPositions.length];
             return (
               <SeatedPassenger
                 key={pass.id}
                 position={seat}
-                team={pass.team}
+                team={team}
                 scale={0.7}
               />
             );
