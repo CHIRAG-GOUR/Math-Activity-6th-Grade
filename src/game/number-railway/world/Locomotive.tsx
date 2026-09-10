@@ -213,9 +213,9 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
   useFrame((_, delta) => {
     if (!curve) return;
 
-    // Reset position immediately if new round resets progress to 0
-    if (trainAnim.progress === 0 && currentProgressRef.current > 0.4) {
-      currentProgressRef.current = 0;
+    // Reset position immediately if new round resets progress to initial (<= 0.05)
+    if (trainAnim.progress <= 0.05 && currentProgressRef.current > 0.3) {
+      currentProgressRef.current = trainAnim.progress;
     }
 
     const targetProgress = trainAnim.progress;

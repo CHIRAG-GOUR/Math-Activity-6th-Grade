@@ -38,7 +38,7 @@ const createTeamState = (id: TeamId, customName?: string): TeamState => ({
 });
 
 const idleTrain = (): TrainAnimState => ({
-  progress: 0,
+  progress: 0.04,
   speed: 0,
   state: 'idle',
   smokeActive: false,
@@ -107,48 +107,56 @@ interface RailwayActions {
 
 export type RailwayStore = RailwayGameState & RailwayActions;
 
-const computeStepProgressAndSignals = (step: number, totalQuestions: number = 5) => {
-  const total = Math.max(1, totalQuestions);
-  const ratio = Math.min(1.0, step / total);
-
-  let progress = 0;
+const computeTeamStepProgressAndSignals = (correctCount: number, totalQuestions: number = 5) => {
+  let progress = 0.04;
   let signal1: SignalState = 'red';
   let signal2: SignalState = 'red';
   let milestone: 1 | 2 | 3 | 4 | 5 = 1;
   let isMoving = false;
 
-  // ── 5-Milestone Progression (Scales smoothly for 5, 10, or 15 Question Rounds) ──
-  // Milestone 1 (ratio <= 0.22): ONLY blow horns & whistles in staging yard (progress 0.0, no train movement)
-  // Milestone 2 (0.22 < ratio <= 0.44): BOTH trains enter frame forward into clear view (progress 0.145) + TT walks to middle
-  // Milestone 3 (0.44 < ratio <= 0.64): Massive steam plumes billow from locomotives + loud horns + Signal 1 Green
-  // Milestone 4 (0.64 < ratio < 1.00): Both trains move further to switch approach (micro steps from 0.145 to 0.21) + Signal 2 Green
-  // Milestone 5 (ratio >= 1.00 / Showdown): TT decides winner, waves Green Flag toward winner, switch throws, winner leaves!
-  if (ratio <= 0.22) {
+  // ── Team-Specific 5-Step Progression (Moves to next step ONLY with right answers) ──
+  // Correct 0: Staging yard (progress 0.04) — parked in clear view on spur
+  // Correct 1: Enters station approach forward in frame (progress 0.095)
+  // Correct 2: At station platform center (progress 0.145) + Signal 1 turns GREEN
+  // Correct 3: Advances past station toward junction (progress 0.180) + Signal 2 turns YELLOW
+  // Correct 4: At switch approach before junction (progress 0.205) + Signal 2 turns GREEN
+  // Correct 5+: At switch line ready for route authorization (progress 0.220)
+  if (correctCount <= 0) {
     milestone = 1;
-    progress = 0.0;
+    progress = 0.04;
+    signal1 = 'red';
+    signal2 = 'red';
     isMoving = false;
-  } else if (ratio <= 0.44) {
+  } else if (correctCount === 1) {
+    milestone = 1;
+    progress = 0.095;
+    signal1 = 'red';
+    signal2 = 'red';
+    isMoving = true;
+  } else if (correctCount === 2) {
     milestone = 2;
     progress = 0.145;
-    isMoving = true;
-  } else if (ratio <= 0.64) {
-    milestone = 3;
-    progress = 0.145;
     signal1 = 'green';
-    isMoving = false;
-  } else if (ratio < 1.0) {
+    signal2 = 'red';
+    isMoving = true;
+  } else if (correctCount === 3) {
+    milestone = 3;
+    progress = 0.180;
+    signal1 = 'green';
+    signal2 = 'yellow';
+    isMoving = true;
+  } else if (correctCount === 4) {
     milestone = 4;
+    progress = 0.205;
     signal1 = 'green';
     signal2 = 'green';
-    const subRatio = (ratio - 0.64) / (1.0 - 0.64);
-    progress = Number((0.145 + subRatio * 0.065).toFixed(3));
     isMoving = true;
   } else {
     milestone = 5;
-    progress = 0.21;
     signal1 = 'green';
     signal2 = 'green';
-    isMoving = false;
+    progress = 0.220;
+    isMoving = true;
   }
 
   return { progress, signal1, signal2, milestone, isMoving };
@@ -200,20 +208,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   setTeamName: (team, name) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    set((s) => ({
-      [key]: { ...s[key], name: name.trim() || (team === 'blue' ? 'TEAM BLUE' : 'TEAM RED') },
-    }));
+    set((s) => ({ [key]: { ...s[key], name } }));
   },
 
-  setQuestionCountConfig: (count) => {
-    const roundsNeeded = count === 15 ? 3 : count === 10 ? 2 : 1;
-    const newRounds = buildRounds(roundsNeeded);
-    set({
-      questionCountConfig: count,
-      totalRounds: roundsNeeded,
-      rounds: newRounds,
-      activeChallenge: newRounds[0].questions[0],
-    });
+  setQuestionCountConfig: (cnt) => {
+    soundManager.playClick();
+    set({ questionCountConfig: cnt });
   },
 
   setTotalRounds: (n) => {
@@ -335,14 +335,15 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     }));
   },
 
-  // ── First-Answerer & Rebound Engine (5-Step Incremental Train Advancement) ──
+  // ── First-Answerer & Rebound Engine (Independent Train Advancement on Correct Answer) ──
   lockInTeam: (team) => {
     const state = get();
     const ch = state.activeChallenge;
     if (!ch || (state.phase !== 'challenge' && state.phase !== 'tie-break')) return;
 
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    const otherKey = team === 'blue' ? 'redTeam' : 'blueTeam';
+    const isBlue = team === 'blue';
+    const key = isBlue ? 'blueTeam' : 'redTeam';
+    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
     const teamState = state[key];
     const otherTeamState = state[otherKey];
 
@@ -352,11 +353,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const isCorrect = ch.validation(teamState.selectedAnswer);
 
     if (isCorrect) {
-      // ── WINNING ANSWER ──
+      // ── WINNING ANSWER: ONLY THIS TEAM'S TRAIN ADVANCES ──
       soundManager.playCorrect();
       const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
       const pointsGained = ch.points + speedBonus;
       const newStreak = teamState.streak + 1;
+      const newTeamCorrect = teamState.roundCorrect + 1;
 
       // Add a passenger in this team's color inside the coach!
       const nextSeat = state.onboardPassengers.length;
@@ -367,25 +369,19 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       };
 
       const totalQInRound = state.rounds[state.currentRoundIndex]?.questions.length || 5;
-      const nextGreen = Math.min(totalQInRound, state.signalsGreenCount + 1);
-      const { progress, signal1, signal2, milestone, isMoving } = computeStepProgressAndSignals(nextGreen, totalQInRound);
+      const teamStep = computeTeamStepProgressAndSignals(newTeamCorrect, totalQInRound);
+      const nextGreenCount = Math.min(totalQInRound, state.signalsGreenCount + 1);
 
-      // ── Atmospheric Milestone Audio & Animation Schedule ──
-      // Milestone 1: ONLY blow horn in distance staging yard
-      // Milestone 2: Trains enter station + TT walks to middle
-      // Milestone 3: Massive steam clouds billow + horns + Signal 1 Green
-      // Milestone 4: Trains creep to switch approach + Signal 2 Green
-      if (milestone === 1) {
+      // Trigger Milestone Audio for the advancing team
+      if (teamStep.milestone === 1) {
         soundManager.playTrainHorn();
-        setTimeout(() => soundManager.playTrainWhistle(), 450);
-      } else if (milestone === 2) {
+      } else if (teamStep.milestone === 2) {
         soundManager.playTrainBells(2500);
-        soundManager.playTrainChug();
-      } else if (milestone === 3) {
+        soundManager.playTrainHorn();
+      } else if (teamStep.milestone === 3) {
         soundManager.playSteamRelease();
         soundManager.playTrainHorn();
-        setTimeout(() => soundManager.playLoudWhistle(), 400);
-      } else if (milestone === 4) {
+      } else if (teamStep.milestone >= 4) {
         soundManager.playSignalChange();
         soundManager.playTrainHorn();
       }
@@ -399,7 +395,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           roundScore: s[key].roundScore + pointsGained,
           streak: newStreak,
           correctAnswersCount: s[key].correctAnswersCount + 1,
-          roundCorrect: s[key].roundCorrect + 1,
+          roundCorrect: newTeamCorrect,
           lastScoreGained: pointsGained,
           lastFeedback: {
             message: `✅ CORRECT! +${pointsGained} PTS`,
@@ -411,38 +407,54 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           ...s[otherKey],
           isLocked: true, // Question claimed by first correct answerer!
         },
-        signalsGreenCount: nextGreen,
-        signal1Blue: signal1,
-        signal2Blue: signal2,
-        signal1Red: signal1,
-        signal2Red: signal2,
-        signalBlue: signal2,
-        signalRed: signal2,
-        blueTrain: {
-          ...s.blueTrain,
-          progress,
-          speed: isMoving ? 0.85 : 0,
-          smokeActive: true,
-          whistleActive: milestone === 1 || milestone === 3,
-        },
-        redTrain: {
-          ...s.redTrain,
-          progress,
-          speed: isMoving ? 0.85 : 0,
-          smokeActive: true,
-          whistleActive: milestone === 1 || milestone === 3,
-        },
+        signalsGreenCount: nextGreenCount,
+        // Update ONLY the winning team's train and signals! The other team's train stays in place!
+        ...(isBlue
+          ? {
+              signal1Blue: teamStep.signal1,
+              signal2Blue: teamStep.signal2,
+              signalBlue: teamStep.signal2,
+              blueTrain: {
+                ...s.blueTrain,
+                progress: teamStep.progress,
+                speed: teamStep.isMoving ? 0.85 : 0,
+                smokeActive: true,
+                whistleActive: teamStep.milestone === 1 || teamStep.milestone === 3,
+              },
+              redTrain: {
+                ...s.redTrain,
+                speed: 0,
+                whistleActive: false,
+              },
+            }
+          : {
+              signal1Red: teamStep.signal1,
+              signal2Red: teamStep.signal2,
+              signalRed: teamStep.signal2,
+              redTrain: {
+                ...s.redTrain,
+                progress: teamStep.progress,
+                speed: teamStep.isMoving ? 0.85 : 0,
+                smokeActive: true,
+                whistleActive: teamStep.milestone === 1 || teamStep.milestone === 3,
+              },
+              blueTrain: {
+                ...s.blueTrain,
+                speed: 0,
+                whistleActive: false,
+              },
+            }),
         onboardPassengers: [...s.onboardPassengers, newPassenger],
         toastMessage:
-          milestone === 1
-            ? `📢 ${s[key].name} ANSWERED! STEAM HORN BLOWS IN DISTANT STAGING YARD!`
-            : milestone === 2
-              ? `🚂 TRAINS ENTER STATIONS! TICKET EXAMINER (TT) WALKS IN WITH GREEN FLAG!`
-              : milestone === 3
-                ? `💨 MASSIVE STEAM CLOUDS BILLOW WITH POWERFUL HORNS! SIGNAL 1 GREEN!`
-                : milestone === 4
-                  ? `🟢 SIGNAL 2 GREEN! BOTH TRAINS ADVANCE TO SWITCH APPROACH!`
-                  : `👥 ${s[key].name} PASSENGER BOARDED! ROUTE READY!`,
+          teamStep.milestone === 1
+            ? `🚂 ${s[key].name} EXPRESS ADVANCES FORWARD INTO VIEW!`
+            : teamStep.milestone === 2
+              ? `🚉 ${s[key].name} ADVANCES TO STATION PLATFORM! SIGNAL 1 GREEN!`
+              : teamStep.milestone === 3
+                ? `💨 ${s[key].name} ADVANCES PAST STATION! SIGNAL 2 PRE-CLEARED!`
+                : teamStep.milestone === 4
+                  ? `🟢 ${s[key].name} ADVANCES TO JUNCTION SWITCH! SIGNAL 2 GREEN!`
+                  : `🏁 ${s[key].name} POISED AT JUNCTION SWITCH FOR DEPARTURE!`,
         timerActive: false,
       }));
 
@@ -495,51 +507,26 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           toastMessage: `❌ ${s[key].name} OUT OF ATTEMPTS! ${s[otherKey].name} CAN REBOUND!`,
         }));
 
-        // If the other team was ALREADY locked out (both exhausted turns), end question!
+        // If the other team was ALREADY locked out (both exhausted turns), end question! Neither train moves!
         if (otherTeamState.isLocked) {
           const totalQInRound = state.rounds[state.currentRoundIndex]?.questions.length || 5;
           const nextGreen = Math.min(totalQInRound, state.signalsGreenCount + 1);
-          const { progress, signal1, signal2, milestone, isMoving } = computeStepProgressAndSignals(nextGreen, totalQInRound);
 
-          if (milestone === 1) {
-            soundManager.playTrainHorn();
-            setTimeout(() => soundManager.playTrainWhistle(), 450);
-          } else if (milestone === 2) {
-            soundManager.playTrainBells(2500);
-            soundManager.playTrainChug();
-          } else if (milestone === 3) {
-            soundManager.playSteamRelease();
-            soundManager.playTrainHorn();
-            setTimeout(() => soundManager.playLoudWhistle(), 400);
-          } else if (milestone === 4) {
-            soundManager.playSignalChange();
-            soundManager.playTrainHorn();
-          }
-
-          set({
+          set((s) => ({
             timerActive: false,
             signalsGreenCount: nextGreen,
-            signal1Blue: signal1,
-            signal2Blue: signal2,
-            signal1Red: signal1,
-            signal2Red: signal2,
-            signalBlue: signal2,
-            signalRed: signal2,
             blueTrain: {
-              ...state.blueTrain,
-              progress,
-              speed: isMoving ? 0.85 : 0,
-              smokeActive: true,
-              whistleActive: milestone === 1 || milestone === 3,
+              ...s.blueTrain,
+              speed: 0,
+              whistleActive: false,
             },
             redTrain: {
-              ...state.redTrain,
-              progress,
-              speed: isMoving ? 0.85 : 0,
-              smokeActive: true,
-              whistleActive: milestone === 1 || milestone === 3,
+              ...s.redTrain,
+              speed: 0,
+              whistleActive: false,
             },
-          });
+            toastMessage: `❌ BOTH TEAMS LOCKED OUT! TRAINS REMAIN PARKED.`,
+          }));
           setTimeout(() => {
             set({ phase: 'question-reveal', timerActive: false });
           }, 600);
@@ -573,49 +560,24 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
     const totalQInRound = state.rounds[state.currentRoundIndex]?.questions.length || 5;
     const nextGreen = Math.min(totalQInRound, state.signalsGreenCount + 1);
-    const { progress, signal1, signal2, milestone, isMoving } = computeStepProgressAndSignals(nextGreen, totalQInRound);
 
-    if (milestone === 1) {
-      soundManager.playTrainHorn();
-      setTimeout(() => soundManager.playTrainWhistle(), 450);
-    } else if (milestone === 2) {
-      soundManager.playTrainBells(2500);
-      soundManager.playTrainChug();
-    } else if (milestone === 3) {
-      soundManager.playSteamRelease();
-      soundManager.playTrainHorn();
-      setTimeout(() => soundManager.playLoudWhistle(), 400);
-    } else if (milestone === 4) {
-      soundManager.playSignalChange();
-      soundManager.playTrainHorn();
-    }
-
-    // 0 points for both when timer expires with no correct answer, but step advances
+    // 0 points for both when timer expires with no correct answer; NEITHER TRAIN MOVES
     set((s) => ({
       blueTeam: { ...s.blueTeam, isLocked: true },
       redTeam: { ...s.redTeam, isLocked: true },
       signalsGreenCount: nextGreen,
-      signal1Blue: signal1,
-      signal2Blue: signal2,
-      signal1Red: signal1,
-      signal2Red: signal2,
-      signalBlue: signal2,
-      signalRed: signal2,
       blueTrain: {
         ...s.blueTrain,
-        progress,
-        speed: isMoving ? 0.85 : 0,
-        smokeActive: true,
-        whistleActive: milestone === 1 || milestone === 3,
+        speed: 0,
+        whistleActive: false,
       },
       redTrain: {
         ...s.redTrain,
-        progress,
-        speed: isMoving ? 0.85 : 0,
-        smokeActive: true,
-        whistleActive: milestone === 1 || milestone === 3,
+        speed: 0,
+        whistleActive: false,
       },
       timerActive: false,
+      toastMessage: '⏰ TIME EXPIRED! NO ADVANCEMENT THIS QUESTION.',
       phase: 'question-reveal',
     }));
   },
@@ -740,16 +702,18 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       }));
     }, 3800);
 
-    // 4. Train departs from junction switch (0.18) and travels down the scenic line (after 5.0s)
+    // 4. Train departs from junction switch and travels down the scenic line (after 5.0s)
     setTimeout(() => {
       soundManager.playTrainRunningAudio();
+
+      const startProg = Math.max(0.20, get()[isBlue ? 'blueTrain' : 'redTrain'].progress);
 
       set((s) => ({
         showdownStep: 'departing',
         toastMessage: `🚂 ${winnerName} EXPRESS ROARING DOWN THE LINE!`,
         [isBlue ? 'blueTrain' : 'redTrain']: {
           ...s[isBlue ? 'blueTrain' : 'redTrain'],
-          progress: 0.18,
+          progress: startProg,
           speed: 1,
           state: 'departing',
           smokeActive: true,
@@ -758,18 +722,18 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         },
       }));
 
-      let prog = 0.18;
+      let prog = startProg;
       let tick = 0;
       travelInterval = setInterval(() => {
         tick++;
-        prog += (1.0 - 0.18) / 160; // Smooth 8-second cinematic ride
+        prog += (1.0 - startProg) / 160; // Smooth 8-second cinematic ride
 
         // Loud whistle blasts 2 times spaced at intervals during train movement!
         if (tick === 50 || tick === 105) {
           soundManager.playLoudWhistle();
         }
 
-        const normT = (prog - 0.18) / (1.0 - 0.18);
+        const normT = Math.min(1.0, Math.max(0, (prog - startProg) / (1.0 - startProg)));
         const spd = normT < 0.15 ? normT * 6.6 : normT > 0.85 ? (1 - normT) * 6.6 : 1;
 
         set((s) => ({
