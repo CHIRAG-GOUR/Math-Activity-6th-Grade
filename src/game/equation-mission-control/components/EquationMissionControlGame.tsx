@@ -1,12 +1,16 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Master Game Component
-// Grade 6: Expressions, Formulae & Equations
-// Layout: [BLUE CONTROL (LEFT)] [3D SPACECRAFT WORLD (CENTER)] [RED CONTROL (RIGHT)]
+// EQUATION MISSION CONTROL 2.0 — Main Master Orchestrator
+// Full-Bleed 3D Aerospace World with Floating Symmetrical Consoles:
+// - FULLSCREEN 3D CANVAS (100% Viewport Background)
+// - Mounted Top Telemetry Briefing HUD
+// - Floating Symmetrical Consoles: Team Blue (Left, 270px) & Team Red (Right, 270px)
+// - Identical Size and Position as Train Game
+// - Light Aerospace Overlays & Solution Telemetry
 // ============================================================
 
 'use client';
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import dynamic from 'next/dynamic';
 import { useMissionControlStore } from '../store/missionControlStore';
 import { BlueMissionConsole } from './BlueMissionConsole';
@@ -25,7 +29,7 @@ const MissionControlScene3D = dynamic(
       <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-b from-sky-400 via-sky-200 to-amber-100 text-slate-800">
         <div className="w-12 h-12 rounded-full border-4 border-slate-900 border-t-amber-400 animate-spin mb-3" />
         <span className="text-xs font-black uppercase tracking-widest text-slate-800">
-          INITIALIZING 3D LAUNCH FACILITY...
+          INITIALIZING DUAL 3D LAUNCH COMPLEX...
         </span>
       </div>
     ),
@@ -33,27 +37,33 @@ const MissionControlScene3D = dynamic(
 );
 
 export const EquationMissionControlGame: React.FC = () => {
+  const phase = useMissionControlStore((s) => s.phase);
+  const showConsoles = phase !== 'title' && phase !== 'mission-report';
+
   return (
-    <div className="w-screen h-screen overflow-hidden flex flex-col bg-slate-100 select-none relative">
-      {/* Top Telemetry Header HUD with 5 Stage Indicator Lights */}
+    <main className="relative w-screen h-screen overflow-hidden select-none font-sans bg-sky-300">
+      {/* ── 1. 3D Spacecraft Launch World (100% Canvas Background) ── */}
+      <div className="absolute inset-0 z-0">
+        <MissionControlScene3D />
+      </div>
+
+      {/* ── 2. Top Mounted Mission Briefing HUD ── */}
       <MissionBriefingHUD />
 
-      {/* Main 3-Column Split: [BLUE (LEFT)] | [3D WORLD (CENTER)] | [RED (RIGHT)] */}
-      <main className="flex-1 flex flex-row w-full h-full overflow-hidden relative pt-16">
-        {/* Blue Mission Control — Left Side */}
-        <BlueMissionConsole />
+      {/* ── 3. Floating Symmetrical Team Consoles (Left & Right, top-18) ── */}
+      {showConsoles && (
+        <div className="absolute inset-x-0 top-18 bottom-3 pointer-events-none px-3 flex items-start justify-between z-20">
+          <div className="pointer-events-auto">
+            <BlueMissionConsole />
+          </div>
+          <div className="pointer-events-auto">
+            <RedMissionConsole />
+          </div>
+        </div>
+      )}
 
-        {/* Central 3D Spacecraft & Aerospace Campus World */}
-        <section className="flex-1 h-full relative bg-sky-200 overflow-hidden">
-          <MissionControlScene3D />
-        </section>
-
-        {/* Red Mission Control — Right Side */}
-        <RedMissionConsole />
-
-        {/* Modals, Directives & Final Report Overlays */}
-        <MissionControlOverlays />
-      </main>
-    </div>
+      {/* ── 4. Modals, Directives, Solution Telemetry & Flight Certificate ── */}
+      <MissionControlOverlays />
+    </main>
   );
 };
