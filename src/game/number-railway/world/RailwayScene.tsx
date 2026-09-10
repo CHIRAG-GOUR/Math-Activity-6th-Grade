@@ -31,28 +31,28 @@ import {
 import { NETWORK_STATIONS } from '../engine/challenges';
 
 // ── Junction geometry ──
-const JUNCTION: [number, number, number] = [0, 0.1, 3.5];
+const JUNCTION: [number, number, number] = [0, 0.1, 3.2];
 
 const BLUE_SPUR: [number, number, number][] = [
-  [-8.5, 0.1, 26.0],
-  [-7.0, 0.1, 18.0],
-  [-5.5, 0.1, 14.0],
-  [-3.8, 0.1, 9.5],
-  [-2.4, 0.1, 6.5],
+  [-5.8, 0.1, 20.0],
+  [-4.8, 0.1, 15.0],
+  [-3.8, 0.1, 11.5],
+  [-2.8, 0.1, 8.0],
+  [-1.9, 0.1, 5.5],
   JUNCTION,
 ];
 
 const RED_SPUR: [number, number, number][] = [
-  [8.5, 0.1, 26.0],
-  [7.0, 0.1, 18.0],
-  [5.5, 0.1, 14.0],
-  [3.8, 0.1, 9.5],
-  [2.4, 0.1, 6.5],
+  [5.8, 0.1, 20.0],
+  [4.8, 0.1, 15.0],
+  [3.8, 0.1, 11.5],
+  [2.8, 0.1, 8.0],
+  [1.9, 0.1, 5.5],
   JUNCTION,
 ];
 
 const MAIN_TAIL: [number, number, number][] = [
-  [0, 0.1, 3.5],
+  [0, 0.1, 3.2],
   [0, 0.1, -1.0],
   [-0.5, 0.1, -8.0],
   [-3.8, 0.1, -16.0],
@@ -81,25 +81,25 @@ const CameraController: React.FC = () => {
     const step = s.showdownStep;
     const route = s.activeRoute;
 
-    // Default: symmetric establishing shot of both dual spurs & the switch
-    camPos.set(0, 7.5, 21.0);
-    camLook.set(0, 1.2, 4.5);
+    // Default: crystal clear panoramic establishing shot framing both trains, TT, and steam billows
+    camPos.set(0, 5.8, 17.2);
+    camLook.set(0, 1.3, 4.0);
 
     if (phase === 'showdown' && (step === 'switching' || step === 'signal-yellow' || step === 'signal-green' || step === 'quiet')) {
-      // Emphasise the junction switch & the deciding signals
-      camPos.set(0.2, 4.4, 12.0);
-      camLook.set(0, 0.9, 4.0);
+      // Focus on TT waving the green flag & the junction switch
+      camPos.set(0, 3.8, 10.5);
+      camLook.set(0, 1.0, 3.8);
     } else if ((phase === 'showdown' && step === 'departing') || phase === 'winner-reveal') {
       // Chase the winning train down the line
       const curve = route === 'red' ? redCurve : blueCurve;
       const anim = route === 'red' ? s.redTrain : s.blueTrain;
       const t = Math.min(Math.max(anim.progress, 0), 0.999);
       const p = curve.getPointAt(t);
-      camPos.set(p.x + 4.8, p.y + 3.6, p.z + 6.4);
+      camPos.set(p.x + 4.2, p.y + 3.2, p.z + 5.8);
       camLook.set(p.x, p.y + 0.6, p.z);
     } else if (phase === 'round-intro') {
-      camPos.set(0, 6.8, 19.5);
-      camLook.set(0, 1.1, 5.0);
+      camPos.set(0, 5.6, 16.5);
+      camLook.set(0, 1.2, 4.5);
     }
 
     const targetZoom = s.zoomLevel || 1.0;
@@ -144,8 +144,8 @@ const RailwayWorld: React.FC = () => {
       {/* ── 2 STATIONS: One on each railway track ── */}
       {/* 1. Blue Team Station on Blue Spur */}
       <CartoonStation
-        position={[-8.2, 0, 14.0]}
-        rotation={[0, 0.2, 0]}
+        position={[-5.8, 0, 11.5]}
+        rotation={[0, 0.18, 0]}
         name="Skillizee West"
         team="blue"
         isSkillizeeJunction={true}
@@ -153,8 +153,8 @@ const RailwayWorld: React.FC = () => {
 
       {/* 2. Red Team Station on Red Spur */}
       <CartoonStation
-        position={[8.2, 0, 14.0]}
-        rotation={[0, -0.2, 0]}
+        position={[5.8, 0, 11.5]}
+        rotation={[0, -0.18, 0]}
         name="Skillizee East"
         team="red"
         isSkillizeeJunction={true}
@@ -176,17 +176,17 @@ const RailwayWorld: React.FC = () => {
 
       {/* ── 2-Stage Progressive Signals along each route ── */}
       {/* Blue Route Signals: S1 (Station Exit Block) & S2 (Junction Entrance Switch Guard) */}
-      <DynamicRailwaySignal position={[-4.5, 0, 13.0]} signalState={signal1Blue} team="blue" rotation={[0, 0.2, 0]} label="S1" scale={0.95} />
-      <DynamicRailwaySignal position={[-2.8, 0, 7.0]} signalState={signal2Blue} team="blue" rotation={[0, 0.45, 0]} label="S2" scale={0.95} />
+      <DynamicRailwaySignal position={[-3.8, 0, 10.5]} signalState={signal1Blue} team="blue" rotation={[0, 0.18, 0]} label="S1" scale={0.95} />
+      <DynamicRailwaySignal position={[-2.2, 0, 6.0]} signalState={signal2Blue} team="blue" rotation={[0, 0.45, 0]} label="S2" scale={0.95} />
 
       {/* Red Route Signals: S1 (Station Exit Block) & S2 (Junction Entrance Switch Guard) */}
-      <DynamicRailwaySignal position={[4.5, 0, 13.0]} signalState={signal1Red} team="red" rotation={[0, -0.2, 0]} label="S1" scale={0.95} />
-      <DynamicRailwaySignal position={[2.8, 0, 7.0]} signalState={signal2Red} team="red" rotation={[0, -0.45, 0]} label="S2" scale={0.95} />
+      <DynamicRailwaySignal position={[3.8, 0, 10.5]} signalState={signal1Red} team="red" rotation={[0, -0.18, 0]} label="S1" scale={0.95} />
+      <DynamicRailwaySignal position={[2.2, 0, 6.0]} signalState={signal2Red} team="red" rotation={[0, -0.45, 0]} label="S2" scale={0.95} />
 
       {/* Spur tracks + the mechanical switch + the shared main line */}
       <ContinuousRailwayTrack controlPoints={BLUE_SPUR} active />
       <ContinuousRailwayTrack controlPoints={RED_SPUR} active />
-      <RailwaySwitch position={[0, 0, 3.3]} target={switchTarget} />
+      <RailwaySwitch position={[0, 0, 3.2]} target={switchTarget} />
       <ContinuousRailwayTrack controlPoints={MAIN_TAIL} active hasBridge hasTunnel />
 
       {/* The 3D Train Ticket Examiner (TT / Conductor) in middle with Green Flag */}
