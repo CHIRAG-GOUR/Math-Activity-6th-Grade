@@ -163,6 +163,27 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'equation-mission-control') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#0f172a');
+      grad.addColorStop(0.5, '#1e3a8a');
+      grad.addColorStop(1, '#172554');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 52px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('EQUATION MISSION CONTROL', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#6b21a8');
@@ -218,6 +239,10 @@ export const ArcadeCabinet3D: React.FC<{
       bgGrad.addColorStop(0, '#b91c1c');
       bgGrad.addColorStop(0.5, '#ef4444');
       bgGrad.addColorStop(1, '#b91c1c');
+    } else if (config.id === 'equation-mission-control') {
+      bgGrad.addColorStop(0, '#1e3a8a');
+      bgGrad.addColorStop(0.5, '#2563eb');
+      bgGrad.addColorStop(1, '#1e3a8a');
     } else {
       bgGrad.addColorStop(0, '#6b21a8');
       bgGrad.addColorStop(0.5, '#a855f7');
@@ -257,6 +282,8 @@ export const ArcadeCabinet3D: React.FC<{
       ? '#0369a1' 
       : config.id === 'carnival-of-chance' 
       ? '#7f1d1d' 
+      : config.id === 'equation-mission-control'
+      ? '#1e3a8a'
       : '#4c1d95';
 
     ctx.fillStyle = pillBg;

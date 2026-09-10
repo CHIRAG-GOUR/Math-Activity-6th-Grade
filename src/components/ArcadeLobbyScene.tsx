@@ -164,7 +164,7 @@ export const RAW_ARCADE_CABINET_DATA: Omit<ArcadeCabinetConfig, 'position' | 'ro
     grade: 'Grade 6',
     category: '3D Aerospace Launch',
     status: 'active',
-    image: '/images/blueprint-blitz-card.jpg',
+    image: '/images/equation-mission-control-card.jpg',
     route: '/equation-mission-control',
     theme: {
       cabinetColor: '#1e3a8a',
