@@ -186,6 +186,7 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
 
   const trainAnim = useRailwayStore((s) => (team === 'blue' ? s.blueTrain : s.redTrain));
   const onboardPassengers = useRailwayStore((s) => s.onboardPassengers);
+  const signalsGreenCount = useRailwayStore((s) => s.signalsGreenCount);
 
   const isBlue = team === 'blue';
   const primaryColor = isBlue ? '#2563eb' : '#dc2626';
@@ -272,17 +273,33 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
       }
     }
 
-    // Gentle steam puffs
+    // ── MASSIVE DENSE STEAM BLOW-OFF ANIMATION ──
+    const isBigSteam = signalsGreenCount === 3 || trainAnim.whistleActive;
+    const steamSpeed = isBigSteam ? 0.0028 : 0.0018;
+
     steamPuffsRef.current.forEach((puff, i) => {
       if (puff) {
-        if (trainAnim.smokeActive || isMoving) {
+        if (trainAnim.smokeActive || isMoving || isBigSteam) {
           puff.visible = true;
-          const timeOffset = (Date.now() * 0.0018 + i * 0.35) % 1.5;
-          puff.position.y = 1.35 + timeOffset * 1.2;
-          puff.position.z = 0.65 - (isMoving ? timeOffset * 0.8 : 0);
-          const s = 0.12 + timeOffset * 0.24;
+          const timeOffset = (Date.now() * steamSpeed + i * 0.22) % 1.8;
+          const heightMultiplier = isBigSteam ? 2.4 : 1.2;
+          const driftMultiplier = isBigSteam ? 0.35 : 0.15;
+          const driftX = Math.sin(Date.now() * 0.003 + i) * driftMultiplier;
+
+          puff.position.x = driftX;
+          puff.position.y = 1.35 + timeOffset * heightMultiplier;
+          puff.position.z = 0.75 - (isMoving ? timeOffset * 0.9 : 0);
+
+          // Steam plume expands dynamically as it ascends
+          const baseScale = isBigSteam ? 0.32 : 0.14;
+          const s = baseScale + timeOffset * (isBigSteam ? 0.55 : 0.25);
           puff.scale.set(s, s, s);
-          (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(0, 0.65 - timeOffset * 0.45);
+
+          const maxOpacity = isBigSteam ? 0.88 : 0.65;
+          (puff.material as THREE.MeshStandardMaterial).opacity = Math.max(
+            0,
+            maxOpacity - (timeOffset / 1.8) * maxOpacity
+          );
         } else {
           puff.visible = false;
         }
@@ -290,7 +307,7 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
     });
 
     if (whistleSteamRef.current) {
-      whistleSteamRef.current.visible = trainAnim.whistleActive;
+      whistleSteamRef.current.visible = trainAnim.whistleActive || isBigSteam;
     }
   });
 
@@ -385,16 +402,16 @@ export const StylizedTeamTrain: React.FC<TeamTrainProps> = ({ team, route, track
           </mesh>
         </group>
 
-        {/* Steam Puffs */}
-        {[0, 1, 2, 3].map((i) => (
+        {/* ── MULTI-LAYERED VOLUMETRIC STEAM PUFFS (BIGGER AMOUNT) ── */}
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
           <mesh
-            key={i}
+            key={`steam-puff-${i}`}
             ref={(el) => { if (el) steamPuffsRef.current[i] = el; }}
             position={[0, 1.4, 0.75]}
             visible={false}
           >
-            <sphereGeometry args={[0.16, 12, 12]} />
-            <meshStandardMaterial color="#f8fafc" transparent opacity={0.7} roughness={0.1} />
+            <sphereGeometry args={[0.18, 14, 14]} />
+            <meshStandardMaterial color="#ffffff" transparent opacity={0.8} roughness={0.1} />
           </mesh>
         ))}
 

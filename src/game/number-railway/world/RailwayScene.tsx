@@ -19,6 +19,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { useRailwayStore } from '../store/railwayStore';
 import { ContinuousRailwayTrack, DynamicRailwaySignal, RailwaySwitch } from './RailwayTrack';
 import { TeamTrain } from './Locomotive';
+import { TicketExaminerTT } from './TicketExaminerTT';
 import {
   CartoonStation,
   CartoonPineTree,
@@ -187,6 +188,9 @@ const RailwayWorld: React.FC = () => {
       <ContinuousRailwayTrack controlPoints={RED_SPUR} active />
       <RailwaySwitch position={[0, 0, 3.3]} target={switchTarget} />
       <ContinuousRailwayTrack controlPoints={MAIN_TAIL} active hasBridge hasTunnel />
+
+      {/* The 3D Train Ticket Examiner (TT / Conductor) in middle with Green Flag */}
+      <TicketExaminerTT />
 
       {/* The two team trains, each idling on its own spur */}
       <TeamTrain team="blue" route={BLUE_ROUTE} />
