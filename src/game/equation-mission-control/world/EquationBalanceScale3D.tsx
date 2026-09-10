@@ -22,16 +22,13 @@ export const EquationBalanceScale3D: React.FC = () => {
   const glowLightRef = useRef<THREE.PointLight>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const enginePower = useMissionControlStore(
-    (s) => s.blueSpacecraft.stage3EngineDone || s.redSpacecraft.stage3EngineDone
-  );
-  const blueState = useMissionControlStore((s) => s.blueTeam);
-  const redState = useMissionControlStore((s) => s.redTeam);
+  const blueSpacecraft = useMissionControlStore((s) => s.blueSpacecraft);
+  const redSpacecraft = useMissionControlStore((s) => s.redSpacecraft);
+  const enginePower = blueSpacecraft.stage3EngineDone || redSpacecraft.stage3EngineDone;
 
-  const isBalanced =
-    enginePower ||
-    blueState.balanceTiltedSide === 'balanced' ||
-    redState.balanceTiltedSide === 'balanced';
+  const isBalanced = enginePower;
+
+
 
   useFrame((_, delta) => {
     // Determine physical tilt angle

@@ -21,10 +21,11 @@ export const LaunchLockMechanism3D: React.FC = () => {
   const lockLightRef = useRef<THREE.PointLight>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const isArmed =
-    useMissionControlStore((s) => s.blueTeam.isArmed) ||
-    useMissionControlStore((s) => s.redTeam.isArmed);
+  const isArmed = useMissionControlStore(
+    (s) => s.blueSpacecraft.stage5Armed || s.redSpacecraft.stage5Armed
+  );
   const launchStage = useMissionControlStore((s) => s.blueSpacecraft.launchStage);
+
 
   useFrame((_, delta) => {
     // Arm Lever Flip (0 deg up -> -70 deg down when armed)

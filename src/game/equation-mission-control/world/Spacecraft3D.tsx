@@ -10,10 +10,90 @@
 // - 5 Real Mechanical Preparation Stages + Dynamic Liftoff Physics
 // ============================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Spacecraft3DState, TeamId } from '../types';
+
+// Instant Zero-Network 3D Canvas Decal for Spacecraft Team Livery
+const RocketTextBadge: React.FC<{
+  text: string;
+  bgColor: string;
+  textColor?: string;
+  width?: number;
+  height?: number;
+}> = ({ text, bgColor, textColor = '#ffffff', width = 1.45, height = 0.5 }) => {
+  const texture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, 512, 180);
+
+      // Crisp White Border
+      ctx.lineWidth = 14;
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(8, 8, 496, 164);
+
+      // Bold Text
+      ctx.fillStyle = textColor;
+      ctx.font = '900 106px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 256, 92);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, [text, bgColor, textColor]);
+
+  if (!texture) return null;
+
+  return (
+    <mesh position={[0, 0, 0.052]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.99} />
+    </mesh>
+  );
+};
+
+const SRBBadge: React.FC<{
+  text: string;
+  textColor?: string;
+  width?: number;
+  height?: number;
+}> = ({ text, textColor = '#1e293b', width = 0.55, height = 0.28 }) => {
+  const texture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 256;
+    canvas.height = 128;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.clearRect(0, 0, 256, 128);
+      ctx.fillStyle = textColor;
+      ctx.font = '900 76px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 128, 64);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, [text, textColor]);
+
+  if (!texture) return null;
+
+  return (
+    <mesh position={[0, 0, 0.4]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} transparent />
+    </mesh>
+  );
+};
 
 interface SpacecraftProps {
   state: Spacecraft3DState;
@@ -133,23 +213,42 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
         />
       </mesh>
 
-      {/* Team Name Badge Plaque on Fuselage */}
+      {/* Team Name Badge Plaque on Fuselage (Front) */}
       <group position={[0, 4.2, 0.98]}>
-        <mesh>
-          <boxGeometry args={[1.5, 0.6, 0.08]} />
+        <mesh castShadow>
+          <boxGeometry args={[1.65, 0.65, 0.08]} />
           <meshStandardMaterial
             color="#ffffff"
-            roughness={0.1}
+            roughness={0.15}
             metalness={0.3}
           />
         </mesh>
-        <mesh position={[0, 0, 0.05]}>
-          <boxGeometry args={[1.4, 0.5, 0.04]} />
+        <RocketTextBadge
+          text={isBlue ? 'BLUE' : 'RED'}
+          bgColor={primaryDark}
+          textColor="#ffffff"
+          width={1.52}
+          height={0.52}
+        />
+      </group>
+
+      {/* Team Name Badge Plaque on Fuselage (Back) */}
+      <group position={[0, 4.2, -0.98]} rotation={[0, Math.PI, 0]}>
+        <mesh castShadow>
+          <boxGeometry args={[1.65, 0.65, 0.08]} />
           <meshStandardMaterial
-            color={primaryDark}
-            roughness={0.2}
+            color="#ffffff"
+            roughness={0.15}
+            metalness={0.3}
           />
         </mesh>
+        <RocketTextBadge
+          text={isBlue ? 'BLUE' : 'RED'}
+          bgColor={primaryDark}
+          textColor="#ffffff"
+          width={1.52}
+          height={0.52}
+        />
       </group>
 
       {/* ── 2. AERODYNAMIC NOSE CONE ── */}
@@ -254,6 +353,13 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
           <cylinderGeometry args={[0.38, 0.38, 5.2, 24]} />
           <meshStandardMaterial color="#f1f5f9" metalness={0.2} roughness={0.3} />
         </mesh>
+        {/* SRB Team Decal */}
+        <SRBBadge
+          text={isBlue ? 'BLUE' : 'RED'}
+          textColor={primaryDark}
+          width={0.55}
+          height={0.28}
+        />
         {/* SRB Nose Cone */}
         <mesh position={[0, 2.9, 0]} castShadow>
           <coneGeometry args={[0.38, 0.9, 24]} />
@@ -272,6 +378,13 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
           <cylinderGeometry args={[0.38, 0.38, 5.2, 24]} />
           <meshStandardMaterial color="#f1f5f9" metalness={0.2} roughness={0.3} />
         </mesh>
+        {/* SRB Team Decal */}
+        <SRBBadge
+          text={isBlue ? 'BLUE' : 'RED'}
+          textColor={primaryDark}
+          width={0.55}
+          height={0.28}
+        />
         {/* SRB Nose Cone */}
         <mesh position={[0, 2.9, 0]} castShadow>
           <coneGeometry args={[0.38, 0.9, 24]} />

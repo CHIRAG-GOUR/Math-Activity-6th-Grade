@@ -11,10 +11,55 @@
 // - Floodlight Towers, Concrete Access Ramps & Safety Markings
 // ============================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { Spacecraft3DState } from '../types';
+
+// Instant Zero-Network 3D Canvas Decal for Launch Pad
+const LaunchPadTextBadge: React.FC<{
+  text: string;
+  bgColor: string;
+  textColor?: string;
+  width?: number;
+  height?: number;
+}> = ({ text, bgColor, textColor = '#ffffff', width = 2.85, height = 0.42 }) => {
+  const texture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 160;
+    const ctx = canvas.getContext('2d');
+    if (ctx) {
+      ctx.fillStyle = bgColor;
+      ctx.fillRect(0, 0, 1024, 160);
+
+      // Crisp White Border
+      ctx.lineWidth = 10;
+      ctx.strokeStyle = '#ffffff';
+      ctx.strokeRect(6, 6, 1012, 148);
+
+      // Bold Text
+      ctx.fillStyle = textColor;
+      ctx.font = '900 80px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(text, 512, 80);
+    }
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, [text, bgColor, textColor]);
+
+  if (!texture) return null;
+
+  return (
+    <mesh position={[0, 0, 0.052]}>
+      <planeGeometry args={[width, height]} />
+      <meshBasicMaterial map={texture} transparent opacity={0.99} />
+    </mesh>
+  );
+};
 
 interface FacilityProps {
   blueState: Spacecraft3DState;
@@ -130,6 +175,21 @@ const LaunchPadTowerAssembly: React.FC<{
             </mesh>
           )
         )}
+
+        {/* Front Pad Identification Plaque */}
+        <group position={[0, 0.45, 4.45]}>
+          <mesh castShadow>
+            <boxGeometry args={[3.0, 0.55, 0.1]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.3} />
+          </mesh>
+          <LaunchPadTextBadge
+            text={isBlue ? 'BLUE TEAM LAUNCH PAD' : 'RED TEAM LAUNCH PAD'}
+            bgColor={teamDarkColor}
+            textColor="#ffffff"
+            width={2.85}
+            height={0.42}
+          />
+        </group>
       </group>
 
       {/* ── 2. SUBSTANTIAL 15M STEEL LATTICE UMBILICAL TOWER ── */}
