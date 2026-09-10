@@ -31,6 +31,9 @@ export const MissionControlOverlays: React.FC = () => {
   const redShip = useMissionControlStore((s) => s.redSpacecraft);
   const toast = useMissionControlStore((s) => s.toastMessage);
 
+  const targetStages = useMissionControlStore((s) => s.targetStages);
+  const setTargetStages = useMissionControlStore((s) => s.setTargetStages);
+
   // Store actions
   const startGame = useMissionControlStore((s) => s.startGame);
   const setTeamName = useMissionControlStore((s) => s.setTeamName);
@@ -62,7 +65,7 @@ export const MissionControlOverlays: React.FC = () => {
           <motion.div
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="w-full max-w-3xl bg-white rounded-3xl border-4 border-slate-900 mc-shadow-hard-xl p-6 md:p-8 flex flex-col gap-5 relative"
+            className="w-full max-w-3xl bg-white rounded-3xl border-4 border-slate-900 mc-shadow-hard-xl p-6 md:p-8 flex flex-col gap-4 relative"
           >
             <div className="mc-screw absolute top-3 left-3" />
             <div className="mc-screw absolute top-3 right-3" />
@@ -90,14 +93,37 @@ export const MissionControlOverlays: React.FC = () => {
                 MISSION DIRECTIVE • {campaign.title}
               </div>
               <p className="text-xs md:text-sm font-semibold text-slate-600 leading-relaxed">
-                Two engineering teams prepare two real 3D spacecraft on the launch campus.
-                Each correct answer immediately activates your rocket systems:
+                Two engineering teams race to prepare their 3D spacecraft on the launch campus.
+                Each correct answer unlocks key subsystems:
                 <span className="font-bold text-slate-900"> ① Avionics HUD</span>, 
                 <span className="font-bold text-slate-900"> ② Cryo Fuel</span>, 
                 <span className="font-bold text-slate-900"> ③ Engine Balance</span>, 
                 <span className="font-bold text-slate-900"> ④ Guidance</span>, and 
                 <span className="font-bold text-slate-900"> ⑤ Liftoff Ignition</span>!
               </p>
+            </div>
+
+            {/* Target Stages (5, 10, 15, 20) Selection */}
+            <div className="p-3.5 rounded-2xl bg-amber-100 border-3 border-amber-500 mc-shadow-hard text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block mb-1.5">
+                MISSION DURATION (STAGES / QUESTIONS TO WIN):
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {([5, 10, 15, 20] as const).map((stages) => (
+                  <button
+                    key={stages}
+                    type="button"
+                    onClick={() => setTargetStages(stages)}
+                    className={`py-2 rounded-xl border-2 border-slate-900 font-black text-xs transition-all cursor-pointer ${
+                      targetStages === stages
+                        ? 'bg-amber-400 text-slate-950 mc-shadow-hard scale-105'
+                        : 'bg-white text-slate-800 hover:bg-amber-50 shadow-xs'
+                    }`}
+                  >
+                    {stages} Stages
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Team Names Inputs */}
@@ -135,7 +161,7 @@ export const MissionControlOverlays: React.FC = () => {
                 soundManager.play('powerup');
                 startGame();
               }}
-              className="w-full h-15 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-black text-lg uppercase tracking-wider border-4 border-slate-900 mc-shadow-hard mc-pressable flex items-center justify-center gap-3 cursor-pointer"
+              className="w-full h-14 rounded-2xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-black text-lg uppercase tracking-wider border-4 border-slate-900 mc-shadow-hard mc-pressable flex items-center justify-center gap-3 cursor-pointer"
             >
               <Play className="w-5 h-5 fill-slate-950" />
               START LAUNCH MISSION 🚀
@@ -266,7 +292,7 @@ export const MissionControlOverlays: React.FC = () => {
                 <div className="text-xs font-black text-blue-900 uppercase">{blueTeam.name}</div>
                 <div className="text-xl font-black text-slate-900 mt-0.5">{blueTeam.score} PTS</div>
                 <div className="text-[10px] font-bold text-blue-700 mt-0.5">
-                  Stages Cleared: {blueTeam.stagesCleared}/5
+                  Stages Cleared: {blueTeam.stagesCleared}/{targetStages}
                 </div>
               </div>
 
@@ -274,7 +300,7 @@ export const MissionControlOverlays: React.FC = () => {
                 <div className="text-xs font-black text-red-900 uppercase">{redTeam.name}</div>
                 <div className="text-xl font-black text-slate-900 mt-0.5">{redTeam.score} PTS</div>
                 <div className="text-[10px] font-bold text-red-700 mt-0.5">
-                  Stages Cleared: {redTeam.stagesCleared}/5
+                  Stages Cleared: {redTeam.stagesCleared}/{targetStages}
                 </div>
               </div>
             </div>

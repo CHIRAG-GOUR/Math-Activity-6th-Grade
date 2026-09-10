@@ -17,6 +17,7 @@ import {
 } from '../types';
 import { generateDynamicCampaign } from '../engine/questionPool';
 import { soundManager } from '@/utils/audio';
+import { initialBoostManager } from '@/utils/initialBoost';
 
 const createDefaultTeamState = (id: TeamId, name?: string): TeamControlState => ({
   id,
@@ -105,6 +106,8 @@ interface MissionControlActions {
   setParallax: (x: number, y: number) => void;
   setCameraTarget: (target: 'overview' | 'blue-pad' | 'red-pad' | 'hero-launch') => void;
 
+  targetStages: 5 | 10 | 15 | 20;
+  setTargetStages: (stages: 5 | 10 | 15 | 20) => void;
   setTimeRemaining: (t: number) => void;
   setTimerActive: (active: boolean) => void;
   toggleMute: () => void;
@@ -117,6 +120,7 @@ export type MissionControlStore = {
   questionPoolIndex: number;
   currentStageIndex: StageIndex;
   activeChallenge: MissionChallenge;
+  targetStages: 5 | 10 | 15 | 20;
 
   blueTeam: TeamControlState;
   redTeam: TeamControlState;
@@ -141,6 +145,8 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   questionPoolIndex: 0,
   currentStageIndex: 0,
   activeChallenge: initialCampaign.challenges[0],
+  targetStages: 5,
+  setTargetStages: (stages) => set({ targetStages: stages }),
 
   blueTeam: createDefaultTeamState('blue', 'BLUE TEAM'),
   redTeam: createDefaultTeamState('red', 'RED TEAM'),
@@ -174,6 +180,31 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     soundManager.startSpacecraftBgm(0.40);
     soundManager.play('powerup');
 
+    // Check Initial Boost from previous game winner
+    const boost = initialBoostManager.getBoost();
+    const isBlueBoosted = boost?.winnerId === 'blue';
+    const isRedBoosted = boost?.winnerId === 'red';
+
+    let initialBlueShip = createDefaultSpacecraftState('blue');
+    let initialRedShip = createDefaultSpacecraftState('red');
+    let initialToast = `🚀 RACE TO ${get().targetStages} STAGES: AVIONICS CONFIGURATION INITIALIZED!`;
+
+    if (isBlueBoosted) {
+      initialBlueShip.stage1StructureDone = true;
+      initialBlueShip.cockpitGlowIntensity = 1.0;
+      initialBlueShip.serviceArmsAngle = 0.1;
+      initialBlueShip.isWeldingActive = true;
+      const wName = get().blueTeam.name;
+      initialToast = `⚡ INITIAL BOOST: ${wName} starts with Stage 1 Avionics Online & +1 Correct Answer from winning ${boost!.gameTitle}!`;
+    } else if (isRedBoosted) {
+      initialRedShip.stage1StructureDone = true;
+      initialRedShip.cockpitGlowIntensity = 1.0;
+      initialRedShip.serviceArmsAngle = 0.1;
+      initialRedShip.isWeldingActive = true;
+      const wName = get().redTeam.name;
+      initialToast = `⚡ INITIAL BOOST: ${wName} starts with Stage 1 Avionics Online & +1 Correct Answer from winning ${boost!.gameTitle}!`;
+    }
+
     set({
       campaign: camp,
       questionPoolIndex: 0,
@@ -183,12 +214,20 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       phase: 'active-mission',
       timeRemaining: camp.challenges[0].timeLimit,
       timerActive: true,
-      toastMessage: '🚀 RACE TO 5 STAGES: AVIONICS CONFIGURATION INITIALIZED!',
+      toastMessage: initialToast,
       cameraTarget: 'overview',
-      blueTeam: createDefaultTeamState('blue', get().blueTeam.name),
-      redTeam: createDefaultTeamState('red', get().redTeam.name),
-      blueSpacecraft: createDefaultSpacecraftState('blue'),
-      redSpacecraft: createDefaultSpacecraftState('red'),
+      blueTeam: {
+        ...createDefaultTeamState('blue', get().blueTeam.name),
+        score: isBlueBoosted ? 100 : 0,
+        stagesCleared: isBlueBoosted ? 1 : 0,
+      },
+      redTeam: {
+        ...createDefaultTeamState('red', get().redTeam.name),
+        score: isRedBoosted ? 100 : 0,
+        stagesCleared: isRedBoosted ? 1 : 0,
+      },
+      blueSpacecraft: initialBlueShip,
+      redSpacecraft: initialRedShip,
     });
   },
 
@@ -308,7 +347,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           stagesCleared: newStagesCleared,
           lastScoreGained: pointsGained,
           lastFeedback: {
-            message: `✅ CORRECT! +${pointsGained} PTS (${newStagesCleared}/5 STAGES)`,
+            message: `✅ CORRECT! +${pointsGained} PTS (${newStagesCleared}/${state.targetStages} STAGES)`,
             isCorrect: true,
             pointsEarned: pointsGained,
           },
@@ -319,18 +358,18 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
         },
         [shipKey]: updatedShip,
         timerActive: false,
-        toastMessage: `🎉 ${teamState.name} CLEARED STAGE ${newStagesCleared}/5! (+${pointsGained} PTS)`,
+        toastMessage: `🎉 ${teamState.name} CLEARED STAGE ${newStagesCleared}/${state.targetStages}! (+${pointsGained} PTS)`,
       });
 
-      // Check WIN CONDITION: If team reaches 5 correct answers, THEY WIN & LAUNCH!
-      if (newStagesCleared >= 5) {
+      // Check WIN CONDITION: If team reaches target stages, THEY WIN & LAUNCH!
+      if (newStagesCleared >= state.targetStages) {
         clearAutoAdvance();
         autoAdvanceTimer = setTimeout(() => {
           set({ winnerTeam: team });
           get().run12StepCinematicLaunch(team);
         }, 1200);
       } else {
-        // Match continues with the next question in the pool until a team reaches 5!
+        // Match continues with the next question in the pool until a team reaches target!
         clearAutoAdvance();
         autoAdvanceTimer = setTimeout(() => {
           get().advanceToNextStage();
@@ -422,15 +461,15 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
   advanceToNextStage: () => {
     clearAutoAdvance();
-    const { campaign, questionPoolIndex, blueTeam, redTeam } = get();
+    const { campaign, questionPoolIndex, blueTeam, redTeam, targetStages } = get();
 
-    // Check if either team has achieved 5 correct answers
-    if (blueTeam.stagesCleared >= 5) {
+    // Check if either team has achieved target correct answers
+    if (blueTeam.stagesCleared >= targetStages) {
       set({ winnerTeam: 'blue' });
       get().run12StepCinematicLaunch('blue');
       return;
     }
-    if (redTeam.stagesCleared >= 5) {
+    if (redTeam.stagesCleared >= targetStages) {
       set({ winnerTeam: 'red' });
       get().run12StepCinematicLaunch('red');
       return;
@@ -448,7 +487,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       activeChallenge: nextChallenge,
       timeRemaining: nextChallenge.timeLimit,
       timerActive: true,
-      toastMessage: `🚀 Q${nextPoolIdx + 1}: ${nextChallenge.stageTitle} (${blueTeam.stagesCleared}/5 vs ${redTeam.stagesCleared}/5)`,
+      toastMessage: `🚀 Q${nextPoolIdx + 1}: ${nextChallenge.stageTitle} (${blueTeam.stagesCleared}/${targetStages} vs ${redTeam.stagesCleared}/${targetStages})`,
       cameraTarget: 'overview',
       blueTeam: resetTeamForQuestion(s.blueTeam),
       redTeam: resetTeamForQuestion(s.redTeam),
@@ -498,6 +537,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       if (stepIdx >= steps.length) {
         clearLaunchInterval();
         soundManager.stopRocketSounds();
+        initialBoostManager.recordWinner(finalWinner, winnerName, 'Equation Mission Control');
         set({
           phase: 'mission-report',
           cameraTarget: 'overview',

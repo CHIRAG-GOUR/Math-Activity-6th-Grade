@@ -13,7 +13,7 @@ export type MathTopic =
 
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
-export type GameLength = 5 | 10 | 20;
+export type GameLength = 5 | 10 | 15 | 20;
 
 export type GamePhase =
   | 'start'

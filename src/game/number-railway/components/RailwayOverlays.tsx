@@ -185,9 +185,9 @@ export const RailwayTitleScreen: React.FC = () => {
             🎯 QUESTIONS:
           </span>
           <div className="flex items-center gap-1.5 sm:gap-2">
-            {([5, 10, 15] as const).map((cnt) => {
+            {([5, 10, 15, 20] as const).map((cnt) => {
               const isSelected = questionCountConfig === cnt;
-              const stageText = cnt === 5 ? '1 STAGE' : cnt === 10 ? '2 STAGES' : '3 STAGES';
+              const stageText = cnt === 5 ? '1 STAGE' : cnt === 10 ? '2 STAGES' : cnt === 15 ? '3 STAGES' : '4 STAGES';
               return (
                 <button
                   key={cnt}

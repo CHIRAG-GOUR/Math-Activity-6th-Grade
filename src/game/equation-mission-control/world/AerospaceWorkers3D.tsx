@@ -19,6 +19,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TeamId, LaunchStep } from '../types';
+import { useMissionControlStore } from '../store/missionControlStore';
 
 // Real-Time Dynamic 3D Laptop Screen Texture
 const LaptopScreenCanvasDecal: React.FC<{
@@ -26,6 +27,7 @@ const LaptopScreenCanvasDecal: React.FC<{
   stagesCleared: number;
   isCorrectPulse?: boolean;
 }> = ({ team, stagesCleared, isCorrectPulse = false }) => {
+  const targetStages = useMissionControlStore((s) => s.targetStages);
   const texture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
@@ -65,7 +67,7 @@ const LaptopScreenCanvasDecal: React.FC<{
     ctx.fillStyle = '#ffffff';
     ctx.font = '900 22px sans-serif';
     ctx.textAlign = 'left';
-    ctx.fillText(`🚀 ${isBlue ? 'BLUE' : 'RED'} WORKSTATION [${stagesCleared}/5]`, 18, 35);
+    ctx.fillText(`🚀 ${isBlue ? 'BLUE' : 'RED'} WORKSTATION [${stagesCleared}/${targetStages}]`, 18, 35);
 
     // Stage Step Details
     const STAGE_TITLES = [

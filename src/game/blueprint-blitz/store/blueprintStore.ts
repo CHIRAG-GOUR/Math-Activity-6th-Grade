@@ -25,15 +25,19 @@ import {
   getRandomChallenge,
 } from '../data/blueprintChallenges';
 import { blueprintAudio } from '../audio/blueprintAudio';
+import { initialBoostManager } from '@/utils/initialBoost';
 
 interface BlueprintBlitzStore {
   // Game lifecycle
   phase: GamePhase;
   currentRound: number;
-  maxRounds: number;
+  maxRounds: 5 | 10 | 15 | 20;
+  setMaxRounds: (rounds: 5 | 10 | 15 | 20) => void;
   activeChallenge: BlueprintChallenge | null;
   usedChallengeIds: string[];
   cameraFocus: 'overview' | 'blue' | 'red' | 'scanner' | 'podium';
+  toastMessage: string | null;
+  clearToast: () => void;
 
   // Shared Countdown Timer
   timeRemaining: number;
@@ -118,6 +122,9 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   redTeam: createInitialTeam('red', 'RED SQUAD'),
 
   winner: null,
+  toastMessage: null,
+  clearToast: () => set({ toastMessage: null }),
+  setMaxRounds: (rounds: 5 | 10 | 15 | 20) => set({ maxRounds: rounds }),
   settings: {
     roundDuration: 50,
     isMuted: false,
@@ -139,6 +146,17 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     };
     const initialRedBuild: TeamBuild = { ...initialBlueBuild };
 
+    // Check Initial Boost from previous game winner
+    const boost = initialBoostManager.getBoost();
+    const isBlueBoosted = boost?.winnerId === 'blue';
+    const isRedBoosted = boost?.winnerId === 'red';
+
+    let boostToast: string | null = null;
+    if (boost) {
+      const winnerName = boost.winnerId === 'blue' ? 'BLUE SQUAD' : 'RED SQUAD';
+      boostToast = `⚡ INITIAL BOOST: ${winnerName} starts with +1 Completed Build in the bag from winning ${boost.gameTitle}!`;
+    }
+
     set({
       phase: 'intro',
       currentRound: 1,
@@ -147,12 +165,17 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       timeRemaining: firstChallenge.timeLimit || 50,
       isTimerRunning: false,
       cameraFocus: 'overview',
+      toastMessage: boostToast,
       blueTeam: {
         ...createInitialTeam('blue', 'BLUE SQUAD'),
+        score: isBlueBoosted ? 100 : 0,
+        completedChallengesCount: isBlueBoosted ? 1 : 0,
         build: initialBlueBuild,
       },
       redTeam: {
         ...createInitialTeam('red', 'RED SQUAD'),
+        score: isRedBoosted ? 100 : 0,
+        completedChallengesCount: isRedBoosted ? 1 : 0,
         build: initialRedBuild,
       },
       winner: null,
@@ -480,7 +503,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   nextRound: () => {
     const { currentRound, maxRounds, usedChallengeIds, blueTeam, redTeam } = get();
 
-    if (currentRound >= maxRounds || blueTeam.completedChallengesCount >= 5 || redTeam.completedChallengesCount >= 5) {
+    if (currentRound >= maxRounds || blueTeam.completedChallengesCount >= maxRounds || redTeam.completedChallengesCount >= maxRounds) {
       // Game Over / Podium Phase - Winner Close-up on Completed Dream House
       blueprintAudio.playChampionshipVictory();
       const finalWinner: TeamId | 'tie' =
@@ -493,6 +516,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
               : redTeam.score > blueTeam.score
                 ? 'red'
                 : 'tie';
+
+      if (finalWinner !== 'tie') {
+        const winnerName = finalWinner === 'blue' ? blueTeam.name : redTeam.name;
+        initialBoostManager.recordWinner(finalWinner, winnerName, 'Blueprint Blitz');
+      }
 
       set({
         phase: 'game-over',

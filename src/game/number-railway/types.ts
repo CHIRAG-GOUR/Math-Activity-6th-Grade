@@ -179,7 +179,7 @@ export interface RailwayGameState {
   stations: StationInfo[];
   unlockedStationIds: string[];
   totalRounds: number;
-  questionCountConfig: 5 | 10 | 15;
+  questionCountConfig: 5 | 10 | 15 | 20;
   zoomLevel: number; // 0.7 .. 1.5
 
   isMuted: boolean;

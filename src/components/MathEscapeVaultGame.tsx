@@ -12,6 +12,7 @@ import {
 } from '@/types/game';
 import { generateQuestion, clearQuestionHistory } from '@/utils/questionGenerator';
 import { soundManager } from '@/utils/audio';
+import { initialBoostManager } from '@/utils/initialBoost';
 
 // Visual & Sub-Components
 import { Room3DScene } from './Room3DScene';
@@ -203,12 +204,42 @@ export const MathEscapeVaultGame: React.FC = () => {
     [settings, blueSkipNextRound, redSkipNextRound]
   );
 
+  const [boostToast, setBoostToast] = useState<string | null>(null);
+
   // Start Game
   const handleStartGame = () => {
     clearQuestionHistory();
-    setTeamBlue(createInitialTeam('blue', settings.teamBlueName));
-    setTeamRed(createInitialTeam('red', settings.teamRedName));
-    setCorrectCount(0);
+    const initialBlue = createInitialTeam('blue', settings.teamBlueName);
+    const initialRed = createInitialTeam('red', settings.teamRedName);
+
+    // Check Initial Boost from previous game winner
+    const boost = initialBoostManager.getBoost();
+    let startingCorrectCount = 0;
+    let initialSolvedTeam: 'blue' | 'red' | null = null;
+
+    if (boost) {
+      if (boost.winnerId === 'blue') {
+        initialBlue.score = 1;
+        initialBlue.keys = 1;
+        startingCorrectCount = 1;
+        initialSolvedTeam = 'blue';
+        setBoostToast(`⚡ INITIAL BOOST: ${settings.teamBlueName} starts +1 Vault Key ahead from winning ${boost.gameTitle}!`);
+      } else if (boost.winnerId === 'red') {
+        initialRed.score = 1;
+        initialRed.keys = 1;
+        startingCorrectCount = 1;
+        initialSolvedTeam = 'red';
+        setBoostToast(`⚡ INITIAL BOOST: ${settings.teamRedName} starts +1 Vault Key ahead from winning ${boost.gameTitle}!`);
+      }
+      setTimeout(() => setBoostToast(null), 5500);
+    } else {
+      setBoostToast(null);
+    }
+
+    setTeamBlue(initialBlue);
+    setTeamRed(initialRed);
+    setCorrectCount(startingCorrectCount);
+    setLastSolvedTeam(initialSolvedTeam);
     setBlueStrikes(0);
     setRedStrikes(0);
     setBlueAttempts(2);
@@ -277,12 +308,22 @@ export const MathEscapeVaultGame: React.FC = () => {
           setPhase('playing');
         }, 3200);
       } else {
+        // Record winner for cross-game Initial Boost
+        if (teamBlue.score > teamRed.score) {
+          initialBoostManager.recordWinner('blue', settings.teamBlueName, 'Math Escape Vault');
+        } else if (teamRed.score > teamBlue.score) {
+          initialBoostManager.recordWinner('red', settings.teamRedName, 'Math Escape Vault');
+        }
         setPhase('game_over');
       }
     } else if (isSuperTieBreaker) {
-      // Tie breaker ended without a victor: Police busts both!
+      // Tie breaker ended: determine victor or police bust
       if (teamBlue.score === teamRed.score) {
         setIsPoliceBusted(true);
+      } else if (teamBlue.score > teamRed.score) {
+        initialBoostManager.recordWinner('blue', settings.teamBlueName, 'Math Escape Vault');
+      } else if (teamRed.score > teamBlue.score) {
+        initialBoostManager.recordWinner('red', settings.teamRedName, 'Math Escape Vault');
       }
       setPhase('game_over');
     } else {
@@ -291,6 +332,8 @@ export const MathEscapeVaultGame: React.FC = () => {
   }, [
     currentRound,
     settings.totalRounds,
+    settings.teamBlueName,
+    settings.teamRedName,
     isSuperTieBreaker,
     teamBlue.score,
     teamRed.score,
@@ -604,6 +647,21 @@ export const MathEscapeVaultGame: React.FC = () => {
           style={{ transform: `scale(${globalZoom})`, transformOrigin: 'top center' }}
           className="relative w-full h-full flex flex-col items-center justify-between p-2 sm:p-3 md:p-4 z-30 transition-transform duration-200 overflow-hidden"
         >
+          {/* Initial Boost Toast Banner */}
+          <AnimatePresence>
+            {boostToast && (
+              <motion.div
+                initial={{ opacity: 0, y: -20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -20, scale: 0.95 }}
+                className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none select-none max-w-xl w-auto px-5 py-2.5 rounded-2xl bg-amber-400 text-slate-950 font-black font-game text-xs sm:text-sm tracking-wide shadow-2xl border-2 border-amber-600 flex items-center gap-2.5"
+              >
+                <Zap className="w-5 h-5 text-slate-950 fill-amber-300 animate-bounce" />
+                <span>{boostToast}</span>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           {/* Top Bar HUD with Round & Timer */}
           <BankTopHUD
             currentRound={currentRound}

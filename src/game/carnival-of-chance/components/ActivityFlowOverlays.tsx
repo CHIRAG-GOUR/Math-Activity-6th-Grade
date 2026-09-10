@@ -26,6 +26,8 @@ export const ActivityFlowOverlays: React.FC = () => {
   const runBatchTrials = useCarnivalStore((s) => s.runBatchTrials);
   const nextChallengeOrComplete = useCarnivalStore((s) => s.nextChallengeOrComplete);
   const returnToHub = useCarnivalStore((s) => s.returnToHub);
+  const questionCountConfig = useCarnivalStore((s) => s.questionCountConfig);
+  const setQuestionCount = useCarnivalStore((s) => s.setQuestionCount);
 
   if (activeActivity === 'hub') return null;
   const meta = ATTRACTIONS_META[activeActivity];
@@ -61,6 +63,29 @@ export const ActivityFlowOverlays: React.FC = () => {
               <p className="text-xs sm:text-sm font-bold text-black leading-relaxed">
                 {meta.description}
               </p>
+            </div>
+
+            {/* 5, 10, 15, 20 Questions Selector */}
+            <div className="mt-3 p-3 rounded-xl bg-yellow-200 border-3 border-black shadow-[3px_3px_0px_#000000] text-left">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-800 block mb-1.5">
+                SELECT ACTIVITY LENGTH:
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {([5, 10, 15, 20] as const).map((qCount) => (
+                  <button
+                    key={qCount}
+                    type="button"
+                    onClick={() => setQuestionCount(qCount)}
+                    className={`py-1.5 rounded-lg border-2 border-black font-black text-xs transition-all cursor-pointer ${
+                      questionCountConfig === qCount
+                        ? 'bg-red-600 text-yellow-300 shadow-[2px_2px_0px_#000000] scale-105'
+                        : 'bg-white text-black hover:bg-yellow-100 shadow-[1px_1px_0px_#000000]'
+                    }`}
+                  >
+                    {qCount} Qs
+                  </button>
+                ))}
+              </div>
             </div>
 
             {/* Ready to Operate Action Buttons */}

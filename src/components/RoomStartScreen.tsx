@@ -94,7 +94,7 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
     { id: 'medium', label: 'ADVANCED', timer: '20-30s', defaultSec: 25 },
     { id: 'hard', label: 'EXPERT', timer: '30-40s', defaultSec: 35 },
   ];
-  const lengths: GameLength[] = [5, 10, 20];
+  const lengths: GameLength[] = [5, 10, 15, 20];
 
   const handleEnterClick = () => {
     soundManager.playClick();
@@ -291,7 +291,7 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
             <span className="text-xs font-black uppercase tracking-widest text-slate-800 font-game flex items-center gap-1.5 mb-2">
               <Clock className="w-4 h-4 text-blue-600" /> HEIST ROUNDS
             </span>
-            <div className="grid grid-cols-3 gap-1.5">
+            <div className="grid grid-cols-4 gap-1.5">
               {lengths.map((l) => (
                 <button
                   key={l}

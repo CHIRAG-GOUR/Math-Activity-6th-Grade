@@ -19,6 +19,7 @@ import {
 } from '../types';
 import { ROUNDS, NETWORK_STATIONS, getTieBreaker, buildRounds } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
+import { initialBoostManager } from '@/utils/initialBoost';
 
 const createTeamState = (id: TeamId, customName?: string): TeamState => ({
   id,
@@ -79,7 +80,7 @@ const clearTravel = () => {
 interface RailwayActions {
   setPhase: (phase: GamePhase) => void;
   setTeamName: (team: TeamId, name: string) => void;
-  setQuestionCountConfig: (count: 5 | 10 | 15) => void;
+  setQuestionCountConfig: (count: 5 | 10 | 15 | 20) => void;
   setTotalRounds: (n: number) => void;
   startGame: () => void;
   startRound: (index: number) => void;
@@ -244,7 +245,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
   startGame: () => {
     clearTravel();
     const count = get().questionCountConfig;
-    const roundsNeeded = count === 15 ? 3 : count === 10 ? 2 : 1;
+    const roundsNeeded = count === 20 ? 4 : count === 15 ? 3 : count === 10 ? 2 : 1;
     const freshRounds = buildRounds(roundsNeeded);
     const firstRound = freshRounds[0];
     soundManager.startRailwayBgm(0.40);
@@ -252,6 +253,21 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     setTimeout(() => {
       soundManager.playTrainBells(3000);
     }, 600);
+
+    // Initial Boost Check
+    const boost = initialBoostManager.getBoost();
+    const isBlueBoosted = boost?.winnerId === 'blue';
+    const isRedBoosted = boost?.winnerId === 'red';
+
+    const bluePassengers: OnboardPassenger[] = isBlueBoosted ? [{ id: 'boost-blue-p1', team: 'blue', seatIndex: 0 }] : [];
+    const redPassengers: OnboardPassenger[] = isRedBoosted ? [{ id: 'boost-red-p1', team: 'red', seatIndex: 0 }] : [];
+    const initialPassengers = [...bluePassengers, ...redPassengers];
+
+    let toastText: string | null = null;
+    if (boost) {
+      const winnerTeamName = boost.winnerId === 'blue' ? get().blueTeam.name : get().redTeam.name;
+      toastText = `⚡ INITIAL BOOST: ${winnerTeamName} starts +1 Correct Answer & 1 Step Ahead from winning ${boost.gameTitle}!`;
+    }
 
     set((s) => ({
       phase: 'round-intro',
@@ -261,12 +277,38 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       questionIndexInRound: 0,
       activeChallenge: firstRound.questions[0],
       isTieBreak: false,
-      blueTeam: { ...s.blueTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null, attemptsLeft: 2 },
-      redTeam: { ...s.redTeam, score: 0, roundScore: 0, streak: 0, correctAnswersCount: 0, roundCorrect: 0, roundsWon: 0, selectedAnswer: null, isLocked: false, lastResult: null, lastFeedback: null, attemptsLeft: 2 },
+      blueTeam: {
+        ...s.blueTeam,
+        score: isBlueBoosted ? 100 : 0,
+        roundScore: isBlueBoosted ? 100 : 0,
+        streak: isBlueBoosted ? 1 : 0,
+        correctAnswersCount: isBlueBoosted ? 1 : 0,
+        roundCorrect: isBlueBoosted ? 1 : 0,
+        roundsWon: 0,
+        selectedAnswer: null,
+        isLocked: false,
+        lastResult: null,
+        lastFeedback: null,
+        attemptsLeft: 2,
+      },
+      redTeam: {
+        ...s.redTeam,
+        score: isRedBoosted ? 100 : 0,
+        roundScore: isRedBoosted ? 100 : 0,
+        streak: isRedBoosted ? 1 : 0,
+        correctAnswersCount: isRedBoosted ? 1 : 0,
+        roundCorrect: isRedBoosted ? 1 : 0,
+        roundsWon: 0,
+        selectedAnswer: null,
+        isLocked: false,
+        lastResult: null,
+        lastFeedback: null,
+        attemptsLeft: 2,
+      },
       roundWinner: null,
       matchWinner: null,
-      signalsGreenCount: 0,
-      onboardPassengers: [],
+      signalsGreenCount: (isBlueBoosted || isRedBoosted) ? 1 : 0,
+      onboardPassengers: initialPassengers,
       signalBlue: 'red',
       signalRed: 'red',
       signal1Blue: 'red',
@@ -276,12 +318,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       switchTarget: 'neutral',
       showdownStep: 'idle',
       activeRoute: null,
-      blueTrain: idleTrain(),
-      redTrain: idleTrain(),
+      blueTrain: isBlueBoosted ? { ...idleTrain(), progress: 0.095, state: 'moving' } : idleTrain(),
+      redTrain: isRedBoosted ? { ...idleTrain(), progress: 0.095, state: 'moving' } : idleTrain(),
       unlockedStationIds: [NETWORK_STATIONS[0].id],
       timeRemaining: firstRound.questions[0].timeLimit,
       timerActive: false,
-      toastMessage: null,
+      toastMessage: toastText,
     }));
   },
 
@@ -796,6 +838,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
               : get().redTeam.score > get().blueTeam.score
                 ? 'red'
                 : 'draw';
+
+      if (matchWinner === 'blue') {
+        initialBoostManager.recordWinner('blue', get().blueTeam.name, 'The Great Number Railway');
+      } else if (matchWinner === 'red') {
+        initialBoostManager.recordWinner('red', get().redTeam.name, 'The Great Number Railway');
+      }
 
       set({
         phase: 'network-complete',

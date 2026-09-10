@@ -20,6 +20,7 @@ import {
 } from '../types';
 import { ATTRACTIONS_META, CARNIVAL_CHALLENGES } from '../engine/probabilityData';
 import { carnivalAudio } from '../audio/CarnivalAudioManager';
+import { initialBoostManager } from '@/utils/initialBoost';
 
 interface CarnivalState {
   // Activity Lifecycle & Isolation
@@ -46,6 +47,10 @@ interface CarnivalState {
   // Round Countdown Timer
   timeRemaining: number;
   timerActive: boolean;
+
+  // Question Configuration (5, 10, 15, 20)
+  questionCountConfig: 5 | 10 | 15 | 20;
+  setQuestionCount: (count: 5 | 10 | 15 | 20) => void;
 
   // Actions
   openActivity: (id: ActivityId) => void;
@@ -99,17 +104,33 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
   timeRemaining: 50,
   timerActive: false,
 
+  questionCountConfig: 5,
+  setQuestionCount: (count: 5 | 10 | 15 | 20) => set({ questionCountConfig: count }),
+
   openActivity: (id: ActivityId) => {
     if (id === 'hub') {
       get().returnToHub();
       return;
     }
 
-    const challenges = CARNIVAL_CHALLENGES[id] || [];
+    const allChallenges = CARNIVAL_CHALLENGES[id] || [];
+    const count = get().questionCountConfig;
+    const challenges = allChallenges.slice(0, count);
     const firstChallenge = challenges[0] || null;
 
     carnivalAudio.startBGM();
     carnivalAudio.playBagOpen();
+
+    // Check Initial Boost from previous game winner
+    const boost = initialBoostManager.getBoost();
+    const isBlueBoosted = boost?.winnerId === 'blue';
+    const isRedBoosted = boost?.winnerId === 'red';
+
+    let boostToast: string | null = null;
+    if (boost) {
+      const winnerName = boost.winnerId === 'blue' ? get().blueTeam.name : get().redTeam.name;
+      boostToast = `⚡ INITIAL BOOST: ${winnerName} starts with +1 Correct Answer & 1 Gold Ticket in the bag from winning ${boost.gameTitle}!`;
+    }
 
     set((state) => ({
       activeActivity: id,
@@ -118,33 +139,35 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       challengeIndex: 0,
       totalChallengesInActivity: challenges.length,
       activityWinner: null,
-      toastMessage: null,
+      toastMessage: boostToast,
       drawnOutcome: null,
       batchTrialResults: [],
       timeRemaining: 50,
       timerActive: true,
       blueTeam: {
         ...state.blueTeam,
-        activityScore: 0,
+        activityScore: isBlueBoosted ? 100 : 0,
+        goldTickets: isBlueBoosted ? state.blueTeam.goldTickets + 1 : state.blueTeam.goldTickets,
         selectedChoiceId: null,
         isConfirmed: false,
         isLocked: false,
         isCorrect: null,
         lastResult: null,
-        scoreGained: 0,
-        correctAnswersCount: 0,
+        scoreGained: isBlueBoosted ? 100 : 0,
+        correctAnswersCount: isBlueBoosted ? 1 : 0,
         attemptsLeft: 2,
       },
       redTeam: {
         ...state.redTeam,
-        activityScore: 0,
+        activityScore: isRedBoosted ? 100 : 0,
+        goldTickets: isRedBoosted ? state.redTeam.goldTickets + 1 : state.redTeam.goldTickets,
         selectedChoiceId: null,
         isConfirmed: false,
         isLocked: false,
         isCorrect: null,
         lastResult: null,
-        scoreGained: 0,
-        correctAnswersCount: 0,
+        scoreGained: isRedBoosted ? 100 : 0,
+        correctAnswersCount: isRedBoosted ? 1 : 0,
         attemptsLeft: 2,
       },
     }));
@@ -376,8 +399,9 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
   },
 
   nextChallengeOrComplete: () => {
-    const { activeActivity, challengeIndex, attractions, blueTeam, redTeam } = get();
-    const challenges = CARNIVAL_CHALLENGES[activeActivity] || [];
+    const { activeActivity, challengeIndex, attractions, blueTeam, redTeam, questionCountConfig } = get();
+    const allChallenges = CARNIVAL_CHALLENGES[activeActivity] || [];
+    const challenges = allChallenges.slice(0, questionCountConfig);
     const nextIdx = challengeIndex + 1;
 
     if (nextIdx < challenges.length) {
@@ -413,7 +437,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       }));
     } else {
       // ═══════════════════════════════════════════════════════════════
-      // ATTRACTION COMPLETED: DECIDE WINNER
+      // ATTRACTION COMPLETED: DECIDE WINNER & RECORD INITIAL BOOST
       // ═══════════════════════════════════════════════════════════════
       let winner: TeamId | 'tie' = 'tie';
       let updatedBlue = { ...blueTeam };
@@ -422,9 +446,11 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       if (blueTeam.activityScore > redTeam.activityScore) {
         winner = 'blue';
         updatedBlue.goldTickets += 2;
+        initialBoostManager.recordWinner('blue', blueTeam.name, 'Carnival of Chance');
       } else if (redTeam.activityScore > blueTeam.activityScore) {
         winner = 'red';
         updatedRed.goldTickets += 2;
+        initialBoostManager.recordWinner('red', redTeam.name, 'Carnival of Chance');
       } else {
         winner = 'tie';
         updatedBlue.goldTickets += 1;

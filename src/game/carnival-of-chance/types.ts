@@ -22,6 +22,8 @@ export type BloomLevel =
 
 export type TeamId = 'blue' | 'red';
 
+export type CarnivalQuestionCount = 5 | 10 | 15 | 20;
+
 export type ActivityPhase =
   | 'intro'            // Challenge presentation & physical machine reveal
   | 'predicting'       // Both teams selecting/configuring predictions simultaneously

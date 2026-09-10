@@ -25,6 +25,7 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
   const otherTeamState = useMissionControlStore((s) => (isBlue ? s.redTeam : s.blueTeam));
   const challenge = useMissionControlStore((s) => s.activeChallenge);
   const stageIndex = useMissionControlStore((s) => s.currentStageIndex);
+  const targetStages = useMissionControlStore((s) => s.targetStages);
   const phase = useMissionControlStore((s) => s.phase);
 
   // Store actions
@@ -121,12 +122,12 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
           <div className="flex items-center gap-1 shrink-0">
             <span
               className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
-                teamState.stagesCleared >= 4
+                teamState.stagesCleared >= (targetStages - 1)
                   ? 'bg-emerald-500 text-white border-emerald-600 animate-pulse'
                   : 'bg-slate-100 border-slate-300 text-slate-700'
               }`}
             >
-              {teamState.stagesCleared}/5 GO
+              {teamState.stagesCleared}/{targetStages} GO
             </span>
             <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-white border border-slate-300 text-slate-800">
               +{challenge.points}P
@@ -135,7 +136,7 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
         </div>
       ) : null}
 
-      {/* ── 3. 5-Step Subsystem Physical Preparation Bar ── */}
+      {/* ── 3. Subsystem Physical Preparation Bar ── */}
       <div className="px-2 py-1 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-1">
         {[
           { icon: '💻', desc: 'AVN' },

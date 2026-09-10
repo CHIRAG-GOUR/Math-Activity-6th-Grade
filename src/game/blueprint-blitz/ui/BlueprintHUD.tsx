@@ -38,6 +38,7 @@ export const BlueprintHUD: React.FC = () => {
     phase,
     currentRound,
     maxRounds,
+    setMaxRounds,
     timeRemaining,
     isTimerRunning,
     tickTimer,
@@ -45,6 +46,7 @@ export const BlueprintHUD: React.FC = () => {
     blueTeam,
     redTeam,
     settings,
+    toastMessage,
     toggleMute,
     startBriefing,
     startBuilding,
@@ -93,6 +95,14 @@ export const BlueprintHUD: React.FC = () => {
 
   return (
     <div className="absolute inset-0 pointer-events-none z-10 flex flex-col justify-between p-3 sm:p-4 select-none">
+      {/* ── NON-BLOCKING INITIAL BOOST / MATCH TOAST ── */}
+      {toastMessage && (
+        <div className="fixed top-18 left-1/2 -translate-x-1/2 z-50 pointer-events-none select-none max-w-xl w-auto px-5 py-2.5 rounded-2xl bg-amber-300 border-4 border-slate-950 text-slate-950 font-black text-xs sm:text-sm tracking-wide shadow-2xl flex items-center gap-2.5 animate-bounce">
+          <span>⚡</span>
+          <span>{toastMessage}</span>
+        </div>
+      )}
+
       {/* ── TOP INDUSTRIAL GANTRY & PROJECT MISSION SIGNBOARD (Always Prominent) ── */}
       <div className="w-full flex flex-col items-center gap-2 pointer-events-none z-30 shrink-0">
         {/* Row 1: Header Bar with Brand, Round Badge, Timer & Sound Controls */}
@@ -290,14 +300,34 @@ export const BlueprintHUD: React.FC = () => {
               <p className="text-base text-amber-800 font-black mt-1 uppercase tracking-wider">
                 BUILD IT • MEASURE IT • BEAT THE CLOCK
               </p>
-              <p className="text-sm text-slate-700 mt-4 leading-relaxed max-w-lg mx-auto font-medium">
-                Step onto the live sunny 3D construction site! Blue Team (Left) and Red Team (Right) operate physical workstations, manipulate floor dimensions, stack 3D unit cubes, select building materials, and satisfy precision blueprint tolerances.
-              </p>
+            </div>
+
+            {/* 5, 10, 15, 20 Rounds Selector */}
+            <div className="w-full max-w-md p-3.5 rounded-2xl bg-amber-200 border-3 border-slate-950 text-left shadow-md">
+              <span className="text-[10px] font-black uppercase tracking-wider text-amber-950 block mb-1.5">
+                SELECT GAME LENGTH (ROUNDS / QUESTIONS):
+              </span>
+              <div className="grid grid-cols-4 gap-2">
+                {([5, 10, 15, 20] as const).map((rCount) => (
+                  <button
+                    key={rCount}
+                    type="button"
+                    onClick={() => setMaxRounds(rCount)}
+                    className={`py-2 rounded-xl border-2 border-slate-950 font-black text-xs transition-all cursor-pointer ${
+                      maxRounds === rCount
+                        ? 'bg-amber-400 text-slate-950 shadow-[2px_2px_0px_#000000] scale-105'
+                        : 'bg-white text-slate-900 hover:bg-amber-100 shadow-[1px_1px_0px_#000000]'
+                    }`}
+                  >
+                    {rCount} Rounds
+                  </button>
+                ))}
+              </div>
             </div>
 
             <button
               onClick={startBriefing}
-              className="py-4 px-8 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-lg uppercase tracking-wider flex items-center gap-3 shadow-xl transition-all border-3 border-slate-950"
+              className="py-4 px-8 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-lg uppercase tracking-wider flex items-center gap-3 shadow-xl transition-all border-3 border-slate-950 cursor-pointer"
             >
               <span>ENTER WORK SITE & START</span>
               <Play className="w-6 h-6 fill-current" />
