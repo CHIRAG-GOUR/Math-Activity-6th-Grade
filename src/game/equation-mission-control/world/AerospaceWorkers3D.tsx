@@ -385,27 +385,11 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       return;
     }
 
-    // 3. Central Operator Discussion Reaction
+    // 3. Central Operator Focus
     if (isCentralOperator) {
-      const loopTime = time % 15.0;
-      const isDiscussing = loopTime >= 12.0 && loopTime < 15.0;
-      const cycleIndex = Math.floor(time / 15.0);
-      const rovingIsLeft = cycleIndex % 2 === 0;
-
-      if (isDiscussing) {
-        if (headRef.current) {
-          headRef.current.rotation.y = (rovingIsLeft ? 0.35 : -0.35) + Math.sin(time * 4) * 0.12;
-          headRef.current.rotation.x = 0.1 + Math.sin(time * 6) * 0.08;
-        }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.1 + Math.sin(time * 3) * 0.2;
-          rightArmRef.current.rotation.y = rovingIsLeft ? -0.4 : 0.4;
-        }
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -0.9 + Math.cos(time * 3) * 0.15;
-          leftArmRef.current.rotation.y = 0.1;
-        }
-        return;
+      if (headRef.current) {
+        headRef.current.rotation.x = 0.38 + Math.sin(time * 2) * 0.04;
+        headRef.current.rotation.y = Math.sin(time * 1.5) * 0.06;
       }
     }
 
@@ -447,42 +431,43 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       }
     }
 
-    // ── ROLE: FLIGHT DIRECTOR ──
+    // ── ROLE: FLIGHT DIRECTOR (Facing computer desk, looking down at screen & typing) ──
     else if (job === 'flight-director') {
-      const cycleTime = (time + (isBlue ? 0 : 4.5)) % 9.0;
+      // Rapid active keyboard typing & telemetry data entry
+      const typePhase = (time * 14 + (isBlue ? 0 : 3.5)) % (Math.PI * 2);
+      const shiftPhase = (time * 0.8) % 6.0;
 
-      if (cycleTime < 4.0) {
+      if (shiftPhase < 4.5) {
+        // Fast dual-hand typing on laptop keyboard
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.1 + Math.sin(time * 11) * 0.08;
-          rightArmRef.current.rotation.y = -0.2;
+          rightArmRef.current.rotation.x = -1.22 + Math.sin(typePhase) * 0.04;
+          rightArmRef.current.rotation.y = -0.16;
+          rightArmRef.current.rotation.z = 0.05;
         }
         if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -1.1 + Math.cos(time * 11) * 0.08;
-          leftArmRef.current.rotation.y = 0.2;
+          leftArmRef.current.rotation.x = -1.22 + Math.cos(typePhase) * 0.04;
+          leftArmRef.current.rotation.y = 0.16;
+          leftArmRef.current.rotation.z = -0.05;
         }
         if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(time * 2.2) * 0.28;
-          headRef.current.rotation.x = 0.14;
-        }
-      } else if (cycleTime < 7.0) {
-        const sipP = (cycleTime - 4.0) / 3.0;
-        const sipCurve = Math.sin(sipP * Math.PI);
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = THREE.MathUtils.lerp(-1.1, -1.95, sipCurve);
-          rightArmRef.current.rotation.y = THREE.MathUtils.lerp(-0.2, -0.45, sipCurve);
-        }
-        if (headRef.current) {
-          headRef.current.rotation.x = THREE.MathUtils.lerp(0.14, -0.22, sipCurve);
-          headRef.current.rotation.y = 0;
+          // Head tilted down toward laptop screen and monitors
+          headRef.current.rotation.x = 0.38 + Math.sin(time * 2) * 0.03;
+          headRef.current.rotation.y = Math.sin(time * 1.5) * 0.08;
         }
       } else {
+        // Right hand moves to trackpad / auxiliary controls, left hand stays on keys
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.35 + Math.sin(time * 3) * 0.15;
-          rightArmRef.current.rotation.y = -0.15;
+          rightArmRef.current.rotation.x = -1.18 + Math.sin(time * 6) * 0.03;
+          rightArmRef.current.rotation.y = -0.28;
+          rightArmRef.current.rotation.z = 0.08;
+        }
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -1.25;
+          leftArmRef.current.rotation.y = 0.14;
         }
         if (headRef.current) {
-          headRef.current.rotation.x = 0.1;
-          headRef.current.rotation.y = 0.2;
+          headRef.current.rotation.x = 0.35;
+          headRef.current.rotation.y = 0.12;
         }
       }
     }
@@ -980,10 +965,10 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         isCorrectPulse={blueCheering}
       />
 
-      {/* Blue Worker 1: Lead Flight Director */}
+      {/* Blue Worker 1: Lead Flight Director (Standing in front of computer, facing computer screen & typing) */}
       <AerospaceCharacter
-        initialPos={[-9.8, 0, 3.0]}
-        rotationY={-3.0}
+        initialPos={[-9.55, 0, 2.92]}
+        rotationY={3.59}
         team="blue"
         job="flight-director"
         isEvacuated={isGlobalEvac}
@@ -1042,10 +1027,10 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         isCorrectPulse={redCheering}
       />
 
-      {/* Red Worker 1: Lead Flight Director */}
+      {/* Red Worker 1: Lead Flight Director (Standing in front of computer, facing computer screen & typing) */}
       <AerospaceCharacter
-        initialPos={[9.8, 0, 3.0]}
-        rotationY={3.0}
+        initialPos={[9.55, 0, 2.92]}
+        rotationY={2.69}
         team="red"
         job="flight-director"
         isEvacuated={isGlobalEvac}
@@ -1103,10 +1088,10 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         stagesCleared={Math.max(blueStagesCleared, redStagesCleared)}
       />
 
-      {/* Central Flight Marshall */}
+      {/* Central Flight Marshall (Standing in front of computer, facing computer screen & typing) */}
       <AerospaceCharacter
-        initialPos={[0, 0, 4.0]}
-        rotationY={3.14}
+        initialPos={[0, 0, 3.95]}
+        rotationY={3.14159}
         team="blue"
         job="flight-director"
         isEvacuated={isGlobalEvac}

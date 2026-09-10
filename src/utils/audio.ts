@@ -166,6 +166,19 @@ class SoundEngine {
     } catch {}
   }
 
+  public stopRocketSounds() {
+    try {
+      if (this.rocketLaunch1Audio) {
+        this.rocketLaunch1Audio.pause();
+        this.rocketLaunch1Audio.currentTime = 0;
+      }
+      if (this.rocketLaunch2Audio) {
+        this.rocketLaunch2Audio.pause();
+        this.rocketLaunch2Audio.currentTime = 0;
+      }
+    } catch {}
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.bgmAudio) {

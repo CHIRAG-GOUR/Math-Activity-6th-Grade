@@ -283,6 +283,7 @@ export const MissionControlOverlays: React.FC = () => {
             <div className="flex gap-3 w-full justify-center mt-1">
               <button
                 onClick={() => {
+                  soundManager.stopRocketSounds();
                   soundManager.play('powerup');
                   startGame();
                 }}

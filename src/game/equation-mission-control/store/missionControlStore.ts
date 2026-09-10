@@ -169,7 +169,8 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   startGame: () => {
     clearLaunchInterval();
     clearAutoAdvance();
-    const camp = generateDynamicCampaign(Math.floor(Math.random() * 100));
+    soundManager.stopRocketSounds();
+    const camp = generateDynamicCampaign(Math.floor(Math.random() * 1000));
     soundManager.startSpacecraftBgm(0.40);
     soundManager.play('powerup');
 
@@ -284,11 +285,8 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
         updatedShip.serviceArmsAngle = 0.8;
         updatedShip.isWeldingActive = false;
 
-        // Play authentic brakes loosening pneumatic release sound and green signal chime
-        soundManager.playBrakesRelease();
-        setTimeout(() => {
-          soundManager.playGreenSignalChime();
-        }, 350);
+        // Play authentic green signal chime
+        soundManager.playGreenSignalChime();
       } else if (newStagesCleared >= 5) {
         // Step 5: Final Armed -> CLAMPS RELEASED & READY FOR LIFTOFF!
         updatedShip.stage5Armed = true;
@@ -499,6 +497,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     launchInterval = setInterval(() => {
       if (stepIdx >= steps.length) {
         clearLaunchInterval();
+        soundManager.stopRocketSounds();
         set({
           phase: 'mission-report',
           cameraTarget: 'overview',
@@ -511,15 +510,20 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       const currentStep = steps[stepIdx];
       stepIdx++;
 
-      // Trigger Authentic Sound Synthesis Per Step
-      if (currentStep === 'arming') soundManager.play('alarm');
-      if (currentStep === 'hazard-lights') soundManager.playRocketSirens();
-      if (currentStep === 'umbilical-retract') soundManager.playVaultGear();
-      if (currentStep === 'clamp-release') soundManager.playVaultGear();
-      if (currentStep === 'ignition') soundManager.playRocketIgnition();
-      if (currentStep === 'thrust-ramp') soundManager.playRocketThrustRamp();
-      if (currentStep === 'liftoff') soundManager.playRocketLiftoff();
-      if (currentStep === 'complete') soundManager.playVictoryFanfare();
+      // Authentic Rocket Launch Audio & Warning Sirens (No Car/Gear Noises)
+      if (currentStep === 'arming' || currentStep === 'hazard-lights') {
+        soundManager.playRocketSirens();
+      }
+      if (currentStep === 'ignition') {
+        soundManager.playRocketLaunch1();
+      }
+      if (currentStep === 'thrust-ramp' || currentStep === 'liftoff') {
+        soundManager.playRocketLaunch2();
+      }
+      if (currentStep === 'complete') {
+        soundManager.stopRocketSounds();
+        soundManager.playVictoryFanfare();
+      }
 
       set((s) => {
         // Function to update the winning hero spacecraft
