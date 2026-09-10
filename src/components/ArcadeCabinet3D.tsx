@@ -67,6 +67,8 @@ export const ArcadeCabinet3D: React.FC<{
   const screenMeshRef = useRef<THREE.Mesh>(null);
 
   const [hovered, setHovered] = useState(false);
+  const [coinHovered, setCoinHovered] = useState(false);
+  const [coinInserted, setCoinInserted] = useState(false);
   const [screenTex, setScreenTex] = useState<THREE.Texture | null>(null);
 
   // Load Game Artwork Texture for CRT screen
@@ -417,22 +419,29 @@ export const ArcadeCabinet3D: React.FC<{
     }
   });
 
-  const handleClick = (e: any) => {
-    e.stopPropagation();
+  const handleCoinInsert = (e?: any) => {
+    if (e && e.stopPropagation) {
+      e.stopPropagation();
+    }
     if (config.status === 'active' && config.route !== '#') {
+      setCoinInserted(true);
       soundManager.playArcadeGameStart();
       if (onSelect) {
         onSelect(config.id);
       }
       setTimeout(() => {
         router.push(config.route);
-      }, 260);
+      }, 350);
     } else {
       soundManager.playClick();
       if (onSelect) {
         onSelect(config.id);
       }
     }
+  };
+
+  const handleClick = (e: any) => {
+    handleCoinInsert(e);
   };
 
   const activeScreenTexture = config.status === 'active' ? (screenTex || proceduralScreenTexture) : proceduralScreenTexture;
@@ -505,7 +514,19 @@ export const ArcadeCabinet3D: React.FC<{
 
           {/* Dual 25¢ Coin Reject Inserts with Glowing Orange/Red Buttons */}
           {[-0.16, 0.16].map((cx, i) => (
-            <group key={`coin-${i}`} position={[cx, 0.18, 0.035]}>
+            <group
+              key={`coin-${i}`}
+              position={[cx, 0.18, 0.035]}
+              onClick={handleCoinInsert}
+              onPointerOver={(e) => {
+                e.stopPropagation();
+                setCoinHovered(true);
+                document.body.style.cursor = 'pointer';
+              }}
+              onPointerOut={() => {
+                setCoinHovered(false);
+              }}
+            >
               <mesh castShadow>
                 <boxGeometry args={[0.18, 0.24, 0.03]} />
                 <meshStandardMaterial color="#1e293b" metalness={0.9} />
@@ -513,9 +534,9 @@ export const ArcadeCabinet3D: React.FC<{
               <mesh position={[0, 0, 0.02]}>
                 <boxGeometry args={[0.13, 0.16, 0.02]} />
                 <meshStandardMaterial
-                  color="#ef4444"
-                  emissive="#dc2626"
-                  emissiveIntensity={0.8}
+                  color={coinInserted ? '#10b981' : coinHovered ? '#fbbf24' : '#ef4444'}
+                  emissive={coinInserted ? '#059669' : coinHovered ? '#f59e0b' : '#dc2626'}
+                  emissiveIntensity={coinInserted ? 2.0 : coinHovered ? 1.6 : 0.8}
                   roughness={0.2}
                 />
               </mesh>
@@ -526,11 +547,62 @@ export const ArcadeCabinet3D: React.FC<{
             </group>
           ))}
 
+          {/* Metal Keyhole Lock */}
           <mesh position={[0, -0.22, 0.035]}>
             <cylinderGeometry args={[0.045, 0.045, 0.02, 16]} />
             <meshStandardMaterial color="#fbbf24" metalness={0.95} roughness={0.2} />
           </mesh>
         </group>
+
+        {/* ── INTERACTIVE 3D "INSERT COIN" BUTTON ON LOWER COIN DOOR ── */}
+        <Html position={[0, -0.15, 0.76]} center distanceFactor={13.5}>
+          <div
+            className={`flex flex-col items-center select-none transition-all duration-300 transform pointer-events-auto cursor-pointer ${
+              hovered || coinHovered ? 'scale-110 -translate-y-1' : 'scale-100'
+            }`}
+            onClick={handleCoinInsert}
+            onMouseEnter={() => setCoinHovered(true)}
+            onMouseLeave={() => setCoinHovered(false)}
+          >
+            {config.status === 'active' ? (
+              <button
+                type="button"
+                className={`px-3 py-1.5 rounded-2xl shadow-xl flex items-center gap-1.5 border-2 transition-all duration-200 cursor-pointer ${
+                  coinInserted
+                    ? 'bg-emerald-500 text-slate-950 border-emerald-300 scale-110 shadow-emerald-400/80'
+                    : coinHovered
+                    ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 border-white shadow-amber-400/90 scale-105'
+                    : 'bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 border-amber-300 shadow-amber-500/50'
+                }`}
+                style={{
+                  boxShadow: coinInserted
+                    ? '0 0 24px #10b981, 0 4px 12px rgba(0,0,0,0.5)'
+                    : coinHovered
+                    ? `0 0 20px ${config.theme.tMoldingEmissive || '#fbbf24'}, 0 6px 14px rgba(0,0,0,0.4)`
+                    : `0 0 12px ${config.theme.tMoldingColor || '#f59e0b'}88, 0 4px 10px rgba(0,0,0,0.3)`,
+                }}
+                title={`Insert Coin to play ${config.title}`}
+              >
+                <span className="text-sm leading-none animate-bounce">🪙</span>
+                <div className="flex flex-col items-start leading-none text-left">
+                  <span className="text-[9.5px] font-black font-game uppercase tracking-wider text-slate-950">
+                    {coinInserted ? 'COIN INSERTED!' : 'INSERT COIN'}
+                  </span>
+                  <span className="text-[7.5px] font-extrabold text-amber-950 uppercase tracking-tight">
+                    {coinInserted ? 'STARTING GAME...' : '25¢ • CLICK TO PLAY'}
+                  </span>
+                </div>
+                <span className="bg-slate-950 text-amber-300 px-1.5 py-0.5 rounded-md text-[8px] font-black ml-0.5 shadow-xs">
+                  PLAY →
+                </span>
+              </button>
+            ) : (
+              <div className="px-2.5 py-1 rounded-xl bg-slate-900/90 border border-slate-700 text-slate-400 text-[8px] font-game uppercase tracking-wider backdrop-blur-md">
+                🔒 LOCKED
+              </div>
+            )}
+          </div>
+        </Html>
       </group>
 
       {/* ── ANGLED 3D CONTROL PANEL DECK (`y = 1.68, z = 0.58`) ── */}
