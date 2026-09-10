@@ -18,7 +18,9 @@ export const AvionicsAssembly3D: React.FC = () => {
   const dataFlowRef = useRef<THREE.Mesh>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const avionicsPower = useMissionControlStore((s) => s.spacecraft.avionicsPower);
+  const avionicsPower = useMissionControlStore(
+    (s) => s.blueSpacecraft.stage1StructureDone || s.redSpacecraft.stage1StructureDone
+  );
 
   useFrame(() => {
     if (terminalGlowRef.current) {

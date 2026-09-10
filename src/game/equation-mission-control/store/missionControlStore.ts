@@ -1,6 +1,7 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Zustand Store Orchestrator
-// Full State Management for Dual-Team 3D Spacecraft Launch
+// EQUATION MISSION CONTROL 2.0 — Zustand Store Orchestrator
+// Full State Management for Dual 3D Spacecraft Launch Facility
+// Independent Blue & Red Rocket Preparation & Liftoff
 // ============================================================
 
 import { create } from 'zustand';
@@ -8,7 +9,6 @@ import {
   GamePhase,
   TeamId,
   StageIndex,
-  MissionStageId,
   TeamControlState,
   Spacecraft3DState,
   MissionChallenge,
@@ -20,7 +20,7 @@ import { soundManager } from '@/utils/audio';
 
 const createDefaultTeamState = (id: TeamId, name?: string): TeamControlState => ({
   id,
-  name: name || (id === 'blue' ? 'BLUE MISSION CONTROL' : 'RED MISSION CONTROL'),
+  name: name || (id === 'blue' ? 'BLUE TEAM' : 'RED TEAM'),
   score: 0,
   stageScore: 0,
   streak: 0,
@@ -52,31 +52,31 @@ const createDefaultTeamState = (id: TeamId, name?: string): TeamControlState => 
   isArmed: false,
 });
 
-const defaultSpacecraftState = (): Spacecraft3DState => ({
-  avionicsPower: false,
-  cockpitGlowIntensity: 0,
-  hudSystemsActive: false,
+const createDefaultSpacecraftState = (team: TeamId): Spacecraft3DState => ({
+  team,
+  stage1StructureDone: false,
+  stage2FuelDone: false,
+  stage3EngineDone: false,
+  stage4NavDone: false,
+  stage5Armed: false,
 
+  cockpitGlowIntensity: 0.2,
   fuelTankPercent: 0,
-  fuelPipesConnected: true,
+  fuelArmConnected: false,
   ventingVapor: false,
-
-  enginePowerGrid: false,
   engineGlowIntensity: 0,
-  turbineSpinSpeed: 0,
-
-  navAlignmentLocked: false,
   gimbalPitchAngle: 0,
-  targetVectorLocked: false,
-
-  launchStage: 'idle',
+  antennaDeployed: false,
   serviceArmsAngle: 0,
   clampsReleased: false,
+
+  launchStage: 'idle',
   altitude: 0,
   ascentVelocity: 0,
   exhaustFlameScale: 0,
   smokeVolume: 0,
-  cameraTrackOffset: 0,
+  flagWaveSpeed: 1,
+  flagProminence: 1,
 });
 
 let launchInterval: ReturnType<typeof setInterval> | null = null;
@@ -94,7 +94,7 @@ interface MissionControlActions {
   startStage: (stageIndex: StageIndex) => void;
   beginActiveMission: () => void;
 
-  // Stage 1: Expression Assembly
+  // Stage 1: Structure & Expression Assembly
   addToken: (team: TeamId, token: string) => void;
   removeToken: (team: TeamId, index: number) => void;
   clearTokens: (team: TeamId) => void;
@@ -108,7 +108,7 @@ interface MissionControlActions {
   setBalanceOperation: (team: TeamId, op: '+' | '-' | '×' | '÷', val: number) => void;
   submitEquationBalance: (team: TeamId) => void;
 
-  // Stage 4: Navigation Calibration
+  // Stage 4: Flight Path Calibration
   setSpeedDial: (team: TeamId, val: number) => void;
   setTimeDial: (team: TeamId, val: number) => void;
   submitNavigationCalibration: (team: TeamId) => void;
@@ -121,9 +121,8 @@ interface MissionControlActions {
   advanceToNextStage: () => void;
   run12StepCinematicLaunch: (winner: TeamId | 'draw') => void;
 
-  zoomIn: () => void;
-  zoomOut: () => void;
-  resetZoom: () => void;
+  setParallax: (x: number, y: number) => void;
+  setCameraTarget: (target: 'overview' | 'blue-pad' | 'red-pad' | 'hero-launch') => void;
 
   setTimeRemaining: (t: number) => void;
   toggleMute: () => void;
@@ -138,13 +137,16 @@ export type MissionControlStore = {
 
   blueTeam: TeamControlState;
   redTeam: TeamControlState;
-  spacecraft: Spacecraft3DState;
+  blueSpacecraft: Spacecraft3DState;
+  redSpacecraft: Spacecraft3DState;
 
   winnerTeam: TeamId | 'draw' | null;
   timeRemaining: number;
   timerActive: boolean;
   toastMessage: string | null;
-  zoomLevel: number;
+  cameraTarget: 'overview' | 'blue-pad' | 'red-pad' | 'hero-launch';
+  parallaxX: number;
+  parallaxY: number;
   isMuted: boolean;
 } & MissionControlActions;
 
@@ -156,856 +158,673 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   currentStageIndex: 0,
   activeChallenge: initialCampaign.challenges[0],
 
-  blueTeam: createDefaultTeamState('blue', 'BLUE MISSION CONTROL'),
-  redTeam: createDefaultTeamState('red', 'RED MISSION CONTROL'),
-  spacecraft: defaultSpacecraftState(),
+  blueTeam: createDefaultTeamState('blue', 'BLUE TEAM'),
+  redTeam: createDefaultTeamState('red', 'RED TEAM'),
+  blueSpacecraft: createDefaultSpacecraftState('blue'),
+  redSpacecraft: createDefaultSpacecraftState('red'),
 
   winnerTeam: null,
-  timeRemaining: 45,
+  timeRemaining: 60,
   timerActive: false,
   toastMessage: null,
-  zoomLevel: 1.0,
+  cameraTarget: 'overview',
+  parallaxX: 0,
+  parallaxY: 0,
   isMuted: false,
 
   setPhase: (phase) => set({ phase }),
 
-  setTeamName: (team, name) => {
+  setTeamName: (team, name) =>
+    set((s) => ({
+      [team === 'blue' ? 'blueTeam' : 'redTeam']: {
+        ...(team === 'blue' ? s.blueTeam : s.redTeam),
+        name: name.trim().slice(0, 24) || (team === 'blue' ? 'BLUE TEAM' : 'RED TEAM'),
+      },
+    })),
+
+  startGame: () => {
+    clearLaunchInterval();
+    const camp = generateDynamicCampaign(Math.floor(Math.random() * 100));
+    set({
+      campaign: camp,
+      currentStageIndex: 0,
+      activeChallenge: camp.challenges[0],
+      winnerTeam: null,
+      phase: 'stage-intro',
+      timeRemaining: camp.challenges[0].timeLimit,
+      timerActive: false,
+      toastMessage: null,
+      cameraTarget: 'overview',
+      blueTeam: createDefaultTeamState('blue', get().blueTeam.name),
+      redTeam: createDefaultTeamState('red', get().redTeam.name),
+      blueSpacecraft: createDefaultSpacecraftState('blue'),
+      redSpacecraft: createDefaultSpacecraftState('red'),
+    });
+  },
+
+  startStage: (stageIndex) => {
+    const { campaign } = get();
+    const challenge = campaign.challenges[stageIndex];
+    set({
+      currentStageIndex: stageIndex,
+      activeChallenge: challenge,
+      phase: 'stage-intro',
+      timeRemaining: challenge.timeLimit,
+      timerActive: false,
+      cameraTarget: 'overview',
+    });
+  },
+
+  beginActiveMission: () => {
+    set((s) => ({
+      phase: 'active-mission',
+      timerActive: true,
+      timeRemaining: s.activeChallenge.timeLimit,
+      blueTeam: { ...s.blueTeam, isLocked: false, lastResult: null, lastFeedback: null },
+      redTeam: { ...s.redTeam, isLocked: false, lastResult: null, lastFeedback: null },
+    }));
+  },
+
+  setParallax: (x, y) => set({ parallaxX: x, parallaxY: y }),
+  setCameraTarget: (target) => set({ cameraTarget: target }),
+
+  // --------------------------------------------------------------------------
+  // STAGE 1: Structure & Expression Assembly
+  // --------------------------------------------------------------------------
+  addToken: (team, token) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    set((s) => ({ [key]: { ...s[key], name } }));
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    set({ [key]: { ...cur, placedTokens: [...cur.placedTokens, token] } });
   },
 
-  zoomIn: () => {
-    soundManager.playClick();
-    set((s) => ({ zoomLevel: Math.min(1.4, Number((s.zoomLevel + 0.1).toFixed(2))) }));
+  removeToken: (team, index) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    const next = [...cur.placedTokens];
+    next.splice(index, 1);
+    set({ [key]: { ...cur, placedTokens: next } });
   },
 
-  zoomOut: () => {
-    soundManager.playClick();
-    set((s) => ({ zoomLevel: Math.max(0.7, Number((s.zoomLevel - 0.1).toFixed(2))) }));
+  clearTokens: (team) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    set({ [key]: { ...cur, placedTokens: [] } });
   },
 
-  resetZoom: () => {
-    soundManager.playClick();
-    set({ zoomLevel: 1.0 });
+  submitExpression: (team) => {
+    const { activeChallenge, currentStageIndex } = get();
+    const stage1 = activeChallenge.stage1;
+    if (!stage1) return;
+
+    const teamKey = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const t = get()[teamKey];
+    const ship = get()[shipKey];
+    if (t.isLocked) return;
+
+    const userExpr = t.placedTokens.join('').replace(/\s+/g, '').toLowerCase();
+    const correctExpr = stage1.correctTokens.join('').replace(/\s+/g, '').toLowerCase();
+    const targetExpr = stage1.targetExpression.replace(/\s+/g, '').toLowerCase();
+
+    const isCorrect = userExpr === correctExpr || userExpr === targetExpr;
+
+    if (isCorrect) {
+      soundManager.play('powerup');
+      const pts = activeChallenge.points + (t.streak > 0 ? 25 : 0);
+
+      set({
+        [teamKey]: {
+          ...t,
+          score: t.score + pts,
+          stageScore: pts,
+          streak: t.streak + 1,
+          stagesCleared: Math.max(t.stagesCleared, 1),
+          isLocked: true,
+          lastResult: 'correct',
+          lastFeedback: {
+            message: 'STRUCTURE ASSEMBLED! AVIONICS LOCKED ✓',
+            isCorrect: true,
+            pointsEarned: pts,
+          },
+        },
+        [shipKey]: {
+          ...ship,
+          stage1StructureDone: true,
+          cockpitGlowIntensity: 1.0,
+          serviceArmsAngle: 0.1,
+        },
+        toastMessage: `${t.name} SECURED STAGE 1 STRUCTURE!`,
+      });
+
+      // If both teams completed, reveal solution after short delay
+      setTimeout(() => {
+        const state = get();
+        if (state.blueTeam.isLocked && state.redTeam.isLocked) {
+          set({ phase: 'solution-reveal', timerActive: false });
+        }
+      }, 1400);
+    } else {
+      soundManager.play('wrong');
+      set({
+        [teamKey]: {
+          ...t,
+          streak: 0,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: 'MISCONFIGURED: Check operational order (e.g. 3x + 5)',
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+      });
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // STAGE 2: Cryogenic Fuel Variable Loading
+  // --------------------------------------------------------------------------
+  setDialValue: (team, val) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const cur = get()[key];
+    const ship = get()[shipKey];
+    if (cur.isLocked) return;
+
+    set({
+      [key]: { ...cur, dialValue: val },
+      [shipKey]: {
+        ...ship,
+        fuelTankPercent: Math.min(100, Math.max(10, (val / 12) * 100)),
+        ventingVapor: true,
+      },
+    });
+  },
+
+  submitVariableLoading: (team) => {
+    const { activeChallenge } = get();
+    const stage2 = activeChallenge.stage2;
+    if (!stage2) return;
+
+    const teamKey = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const t = get()[teamKey];
+    const ship = get()[shipKey];
+    if (t.isLocked) return;
+
+    const isCorrect = t.dialValue === stage2.variableValue;
+
+    if (isCorrect) {
+      soundManager.play('powerup');
+      const pts = activeChallenge.points + (t.streak > 0 ? 25 : 0);
+
+      set({
+        [teamKey]: {
+          ...t,
+          score: t.score + pts,
+          stageScore: pts,
+          streak: t.streak + 1,
+          stagesCleared: Math.max(t.stagesCleared, 2),
+          isLocked: true,
+          lastResult: 'correct',
+          lastFeedback: {
+            message: `CRYOGENIC FUEL LOADED (${stage2.targetResult} L) ✓`,
+            isCorrect: true,
+            pointsEarned: pts,
+          },
+        },
+        [shipKey]: {
+          ...ship,
+          stage2FuelDone: true,
+          fuelTankPercent: 100,
+          fuelArmConnected: true,
+          ventingVapor: false,
+        },
+        toastMessage: `${t.name} LOADED CRYOGENIC FUEL!`,
+      });
+
+      setTimeout(() => {
+        const state = get();
+        if (state.blueTeam.isLocked && state.redTeam.isLocked) {
+          set({ phase: 'solution-reveal', timerActive: false });
+        }
+      }, 1400);
+    } else {
+      soundManager.play('wrong');
+      set({
+        [teamKey]: {
+          ...t,
+          streak: 0,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: `PRESSURE MISMATCH: Set ${stage2.variableName} = ${stage2.variableValue}`,
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+      });
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // STAGE 3: Rocket Engine Equation Balance
+  // --------------------------------------------------------------------------
+  setBalanceOperation: (team, op, val) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+
+    set({
+      [key]: {
+        ...cur,
+        selectedBalanceOp: op,
+        selectedBalanceVal: val,
+      },
+    });
+  },
+
+  submitEquationBalance: (team) => {
+    const { activeChallenge } = get();
+    const stage3 = activeChallenge.stage3;
+    if (!stage3) return;
+
+    const teamKey = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const t = get()[teamKey];
+    const ship = get()[shipKey];
+    if (t.isLocked) return;
+
+    const isCorrect =
+      t.selectedBalanceOp === stage3.requiredOp &&
+      t.selectedBalanceVal === stage3.requiredVal;
+
+    if (isCorrect) {
+      soundManager.play('powerup');
+      const pts = activeChallenge.points + (t.streak > 0 ? 25 : 0);
+
+      set({
+        [teamKey]: {
+          ...t,
+          score: t.score + pts,
+          stageScore: pts,
+          streak: t.streak + 1,
+          stagesCleared: Math.max(t.stagesCleared, 3),
+          isLocked: true,
+          balanceTiltedSide: 'balanced',
+          lastResult: 'correct',
+          lastFeedback: {
+            message: `BALANCED! x = ${stage3.solutionX} ✓ ENGINES READY`,
+            isCorrect: true,
+            pointsEarned: pts,
+          },
+        },
+        [shipKey]: {
+          ...ship,
+          stage3EngineDone: true,
+          engineGlowIntensity: 1.0,
+        },
+        toastMessage: `${t.name} BALANCED ROCKET ENGINES!`,
+      });
+
+      setTimeout(() => {
+        const state = get();
+        if (state.blueTeam.isLocked && state.redTeam.isLocked) {
+          set({ phase: 'solution-reveal', timerActive: false });
+        }
+      }, 1400);
+    } else {
+      soundManager.play('wrong');
+      set({
+        [teamKey]: {
+          ...t,
+          streak: 0,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: `UNBALANCED: Apply inverse (${stage3.requiredOp}${stage3.requiredVal}) to both sides`,
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+      });
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // STAGE 4: Flight Path Formula Calibration
+  // --------------------------------------------------------------------------
+  setSpeedDial: (team, val) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    set({ [key]: { ...cur, speedDial: val } });
+  },
+
+  setTimeDial: (team, val) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    set({ [key]: { ...cur, timeDial: val } });
+  },
+
+  submitNavigationCalibration: (team) => {
+    const { activeChallenge } = get();
+    const stage4 = activeChallenge.stage4;
+    if (!stage4) return;
+
+    const teamKey = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const t = get()[teamKey];
+    const ship = get()[shipKey];
+    if (t.isLocked) return;
+
+    const computed = t.speedDial * t.timeDial;
+    const isCorrect =
+      computed === stage4.targetDistance &&
+      t.speedDial === stage4.speedGiven &&
+      t.timeDial === stage4.timeGiven;
+
+    if (isCorrect) {
+      soundManager.play('powerup');
+      const pts = activeChallenge.points + (t.streak > 0 ? 25 : 0);
+
+      set({
+        [teamKey]: {
+          ...t,
+          score: t.score + pts,
+          stageScore: pts,
+          streak: t.streak + 1,
+          stagesCleared: Math.max(t.stagesCleared, 4),
+          isLocked: true,
+          lastResult: 'correct',
+          lastFeedback: {
+            message: `FLIGHT PATH LOCKED (${stage4.targetDistance} ${stage4.distanceUnit}) ✓`,
+            isCorrect: true,
+            pointsEarned: pts,
+          },
+        },
+        [shipKey]: {
+          ...ship,
+          stage4NavDone: true,
+          antennaDeployed: true,
+          gimbalPitchAngle: 0.08,
+        },
+        toastMessage: `${t.name} LOCKED ORBITAL TRAJECTORY!`,
+      });
+
+      setTimeout(() => {
+        const state = get();
+        if (state.blueTeam.isLocked && state.redTeam.isLocked) {
+          set({ phase: 'solution-reveal', timerActive: false });
+        }
+      }, 1400);
+    } else {
+      soundManager.play('wrong');
+      set({
+        [teamKey]: {
+          ...t,
+          streak: 0,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: `TRAJECTORY DRIFT: Match S = ${stage4.speedGiven}, T = ${stage4.timeGiven}`,
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+      });
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // STAGE 5: Final Launch Equation Lock & Arming
+  // --------------------------------------------------------------------------
+  setLockDigits: (team, d1, d2) => {
+    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const cur = get()[key];
+    if (cur.isLocked) return;
+    set({ [key]: { ...cur, lockDigit1: d1, lockDigit2: d2 } });
+  },
+
+  armLaunch: (team) => {
+    const { activeChallenge } = get();
+    const stage5 = activeChallenge.stage5;
+    if (!stage5) return;
+
+    const teamKey = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const shipKey = team === 'blue' ? 'blueSpacecraft' : 'redSpacecraft';
+    const t = get()[teamKey];
+    const ship = get()[shipKey];
+    if (t.isLocked) return;
+
+    const userX = t.lockDigit1 * 10 + t.lockDigit2;
+    const isCorrect = userX === stage5.correctX;
+
+    if (isCorrect) {
+      soundManager.play('countdown');
+      const pts = activeChallenge.points + (t.streak > 0 ? 50 : 0);
+
+      set({
+        [teamKey]: {
+          ...t,
+          score: t.score + pts,
+          stageScore: pts,
+          streak: t.streak + 1,
+          stagesCleared: 5,
+          isLocked: true,
+          isArmed: true,
+          lastResult: 'correct',
+          lastFeedback: {
+            message: 'LAUNCH INTERLOCK OPENED! ENGINES ARMED ✓',
+            isCorrect: true,
+            pointsEarned: pts,
+          },
+        },
+        [shipKey]: {
+          ...ship,
+          stage5Armed: true,
+          serviceArmsAngle: 1.0,
+          clampsReleased: true,
+        },
+        toastMessage: `${t.name} COMPLETED FINAL LAUNCH INTERLOCK!`,
+      });
+
+      setTimeout(() => {
+        const state = get();
+        if (state.blueTeam.isLocked && state.redTeam.isLocked) {
+          // Determine champion
+          const blueScore = state.blueTeam.score;
+          const redScore = state.redTeam.score;
+          const winner: TeamId | 'draw' =
+            blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
+          set({ winnerTeam: winner });
+          get().run12StepCinematicLaunch(winner);
+        }
+      }, 1500);
+    } else {
+      soundManager.play('wrong');
+      set({
+        [teamKey]: {
+          ...t,
+          streak: 0,
+          lastResult: 'wrong',
+          lastFeedback: {
+            message: `INTERLOCK ERROR: Solve ${stage5.equationDisplay} for x`,
+            isCorrect: false,
+            pointsEarned: 0,
+          },
+        },
+      });
+    }
+  },
+
+  handleTimerExpired: () => {
+    soundManager.play('alarm');
+    set({
+      timerActive: false,
+      toastMessage: 'STAGE TIME EXPIRED — TELEMETRY REVEALED',
+      phase: 'solution-reveal',
+    });
+  },
+
+  advanceToNextStage: () => {
+    const { currentStageIndex, campaign } = get();
+    if (currentStageIndex >= 4) {
+      const state = get();
+      const blueScore = state.blueTeam.score;
+      const redScore = state.redTeam.score;
+      const winner: TeamId | 'draw' =
+        blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
+      set({ winnerTeam: winner });
+      get().run12StepCinematicLaunch(winner);
+    } else {
+      const nextIdx = (currentStageIndex + 1) as StageIndex;
+      const nextChallenge = campaign.challenges[nextIdx];
+      set({
+        currentStageIndex: nextIdx,
+        activeChallenge: nextChallenge,
+        phase: 'stage-intro',
+        timeRemaining: nextChallenge.timeLimit,
+        timerActive: false,
+        cameraTarget: 'overview',
+        blueTeam: {
+          ...get().blueTeam,
+          placedTokens: [],
+          isLocked: false,
+          lastResult: null,
+          lastFeedback: null,
+        },
+        redTeam: {
+          ...get().redTeam,
+          placedTokens: [],
+          isLocked: false,
+          lastResult: null,
+          lastFeedback: null,
+        },
+      });
+    }
+  },
+
+  // --------------------------------------------------------------------------
+  // 12-STEP DUAL-ROCKET CINEMATIC LIFTOFF SEQUENCER
+  // --------------------------------------------------------------------------
+  run12StepCinematicLaunch: (winner) => {
+    clearLaunchInterval();
+    set({
+      phase: 'launch-cinematic',
+      cameraTarget: 'hero-launch',
+      timerActive: false,
+      toastMessage: 'ALL SYSTEMS GO — FINAL LAUNCH SEQUENCE ENGAGED!',
+    });
+
+    const steps: LaunchStep[] = [
+      'arming',
+      'hazard-lights',
+      'umbilical-retract',
+      'fuel-decouple',
+      'clamp-release',
+      'ignition',
+      'thrust-ramp',
+      'liftoff',
+      'tower-clear',
+      'sky-ascent',
+      'cloud-entry',
+      'orbital-insertion',
+      'complete',
+    ];
+
+    let stepIdx = 0;
+
+    launchInterval = setInterval(() => {
+      if (stepIdx >= steps.length) {
+        clearLaunchInterval();
+        set({
+          phase: 'mission-report',
+          cameraTarget: 'overview',
+          toastMessage: 'MISSION SUCCESSFUL!',
+        });
+        soundManager.play('powerup');
+        return;
+      }
+
+      const currentStep = steps[stepIdx];
+      stepIdx++;
+
+      // Trigger audio per step
+      if (currentStep === 'hazard-lights') soundManager.play('alarm');
+      if (currentStep === 'ignition') soundManager.play('countdown');
+      if (currentStep === 'liftoff') soundManager.play('laser');
+
+      set((s) => {
+        const isBlueWinner = winner === 'blue' || winner === 'draw';
+        const isRedWinner = winner === 'red' || winner === 'draw';
+
+        const updateShip = (ship: Spacecraft3DState, isHero: boolean) => {
+          let alt = ship.altitude;
+          let flame = ship.exhaustFlameScale;
+          let smoke = ship.smokeVolume;
+          let arms = ship.serviceArmsAngle;
+          let flags = ship.flagProminence;
+
+          if (currentStep === 'umbilical-retract') arms = 0.5;
+          if (currentStep === 'clamp-release') arms = 1.0;
+          if (currentStep === 'ignition') {
+            flame = 0.6;
+            smoke = 0.7;
+          }
+          if (currentStep === 'thrust-ramp') {
+            flame = 1.2;
+            smoke = 1.5;
+          }
+          if (currentStep === 'liftoff') {
+            alt = 3;
+            flame = 1.8;
+            smoke = 2.0;
+            if (isHero) flags = 2.0;
+          }
+          if (currentStep === 'tower-clear') {
+            alt = 12;
+            flame = 2.0;
+          }
+          if (currentStep === 'sky-ascent') {
+            alt = 35;
+            flame = 2.2;
+          }
+          if (currentStep === 'cloud-entry') {
+            alt = 75;
+            flame = 2.4;
+          }
+          if (currentStep === 'orbital-insertion') {
+            alt = 130;
+            flame = 1.5;
+          }
+
+          return {
+            ...ship,
+            launchStage: currentStep,
+            altitude: alt,
+            exhaustFlameScale: flame,
+            smokeVolume: smoke,
+            serviceArmsAngle: arms,
+            flagProminence: flags,
+            clampsReleased: true,
+          };
+        };
+
+        return {
+          blueSpacecraft: updateShip(s.blueSpacecraft, isBlueWinner),
+          redSpacecraft: updateShip(s.redSpacecraft, isRedWinner),
+        };
+      });
+    }, 1400);
   },
 
   setTimeRemaining: (t) => set({ timeRemaining: t }),
 
   toggleMute: () => {
-    const nextMuted = !get().isMuted;
-    soundManager.setMuted(nextMuted);
-    set({ isMuted: nextMuted });
+    const muted = soundManager.toggleMute();
+    set({ isMuted: muted });
   },
 
   clearToast: () => set({ toastMessage: null }),
-
-  startGame: () => {
-    clearLaunchInterval();
-    const freshCampaign = generateDynamicCampaign(0);
-    const firstChallenge = freshCampaign.challenges[0];
-
-    soundManager.playArcadeGameStart();
-
-    set((s) => ({
-      phase: 'stage-intro',
-      campaign: freshCampaign,
-      currentStageIndex: 0,
-      activeChallenge: firstChallenge,
-      winnerTeam: null,
-      timeRemaining: firstChallenge.timeLimit,
-      timerActive: false,
-      toastMessage: null,
-      blueTeam: createDefaultTeamState('blue', s.blueTeam.name),
-      redTeam: createDefaultTeamState('red', s.redTeam.name),
-      spacecraft: defaultSpacecraftState(),
-    }));
-  },
-
-  startStage: (stageIndex) => {
-    clearLaunchInterval();
-    const ch = get().campaign.challenges[stageIndex];
-    set((s) => ({
-      phase: 'stage-intro',
-      currentStageIndex: stageIndex,
-      activeChallenge: ch,
-      timeRemaining: ch.timeLimit,
-      timerActive: false,
-      toastMessage: null,
-      blueTeam: {
-        ...s.blueTeam,
-        stageScore: 0,
-        attemptsLeft: 2,
-        isLocked: false,
-        lastResult: null,
-        lastFeedback: null,
-        placedTokens: [],
-        dialValue: ch.stage2 ? ch.stage2.variableValue - 2 : 5,
-        speedDial: ch.stage4 ? ch.stage4.speedGiven - 2 : 10,
-        timeDial: ch.stage4 ? ch.stage4.timeGiven : 2,
-        lockDigit1: 0,
-        lockDigit2: ch.stage5 ? (ch.stage5.correctX > 0 ? ch.stage5.correctX - 1 : 1) : 5,
-        isArmed: false,
-      },
-      redTeam: {
-        ...s.redTeam,
-        stageScore: 0,
-        attemptsLeft: 2,
-        isLocked: false,
-        lastResult: null,
-        lastFeedback: null,
-        placedTokens: [],
-        dialValue: ch.stage2 ? ch.stage2.variableValue - 2 : 5,
-        speedDial: ch.stage4 ? ch.stage4.speedGiven - 2 : 10,
-        timeDial: ch.stage4 ? ch.stage4.timeGiven : 2,
-        lockDigit1: 0,
-        lockDigit2: ch.stage5 ? (ch.stage5.correctX > 0 ? ch.stage5.correctX - 1 : 1) : 5,
-        isArmed: false,
-      },
-    }));
-  },
-
-  beginActiveMission: () => {
-    const ch = get().activeChallenge;
-    soundManager.playClick();
-    set({
-      phase: 'active-mission',
-      timeRemaining: ch.timeLimit,
-      timerActive: true,
-    });
-  },
-
-  // ── STAGE 1: EXPRESSION ASSEMBLY ──
-  addToken: (team, token) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    const current = get()[key].placedTokens;
-    if (current.length >= 8 || get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        placedTokens: [...current, token],
-      },
-    }));
-  },
-
-  removeToken: (team, index) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        placedTokens: s[key].placedTokens.filter((_, i) => i !== index),
-      },
-    }));
-  },
-
-  clearTokens: (team) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        placedTokens: [],
-      },
-    }));
-  },
-
-  submitExpression: (team) => {
-    const state = get();
-    const ch = state.activeChallenge;
-    if (!ch.stage1 || state.phase !== 'active-mission') return;
-
-    const isBlue = team === 'blue';
-    const key = isBlue ? 'blueTeam' : 'redTeam';
-    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
-    const teamState = state[key];
-    const otherTeamState = state[otherKey];
-
-    if (teamState.isLocked) return;
-
-    const userExpr = teamState.placedTokens.join('').replace(/\s+/g, '');
-    const correctExpr = ch.stage1.correctTokens.join('').replace(/\s+/g, '');
-
-    const isCorrect = userExpr === correctExpr;
-
-    if (isCorrect) {
-      soundManager.playCorrect(true);
-      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const points = ch.points + speedBonus;
-
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'correct',
-          score: s[key].score + points,
-          stageScore: points,
-          streak: s[key].streak + 1,
-          stagesCleared: s[key].stagesCleared + 1,
-          lastFeedback: {
-            message: `✅ EXPRESSION VERIFIED! +${points} PTS`,
-            isCorrect: true,
-            pointsEarned: points,
-          },
-        },
-        [otherKey]: { ...s[otherKey], isLocked: true },
-        spacecraft: {
-          ...s.spacecraft,
-          avionicsPower: true,
-          cockpitGlowIntensity: 1.0,
-          hudSystemsActive: true,
-        },
-        toastMessage: `🛰️ ${s[key].name} POWERS ON SPACECRAFT AVIONICS & COCKPIT HUD!`,
-        timerActive: false,
-      }));
-
-      setTimeout(() => {
-        set({ phase: 'solution-reveal' });
-      }, 700);
-    } else {
-      soundManager.playWrong();
-      if (teamState.attemptsLeft > 1) {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 1,
-            lastFeedback: {
-              message: `⚠️ INCORRECT SEQUENCE — 1 TRY LEFT!`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `⚠️ ${s[key].name} EXPRESSION MISMATCH — 1 ATTEMPT LEFT!`,
-        }));
-      } else {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 0,
-            isLocked: true,
-            lastResult: 'wrong',
-            lastFeedback: {
-              message: `❌ LOCKOUT — TURN EXHAUSTED`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `❌ ${s[key].name} LOCKED OUT! ${s[otherKey].name} CAN REBOUND!`,
-        }));
-
-        if (otherTeamState.isLocked) {
-          set({ timerActive: false, toastMessage: '❌ BOTH TEAMS LOCKED OUT!' });
-          setTimeout(() => set({ phase: 'solution-reveal' }), 700);
-        }
-      }
-    }
-  },
-
-  // ── STAGE 2: VARIABLE LOADING ──
-  setDialValue: (team, val) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        dialValue: Math.max(0, Math.min(30, val)),
-      },
-    }));
-  },
-
-  submitVariableLoading: (team) => {
-    const state = get();
-    const ch = state.activeChallenge;
-    if (!ch.stage2 || state.phase !== 'active-mission') return;
-
-    const isBlue = team === 'blue';
-    const key = isBlue ? 'blueTeam' : 'redTeam';
-    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
-    const teamState = state[key];
-    const otherTeamState = state[otherKey];
-
-    if (teamState.isLocked) return;
-
-    const isCorrect = teamState.dialValue === ch.stage2.variableValue;
-
-    if (isCorrect) {
-      soundManager.playCorrect(true);
-      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const points = ch.points + speedBonus;
-
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'correct',
-          score: s[key].score + points,
-          stageScore: points,
-          streak: s[key].streak + 1,
-          stagesCleared: s[key].stagesCleared + 1,
-          lastFeedback: {
-            message: `✅ FUEL FORMULA LOADED! +${points} PTS`,
-            isCorrect: true,
-            pointsEarned: points,
-          },
-        },
-        [otherKey]: { ...s[otherKey], isLocked: true },
-        spacecraft: {
-          ...s.spacecraft,
-          fuelTankPercent: 100,
-          ventingVapor: true,
-        },
-        toastMessage: `⛽ ${s[key].name} CONNECTS FUEL LINES & PRESSURIZES TANKS!`,
-        timerActive: false,
-      }));
-
-      setTimeout(() => {
-        set({ phase: 'solution-reveal' });
-      }, 700);
-    } else {
-      soundManager.playWrong();
-      if (teamState.attemptsLeft > 1) {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 1,
-            lastFeedback: {
-              message: `⚠️ INCORRECT VARIABLE VALUE — 1 TRY LEFT!`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `⚠️ ${s[key].name} VALUE INCORRECT — 1 TRY LEFT!`,
-        }));
-      } else {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 0,
-            isLocked: true,
-            lastResult: 'wrong',
-            lastFeedback: {
-              message: `❌ LOCKOUT — TURN EXHAUSTED`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `❌ ${s[key].name} LOCKED OUT! ${s[otherKey].name} CAN REBOUND!`,
-        }));
-
-        if (otherTeamState.isLocked) {
-          set({ timerActive: false, toastMessage: '❌ BOTH TEAMS LOCKED OUT!' });
-          setTimeout(() => set({ phase: 'solution-reveal' }), 700);
-        }
-      }
-    }
-  },
-
-  // ── STAGE 3: EQUATION BALANCE SCALE ──
-  setBalanceOperation: (team, op, val) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        selectedBalanceOp: op,
-        selectedBalanceVal: Math.max(1, Math.min(50, val)),
-      },
-    }));
-  },
-
-  submitEquationBalance: (team) => {
-    const state = get();
-    const ch = state.activeChallenge;
-    if (!ch.stage3 || state.phase !== 'active-mission') return;
-
-    const isBlue = team === 'blue';
-    const key = isBlue ? 'blueTeam' : 'redTeam';
-    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
-    const teamState = state[key];
-    const otherTeamState = state[otherKey];
-
-    if (teamState.isLocked) return;
-
-    const isCorrect =
-      teamState.selectedBalanceOp === ch.stage3.requiredOp &&
-      teamState.selectedBalanceVal === ch.stage3.requiredVal;
-
-    if (isCorrect) {
-      soundManager.playCorrect(true);
-      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const points = ch.points + speedBonus;
-
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'correct',
-          score: s[key].score + points,
-          stageScore: points,
-          streak: s[key].streak + 1,
-          stagesCleared: s[key].stagesCleared + 1,
-          balanceTiltedSide: 'balanced',
-          lastFeedback: {
-            message: `⚖️ EQUATION BALANCED! x = ${ch.stage3?.solutionX} (+${points} PTS)`,
-            isCorrect: true,
-            pointsEarned: points,
-          },
-        },
-        [otherKey]: { ...s[otherKey], isLocked: true },
-        spacecraft: {
-          ...s.spacecraft,
-          enginePowerGrid: true,
-          engineGlowIntensity: 1.0,
-          turbineSpinSpeed: 1.0,
-        },
-        toastMessage: `🔥 ${s[key].name} BALANCES ENGINE EQUATION! ENGINES ONLINE!`,
-        timerActive: false,
-      }));
-
-      setTimeout(() => {
-        set({ phase: 'solution-reveal' });
-      }, 700);
-    } else {
-      soundManager.playWrong();
-      if (teamState.attemptsLeft > 1) {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 1,
-            lastFeedback: {
-              message: `⚠️ NOT BALANCED — APPLY INVERSE OPERATION!`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `⚠️ ${s[key].name} BALANCE UNLEVEL — 1 TRY LEFT!`,
-        }));
-      } else {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 0,
-            isLocked: true,
-            lastResult: 'wrong',
-            lastFeedback: {
-              message: `❌ LOCKOUT — TURN EXHAUSTED`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `❌ ${s[key].name} LOCKED OUT! ${s[otherKey].name} CAN REBOUND!`,
-        }));
-
-        if (otherTeamState.isLocked) {
-          set({ timerActive: false, toastMessage: '❌ BOTH TEAMS LOCKED OUT!' });
-          setTimeout(() => set({ phase: 'solution-reveal' }), 700);
-        }
-      }
-    }
-  },
-
-  // ── STAGE 4: NAVIGATION CALIBRATION ──
-  setSpeedDial: (team, val) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        speedDial: Math.max(1, Math.min(30, val)),
-      },
-    }));
-  },
-
-  setTimeDial: (team, val) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        timeDial: Math.max(1, Math.min(10, val)),
-      },
-    }));
-  },
-
-  submitNavigationCalibration: (team) => {
-    const state = get();
-    const ch = state.activeChallenge;
-    if (!ch.stage4 || state.phase !== 'active-mission') return;
-
-    const isBlue = team === 'blue';
-    const key = isBlue ? 'blueTeam' : 'redTeam';
-    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
-    const teamState = state[key];
-    const otherTeamState = state[otherKey];
-
-    if (teamState.isLocked) return;
-
-    const isCorrect =
-      teamState.speedDial === ch.stage4.speedGiven &&
-      teamState.timeDial === ch.stage4.timeGiven;
-
-    if (isCorrect) {
-      soundManager.playCorrect(true);
-      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const points = ch.points + speedBonus;
-
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'correct',
-          score: s[key].score + points,
-          stageScore: points,
-          streak: s[key].streak + 1,
-          stagesCleared: s[key].stagesCleared + 1,
-          lastFeedback: {
-            message: `🧭 FLIGHT PATH CALIBRATED! D = ${ch.stage4?.targetDistance} km (+${points} PTS)`,
-            isCorrect: true,
-            pointsEarned: points,
-          },
-        },
-        [otherKey]: { ...s[otherKey], isLocked: true },
-        spacecraft: {
-          ...s.spacecraft,
-          navAlignmentLocked: true,
-          gimbalPitchAngle: 0.15,
-          targetVectorLocked: true,
-        },
-        toastMessage: `🧭 ${s[key].name} CALIBRATES TRAJECTORY! FLIGHT PATH LOCKED!`,
-        timerActive: false,
-      }));
-
-      setTimeout(() => {
-        set({ phase: 'solution-reveal' });
-      }, 700);
-    } else {
-      soundManager.playWrong();
-      if (teamState.attemptsLeft > 1) {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 1,
-            lastFeedback: {
-              message: `⚠️ CALIBRATION DRIFT — MATCH GIVEN VALUES!`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `⚠️ ${s[key].name} CALIBRATION MISALIGNED — 1 TRY LEFT!`,
-        }));
-      } else {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 0,
-            isLocked: true,
-            lastResult: 'wrong',
-            lastFeedback: {
-              message: `❌ LOCKOUT — TURN EXHAUSTED`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `❌ ${s[key].name} LOCKED OUT! ${s[otherKey].name} CAN REBOUND!`,
-        }));
-
-        if (otherTeamState.isLocked) {
-          set({ timerActive: false, toastMessage: '❌ BOTH TEAMS LOCKED OUT!' });
-          setTimeout(() => set({ phase: 'solution-reveal' }), 700);
-        }
-      }
-    }
-  },
-
-  // ── STAGE 5: FINAL LAUNCH EQUATION & ARMING ──
-  setLockDigits: (team, d1, d2) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    if (get()[key].isLocked) return;
-    soundManager.playClick();
-    set((s) => ({
-      [key]: {
-        ...s[key],
-        lockDigit1: Math.max(0, Math.min(9, d1)),
-        lockDigit2: Math.max(0, Math.min(9, d2)),
-      },
-    }));
-  },
-
-  armLaunch: (team) => {
-    const state = get();
-    const ch = state.activeChallenge;
-    if (!ch.stage5 || state.phase !== 'active-mission') return;
-
-    const isBlue = team === 'blue';
-    const key = isBlue ? 'blueTeam' : 'redTeam';
-    const otherKey = isBlue ? 'redTeam' : 'blueTeam';
-    const teamState = state[key];
-    const otherTeamState = state[otherKey];
-
-    if (teamState.isLocked) return;
-
-    const enteredX = teamState.lockDigit1 * 10 + teamState.lockDigit2;
-    const isCorrect = enteredX === ch.stage5.correctX;
-
-    if (isCorrect) {
-      soundManager.playCorrect(true);
-      const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const points = ch.points + speedBonus;
-
-      set((s) => ({
-        [key]: {
-          ...s[key],
-          isLocked: true,
-          lastResult: 'correct',
-          score: s[key].score + points,
-          stageScore: points,
-          streak: s[key].streak + 1,
-          stagesCleared: s[key].stagesCleared + 1,
-          isArmed: true,
-          lastFeedback: {
-            message: `🚀 LAUNCH ARMED! x = ${ch.stage5?.correctX} (+${points} PTS)`,
-            isCorrect: true,
-            pointsEarned: points,
-          },
-        },
-        [otherKey]: { ...s[otherKey], isLocked: true },
-        toastMessage: `🚀 ${s[key].name} UNLOCKS MASTER KEY! COMMENCING LAUNCH SEQUENCE!`,
-        timerActive: false,
-      }));
-
-      // Trigger the 12-Step Cinematic Launch
-      get().run12StepCinematicLaunch(team);
-    } else {
-      soundManager.playWrong();
-      if (teamState.attemptsLeft > 1) {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 1,
-            lastFeedback: {
-              message: `⚠️ EQUATION KEY REJECTED — SOLVE FOR x!`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `⚠️ ${s[key].name} INCORRECT KEY — 1 TRY LEFT!`,
-        }));
-      } else {
-        set((s) => ({
-          [key]: {
-            ...s[key],
-            attemptsLeft: 0,
-            isLocked: true,
-            lastResult: 'wrong',
-            lastFeedback: {
-              message: `❌ LOCKOUT — TURN EXHAUSTED`,
-              isCorrect: false,
-              pointsEarned: 0,
-            },
-          },
-          toastMessage: `❌ ${s[key].name} LOCKED OUT! ${s[otherKey].name} CAN REBOUND!`,
-        }));
-
-        if (otherTeamState.isLocked) {
-          // If both failed final equation, launch in emergency recovery mode
-          set({ timerActive: false });
-          get().run12StepCinematicLaunch('draw');
-        }
-      }
-    }
-  },
-
-  handleTimerExpired: () => {
-    const state = get();
-    if (state.phase !== 'active-mission') return;
-
-    soundManager.playWrong();
-    set((s) => ({
-      blueTeam: { ...s.blueTeam, isLocked: true },
-      redTeam: { ...s.redTeam, isLocked: true },
-      timerActive: false,
-      toastMessage: '⏰ MISSION CLOCK EXPIRED!',
-    }));
-
-    if (state.currentStageIndex === 4) {
-      // Stage 5 timeout -> trigger launch
-      get().run12StepCinematicLaunch('draw');
-    } else {
-      set({ phase: 'solution-reveal' });
-    }
-  },
-
-  advanceToNextStage: () => {
-    const current = get().currentStageIndex;
-    if (current < 4) {
-      get().startStage((current + 1) as StageIndex);
-    } else {
-      // Completed all 5 stages
-      const blueScore = get().blueTeam.score;
-      const redScore = get().redTeam.score;
-      const winner = blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
-      set({ phase: 'mission-report', winnerTeam: winner });
-    }
-  },
-
-  // ============================================================
-  // ── 12-STEP FULL CINEMATIC SPACECRAFT LAUNCH SEQUENCE ──
-  // ============================================================
-  run12StepCinematicLaunch: (winner) => {
-    clearLaunchInterval();
-    const isBlue = winner === 'blue';
-    const isRed = winner === 'red';
-    const winnerName = isBlue
-      ? get().blueTeam.name
-      : isRed
-        ? get().redTeam.name
-        : 'JOINT AEROSPACE TEAMS';
-
-    set({
-      phase: 'launch-cinematic',
-      winnerTeam: winner,
-      timerActive: false,
-      toastMessage: `🚨 T-MINUS 10 SECONDS! FINAL LAUNCH CLEARANCE CONFIRMED FOR ${winnerName}!`,
-      spacecraft: {
-        ...get().spacecraft,
-        launchStage: 'arming',
-      },
-    });
-
-    // Step 1: Warning Sirens & Hazard lights (0.8s)
-    setTimeout(() => {
-      soundManager.playSecurityAlarm();
-      set((s) => ({
-        spacecraft: { ...s.spacecraft, launchStage: 'hazard-lights' },
-        toastMessage: '🟡 HAZARD FLASHERS ACTIVE — PAD CLEARED!',
-      }));
-    }, 800);
-
-    // Step 2: Service Umbilical Arms Retract (2.2s)
-    setTimeout(() => {
-      soundManager.playVaultWheelTurn();
-      set((s) => ({
-        spacecraft: {
-          ...s.spacecraft,
-          launchStage: 'umbilical-retract',
-          serviceArmsAngle: 0.85,
-        },
-        toastMessage: '🏗️ UMBILICAL SERVICE ARMS RETRACTING...',
-      }));
-    }, 2200);
-
-    // Step 3: Cryogenic Fuel Lines Decouple with Vapor Puff (3.6s)
-    setTimeout(() => {
-      soundManager.playLoudWhistle();
-      set((s) => ({
-        spacecraft: {
-          ...s.spacecraft,
-          launchStage: 'fuel-decouple',
-          fuelPipesConnected: false,
-          ventingVapor: true,
-        },
-        toastMessage: '💨 CRYOGENIC FUEL LINES DECOUPLED!',
-      }));
-    }, 3600);
-
-    // Step 4: Base Launch Clamps Release (4.8s)
-    setTimeout(() => {
-      soundManager.playClick();
-      set((s) => ({
-        spacecraft: {
-          ...s.spacecraft,
-          launchStage: 'clamp-release',
-          clampsReleased: true,
-        },
-        toastMessage: '🔓 LAUNCH PAD RETENTION CLAMPS RELEASED!',
-      }));
-    }, 4800);
-
-    // Step 5: Main Engine Ignition & Smoke Plume (6.0s)
-    setTimeout(() => {
-      soundManager.playTrainRunningAudio();
-      set((s) => ({
-        spacecraft: {
-          ...s.spacecraft,
-          launchStage: 'ignition',
-          exhaustFlameScale: 1.0,
-          smokeVolume: 1.0,
-        },
-        toastMessage: '🔥 MAIN ROCKET ENGINES IGNITION! THRUST AT 100%!',
-      }));
-    }, 6000);
-
-    // Step 6: Liftoff & Ascent Physics Engine (7.4s)
-    setTimeout(() => {
-      soundManager.playVaultCracked();
-
-      set((s) => ({
-        spacecraft: {
-          ...s.spacecraft,
-          launchStage: 'liftoff',
-        },
-        toastMessage: `🚀 LIFTOFF! ${winnerName} SPACECRAFT ASCENDING INTO SUNLIT SKY!`,
-      }));
-
-      let currentAlt = 0;
-      let currentVel = 0;
-      let frame = 0;
-
-      launchInterval = setInterval(() => {
-        frame++;
-        currentVel += 0.08;
-        currentAlt += currentVel;
-
-        const stageName: LaunchStep =
-          currentAlt < 8
-            ? 'liftoff'
-            : currentAlt < 25
-              ? 'tower-clear'
-              : currentAlt < 75
-                ? 'sky-ascent'
-                : currentAlt < 140
-                  ? 'cloud-entry'
-                  : 'orbital-insertion';
-
-        set((s) => ({
-          spacecraft: {
-            ...s.spacecraft,
-            launchStage: stageName,
-            altitude: currentAlt,
-            ascentVelocity: currentVel,
-            exhaustFlameScale: Math.min(2.5, 1.0 + currentVel * 0.15),
-            smokeVolume: Math.min(2.5, 1.0 + currentVel * 0.1),
-            cameraTrackOffset: Math.min(45, currentAlt * 0.4),
-          },
-        }));
-
-        if (currentAlt >= 180) {
-          clearLaunchInterval();
-          soundManager.stopTrainRunningAudio();
-
-          // Step 12: Mission Report Screen
-          const blueScore = get().blueTeam.score;
-          const redScore = get().redTeam.score;
-          const finalWinner =
-            blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
-
-          set({
-            phase: 'mission-report',
-            winnerTeam: finalWinner,
-            toastMessage: '🏁 ORBITAL INSERTION CONFIRMED — MISSION SUCCESSFUL!',
-            spacecraft: {
-              ...get().spacecraft,
-              launchStage: 'complete',
-            },
-          });
-        }
-      }, 50);
-    }, 7400);
-  },
 }));

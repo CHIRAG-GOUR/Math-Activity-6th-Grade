@@ -19,7 +19,9 @@ export const NavigationCalibration3D: React.FC = () => {
   const navLightRef = useRef<THREE.PointLight>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const navLocked = useMissionControlStore((s) => s.spacecraft.navAlignmentLocked);
+  const navLocked = useMissionControlStore(
+    (s) => s.blueSpacecraft.stage4NavDone || s.redSpacecraft.stage4NavDone
+  );
 
   useFrame(() => {
     if (trackerHeadRef.current) {

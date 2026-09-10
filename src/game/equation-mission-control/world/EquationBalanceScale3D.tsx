@@ -22,7 +22,9 @@ export const EquationBalanceScale3D: React.FC = () => {
   const glowLightRef = useRef<THREE.PointLight>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const enginePower = useMissionControlStore((s) => s.spacecraft.enginePowerGrid);
+  const enginePower = useMissionControlStore(
+    (s) => s.blueSpacecraft.stage3EngineDone || s.redSpacecraft.stage3EngineDone
+  );
   const blueState = useMissionControlStore((s) => s.blueTeam);
   const redState = useMissionControlStore((s) => s.redTeam);
 

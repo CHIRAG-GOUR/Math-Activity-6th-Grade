@@ -1,345 +1,440 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Genuine 3D Spacecraft Model
-// Detailed Multi-Stage Heavy Aerospace Rocket:
-// - Aerodynamic Fuselage with White Thermal Tiles & Team Striping
-// - Front Cockpit Canopy with Pilot, HUD Instruments & Interior Glow
-// - High-Lift Delta Wings with Winglet Strobes & Elevons
-// - Main Propulsion Module: 3 Rocket Engine Bell Nozzles with Combustion Glow
-// - Dual Solid Rocket Boosters (SRBs) on Left & Right Sides
-// - Dynamic Volumetric Thrust Plume & Billowing Smoke Particles on Ignition
+// EQUATION MISSION CONTROL 2.0 — 3D Spacecraft Model
+// High-Quality Stylized Aerospace Launch Vehicle with:
+// - Blue / Red Team Livery + Large Physical Team Name Plate
+// - Cockpit with Glowing HUD & Pilot Canopy
+// - Aerodynamic Swept Delta Wings with Wingtip Strobe Strobes
+// - Triple Engine Cluster + Dual Solid Rocket Boosters (SRBs)
+// - 4 Heavy Hydraulic Landing Legs with Pad Clamps
+// - Animated 3D Waving Team Flag that Flutters in the Wind
+// - 5 Real Mechanical Preparation Stages + Dynamic Liftoff Physics
 // ============================================================
 
-'use client';
-
 import React, { useRef } from 'react';
-import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { useMissionControlStore } from '../store/missionControlStore';
+import * as THREE from 'three';
+import { Spacecraft3DState, TeamId } from '../types';
 
-export const Spacecraft3D: React.FC = () => {
+interface SpacecraftProps {
+  state: Spacecraft3DState;
+  position: [number, number, number];
+  team: TeamId;
+  isHeroWinner?: boolean;
+}
+
+export const Spacecraft3D: React.FC<SpacecraftProps> = ({
+  state,
+  position,
+  team,
+  isHeroWinner = false,
+}) => {
   const groupRef = useRef<THREE.Group>(null);
-  const flameGroupRef = useRef<THREE.Group>(null);
-  const smokePuffsRef = useRef<THREE.Mesh[]>([]);
-  const cockpitLightRef = useRef<THREE.PointLight>(null);
-  const engineLightRef = useRef<THREE.PointLight>(null);
-  const strobeLightRef = useRef<THREE.PointLight>(null);
+  const flagMeshRef = useRef<THREE.Mesh>(null);
+  const flameMeshRef = useRef<THREE.Mesh>(null);
+  const smokeMeshRef = useRef<THREE.Group>(null);
+  const antennaRef = useRef<THREE.Group>(null);
+  const engineClusterRef = useRef<THREE.Group>(null);
 
-  const spacecraftState = useMissionControlStore((s) => s.spacecraft);
-  const winner = useMissionControlStore((s) => s.winnerTeam);
-  const currentStage = useMissionControlStore((s) => s.currentStageIndex);
+  const isBlue = team === 'blue';
 
-  // Colors
-  const primaryWhite = '#f8fafc';
-  const heatShieldBlack = '#0f172a';
-  const aerospaceOrange = '#f97316';
-  const teamAccent = winner === 'blue' ? '#2563eb' : winner === 'red' ? '#dc2626' : '#0284c7';
-  const chromeMetal = '#cbd5e1';
-  const goldFoil = '#fbbf24';
+  // Livery Colors
+  const primaryColor = isBlue ? '#2563eb' : '#dc2626'; // Vibrant Blue / Red
+  const primaryDark = isBlue ? '#1d4ed8' : '#b91c1c';
+  const accentColor = '#f59e0b'; // Amber / Yellow safety trim
+  const bodyColor = '#f8fafc';   // Clean White Aerospace Ceramic
+  const darkMetal = '#1e293b';   // Slate / Titanium
+  const engineMetal = '#334155'; // Dark Chrome Nozzles
 
-  useFrame((_, delta) => {
-    if (!groupRef.current) return;
+  // Frame loop for liftoff physics, flag wave, vibration, and animations
+  useFrame((stateThree, delta) => {
+    const time = stateThree.clock.getElapsedTime();
 
-    const alt = spacecraftState.altitude;
-    const isLaunching = spacecraftState.launchStage !== 'idle' && spacecraftState.launchStage !== 'arming';
+    if (groupRef.current) {
+      // 1. Smooth Altitude Ascent
+      groupRef.current.position.y = THREE.MathUtils.lerp(
+        groupRef.current.position.y,
+        position[1] + state.altitude,
+        delta * 3.5
+      );
 
-    // Vertical liftoff position
-    groupRef.current.position.y = 2.2 + alt;
+      // 2. Engine Vibration during Ignition & Thrust Ramp
+      if (state.launchStage === 'ignition' || state.launchStage === 'thrust-ramp') {
+        const shake = (Math.random() - 0.5) * 0.08;
+        groupRef.current.position.x = position[0] + shake;
+        groupRef.current.position.z = position[2] + shake;
+      } else {
+        groupRef.current.position.x = position[0];
+        groupRef.current.position.z = position[2];
+      }
 
-    // Slight aerodynamic pitch during ascent
-    if (alt > 15) {
-      const targetPitch = Math.min(0.25, (alt - 15) * 0.003);
-      groupRef.current.rotation.x = THREE.MathUtils.damp(groupRef.current.rotation.x, -targetPitch, 2.0, delta);
-    } else {
-      // Stage 4 Gimbal alignment test
-      const gimbal = spacecraftState.gimbalPitchAngle || 0;
-      groupRef.current.rotation.z = THREE.MathUtils.damp(groupRef.current.rotation.z, Math.sin(Date.now() * 0.002) * (gimbal * 0.15), 3.0, delta);
-    }
-
-    // Cockpit avionics glow
-    if (cockpitLightRef.current) {
-      const active = spacecraftState.avionicsPower || currentStage >= 1;
-      cockpitLightRef.current.intensity = active ? 1.5 + Math.sin(Date.now() * 0.005) * 0.3 : 0;
-    }
-
-    // Engine ignition light & flame scale
-    if (engineLightRef.current) {
-      const igniting = isLaunching && spacecraftState.launchStage !== 'hazard-lights';
-      engineLightRef.current.intensity = igniting ? 8.0 + Math.random() * 3.0 : (spacecraftState.enginePowerGrid ? 0.8 : 0);
-    }
-
-    // Wingtip strobe flash
-    if (strobeLightRef.current) {
-      const flash = Math.floor(Date.now() / 600) % 2 === 0;
-      strobeLightRef.current.intensity = flash ? 2.5 : 0.1;
-    }
-
-    // Volumetric flame animation
-    if (flameGroupRef.current) {
-      const showFlame = isLaunching && alt > 0;
-      flameGroupRef.current.visible = showFlame;
-      if (showFlame) {
-        const flicker = 1.0 + (Math.random() - 0.5) * 0.2;
-        const scale = spacecraftState.exhaustFlameScale * flicker;
-        flameGroupRef.current.scale.set(scale, scale * (1.2 + Math.random() * 0.3), scale);
+      // 3. Stage 4 Navigation Gimbal Pitch / Flight Alignment
+      if (state.stage4NavDone && state.launchStage === 'idle') {
+        groupRef.current.rotation.z = THREE.MathUtils.lerp(
+          groupRef.current.rotation.z,
+          isBlue ? -0.04 : 0.04,
+          delta * 2
+        );
       }
     }
 
-    // Billowing smoke puff particles
-    smokePuffsRef.current.forEach((puff, i) => {
-      if (puff) {
-        const isSmoking = (isLaunching && alt < 90) || (spacecraftState.ventingVapor && !isLaunching);
-        puff.visible = isSmoking;
-        if (isSmoking) {
-          const t = (Date.now() * 0.0025 + i * 0.25) % 1.5;
-          puff.position.y = -2.2 - t * 6.5;
-          puff.position.x = Math.sin(Date.now() * 0.004 + i) * (0.8 + t * 2.2);
-          puff.position.z = Math.cos(Date.now() * 0.004 + i) * (0.8 + t * 2.2);
+    // 4. Animated 3D Waving Flag (Sine wave displacement)
+    if (flagMeshRef.current) {
+      const geom = flagMeshRef.current.geometry as THREE.PlaneGeometry;
+      if (geom && geom.attributes.position) {
+        const posAttr = geom.attributes.position;
+        const waveSpeed = state.flagWaveSpeed * 4.0;
+        const prominence = state.flagProminence || 1;
 
-          const s = 0.4 + t * 1.8;
-          puff.scale.set(s, s, s);
-
-          const mat = puff.material as THREE.MeshStandardMaterial;
-          if (mat) {
-            mat.opacity = Math.max(0, 0.75 - (t / 1.5) * 0.75);
-          }
+        for (let i = 0; i < posAttr.count; i++) {
+          const u = posAttr.getX(i);
+          // Wave increases away from the flagpole (u > 0)
+          const wave = Math.sin(time * waveSpeed + u * 3.0) * (0.15 * prominence * (u + 0.5));
+          posAttr.setZ(i, wave);
         }
+        posAttr.needsUpdate = true;
       }
-    });
+    }
+
+    // 5. High-Gain Antenna Scanning Rotation (Stage 4)
+    if (antennaRef.current && state.antennaDeployed) {
+      antennaRef.current.rotation.y = time * 1.5;
+    }
+
+    // 6. Engine Flame Pulsing
+    if (flameMeshRef.current && state.exhaustFlameScale > 0) {
+      const pulse = 1 + Math.sin(time * 30) * 0.15;
+      flameMeshRef.current.scale.set(
+        state.exhaustFlameScale * pulse,
+        state.exhaustFlameScale * (1.2 + Math.cos(time * 25) * 0.2),
+        state.exhaustFlameScale * pulse
+      );
+    }
   });
 
   return (
-    <group ref={groupRef} position={[0, 2.2, 0]}>
-      {/* ── 1. MAIN CYLINDRICAL FUSELAGE ── */}
-      <mesh position={[0, 3.2, 0]} castShadow receiveShadow>
-        <cylinderGeometry args={[0.92, 0.96, 5.2, 32]} />
-        <meshStandardMaterial color={primaryWhite} roughness={0.25} metalness={0.15} />
+    <group ref={groupRef} position={position}>
+      {/* ── 1. MAIN FUSELAGE BODY (Aerodynamic White Ceramic) ── */}
+      <mesh position={[0, 4.2, 0]} castShadow receiveShadow>
+        <cylinderGeometry args={[0.9, 1.15, 6.0, 32]} />
+        <meshStandardMaterial
+          color={bodyColor}
+          roughness={0.25}
+          metalness={0.15}
+        />
       </mesh>
 
-      {/* Team Accent Striping on Fuselage */}
-      <mesh position={[0, 3.4, 0]}>
-        <cylinderGeometry args={[0.93, 0.93, 0.4, 32]} />
-        <meshStandardMaterial color={teamAccent} roughness={0.3} metalness={0.2} />
-      </mesh>
-      <mesh position={[0, 2.2, 0]}>
-        <cylinderGeometry args={[0.95, 0.95, 0.15, 32]} />
-        <meshStandardMaterial color={aerospaceOrange} roughness={0.3} metalness={0.3} />
-      </mesh>
-      <mesh position={[0, 4.6, 0]}>
-        <cylinderGeometry args={[0.91, 0.91, 0.15, 32]} />
-        <meshStandardMaterial color={aerospaceOrange} roughness={0.3} metalness={0.3} />
+      {/* Middle Livery Color Band with Team Accents */}
+      <mesh position={[0, 4.2, 0]} castShadow>
+        <cylinderGeometry args={[0.91, 1.05, 2.2, 32]} />
+        <meshStandardMaterial
+          color={primaryColor}
+          roughness={0.3}
+          metalness={0.2}
+        />
       </mesh>
 
-      {/* ── 2. AERODYNAMIC NOSE CONE ── */}
-      <group position={[0, 5.8, 0]}>
-        <mesh castShadow>
-          <coneGeometry args={[0.92, 2.2, 32]} />
-          <meshStandardMaterial color={primaryWhite} roughness={0.2} metalness={0.1} />
+      {/* Team Name Badge Plaque on Fuselage */}
+      <group position={[0, 4.2, 0.98]}>
+        <mesh>
+          <boxGeometry args={[1.5, 0.6, 0.08]} />
+          <meshStandardMaterial
+            color="#ffffff"
+            roughness={0.1}
+            metalness={0.3}
+          />
         </mesh>
-        {/* Heat Shield Nose Cap */}
-        <mesh position={[0, 0.95, 0]}>
-          <coneGeometry args={[0.3, 0.4, 24]} />
-          <meshStandardMaterial color={heatShieldBlack} roughness={0.5} />
+        <mesh position={[0, 0, 0.05]}>
+          <boxGeometry args={[1.4, 0.5, 0.04]} />
+          <meshStandardMaterial
+            color={primaryDark}
+            roughness={0.2}
+          />
         </mesh>
       </group>
 
-      {/* ── 3. COCKPIT CANOPY WITH TINTED GLASS & PILOT ── */}
-      <group position={[0, 4.2, 0.72]}>
-        {/* Tinted Canopy Window */}
-        <mesh rotation={[Math.PI / 8, 0, 0]}>
-          <boxGeometry args={[0.62, 0.95, 0.42]} />
+      {/* ── 2. AERODYNAMIC NOSE CONE ── */}
+      <mesh position={[0, 7.8, 0]} castShadow>
+        <coneGeometry args={[0.9, 2.4, 32]} />
+        <meshStandardMaterial
+          color={bodyColor}
+          roughness={0.2}
+          metalness={0.2}
+        />
+      </mesh>
+
+      {/* Nose Cone Tip (Titanium Probe) */}
+      <mesh position={[0, 9.1, 0]}>
+        <cylinderGeometry args={[0.04, 0.08, 0.8, 16]} />
+        <meshStandardMaterial color="#94a3b8" metalness={0.8} roughness={0.2} />
+      </mesh>
+
+      {/* ── 3. COCKPIT / AVIONICS CANOPY (Stage 1 Activated) ── */}
+      <group position={[0, 6.4, 0.65]} rotation={[-0.35, 0, 0]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.35, 0.9, 8, 16]} />
           <meshStandardMaterial
-            color="#38bdf8"
+            color={state.stage1StructureDone ? '#38bdf8' : '#0f172a'}
+            emissive={state.stage1StructureDone ? '#0284c7' : '#000000'}
+            emissiveIntensity={state.cockpitGlowIntensity * 1.5}
             roughness={0.1}
             metalness={0.8}
             transparent
-            opacity={0.7}
+            opacity={0.92}
           />
         </mesh>
-        {/* Cockpit Canopy Frame */}
-        <mesh position={[0, 0, -0.04]} rotation={[Math.PI / 8, 0, 0]}>
-          <boxGeometry args={[0.68, 1.02, 0.38]} />
-          <meshStandardMaterial color={heatShieldBlack} roughness={0.6} />
-        </mesh>
-        {/* Interior Cockpit Pilot Figure */}
-        <group position={[0, -0.1, -0.1]} scale={[0.65, 0.65, 0.65]}>
-          <mesh position={[0, 0.28, 0]}>
-            <sphereGeometry args={[0.14, 12, 12]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-          </mesh>
-          <mesh position={[0, 0.3, 0.08]}>
-            <boxGeometry args={[0.18, 0.1, 0.08]} />
-            <meshStandardMaterial color={goldFoil} metalness={0.9} roughness={0.1} />
-          </mesh>
-          <mesh position={[0, 0, 0]}>
-            <boxGeometry args={[0.32, 0.38, 0.18]} />
-            <meshStandardMaterial color={teamAccent} roughness={0.4} />
-          </mesh>
-        </group>
-        {/* Cockpit Light Source */}
-        <pointLight
-          ref={cockpitLightRef}
-          position={[0, 0, 0.2]}
-          color="#38bdf8"
-          distance={4}
-          intensity={0}
-        />
       </group>
 
-      {/* ── 4. DELTA WINGS & WINGLET FINS ── */}
-      {/* Left Delta Wing */}
-      <group position={[-1.7, 1.8, 0]} rotation={[0, 0, -Math.PI / 16]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[1.8, 0.08, 2.2]} />
-          <meshStandardMaterial color={primaryWhite} roughness={0.3} />
+      {/* ── 4. CANARD FOREPLANES (Upper Aerodynamic Stabilizers) ── */}
+      <group position={[0, 6.6, 0]}>
+        {/* Left Canard */}
+        <mesh position={[-0.9, 0, 0]} rotation={[0, 0, 0.2]} castShadow>
+          <boxGeometry args={[0.8, 0.06, 0.4]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
         </mesh>
-        {/* Wing Leading Edge Heat Shield */}
-        <mesh position={[0, 0, 1.08]}>
-          <boxGeometry args={[1.82, 0.09, 0.12]} />
-          <meshStandardMaterial color={heatShieldBlack} roughness={0.6} />
-        </mesh>
-        {/* Vertical Winglet Stabilizer */}
-        <mesh position={[-0.85, 0.45, -0.2]}>
-          <boxGeometry args={[0.08, 0.95, 1.1]} />
-          <meshStandardMaterial color={teamAccent} roughness={0.3} />
+        {/* Right Canard */}
+        <mesh position={[0.9, 0, 0]} rotation={[0, 0, -0.2]} castShadow>
+          <boxGeometry args={[0.8, 0.06, 0.4]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
         </mesh>
       </group>
 
-      {/* Right Delta Wing */}
-      <group position={[1.7, 1.8, 0]} rotation={[0, 0, Math.PI / 16]}>
-        <mesh castShadow receiveShadow>
-          <boxGeometry args={[1.8, 0.08, 2.2]} />
-          <meshStandardMaterial color={primaryWhite} roughness={0.3} />
+      {/* ── 5. MAIN SWEPT DELTA WINGS (With Wingtip Strobe Lights) ── */}
+      <group position={[0, 2.2, 0]}>
+        {/* Left Main Delta Wing */}
+        <mesh position={[-1.7, 0, 0]} rotation={[0, 0, 0.08]} castShadow>
+          <boxGeometry args={[1.8, 0.12, 1.6]} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} />
         </mesh>
-        {/* Wing Leading Edge Heat Shield */}
-        <mesh position={[0, 0, 1.08]}>
-          <boxGeometry args={[1.82, 0.09, 0.12]} />
-          <meshStandardMaterial color={heatShieldBlack} roughness={0.6} />
+        {/* Left Winglet */}
+        <mesh position={[-2.55, 0.35, 0]} castShadow>
+          <boxGeometry args={[0.08, 0.7, 0.9]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
         </mesh>
-        {/* Vertical Winglet Stabilizer */}
-        <mesh position={[0.85, 0.45, -0.2]}>
-          <boxGeometry args={[0.08, 0.95, 1.1]} />
-          <meshStandardMaterial color={teamAccent} roughness={0.3} />
+        {/* Left Wing Navigation Strobe (Red Port Light) */}
+        <mesh position={[-2.6, 0.72, 0]}>
+          <sphereGeometry args={[0.06, 12, 12]} />
+          <meshStandardMaterial
+            color="#ef4444"
+            emissive="#ef4444"
+            emissiveIntensity={2.0}
+          />
+        </mesh>
+
+        {/* Right Main Delta Wing */}
+        <mesh position={[1.7, 0, 0]} rotation={[0, 0, -0.08]} castShadow>
+          <boxGeometry args={[1.8, 0.12, 1.6]} />
+          <meshStandardMaterial color={primaryColor} roughness={0.3} />
+        </mesh>
+        {/* Right Winglet */}
+        <mesh position={[2.55, 0.35, 0]} castShadow>
+          <boxGeometry args={[0.08, 0.7, 0.9]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
+        </mesh>
+        {/* Right Wing Navigation Strobe (Green Starboard Light) */}
+        <mesh position={[2.6, 0.72, 0]}>
+          <sphereGeometry args={[0.06, 12, 12]} />
+          <meshStandardMaterial
+            color="#22c55e"
+            emissive="#22c55e"
+            emissiveIntensity={2.0}
+          />
+        </mesh>
+
+        {/* Dorsal Vertical Stabilizer Fin */}
+        <mesh position={[0, 0.9, -1.1]} rotation={[-0.3, 0, 0]} castShadow>
+          <boxGeometry args={[0.1, 1.6, 1.2]} />
+          <meshStandardMaterial color={bodyColor} roughness={0.3} />
         </mesh>
       </group>
 
-      {/* Wingtip Navigation Strobes */}
-      <pointLight
-        ref={strobeLightRef}
-        position={[-2.6, 2.2, -0.2]}
-        color="#ef4444"
-        distance={6}
-        intensity={0.5}
-      />
-
-      {/* ── 5. DUAL SOLID ROCKET BOOSTERS (SRBs) ── */}
+      {/* ── 6. DUAL SOLID ROCKET BOOSTERS (SRBs) ── */}
       {/* Left SRB */}
-      <group position={[-1.25, 2.8, -0.2]}>
+      <group position={[-1.35, 3.2, 0]}>
         <mesh castShadow>
-          <cylinderGeometry args={[0.38, 0.38, 5.6, 24]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.2} />
+          <cylinderGeometry args={[0.38, 0.38, 5.2, 24]} />
+          <meshStandardMaterial color="#f1f5f9" metalness={0.2} roughness={0.3} />
         </mesh>
-        <mesh position={[0, 3.1, 0]}>
-          <coneGeometry args={[0.38, 0.7, 24]} />
-          <meshStandardMaterial color={aerospaceOrange} roughness={0.3} />
+        {/* SRB Nose Cone */}
+        <mesh position={[0, 2.9, 0]} castShadow>
+          <coneGeometry args={[0.38, 0.9, 24]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
         </mesh>
-        {/* SRB Engine Nozzle */}
-        <mesh position={[0, -2.95, 0]} rotation={[Math.PI, 0, 0]}>
-          <cylinderGeometry args={[0.32, 0.18, 0.45, 20]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+        {/* SRB Nozzle */}
+        <mesh position={[0, -2.8, 0]}>
+          <cylinderGeometry args={[0.25, 0.38, 0.5, 20]} />
+          <meshStandardMaterial color={darkMetal} metalness={0.8} />
         </mesh>
       </group>
 
       {/* Right SRB */}
-      <group position={[1.25, 2.8, -0.2]}>
+      <group position={[1.35, 3.2, 0]}>
         <mesh castShadow>
-          <cylinderGeometry args={[0.38, 0.38, 5.6, 24]} />
-          <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.2} />
+          <cylinderGeometry args={[0.38, 0.38, 5.2, 24]} />
+          <meshStandardMaterial color="#f1f5f9" metalness={0.2} roughness={0.3} />
         </mesh>
-        <mesh position={[0, 3.1, 0]}>
-          <coneGeometry args={[0.38, 0.7, 24]} />
-          <meshStandardMaterial color={aerospaceOrange} roughness={0.3} />
+        {/* SRB Nose Cone */}
+        <mesh position={[0, 2.9, 0]} castShadow>
+          <coneGeometry args={[0.38, 0.9, 24]} />
+          <meshStandardMaterial color={accentColor} roughness={0.3} />
         </mesh>
-        {/* SRB Engine Nozzle */}
-        <mesh position={[0, -2.95, 0]} rotation={[Math.PI, 0, 0]}>
-          <cylinderGeometry args={[0.32, 0.18, 0.45, 20]} />
-          <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
+        {/* SRB Nozzle */}
+        <mesh position={[0, -2.8, 0]}>
+          <cylinderGeometry args={[0.25, 0.38, 0.5, 20]} />
+          <meshStandardMaterial color={darkMetal} metalness={0.8} />
         </mesh>
       </group>
 
-      {/* ── 6. MAIN ENGINE PROPULSION BAY & 3 BELL NOZZLES ── */}
-      <group position={[0, 0.3, 0]}>
-        {/* Engine Base Heat Shield Shielding */}
-        <mesh position={[0, 0.3, 0]}>
-          <cylinderGeometry args={[0.96, 0.98, 0.45, 32]} />
-          <meshStandardMaterial color={heatShieldBlack} roughness={0.7} />
+      {/* ── 7. PRIMARY ENGINE SECTION & TRIPLE NOZZLES (Stage 3) ── */}
+      <group ref={engineClusterRef} position={[0, 0.7, 0]}>
+        {/* Center Main Engine Bell Nozzle */}
+        <mesh position={[0, -0.4, 0]} castShadow>
+          <cylinderGeometry args={[0.3, 0.55, 0.9, 24]} />
+          <meshStandardMaterial
+            color={engineMetal}
+            metalness={0.85}
+            roughness={0.2}
+          />
+        </mesh>
+        {/* Left Auxiliary Bell Nozzle */}
+        <mesh position={[-0.45, -0.3, -0.25]} castShadow>
+          <cylinderGeometry args={[0.2, 0.38, 0.7, 20]} />
+          <meshStandardMaterial color={engineMetal} metalness={0.85} />
+        </mesh>
+        {/* Right Auxiliary Bell Nozzle */}
+        <mesh position={[0.45, -0.3, -0.25]} castShadow>
+          <cylinderGeometry args={[0.2, 0.38, 0.7, 20]} />
+          <meshStandardMaterial color={engineMetal} metalness={0.85} />
         </mesh>
 
-        {/* 3 Main Bell Nozzles */}
-        {([
-          [0, 0, 0.4],
-          [-0.45, 0, -0.3],
-          [0.45, 0, -0.3],
-        ] as [number, number, number][]).map((pos, i) => (
-          <group key={`engine-nozzle-${i}`} position={pos}>
-            <mesh rotation={[Math.PI, 0, 0]}>
-              <cylinderGeometry args={[0.34, 0.18, 0.65, 24]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.85} roughness={0.25} />
+        {/* Engine Glow & Heat Ignition Shield */}
+        {state.stage3EngineDone && (
+          <pointLight
+            position={[0, -0.8, 0]}
+            color="#f97316"
+            intensity={state.engineGlowIntensity * 3.5}
+            distance={5}
+          />
+        )}
+      </group>
+
+      {/* ── 8. HYDRAULIC LANDING LEGS & CLAMPS (Stage 1) ── */}
+      <group position={[0, 0.8, 0]}>
+        {[
+          { pos: [-1.1, -0.4, 1.0], rot: [0.3, 0.4, -0.3] },
+          { pos: [1.1, -0.4, 1.0], rot: [0.3, -0.4, 0.3] },
+          { pos: [-1.1, -0.4, -1.0], rot: [-0.3, -0.4, -0.3] },
+          { pos: [1.1, -0.4, -1.0], rot: [-0.3, 0.4, 0.3] },
+        ].map((leg, i) => (
+          <group key={i} position={leg.pos as [number, number, number]} rotation={leg.rot as [number, number, number]}>
+            {/* Hydraulic Strut */}
+            <mesh castShadow>
+              <cylinderGeometry args={[0.08, 0.08, 1.4, 12]} />
+              <meshStandardMaterial color="#64748b" metalness={0.7} />
             </mesh>
-            {/* Interior combustion glow ring */}
-            <mesh position={[0, 0.1, 0]}>
-              <cylinderGeometry args={[0.16, 0.16, 0.1, 16]} />
-              <meshStandardMaterial
-                color="#f97316"
-                emissive="#f97316"
-                emissiveIntensity={spacecraftState.enginePowerGrid ? 2.5 : 0.2}
-              />
+            {/* Hexagonal Footpad */}
+            <mesh position={[0, -0.7, 0]} castShadow>
+              <cylinderGeometry args={[0.24, 0.24, 0.08, 6]} />
+              <meshStandardMaterial color={darkMetal} metalness={0.9} />
             </mesh>
           </group>
         ))}
-
-        {/* Engine Light */}
-        <pointLight
-          ref={engineLightRef}
-          position={[0, -0.5, 0]}
-          color="#f97316"
-          distance={12}
-          intensity={0}
-        />
       </group>
 
-      {/* ── 7. VOLUMETRIC EXHAUST FLAME PLUME (ON LAUNCH) ── */}
-      <group ref={flameGroupRef} position={[0, -0.4, 0]} visible={false}>
-        {/* Inner Core Bright White/Cyan Flame */}
-        <mesh position={[0, -1.2, 0]}>
-          <coneGeometry args={[0.45, 2.5, 16]} />
-          <meshBasicMaterial color="#ffffff" />
-        </mesh>
-        {/* Mid Yellow/Orange Plume */}
-        <mesh position={[0, -1.8, 0]}>
-          <coneGeometry args={[0.85, 3.8, 16]} />
-          <meshBasicMaterial color="#facc15" transparent opacity={0.85} />
-        </mesh>
-        {/* Outer Crimson/Orange Billowing Flame */}
-        <mesh position={[0, -2.4, 0]}>
-          <coneGeometry args={[1.3, 5.0, 16]} />
-          <meshBasicMaterial color="#ea580c" transparent opacity={0.65} />
-        </mesh>
+      {/* ── 9. STAGE 2: CRYOGENIC FUEL LEVEL INDICATOR ── */}
+      {state.stage2FuelDone && (
+        <group position={[0.95, 4.2, 0]}>
+          {/* Vertical Glass Sight Gauge */}
+          <mesh>
+            <boxGeometry args={[0.1, 2.0, 0.1]} />
+            <meshStandardMaterial color="#0284c7" transparent opacity={0.6} />
+          </mesh>
+          {/* Rising Liquid Column */}
+          <mesh position={[0, (state.fuelTankPercent / 100 - 1) * 0.9, 0]}>
+            <boxGeometry args={[0.08, (state.fuelTankPercent / 100) * 1.8, 0.08]} />
+            <meshStandardMaterial
+              color="#38bdf8"
+              emissive="#38bdf8"
+              emissiveIntensity={1.2}
+            />
+          </mesh>
+        </group>
+      )}
+
+      {/* ── 10. STAGE 4: HIGH-GAIN GUIDANCE ANTENNA ── */}
+      <group ref={antennaRef} position={[0, 8.4, 0.4]}>
+        {state.stage4NavDone && (
+          <>
+            <mesh rotation={[0.4, 0, 0]}>
+              <cylinderGeometry args={[0.3, 0.05, 0.1, 16]} />
+              <meshStandardMaterial color="#f59e0b" metalness={0.6} />
+            </mesh>
+            <mesh position={[0, 0.2, 0.1]}>
+              <cylinderGeometry args={[0.02, 0.02, 0.3, 8]} />
+              <meshStandardMaterial color="#ffffff" />
+            </mesh>
+          </>
+        )}
       </group>
 
-      {/* ── 8. BILLOWING SMOKE PARTICLES ── */}
-      {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => (
+      {/* ── 11. PHYSICAL ANIMATED 3D WAVING TEAM FLAG ── */}
+      <group position={[isBlue ? -2.2 : 2.2, 3.8, -0.5]}>
+        {/* Steel Flagpole */}
+        <mesh position={[0, 0.8, 0]} castShadow>
+          <cylinderGeometry args={[0.035, 0.035, 2.6, 12]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.1} />
+        </mesh>
+        <mesh position={[0, 2.15, 0]}>
+          <sphereGeometry args={[0.07, 12, 12]} />
+          <meshStandardMaterial color="#f59e0b" metalness={0.8} />
+        </mesh>
+
+        {/* 3D Segmented Cloth Flag with Wave Shader */}
         <mesh
-          key={`smoke-${i}`}
-          ref={(el) => {
-            if (el) smokePuffsRef.current[i] = el;
-          }}
-          position={[0, -1.5, 0]}
-          visible={false}
+          ref={flagMeshRef}
+          position={[isBlue ? 0.6 : -0.6, 1.6, 0]}
+          scale={[isHeroWinner ? 1.6 : 1.0, isHeroWinner ? 1.6 : 1.0, 1.0]}
+          castShadow
         >
-          <sphereGeometry args={[0.65, 12, 12]} />
-          <meshStandardMaterial color="#f8fafc" transparent opacity={0.7} roughness={0.8} />
+          <planeGeometry args={[1.1, 0.7, 12, 8]} />
+          <meshStandardMaterial
+            color={primaryColor}
+            side={THREE.DoubleSide}
+            roughness={0.5}
+            metalness={0.1}
+          />
         </mesh>
-      ))}
+      </group>
+
+      {/* ── 12. VOLUMETRIC EXHAUST FLAME & IGNITION PLUME (Liftoff) ── */}
+      {state.exhaustFlameScale > 0 && (
+        <group position={[0, -0.4, 0]}>
+          {/* Intense Inner Core Flame */}
+          <mesh ref={flameMeshRef}>
+            <coneGeometry args={[0.7, 3.5, 24]} />
+            <meshBasicMaterial color="#ffedd5" />
+          </mesh>
+
+          {/* Outer Fiery Corona */}
+          <mesh scale={[1.4, 1.2, 1.4]} position={[0, -0.4, 0]}>
+            <coneGeometry args={[0.9, 4.2, 20]} />
+            <meshStandardMaterial
+              color="#ea580c"
+              emissive="#f97316"
+              emissiveIntensity={3.0}
+              transparent
+              opacity={0.85}
+            />
+          </mesh>
+
+          {/* Dynamic Ground Launch Glow */}
+          <pointLight
+            position={[0, -1.5, 0]}
+            color="#fb923c"
+            intensity={state.exhaustFlameScale * 6.0}
+            distance={20}
+          />
+        </group>
+      )}
     </group>
   );
 };

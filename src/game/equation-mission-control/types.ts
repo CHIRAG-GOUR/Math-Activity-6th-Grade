@@ -1,28 +1,28 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Type Definitions
+// EQUATION MISSION CONTROL 2.0 — Type Definitions
 // Grade 6: Expressions, Formulae & Equations
-// 2-Team Interactive 3D Daytime Space Launch Facility
+// 2-Team Interactive 3D Dual-Rocket Space Launch Facility
 // ============================================================
 
 export type TeamId = 'blue' | 'red';
 
 export type MissionStageId =
-  | 'config'       // Stage 1: Expression Assembly
-  | 'fuel'         // Stage 2: Variable Loading
-  | 'engine'       // Stage 3: Equation Balance
-  | 'navigation'   // Stage 4: Launch Calibration
-  | 'launch';      // Stage 5: Final Launch Equation & Arming
+  | 'config'       // Stage 1: Structure & Avionics Assembly
+  | 'fuel'         // Stage 2: Cryogenic Fuel Variable Loading
+  | 'engine'       // Stage 3: Rocket Engine Equation Balance
+  | 'navigation'   // Stage 4: Flight Path Formula Calibration
+  | 'launch';      // Stage 5: Final Launch Equation Lock & Liftoff
 
 export type StageIndex = 0 | 1 | 2 | 3 | 4;
 
 export type GamePhase =
-  | 'title'              // Title & Team Name Customization Screen
-  | 'stage-intro'        // Stage Directive Modal
-  | 'active-mission'     // Active Simultaneous Dual-Console Math Operations
-  | 'solution-reveal'    // Step-by-Step Telemetry Reveal & Mathematical Proof
+  | 'title'              // Title & Team Customization
+  | 'stage-intro'        // Stage Mission Directive Briefing
+  | 'active-mission'     // Simultaneous Dual-Team Engineering Controls
+  | 'solution-reveal'    // Step-by-Step Mathematical Proof Telemetry
   | 'countdown'          // Final 5-4-3-2-1 Ignition Countdown
-  | 'launch-cinematic'   // 12-Step Full Cinematic Spacecraft Liftoff into Bright Blue Sky
-  | 'mission-report';    // Final Aerospace Mission Success Certificate & Scores
+  | 'launch-cinematic'   // 12-Step Cinematic Dual-Rocket Liftoff into Bright Blue Sky
+  | 'mission-report';    // Final Aerospace Mission Certification & Champion Plaque
 
 export type LaunchStep =
   | 'idle'
@@ -44,7 +44,7 @@ export interface Stage1Data {
   targetExpression: string; // e.g. "3x + 5"
   wordDescription: string;  // e.g. "5 more than 3 times a number"
   availableTiles: string[]; // e.g. ["3", "x", "+", "5", "-", "2", "×"]
-  correctTokens: string[];  // e.g. ["3", "x", "+", "5"] or alternative valid forms
+  correctTokens: string[];  // e.g. ["3", "x", "+", "5"]
 }
 
 export interface Stage2Data {
@@ -66,7 +66,7 @@ export interface Stage3Data {
   requiredOp: '+' | '-' | '×' | '÷';
   requiredVal: number;      // e.g. 7
   solutionX: number;        // e.g. 8
-  explanation: string;      // e.g. "Subtract 7 from both sides: x + 7 - 7 = 15 - 7  ->  x = 8"
+  explanation: string;      // e.g. "Subtract 7 from both sides: x + 7 - 7 = 15 - 7 -> x = 8"
 }
 
 export interface Stage4Data {
@@ -101,7 +101,6 @@ export interface MissionChallenge {
   hint: string;
   educationalTakeaway: string;
 
-  // Polymorphic stage specific payloads
   stage1?: Stage1Data;
   stage2?: Stage2Data;
   stage3?: Stage3Data;
@@ -115,11 +114,11 @@ export interface MissionCampaign {
   title: string;
   destinationOrbit: string;
   challenges: [
-    MissionChallenge, // Stage 1
-    MissionChallenge, // Stage 2
-    MissionChallenge, // Stage 3
-    MissionChallenge, // Stage 4
-    MissionChallenge  // Stage 5
+    MissionChallenge,
+    MissionChallenge,
+    MissionChallenge,
+    MissionChallenge,
+    MissionChallenge
   ];
 }
 
@@ -141,56 +140,55 @@ export interface TeamControlState {
   lastResult: 'correct' | 'wrong' | null;
   lastFeedback: TeamFeedback | null;
 
-  // Stage 1 interactive state
+  // Stage 1
   placedTokens: string[];
 
-  // Stage 2 interactive state
+  // Stage 2
   dialValue: number;
   currentStepProgress: number;
 
-  // Stage 3 interactive state
+  // Stage 3
   selectedBalanceOp: '+' | '-' | '×' | '÷';
   selectedBalanceVal: number;
   balanceTiltedSide: 'left-heavy' | 'right-heavy' | 'balanced';
 
-  // Stage 4 interactive state
+  // Stage 4
   speedDial: number;
   timeDial: number;
 
-  // Stage 5 interactive state
-  lockDigit1: number; // 0..9
-  lockDigit2: number; // 0..9
+  // Stage 5
+  lockDigit1: number;
+  lockDigit2: number;
   isArmed: boolean;
 }
 
 export interface Spacecraft3DState {
-  // Stage 1: Avionics & Navigation Computer
-  avionicsPower: boolean;
+  team: TeamId;
+  
+  // 5 Physical Preparation Stages
+  stage1StructureDone: boolean; // Structural panels & landing legs locked
+  stage2FuelDone: boolean;      // Fuel lines connected & cryo tanks full (0..100)
+  stage3EngineDone: boolean;    // Engine grid active & nozzles glowing
+  stage4NavDone: boolean;       // Antenna unfurled & gyro aligned to launch azimuth
+  stage5Armed: boolean;         // Clamps released & launch system armed
+
+  // Granular Subsystem Metrics
   cockpitGlowIntensity: number;
-  hudSystemsActive: boolean;
-
-  // Stage 2: Cryogenic Fuel System
-  fuelTankPercent: number; // 0..100
-  fuelPipesConnected: boolean;
+  fuelTankPercent: number;      // 0..100
+  fuelArmConnected: boolean;
   ventingVapor: boolean;
-
-  // Stage 3: Rocket Engines
-  enginePowerGrid: boolean;
   engineGlowIntensity: number;
-  turbineSpinSpeed: number;
-
-  // Stage 4: Navigation Gimbal & Trajectory
-  navAlignmentLocked: boolean;
   gimbalPitchAngle: number;
-  targetVectorLocked: boolean;
-
-  // Stage 5 & Launch: Liftoff Physics
-  launchStage: LaunchStep;
-  serviceArmsAngle: number; // 0 (clamped) to 1 (retracted 80deg)
+  antennaDeployed: boolean;
+  serviceArmsAngle: number;     // 0 (clamped) to 1 (retracted 80deg)
   clampsReleased: boolean;
-  altitude: number; // 0 at pad, up to 120+ in sky
+
+  // Liftoff Physics & Flight Telemetry
+  launchStage: LaunchStep;
+  altitude: number;             // 0 at pad up to 150+ in bright blue sky
   ascentVelocity: number;
   exhaustFlameScale: number;
   smokeVolume: number;
-  cameraTrackOffset: number;
+  flagWaveSpeed: number;
+  flagProminence: number;       // Expands and waves prominently upon victory
 }

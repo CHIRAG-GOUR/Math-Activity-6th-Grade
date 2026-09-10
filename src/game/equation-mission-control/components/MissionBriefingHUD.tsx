@@ -1,9 +1,9 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Mission Briefing Top HUD
-// Neo-Brutalist Aerospace Flight Telemetry Header:
-// - Left: Blue Mission Control Plaque + Home
-// - Center: Shared Aerospace Mission Briefing Display + 5 Stage Indicator Lights
-// - Right: Red Mission Control Plaque + Sound Toggle + Fullscreen
+// EQUATION MISSION CONTROL 2.0 — Mission Briefing Top HUD
+// Mounted Aerospace Flight Telemetry Header:
+// - Physical Aerospace Display Frame with Screws & Yellow Trim
+// - 5 Stage Indicator Lights (Configure, Fuel, Engine, Navigation, Launch)
+// - Stage Countdown Timer + Audio & Navigation Controls
 // ============================================================
 
 'use client';
@@ -12,71 +12,7 @@ import React, { useEffect, useRef } from 'react';
 import { useMissionControlStore } from '../store/missionControlStore';
 import { Volume2, VolumeX, Home, Maximize } from 'lucide-react';
 import Link from 'next/link';
-import { TeamId, StageIndex } from '../types';
-
-const TeamPlaque: React.FC<{ team: TeamId; align: 'left' | 'right' }> = ({ team, align }) => {
-  const t = useMissionControlStore((s) => (team === 'blue' ? s.blueTeam : s.redTeam));
-  const isBlue = team === 'blue';
-  const borderCol = isBlue ? '#60a5fa' : '#f87171';
-  const bgCol = isBlue
-    ? 'linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%)'
-    : 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)';
-
-  const avatar = (
-    <div
-      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow-xs border-2"
-      style={{
-        background: isBlue ? '#2563eb' : '#dc2626',
-        borderColor: isBlue ? '#1e40af' : '#991b1b',
-        color: '#ffffff',
-      }}
-    >
-      <span className="text-base">{isBlue ? '🛰️' : '🚀'}</span>
-    </div>
-  );
-
-  const info = (
-    <div className={align === 'right' ? 'text-right' : 'text-left'}>
-      <div
-        className="text-[9px] font-black uppercase tracking-wider"
-        style={{ color: isBlue ? '#1e40af' : '#991b1b' }}
-      >
-        {t.name}
-      </div>
-      <div
-        className="flex items-center gap-1 leading-none"
-        style={{ justifyContent: align === 'right' ? 'flex-end' : 'flex-start' }}
-      >
-        <span className="text-[19px] font-black text-slate-900 tracking-tight">
-          {t.score.toLocaleString()}
-        </span>
-        <span className="text-[9px] font-bold text-slate-500 ml-0.5">PTS</span>
-      </div>
-    </div>
-  );
-
-  return (
-    <div
-      className="flex items-center gap-2.5 px-3 py-1.5 rounded-2xl border-3 shadow-lg bg-white"
-      style={{
-        background: bgCol,
-        borderColor: borderCol,
-      }}
-    >
-      {align === 'left' ? (
-        <>
-          {avatar}
-          {info}
-        </>
-      ) : (
-        <>
-          {info}
-          {avatar}
-        </>
-      )}
-    </div>
-  );
-};
+import { StageIndex } from '../types';
 
 export const MissionBriefingHUD: React.FC = () => {
   const phase = useMissionControlStore((s) => s.phase);
@@ -118,33 +54,36 @@ export const MissionBriefingHUD: React.FC = () => {
   const STAGE_NAMES = ['CONFIGURE', 'FUEL', 'ENGINE', 'NAVIGATION', 'LAUNCH'];
 
   return (
-    <header className="absolute top-2.5 inset-x-0 z-30 px-3 pointer-events-none select-none flex items-start justify-between gap-3">
-      {/* Left: Blue Telemetry Plaque + Home */}
-      <div className="flex items-center gap-2 pointer-events-auto">
+    <header className="absolute top-2 inset-x-0 z-30 px-4 pointer-events-none select-none flex items-center justify-between gap-3">
+      {/* Left Control: Home Button */}
+      <div className="pointer-events-auto flex items-center gap-2">
         <Link
           href="/"
           title="Arcade Hub"
-          className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-300 hover:border-blue-400 flex items-center justify-center shadow-lg transition"
+          className="w-9 h-9 rounded-xl bg-white border-2 border-slate-800 hover:border-blue-600 flex items-center justify-center mc-shadow-hard mc-pressable transition"
         >
-          <Home className="w-5 h-5 text-slate-700" />
+          <Home className="w-4 h-4 text-slate-800" />
         </Link>
-        <TeamPlaque team="blue" align="left" />
       </div>
 
-      {/* Center: Physical Aerospace Mission Telemetry Frame */}
-      <div className="pointer-events-auto flex flex-col items-center gap-1 mt-0.5">
-        <div className="px-5 py-2 rounded-2xl bg-white/95 backdrop-blur-md border-3 border-amber-400 shadow-2xl flex items-center gap-4">
-          <div className="text-center leading-tight">
-            <div className="text-[9px] font-black tracking-widest text-amber-700 uppercase">
-              MISSION TELEMETRY • STAGE {currentStage + 1} OF 5
+      {/* Center: Mounted Physical Aerospace Briefing Display */}
+      <div className="pointer-events-auto flex flex-col items-center">
+        <div className="px-5 py-2 rounded-2xl bg-white border-3 border-slate-900 mc-shadow-hard-lg flex items-center gap-5 relative">
+          <div className="mc-screw absolute -top-1.5 -left-1.5" />
+          <div className="mc-screw absolute -top-1.5 -right-1.5" />
+
+          {/* Mission Info */}
+          <div className="text-center leading-none">
+            <div className="text-[9px] font-black tracking-widest text-amber-600 uppercase flex items-center justify-center gap-1">
+              <span>🚀</span> MISSION 0{currentStage + 1}
             </div>
-            <div className="text-[13px] font-black tracking-wide text-slate-950 mt-0.5">
-              {challenge?.stageTitle || 'AEROSPACE LAUNCH PREPARATION'}
+            <div className="text-xs font-black text-slate-950 mt-1 uppercase tracking-tight">
+              {challenge?.stageTitle || 'DUAL SPACECRAFT PREPARATION'}
             </div>
           </div>
 
-          {/* 5 Aerospace Stage Indicator Lights */}
-          <div className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-900 border-2 border-slate-800">
+          {/* 5 Physical Stage Indicator Lights */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border-2 border-slate-800">
             {([0, 1, 2, 3, 4] as StageIndex[]).map((idx) => {
               const isDone = idx < currentStage;
               const isCurrent = idx === currentStage;
@@ -155,21 +94,21 @@ export const MissionBriefingHUD: React.FC = () => {
                   className="flex items-center gap-1"
                 >
                   <div
-                    className={`w-3 h-3 rounded-full border transition-all ${
+                    className={`w-2.5 h-2.5 rounded-full border transition-all ${
                       isDone
                         ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_8px_#10b981]'
                         : isCurrent
-                          ? 'bg-amber-400 border-amber-300 shadow-[0_0_8px_#facc15] animate-pulse'
-                          : 'bg-slate-700 border-slate-800 opacity-40'
+                        ? 'bg-amber-400 border-amber-300 shadow-[0_0_8px_#facc15] animate-pulse'
+                        : 'bg-slate-700 border-slate-800 opacity-40'
                     }`}
                   />
                   <span
-                    className={`text-[8px] font-black uppercase hidden sm:inline ${
+                    className={`text-[8px] font-black uppercase hidden md:inline ${
                       isDone
                         ? 'text-emerald-400'
                         : isCurrent
-                          ? 'text-amber-300'
-                          : 'text-slate-500'
+                        ? 'text-amber-300'
+                        : 'text-slate-500'
                     }`}
                   >
                     {STAGE_NAMES[idx]}
@@ -179,44 +118,47 @@ export const MissionBriefingHUD: React.FC = () => {
             })}
           </div>
 
-          {/* Countdown Clock */}
+          {/* Flight Countdown Timer */}
           {timerActive && (
-            <div
-              className="font-mono text-xs font-black px-2.5 py-1 rounded-xl bg-slate-100 border-2 border-slate-300 shadow-inner"
-              style={{ color: timerColor }}
-            >
-              ⏱ {mm}:{ss}
+            <div className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-100 border-2 border-slate-300">
+              <span className="text-[9px] font-black text-slate-500">T-</span>
+              <span
+                className="text-sm font-black font-mono leading-none tracking-tight"
+                style={{ color: timerColor }}
+              >
+                {mm}:{ss}
+              </span>
             </div>
           )}
         </div>
       </div>
 
-      {/* Right: Red Telemetry Plaque + Audio Toggle + Fullscreen */}
-      <div className="flex items-center gap-2 pointer-events-auto">
-        <TeamPlaque team="red" align="right" />
+      {/* Right Controls: Sound & Fullscreen */}
+      <div className="pointer-events-auto flex items-center gap-2">
         <button
           onClick={toggleMute}
           title={isMuted ? 'Unmute' : 'Mute'}
-          className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-lg transition cursor-pointer"
+          className="w-9 h-9 rounded-xl bg-white border-2 border-slate-800 hover:border-amber-500 flex items-center justify-center mc-shadow-hard mc-pressable"
         >
           {isMuted ? (
-            <VolumeX className="w-5 h-5 text-red-500" />
+            <VolumeX className="w-4 h-4 text-slate-500" />
           ) : (
-            <Volume2 className="w-5 h-5 text-slate-700" />
+            <Volume2 className="w-4 h-4 text-emerald-600" />
           )}
         </button>
+
         <button
           onClick={() => {
             if (!document.fullscreenElement) {
               document.documentElement.requestFullscreen().catch(() => {});
             } else {
-              if (document.exitFullscreen) document.exitFullscreen();
+              document.exitFullscreen().catch(() => {});
             }
           }}
           title="Toggle Fullscreen"
-          className="w-10 h-10 rounded-2xl bg-white border-2 border-slate-300 hover:border-red-400 flex items-center justify-center shadow-lg transition cursor-pointer"
+          className="w-9 h-9 rounded-xl bg-white border-2 border-slate-800 hover:border-blue-600 flex items-center justify-center mc-shadow-hard mc-pressable"
         >
-          <Maximize className="w-5 h-5 text-slate-700" />
+          <Maximize className="w-4 h-4 text-slate-800" />
         </button>
       </div>
     </header>

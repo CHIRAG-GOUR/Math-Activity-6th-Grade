@@ -21,7 +21,9 @@ export const FuelLoadingMachine3D: React.FC = () => {
   const pumpLightRef = useRef<THREE.PointLight>(null);
 
   const stage = useMissionControlStore((s) => s.currentStageIndex);
-  const fuelPercent = useMissionControlStore((s) => s.spacecraft.fuelTankPercent);
+  const fuelPercent = useMissionControlStore(
+    (s) => Math.max(s.blueSpacecraft.fuelTankPercent, s.redSpacecraft.fuelTankPercent)
+  );
 
   useFrame(() => {
     // Mechanical Piston Pump Reciprocation

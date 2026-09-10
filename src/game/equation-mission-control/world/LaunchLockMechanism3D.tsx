@@ -24,7 +24,7 @@ export const LaunchLockMechanism3D: React.FC = () => {
   const isArmed =
     useMissionControlStore((s) => s.blueTeam.isArmed) ||
     useMissionControlStore((s) => s.redTeam.isArmed);
-  const launchStage = useMissionControlStore((s) => s.spacecraft.launchStage);
+  const launchStage = useMissionControlStore((s) => s.blueSpacecraft.launchStage);
 
   useFrame((_, delta) => {
     // Arm Lever Flip (0 deg up -> -70 deg down when armed)
