@@ -142,7 +142,7 @@ export const MissionControlScene3D: React.FC = () => {
 
         {/* ── LEFT LAUNCH PAD: BLUE TEAM SPACECRAFT (x = -7.0) ── */}
         <Spacecraft3D
-          position={[-7.0, 0.73, 0]}
+          position={[-7.0, 0.85, 0]}
           team="blue"
           state={blueSpacecraft}
           isHeroWinner={winner === 'blue' || winner === 'draw'}
@@ -150,7 +150,7 @@ export const MissionControlScene3D: React.FC = () => {
 
         {/* ── RIGHT LAUNCH PAD: RED TEAM SPACECRAFT (x = +7.0) ── */}
         <Spacecraft3D
-          position={[7.0, 0.73, 0]}
+          position={[7.0, 0.85, 0]}
           team="red"
           state={redSpacecraft}
           isHeroWinner={winner === 'red' || winner === 'draw'}

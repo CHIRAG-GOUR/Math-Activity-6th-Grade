@@ -35,7 +35,7 @@ export const WorkstationDesk3D: React.FC<{
       {[-0.65, 0.65].map((x) =>
         [-0.32, 0.32].map((z) => (
           <mesh key={`${x}-${z}`} position={[x, 0.46, z]} castShadow>
-            <cylinderGeometry args={[0.03, 0.03, 0.92, 8]} />
+            <cylinderGeometry args={[0.035, 0.035, 0.92, 8]} />
             <meshStandardMaterial color="#334155" metalness={0.8} />
           </mesh>
         ))
@@ -44,14 +44,12 @@ export const WorkstationDesk3D: React.FC<{
       {/* ── DUAL GLOWING LCD TELEMETRY MONITORS ── */}
       {/* Left Monitor */}
       <group position={[-0.35, 1.32, -0.18]} rotation={[0, 0.15, 0]}>
-        {/* Monitor Bezel */}
         <mesh castShadow>
           <boxGeometry args={[0.55, 0.42, 0.04]} />
           <meshStandardMaterial color="#0f172a" roughness={0.5} />
         </mesh>
-        {/* Monitor Screen with Glowing Telemetry */}
-        <mesh position={[0, 0, 0.022]}>
-          <planeGeometry args={[0.5, 0.36]} />
+        <mesh position={[0, 0, 0.024]}>
+          <boxGeometry args={[0.5, 0.36, 0.01]} />
           <meshStandardMaterial
             color={screenColor}
             emissive={monitorGlow}
@@ -59,9 +57,8 @@ export const WorkstationDesk3D: React.FC<{
             roughness={0.2}
           />
         </mesh>
-        {/* Stand */}
         <mesh position={[0, -0.26, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
           <meshStandardMaterial color="#334155" />
         </mesh>
       </group>
@@ -72,8 +69,8 @@ export const WorkstationDesk3D: React.FC<{
           <boxGeometry args={[0.55, 0.42, 0.04]} />
           <meshStandardMaterial color="#0f172a" roughness={0.5} />
         </mesh>
-        <mesh position={[0, 0, 0.022]}>
-          <planeGeometry args={[0.5, 0.36]} />
+        <mesh position={[0, 0, 0.024]}>
+          <boxGeometry args={[0.5, 0.36, 0.01]} />
           <meshStandardMaterial
             color="#0f172a"
             emissive="#22c55e"
@@ -82,34 +79,32 @@ export const WorkstationDesk3D: React.FC<{
           />
         </mesh>
         <mesh position={[0, -0.26, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.2, 8]} />
+          <cylinderGeometry args={[0.025, 0.025, 0.2, 8]} />
           <meshStandardMaterial color="#334155" />
         </mesh>
       </group>
 
       {/* ── OPEN FIELD LAPTOP ── */}
       <group position={[0, 1.02, 0.12]}>
-        {/* Laptop Keyboard Base */}
         <mesh castShadow>
-          <boxGeometry args={[0.32, 0.015, 0.24]} />
+          <boxGeometry args={[0.32, 0.02, 0.24]} />
           <meshStandardMaterial color="#1e293b" metalness={0.8} />
         </mesh>
-        {/* Laptop Screen Display */}
         <group position={[0, 0.1, -0.11]} rotation={[-0.4, 0, 0]}>
           <mesh castShadow>
-            <boxGeometry args={[0.32, 0.22, 0.015]} />
+            <boxGeometry args={[0.32, 0.22, 0.02]} />
             <meshStandardMaterial color="#0f172a" />
           </mesh>
-          <mesh position={[0, 0, 0.009]}>
-            <planeGeometry args={[0.29, 0.19]} />
+          <mesh position={[0, 0, 0.012]}>
+            <boxGeometry args={[0.29, 0.19, 0.005]} />
             <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.9} />
           </mesh>
         </group>
       </group>
 
-      {/* Coffee Mug & Tool Set on Desk */}
-      <mesh position={[-0.55, 1.03, 0.18]} castShadow>
-        <cylinderGeometry args={[0.04, 0.035, 0.09, 12]} />
+      {/* Ceramic Coffee Mug */}
+      <mesh position={[-0.55, 1.04, 0.18]} castShadow>
+        <cylinderGeometry args={[0.045, 0.04, 0.09, 12]} />
         <meshStandardMaterial color="#ffffff" roughness={0.2} />
       </mesh>
     </group>
@@ -274,7 +269,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
         </mesh>
       </group>
 
-      {/* ── TORSO & HIGH-VISIBILITY NEON ORANGE/YELLOW SAFETY VEST ── */}
+      {/* ── TORSO & HIGH-VISIBILITY NEON ORANGE SAFETY VEST ── */}
       <mesh position={[0, 1.18, 0]} castShadow>
         <boxGeometry args={[0.44, 0.6, 0.28]} />
         <meshStandardMaterial color="#ea580c" roughness={0.45} />
@@ -332,7 +327,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <meshStandardMaterial color="#fed7aa" roughness={0.6} />
         </mesh>
 
-        {/* White / Yellow Aerodynamic Hard Hat */}
+        {/* Aerodynamic Hard Hat */}
         <mesh position={[0, 0.09, 0]} castShadow>
           <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.2} />
@@ -348,14 +343,10 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <meshStandardMaterial color={teamAccent} />
         </mesh>
 
-        {/* Communications Headset Boom Mic */}
+        {/* Comms Headset Boom */}
         <mesh position={[-0.18, 0.02, 0]}>
           <cylinderGeometry args={[0.04, 0.04, 0.06, 8]} />
           <meshStandardMaterial color="#1e293b" />
-        </mesh>
-        <mesh position={[-0.12, -0.06, 0.12]} rotation={[0, 0.7, 0]}>
-          <cylinderGeometry args={[0.01, 0.01, 0.14, 6]} />
-          <meshStandardMaterial color="#0f172a" />
         </mesh>
       </group>
 
@@ -448,14 +439,14 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
     launchStage === 'sky-ascent';
 
   return (
-    <group>
+    <group position={[0, 0.1, 0]}>
       {/* ── 1. BLUE TEAM ENGINEERING WORKSTATION & CREW (Left Pad: x = -7.0) ── */}
       {/* Blue Team Workstation Desk */}
-      <WorkstationDesk3D position={[-9.6, 0, 2.2]} rotationY={0.4} team="blue" />
+      <WorkstationDesk3D position={[-9.8, 0, 2.4]} rotationY={0.45} team="blue" />
 
-      {/* Blue Worker 1: Lead Flight Operations Director (at desk typing) */}
+      {/* Blue Worker 1: Lead Flight Director (at desk typing) */}
       <AerospaceCharacter
-        initialPos={[-9.6, 0, 2.8]}
+        initialPos={[-9.8, 0, 3.0]}
         rotationY={-3.0}
         team="blue"
         job="flight-director"
@@ -463,9 +454,9 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         isCheering={blueCheering}
       />
 
-      {/* Blue Worker 2: Cryo Propellant Loading Specialist (near fuel manifold) */}
+      {/* Blue Worker 2: Cryo Propellant Specialist (near fuel manifold) */}
       <AerospaceCharacter
-        initialPos={[-5.4, 0, 1.5]}
+        initialPos={[-5.4, 0, 1.6]}
         rotationY={-0.65}
         team="blue"
         job="fuel-tech"
@@ -485,7 +476,7 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
 
       {/* Blue Worker 4: Safety & Comms Marshall */}
       <AerospaceCharacter
-        initialPos={[-10.4, 0, -1.2]}
+        initialPos={[-10.6, 0, -1.2]}
         rotationY={0.8}
         team="blue"
         job="comms-marshall"
@@ -495,11 +486,11 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
 
       {/* ── 2. RED TEAM ENGINEERING WORKSTATION & CREW (Right Pad: x = +7.0) ── */}
       {/* Red Team Workstation Desk */}
-      <WorkstationDesk3D position={[9.6, 0, 2.2]} rotationY={-0.4} team="red" />
+      <WorkstationDesk3D position={[9.8, 0, 2.4]} rotationY={-0.45} team="red" />
 
-      {/* Red Worker 1: Lead Flight Operations Director (at desk typing) */}
+      {/* Red Worker 1: Lead Flight Director (at desk typing) */}
       <AerospaceCharacter
-        initialPos={[9.6, 0, 2.8]}
+        initialPos={[9.8, 0, 3.0]}
         rotationY={3.0}
         team="red"
         job="flight-director"
@@ -507,9 +498,9 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         isCheering={redCheering}
       />
 
-      {/* Red Worker 2: Cryo Propellant Loading Specialist */}
+      {/* Red Worker 2: Cryo Propellant Specialist */}
       <AerospaceCharacter
-        initialPos={[5.4, 0, 1.5]}
+        initialPos={[5.4, 0, 1.6]}
         rotationY={0.65}
         team="red"
         job="fuel-tech"
@@ -529,7 +520,7 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
 
       {/* Red Worker 4: Safety & Comms Marshall */}
       <AerospaceCharacter
-        initialPos={[10.4, 0, -1.2]}
+        initialPos={[10.6, 0, -1.2]}
         rotationY={-0.8}
         team="red"
         job="comms-marshall"
@@ -539,11 +530,11 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
 
       {/* ── 3. CENTRAL HUB WORKERS ── */}
       {/* Central Command Workstation */}
-      <WorkstationDesk3D position={[0, 0, 3.2]} rotationY={0} team="blue" />
+      <WorkstationDesk3D position={[0, 0, 3.4]} rotationY={0} team="blue" />
 
       {/* Central Flight Marshall */}
       <AerospaceCharacter
-        initialPos={[0, 0, 3.8]}
+        initialPos={[0, 0, 4.0]}
         rotationY={3.14}
         team="blue"
         job="flight-director"
@@ -553,7 +544,7 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
 
       {/* Mobile Systems Technician walking across central corridor */}
       <AerospaceCharacter
-        initialPos={[0, 0, 0.5]}
+        initialPos={[0, 0, 0.6]}
         rotationY={1.57}
         team="red"
         job="walking-tech"
