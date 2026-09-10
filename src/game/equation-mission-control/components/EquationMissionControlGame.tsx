@@ -10,13 +10,14 @@
 
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import dynamic from 'next/dynamic';
 import { useMissionControlStore } from '../store/missionControlStore';
 import { BlueMissionConsole } from './BlueMissionConsole';
 import { RedMissionConsole } from './RedMissionConsole';
 import { MissionBriefingHUD } from './MissionBriefingHUD';
 import { MissionControlOverlays } from './MissionControlOverlays';
+import { soundManager } from '@/utils/audio';
 import '../mission-control.css';
 
 // Dynamic 3D Scene to prevent SSR Canvas hydration mismatch
@@ -39,6 +40,14 @@ const MissionControlScene3D = dynamic(
 export const EquationMissionControlGame: React.FC = () => {
   const phase = useMissionControlStore((s) => s.phase);
   const showConsoles = phase !== 'title' && phase !== 'mission-report';
+
+  useEffect(() => {
+    // Start authentic Spacecraft BGM at 40% volume continuously
+    soundManager.startSpacecraftBgm(0.40);
+    return () => {
+      soundManager.stopSpacecraftBgm();
+    };
+  }, []);
 
   return (
     <main className="relative w-screen h-screen overflow-hidden select-none font-sans bg-sky-300">

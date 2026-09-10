@@ -13,6 +13,10 @@ class SoundEngine {
   private isBgmStarted: boolean = false;
   private railwayBgmAudio: HTMLAudioElement | null = null;
   private isRailwayBgmStarted: boolean = false;
+  private spacecraftBgmAudio: HTMLAudioElement | null = null;
+  private isSpacecraftBgmStarted: boolean = false;
+  private rocketLaunch1Audio: HTMLAudioElement | null = null;
+  private rocketLaunch2Audio: HTMLAudioElement | null = null;
   private trainRunningAudio: HTMLAudioElement | null = null;
   private trainHornAudio: HTMLAudioElement | null = null;
   private loudWhistleAudio: HTMLAudioElement | null = null;
@@ -63,6 +67,9 @@ class SoundEngine {
     if (this.isRailwayBgmStarted && this.railwayBgmAudio && this.railwayBgmAudio.paused && !this.isMuted) {
       this.railwayBgmAudio.play().catch(() => {});
     }
+    if (this.isSpacecraftBgmStarted && this.spacecraftBgmAudio && this.spacecraftBgmAudio.paused && !this.isMuted) {
+      this.spacecraftBgmAudio.play().catch(() => {});
+    }
   }
 
   // ── Background Music Controls ──
@@ -111,6 +118,54 @@ class SoundEngine {
     }
   }
 
+  // Spacecraft Activity Ambience / Music (Loud & Atmospheric: 40% volume always)
+  public startSpacecraftBgm(volume = 0.40) {
+    if (typeof window === 'undefined') return;
+    this.initCtx();
+    this.isSpacecraftBgmStarted = true;
+    try {
+      if (!this.spacecraftBgmAudio) {
+        this.spacecraftBgmAudio = new Audio('/audio/Spacecraft BGM.mp3');
+        this.spacecraftBgmAudio.loop = true;
+      }
+      this.spacecraftBgmAudio.volume = this.isMuted ? 0 : volume;
+      this.spacecraftBgmAudio.play().catch(() => {});
+    } catch {}
+  }
+
+  public stopSpacecraftBgm() {
+    this.isSpacecraftBgmStarted = false;
+    if (this.spacecraftBgmAudio) {
+      this.spacecraftBgmAudio.pause();
+      this.spacecraftBgmAudio.currentTime = 0;
+    }
+  }
+
+  // Real Rocket Launch 1 & Launch 2 MP3 Audio Elements
+  public playRocketLaunch1(volume = 0.85) {
+    if (this.isMuted || typeof window === 'undefined') return;
+    try {
+      if (!this.rocketLaunch1Audio) {
+        this.rocketLaunch1Audio = new Audio('/audio/Rocket Launch 1.mp3');
+      }
+      this.rocketLaunch1Audio.volume = this.isMuted ? 0 : volume;
+      this.rocketLaunch1Audio.currentTime = 0;
+      this.rocketLaunch1Audio.play().catch(() => {});
+    } catch {}
+  }
+
+  public playRocketLaunch2(volume = 0.85) {
+    if (this.isMuted || typeof window === 'undefined') return;
+    try {
+      if (!this.rocketLaunch2Audio) {
+        this.rocketLaunch2Audio = new Audio('/audio/Rocket Launch 2.mp3');
+      }
+      this.rocketLaunch2Audio.volume = this.isMuted ? 0 : volume;
+      this.rocketLaunch2Audio.currentTime = 0;
+      this.rocketLaunch2Audio.play().catch(() => {});
+    } catch {}
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
     if (this.bgmAudio) {
@@ -118,6 +173,15 @@ class SoundEngine {
     }
     if (this.railwayBgmAudio) {
       this.railwayBgmAudio.volume = muted ? 0 : 0.40;
+    }
+    if (this.spacecraftBgmAudio) {
+      this.spacecraftBgmAudio.volume = muted ? 0 : 0.40;
+    }
+    if (this.rocketLaunch1Audio) {
+      this.rocketLaunch1Audio.volume = muted ? 0 : 0.85;
+    }
+    if (this.rocketLaunch2Audio) {
+      this.rocketLaunch2Audio.volume = muted ? 0 : 0.85;
     }
   }
 
@@ -137,6 +201,12 @@ class SoundEngine {
       this.railwayBgmAudio.volume = this.isMuted ? 0 : 0.40;
       if (!this.isMuted && this.railwayBgmAudio.paused && this.isRailwayBgmStarted) {
         this.railwayBgmAudio.play().catch(() => {});
+      }
+    }
+    if (this.spacecraftBgmAudio) {
+      this.spacecraftBgmAudio.volume = this.isMuted ? 0 : 0.40;
+      if (!this.isMuted && this.spacecraftBgmAudio.paused && this.isSpacecraftBgmStarted) {
+        this.spacecraftBgmAudio.play().catch(() => {});
       }
     }
     if (!this.isMuted) {
@@ -709,194 +779,22 @@ class SoundEngine {
   }
 
   // ============================================================
-  // ── EQUATION MISSION CONTROL REALTIME AUDIO SYNTHESIZERS ──
+  // ── EQUATION MISSION CONTROL AUTHENTIC ROCKET AUDIO ENGINE ──
   // ============================================================
 
-  // 1. Heavy Low-Frequency Rocket Ignition & Cryo Combustion Rumble
+  // 1. Authentic Rocket Ignition & Initial Burst (Plays /audio/Rocket Launch 1.mp3)
   public playRocketIgnition() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    // A. Sub-bass combustive sawtooth rumble (40Hz -> 85Hz)
-    const osc = this.ctx.createOscillator();
-    const oscGain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(42, now);
-    osc.frequency.linearRampToValueAtTime(80, now + 1.6);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(140, now);
-    filter.frequency.linearRampToValueAtTime(320, now + 1.6);
-
-    oscGain.gain.setValueAtTime(0.01, now);
-    oscGain.gain.linearRampToValueAtTime(0.85, now + 0.3);
-    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
-
-    osc.connect(filter);
-    filter.connect(oscGain);
-    oscGain.connect(this.ctx.destination);
-    osc.start(now);
-    osc.stop(now + 2.0);
-
-    // B. Turbulent Ignition Roar Noise Buffer
-    try {
-      const bufferSize = Math.floor(this.ctx.sampleRate * 2.0);
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
-      }
-      const noiseSource = this.ctx.createBufferSource();
-      noiseSource.buffer = noiseBuffer;
-
-      const noiseFilter = this.ctx.createBiquadFilter();
-      noiseFilter.type = 'bandpass';
-      noiseFilter.frequency.setValueAtTime(260, now);
-      noiseFilter.Q.setValueAtTime(1.8, now);
-
-      const noiseGain = this.ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.01, now);
-      noiseGain.gain.linearRampToValueAtTime(0.75, now + 0.35);
-      noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
-
-      noiseSource.connect(noiseFilter);
-      noiseFilter.connect(noiseGain);
-      noiseGain.connect(this.ctx.destination);
-      noiseSource.start(now);
-      noiseSource.stop(now + 2.0);
-    } catch {}
+    this.playRocketLaunch1(0.90);
   }
 
-  // 2. High-Pressure Rocket Thrust Ramp & Booster Roar
+  // 2. Authentic Rocket Thrust Ramp (Plays /audio/Rocket Launch 2.mp3)
   public playRocketThrustRamp() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    // Dual Oscillators for massive twin booster vibration
-    const osc1 = this.ctx.createOscillator();
-    const osc2 = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc1.type = 'sawtooth';
-    osc1.frequency.setValueAtTime(65, now);
-    osc1.frequency.linearRampToValueAtTime(130, now + 2.2);
-
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(45, now);
-    osc2.frequency.linearRampToValueAtTime(95, now + 2.2);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(300, now);
-    filter.frequency.linearRampToValueAtTime(750, now + 2.2);
-
-    gain.gain.setValueAtTime(0.1, now);
-    gain.gain.linearRampToValueAtTime(0.95, now + 0.5);
-    gain.gain.exponentialRampToValueAtTime(0.02, now + 2.5);
-
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc1.start(now);
-    osc2.start(now);
-    osc1.stop(now + 2.5);
-    osc2.stop(now + 2.5);
-
-    // High frequency exhaust jet hissing noise
-    try {
-      const bufferSize = Math.floor(this.ctx.sampleRate * 2.5);
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = Math.random() * 2 - 1;
-      }
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = noiseBuffer;
-
-      const nFilter = this.ctx.createBiquadFilter();
-      nFilter.type = 'highpass';
-      nFilter.frequency.setValueAtTime(400, now);
-
-      const nGain = this.ctx.createGain();
-      nGain.gain.setValueAtTime(0.05, now);
-      nGain.gain.linearRampToValueAtTime(0.8, now + 0.6);
-      nGain.gain.exponentialRampToValueAtTime(0.01, now + 2.5);
-
-      noise.connect(nFilter);
-      nFilter.connect(nGain);
-      nGain.connect(this.ctx.destination);
-      noise.start(now);
-      noise.stop(now + 2.5);
-    } catch {}
+    this.playRocketLaunch2(0.90);
   }
 
-  // 3. Thunderous Rocket Liftoff & Atmospheric Ascent Whoosh
+  // 3. Authentic Rocket Liftoff & Ascent (Plays /audio/Rocket Launch 2.mp3)
   public playRocketLiftoff() {
-    if (this.isMuted) return;
-    this.initCtx();
-    if (!this.ctx) return;
-    const now = this.ctx.currentTime;
-
-    // A. Ascending jet pitch frequency curve
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(80, now);
-    osc.frequency.exponentialRampToValueAtTime(360, now + 3.0);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(450, now);
-    filter.frequency.linearRampToValueAtTime(1400, now + 2.8);
-
-    gain.gain.setValueAtTime(0.2, now);
-    gain.gain.linearRampToValueAtTime(1.0, now + 0.6);
-    gain.gain.exponentialRampToValueAtTime(0.01, now + 3.2);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.ctx.destination);
-
-    osc.start(now);
-    osc.stop(now + 3.2);
-
-    // B. Crackling Rocket Flame Noise Burst
-    try {
-      const bufferSize = Math.floor(this.ctx.sampleRate * 3.2);
-      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      for (let i = 0; i < bufferSize; i++) {
-        output[i] = (Math.random() * 2 - 1);
-      }
-      const noise = this.ctx.createBufferSource();
-      noise.buffer = noiseBuffer;
-
-      const nFilter = this.ctx.createBiquadFilter();
-      nFilter.type = 'bandpass';
-      nFilter.frequency.setValueAtTime(550, now);
-      nFilter.frequency.linearRampToValueAtTime(900, now + 3.0);
-      nFilter.Q.setValueAtTime(1.2, now);
-
-      const nGain = this.ctx.createGain();
-      nGain.gain.setValueAtTime(0.15, now);
-      nGain.gain.linearRampToValueAtTime(0.9, now + 0.5);
-      nGain.gain.exponentialRampToValueAtTime(0.01, now + 3.2);
-
-      noise.connect(nFilter);
-      nFilter.connect(nGain);
-      nGain.connect(this.ctx.destination);
-      noise.start(now);
-      noise.stop(now + 3.2);
-    } catch {}
+    this.playRocketLaunch2(0.90);
   }
 
   // 4. Pad Evacuation Warning Siren Klaxon

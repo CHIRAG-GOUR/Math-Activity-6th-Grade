@@ -170,6 +170,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     clearLaunchInterval();
     clearAutoAdvance();
     const camp = generateDynamicCampaign(Math.floor(Math.random() * 100));
+    soundManager.startSpacecraftBgm(0.40);
     soundManager.play('powerup');
 
     set({
