@@ -50,6 +50,9 @@ const createDefaultSpacecraftState = (team: TeamId): Spacecraft3DState => ({
   antennaDeployed: false,
   serviceArmsAngle: 0,
   clampsReleased: false,
+  brakesReleased: false,
+  greenSignalActive: false,
+  isWeldingActive: true,
 
   launchStage: 'idle',
   altitude: 0,
@@ -111,6 +114,7 @@ interface MissionControlActions {
 export type MissionControlStore = {
   phase: GamePhase;
   campaign: MissionCampaign;
+  questionPoolIndex: number;
   currentStageIndex: StageIndex;
   activeChallenge: MissionChallenge;
 
@@ -134,6 +138,7 @@ const initialCampaign = generateDynamicCampaign(0);
 export const useMissionControlStore = create<MissionControlStore>((set, get) => ({
   phase: 'title',
   campaign: initialCampaign,
+  questionPoolIndex: 0,
   currentStageIndex: 0,
   activeChallenge: initialCampaign.challenges[0],
 
@@ -169,13 +174,14 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
     set({
       campaign: camp,
+      questionPoolIndex: 0,
       currentStageIndex: 0,
       activeChallenge: camp.challenges[0],
       winnerTeam: null,
       phase: 'active-mission',
       timeRemaining: camp.challenges[0].timeLimit,
       timerActive: true,
-      toastMessage: '🚀 STAGE 01: AVIONICS CONFIGURATION INITIALIZED!',
+      toastMessage: '🚀 RACE TO 5 STAGES: AVIONICS CONFIGURATION INITIALIZED!',
       cameraTarget: 'overview',
       blueTeam: createDefaultTeamState('blue', get().blueTeam.name),
       redTeam: createDefaultTeamState('red', get().redTeam.name),
@@ -186,8 +192,8 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
   startStage: (stageIndex) => {
     clearAutoAdvance();
-    const { campaign } = get();
-    const challenge = campaign.challenges[stageIndex];
+    const { campaign, questionPoolIndex } = get();
+    const challenge = campaign.challenges[questionPoolIndex] || campaign.challenges[0];
     set({
       currentStageIndex: stageIndex,
       activeChallenge: challenge,
@@ -205,6 +211,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
   // --------------------------------------------------------------------------
   // FIRST-ANSWERER & REBOUND ENGINE (From Train Game)
+  // RACE TO 5 CORRECT ANSWERS BEFORE ROCKET LIFTOFF
   // --------------------------------------------------------------------------
   setTeamAnswer: (team, answer) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
@@ -237,35 +244,58 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       String(ch.correctAnswer).trim().toLowerCase();
 
     if (isCorrect) {
-      // ── WINNING ANSWER: ONLY THIS TEAM'S ROCKET ADVANCES ──
+      // ── WINNING ANSWER: ONLY THIS TEAM'S ROCKET ADVANCES A STAGE ──
       soundManager.playCorrect();
       const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
       const pointsGained = ch.points + speedBonus;
       const newStreak = teamState.streak + 1;
-      const stageIdx = state.currentStageIndex;
+      const newStagesCleared = teamState.stagesCleared + 1;
 
-      // Update Subsystems for winning rocket based on stage
+      // Update Subsystems for winning rocket based on newStagesCleared (1 to 5)
       let updatedShip: Spacecraft3DState = { ...ship };
-      if (stageIdx === 0) {
+
+      if (newStagesCleared === 1) {
+        // Step 1: Avionics Online, Welding active
         updatedShip.stage1StructureDone = true;
         updatedShip.cockpitGlowIntensity = 1.0;
         updatedShip.serviceArmsAngle = 0.1;
-      } else if (stageIdx === 1) {
+        updatedShip.isWeldingActive = true;
+      } else if (newStagesCleared === 2) {
+        // Step 2: Cryo Fuel 100%, Umbilicals locked, Welding active
         updatedShip.stage2FuelDone = true;
         updatedShip.fuelTankPercent = 100;
         updatedShip.fuelArmConnected = true;
         updatedShip.ventingVapor = false;
-      } else if (stageIdx === 2) {
+        updatedShip.isWeldingActive = true;
+      } else if (newStagesCleared === 3) {
+        // Step 3: Propulsion Locked -> WELDING STOPS & WORKERS EVACUATE!
         updatedShip.stage3EngineDone = true;
         updatedShip.engineGlowIntensity = 1.0;
-      } else if (stageIdx === 3) {
+        updatedShip.isWeldingActive = false;
+        soundManager.play('powerup');
+      } else if (newStagesCleared === 4) {
+        // Step 4: Guidance Locked -> BRAKES LOOSEN & GREEN SIGNAL BEACON ACTIVATES!
         updatedShip.stage4NavDone = true;
         updatedShip.antennaDeployed = true;
         updatedShip.gimbalPitchAngle = 0.08;
-      } else if (stageIdx === 4) {
+        updatedShip.brakesReleased = true;
+        updatedShip.greenSignalActive = true;
+        updatedShip.serviceArmsAngle = 0.8;
+        updatedShip.isWeldingActive = false;
+
+        // Play authentic brakes loosening pneumatic release sound and green signal chime
+        soundManager.playBrakesRelease();
+        setTimeout(() => {
+          soundManager.playGreenSignalChime();
+        }, 350);
+      } else if (newStagesCleared >= 5) {
+        // Step 5: Final Armed -> CLAMPS RELEASED & READY FOR LIFTOFF!
         updatedShip.stage5Armed = true;
         updatedShip.serviceArmsAngle = 1.0;
         updatedShip.clampsReleased = true;
+        updatedShip.brakesReleased = true;
+        updatedShip.greenSignalActive = true;
+        updatedShip.isWeldingActive = false;
       }
 
       set({
@@ -276,10 +306,10 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           score: teamState.score + pointsGained,
           stageScore: pointsGained,
           streak: newStreak,
-          stagesCleared: Math.max(teamState.stagesCleared, stageIdx + 1),
+          stagesCleared: newStagesCleared,
           lastScoreGained: pointsGained,
           lastFeedback: {
-            message: `✅ CORRECT! +${pointsGained} PTS`,
+            message: `✅ CORRECT! +${pointsGained} PTS (${newStagesCleared}/5 STAGES)`,
             isCorrect: true,
             pointsEarned: pointsGained,
           },
@@ -290,14 +320,23 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
         },
         [shipKey]: updatedShip,
         timerActive: false,
-        toastMessage: `🎉 ${teamState.name} ANSWERED CORRECTLY! (+${pointsGained} PTS)`,
+        toastMessage: `🎉 ${teamState.name} CLEARED STAGE ${newStagesCleared}/5! (+${pointsGained} PTS)`,
       });
 
-      // Smooth auto-advance without popup
-      clearAutoAdvance();
-      autoAdvanceTimer = setTimeout(() => {
-        get().advanceToNextStage();
-      }, 1800);
+      // Check WIN CONDITION: If team reaches 5 correct answers, THEY WIN & LAUNCH!
+      if (newStagesCleared >= 5) {
+        clearAutoAdvance();
+        autoAdvanceTimer = setTimeout(() => {
+          set({ winnerTeam: team });
+          get().run12StepCinematicLaunch(team);
+        }, 1200);
+      } else {
+        // Match continues with the next question in the pool until a team reaches 5!
+        clearAutoAdvance();
+        autoAdvanceTimer = setTimeout(() => {
+          get().advanceToNextStage();
+        }, 1800);
+      }
     } else {
       // ── WRONG ANSWER: ATTEMPTS & REBOUND OPPORTUNITY ──
       soundManager.playWrong();
@@ -335,7 +374,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           toastMessage: `❌ ${teamState.name} LOCKED OUT! ${otherTeamState.name} CAN REBOUND!`,
         });
 
-        // If both teams exhausted turns, advance
+        // If both teams exhausted turns, advance to next question in pool
         if (otherTeamState.isLocked) {
           const correctOpt =
             ch.options.find(
@@ -384,46 +423,37 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
   advanceToNextStage: () => {
     clearAutoAdvance();
-    const { currentStageIndex, campaign, blueTeam, redTeam } = get();
+    const { campaign, questionPoolIndex, blueTeam, redTeam } = get();
 
-    if (currentStageIndex >= 4) {
-      // Match Complete -> Determine STRICT SINGLE WINNER (No dual launches!)
-      // Whoever answers more stages (e.g. 3-2, 4-1, 5-0) or has higher score
-      const blueStages = blueTeam.stagesCleared;
-      const redStages = redTeam.stagesCleared;
-      const blueScore = blueTeam.score;
-      const redScore = redTeam.score;
-
-      let winner: TeamId = 'blue';
-      if (blueStages > redStages) {
-        winner = 'blue';
-      } else if (redStages > blueStages) {
-        winner = 'red';
-      } else if (blueScore > redScore) {
-        winner = 'blue';
-      } else if (redScore > blueScore) {
-        winner = 'red';
-      } else {
-        winner = blueTeam.lastResult === 'correct' ? 'blue' : 'red';
-      }
-
-      set({ winnerTeam: winner });
-      get().run12StepCinematicLaunch(winner);
-    } else {
-      const nextIdx = (currentStageIndex + 1) as StageIndex;
-      const nextChallenge = campaign.challenges[nextIdx];
-
-      set((s) => ({
-        currentStageIndex: nextIdx,
-        activeChallenge: nextChallenge,
-        timeRemaining: nextChallenge.timeLimit,
-        timerActive: true,
-        toastMessage: `🚀 STAGE 0${nextIdx + 1}: ${nextChallenge.stageTitle}`,
-        cameraTarget: 'overview',
-        blueTeam: resetTeamForQuestion(s.blueTeam),
-        redTeam: resetTeamForQuestion(s.redTeam),
-      }));
+    // Check if either team has achieved 5 correct answers
+    if (blueTeam.stagesCleared >= 5) {
+      set({ winnerTeam: 'blue' });
+      get().run12StepCinematicLaunch('blue');
+      return;
     }
+    if (redTeam.stagesCleared >= 5) {
+      set({ winnerTeam: 'red' });
+      get().run12StepCinematicLaunch('red');
+      return;
+    }
+
+    // Advance to the next question in the 100+ dynamic pool
+    const nextPoolIdx = questionPoolIndex + 1;
+    const nextChallenge =
+      campaign.challenges[nextPoolIdx % campaign.challenges.length];
+    const stageIdx = (nextChallenge.stageIndex ?? (nextPoolIdx % 5)) as StageIndex;
+
+    set((s) => ({
+      questionPoolIndex: nextPoolIdx,
+      currentStageIndex: stageIdx,
+      activeChallenge: nextChallenge,
+      timeRemaining: nextChallenge.timeLimit,
+      timerActive: true,
+      toastMessage: `🚀 Q${nextPoolIdx + 1}: ${nextChallenge.stageTitle} (${blueTeam.stagesCleared}/5 vs ${redTeam.stagesCleared}/5)`,
+      cameraTarget: 'overview',
+      blueTeam: resetTeamForQuestion(s.blueTeam),
+      redTeam: resetTeamForQuestion(s.redTeam),
+    }));
   },
 
   // --------------------------------------------------------------------------

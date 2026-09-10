@@ -1,16 +1,18 @@
 // ============================================================
 // EQUATION MISSION CONTROL 2.0 — Highly Active 3D Aerospace Workers
 // Authentic Aerospace Technicians & Real 3D Workstations:
-// - Detailed Human Anatomy (Head, Hard Hat, Comms Headset, Hi-Vis Vest, Utility Belt, Boots)
-// - NO STATIC WORKERS — Every single worker has dedicated tools & animated jobs:
-//     1. Flight Directors: Two-handed keyboard typing, sipping coffee from mug, pointing at telemetry
-//     2. Cryo Propellant Specialists: Torque wrench valve adjustments, manifold pressure checking on glowing tablet
-//     3. Propulsion Specialists: Active optical laser scanner sweeping visible laser cone across engine bells
-//     4. Safety & Comms Marshalls: Aviation marshalling with glowing orange wands & radio headset coordination
-//     5. LOX Tank Technicians: Monitoring cryogenic pressure valves & boil-off lines at spherical tanks
-//     6. Roving Field Inspection Officer: 15s cycle (walk -> inspect/logbook writing -> walk -> discuss with engineer)
-// - Elevated Launch Pad Technicians (Y = 0.85) standing cleanly with boots on pad deck
-// - Real-Time Stage Reactions (Cheering Fist Pumps) & Evacuation to Safety Line
+// - Dynamic 3D Laptop Telemetry Screen (Live Step 1/5 -> 5/5 status updates)
+// - Dual Glowing LCD Telemetry Monitors
+// - Active Aerospace Welders with Electrical Sparks & Torches (Q1-Q3 active, stops & evacuates on Q3+)
+// - Detailed Anatomy (Head, Hard Hat, Comms Headset, Hi-Vis Vest, Utility Belt, Boots)
+// - Dedicated Jobs:
+//     1. Flight Directors: Two-handed keyboard typing, sipping coffee, checking screens
+//     2. Welding Technicians: Holding welding torch with blue electric arc & flickering sparks
+//     3. Cryo Propellant Specialists: Valve adjustments & manifold pressure checks
+//     4. Propulsion Specialists: Laser scanner sweeping across engine bells
+//     5. Safety & Comms Marshalls: Glowing wands & radio coordination
+//     6. Roving Field Inspection Officer: 15s inspection & logbook routine
+// - Pad Evacuation to Perimeter Safety Line (Z >= 12)
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
@@ -18,12 +20,141 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TeamId, LaunchStep } from '../types';
 
+// Real-Time Dynamic 3D Laptop Screen Texture
+const LaptopScreenCanvasDecal: React.FC<{
+  team: TeamId;
+  stagesCleared: number;
+  isCorrectPulse?: boolean;
+}> = ({ team, stagesCleared, isCorrectPulse = false }) => {
+  const texture = useMemo(() => {
+    if (typeof document === 'undefined') return null;
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 340;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    const isBlue = team === 'blue';
+    const primaryBg = '#020617';
+    const accentColor = isBlue ? '#38bdf8' : '#f87171';
+    const headerColor = isBlue ? '#1d4ed8' : '#b91c1c';
+
+    // Base background
+    ctx.fillStyle = primaryBg;
+    ctx.fillRect(0, 0, 512, 340);
+
+    // Subtle HUD grid
+    ctx.strokeStyle = isBlue ? 'rgba(56, 189, 248, 0.15)' : 'rgba(248, 113, 113, 0.15)';
+    ctx.lineWidth = 2;
+    for (let x = 0; x < 512; x += 40) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, 340);
+      ctx.stroke();
+    }
+    for (let y = 0; y < 340; y += 30) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(512, y);
+      ctx.stroke();
+    }
+
+    // Top Header Banner
+    ctx.fillStyle = headerColor;
+    ctx.fillRect(0, 0, 512, 52);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '900 22px sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`🚀 ${isBlue ? 'BLUE' : 'RED'} WORKSTATION [${stagesCleared}/5]`, 18, 35);
+
+    // Stage Step Details
+    const STAGE_TITLES = [
+      { main: 'SYSTEM IDLE', sub: 'AWAITING MISSION TELEMETRY...' },
+      { main: 'STAGE 1: AVIONICS ONLINE', sub: 'HUD & FLIGHT COMPUTER SYNCED' },
+      { main: 'STAGE 2: CRYO FUEL 100%', sub: 'LOX UMBILICALS LOCKED & FULL' },
+      { main: 'STAGE 3: PROPULSION LOCKED', sub: 'WELDING COMPLETE • CLEAR PAD' },
+      { main: 'STAGE 4: BRAKES RELEASED', sub: '🟢 GREEN SIGNAL GO FOR LIFTOFF' },
+      { main: 'STAGE 5: LAUNCH READY', sub: '🚀 100% THRUST LIFTOFF ACTIVE' },
+    ];
+    const info = STAGE_TITLES[Math.min(5, Math.max(0, stagesCleared))];
+
+    // Status Title
+    ctx.fillStyle = isCorrectPulse ? '#4ade80' : accentColor;
+    ctx.font = '900 24px sans-serif';
+    ctx.fillText(info.main, 18, 98);
+
+    ctx.fillStyle = '#cbd5e1';
+    ctx.font = '700 16px sans-serif';
+    ctx.fillText(info.sub, 18, 132);
+
+    // 5 Segmented Stage Blocks
+    for (let i = 0; i < 5; i++) {
+      const bx = 18 + i * 95;
+      const by = 165;
+      const bw = 86;
+      const bh = 42;
+      const isFilled = i < stagesCleared;
+
+      ctx.fillStyle = isFilled ? (isBlue ? '#0284c7' : '#dc2626') : '#1e293b';
+      ctx.fillRect(bx, by, bw, bh);
+
+      ctx.strokeStyle = isFilled ? (isBlue ? '#38bdf8' : '#f87171') : '#475569';
+      ctx.lineWidth = 3;
+      ctx.strokeRect(bx, by, bw, bh);
+
+      ctx.fillStyle = isFilled ? '#ffffff' : '#64748b';
+      ctx.font = '900 20px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(`S0${i + 1}`, bx + bw / 2, by + 28);
+    }
+
+    // Telemetry Footer
+    ctx.fillStyle = isBlue ? '#38bdf8' : '#f87171';
+    ctx.textAlign = 'left';
+    ctx.font = '800 15px sans-serif';
+    const sigText = stagesCleared >= 4 ? '🟢 GREEN SIGNAL GO' : '🟡 STANDBY SIGNAL';
+    const weldText = stagesCleared >= 3 ? 'WELDING: DONE' : 'WELDING: ACTIVE';
+    ctx.fillText(`${sigText}  |  ${weldText}`, 18, 250);
+
+    // Live wave telemetry
+    ctx.strokeStyle = isBlue ? '#00f0ff' : '#ff4444';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    for (let x = 18; x < 490; x += 6) {
+      const y = 300 + Math.sin(x * 0.08 + stagesCleared) * 12;
+      if (x === 18) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+
+    // Highlight border
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = isCorrectPulse ? '#22c55e' : (isBlue ? '#2563eb' : '#dc2626');
+    ctx.strokeRect(4, 4, 504, 332);
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+  }, [team, stagesCleared, isCorrectPulse]);
+
+  if (!texture) return null;
+
+  return (
+    <mesh position={[0, 0, 0.012]}>
+      <planeGeometry args={[0.29, 0.19]} />
+      <meshBasicMaterial map={texture} />
+    </mesh>
+  );
+};
+
 // Physical 3D Engineering Workstation Desk
 export const WorkstationDesk3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
   team: TeamId;
-}> = ({ position, rotationY = 0, team }) => {
+  stagesCleared?: number;
+  isCorrectPulse?: boolean;
+}> = ({ position, rotationY = 0, team, stagesCleared = 0, isCorrectPulse = false }) => {
   const isBlue = team === 'blue';
   const monitorGlow = isBlue ? '#38bdf8' : '#f87171';
   const screenColor = isBlue ? '#0369a1' : '#991b1b';
@@ -31,7 +162,6 @@ export const WorkstationDesk3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* ── DESK BASE FRAME ── */}
-      {/* Aluminum Tabletop */}
       <mesh position={[0, 0.95, 0]} castShadow receiveShadow>
         <boxGeometry args={[1.5, 0.08, 0.8]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.3} metalness={0.4} />
@@ -78,8 +208,8 @@ export const WorkstationDesk3D: React.FC<{
           <boxGeometry args={[0.5, 0.36, 0.01]} />
           <meshStandardMaterial
             color="#0f172a"
-            emissive="#22c55e"
-            emissiveIntensity={0.6}
+            emissive={stagesCleared >= 4 ? '#22c55e' : '#f59e0b'}
+            emissiveIntensity={0.7}
             roughness={0.2}
           />
         </mesh>
@@ -89,7 +219,7 @@ export const WorkstationDesk3D: React.FC<{
         </mesh>
       </group>
 
-      {/* ── OPEN FIELD LAPTOP ── */}
+      {/* ── OPEN FIELD LAPTOP WITH DYNAMIC REAL-TIME TELEMETRY ── */}
       <group position={[0, 1.02, 0.12]}>
         <mesh castShadow>
           <boxGeometry args={[0.32, 0.02, 0.24]} />
@@ -100,10 +230,11 @@ export const WorkstationDesk3D: React.FC<{
             <boxGeometry args={[0.32, 0.22, 0.02]} />
             <meshStandardMaterial color="#0f172a" />
           </mesh>
-          <mesh position={[0, 0, 0.012]}>
-            <boxGeometry args={[0.29, 0.19, 0.005]} />
-            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.9} />
-          </mesh>
+          <LaptopScreenCanvasDecal
+            team={team}
+            stagesCleared={stagesCleared}
+            isCorrectPulse={isCorrectPulse}
+          />
         </group>
       </group>
 
@@ -122,17 +253,14 @@ const CryoManifoldStand: React.FC<{ position: [number, number, number]; rotation
   rotationY = 0,
 }) => (
   <group position={position} rotation={[0, rotationY, 0]}>
-    {/* Mounting Post */}
     <mesh position={[0, 0.4, 0]} castShadow>
       <cylinderGeometry args={[0.06, 0.08, 0.8, 10]} />
       <meshStandardMaterial color="#475569" metalness={0.7} />
     </mesh>
-    {/* Junction Box */}
     <mesh position={[0, 0.82, 0]} castShadow>
       <boxGeometry args={[0.28, 0.24, 0.2]} />
       <meshStandardMaterial color="#1e293b" metalness={0.8} />
     </mesh>
-    {/* Brass Handwheel Valve */}
     <group position={[0, 0.82, 0.12]} rotation={[1.57, 0, 0]}>
       <mesh castShadow>
         <torusGeometry args={[0.08, 0.02, 8, 16]} />
@@ -143,7 +271,6 @@ const CryoManifoldStand: React.FC<{ position: [number, number, number]; rotation
         <meshStandardMaterial color="#f59e0b" metalness={0.8} />
       </mesh>
     </group>
-    {/* Analog Dial Pressure Gauge */}
     <group position={[0, 0.98, 0]}>
       <mesh castShadow>
         <cylinderGeometry args={[0.07, 0.07, 0.04, 16]} />
@@ -161,7 +288,7 @@ interface CharacterProps {
   initialPos: [number, number, number];
   rotationY?: number;
   team: TeamId;
-  job: 'flight-director' | 'fuel-tech' | 'engine-scan' | 'comms-marshall' | 'tank-tech';
+  job: 'flight-director' | 'fuel-tech' | 'engine-scan' | 'comms-marshall' | 'tank-tech' | 'welder';
   isEvacuated: boolean;
   isCheering: boolean;
   isCentralOperator?: boolean;
@@ -183,6 +310,8 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
   const rightLegRef = useRef<THREE.Group>(null);
   const headRef = useRef<THREE.Group>(null);
   const laserBeamRef = useRef<THREE.Mesh>(null);
+  const sparkRef = useRef<THREE.Group>(null);
+  const weldLightRef = useRef<THREE.PointLight>(null);
 
   const isBlue = team === 'blue';
   const teamAccent = isBlue ? '#2563eb' : '#dc2626';
@@ -191,12 +320,11 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
     const time = state.clock.getElapsedTime();
     if (!groupRef.current) return;
 
-    // 1. Evacuation Movement to Perimeter Safety Line (Z >= 12) during Rocket Launch
+    // 1. Evacuation Movement to Perimeter Safety Line (Z >= 12)
     if (isEvacuated) {
-      // Safe observation line well clear of the launch pads
       const targetZ = 12.0 + Math.abs(initialPos[0] * 0.15);
       const targetX = initialPos[0] * 1.35;
-      const targetY = 0; // Descend to ground level safely
+      const targetY = 0;
 
       groupRef.current.position.x = THREE.MathUtils.lerp(
         groupRef.current.position.x,
@@ -214,16 +342,18 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
         delta * 2.5
       );
 
-      // Face back toward the launch pad
       groupRef.current.rotation.y = THREE.MathUtils.lerp(
         groupRef.current.rotation.y,
         0,
         delta * 3.0
       );
 
-      // If already at safe distance, cheer and look up at ascending rocket
+      // Hide welding sparks immediately when evacuated
+      if (sparkRef.current) sparkRef.current.visible = false;
+      if (weldLightRef.current) weldLightRef.current.intensity = 0;
+
       const distToPad = Math.abs(groupRef.current.position.z - initialPos[2]);
-      if (distToPad > 5.0) {
+      if (distToPad > 4.5) {
         if (leftArmRef.current) {
           leftArmRef.current.rotation.z = 2.4 + Math.sin(time * 9) * 0.3;
           leftArmRef.current.rotation.x = -0.4;
@@ -237,7 +367,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.y = 0;
         }
       } else {
-        // Jogging leg movement while running away
         if (leftLegRef.current && rightLegRef.current) {
           leftLegRef.current.rotation.x = Math.sin(time * 12) * 0.55;
           rightLegRef.current.rotation.x = -Math.sin(time * 12) * 0.55;
@@ -246,7 +375,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       return;
     }
 
-    // 2. Stage Celebration Cheer (Both hands raised high with fist pumps)
+    // 2. Stage Celebration Cheer
     if (isCheering) {
       if (leftArmRef.current)
         leftArmRef.current.rotation.z = 2.4 + Math.sin(time * 10) * 0.25;
@@ -256,7 +385,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       return;
     }
 
-    // 3. Central Operator Discussion Reaction (Interacts when roving inspector arrives)
+    // 3. Central Operator Discussion Reaction
     if (isCentralOperator) {
       const loopTime = time % 15.0;
       const isDiscussing = loopTime >= 12.0 && loopTime < 15.0;
@@ -280,14 +409,49 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       }
     }
 
-    // 4. Role-Specific Dynamic Looping Animations
+    // 4. Role-Specific Animations
 
-    // ── ROLE A: FLIGHT DIRECTOR / COMPUTER ENGINEER (Typing, sipping coffee, checking screens) ──
-    if (job === 'flight-director') {
+    // ── ROLE: WELDER TECHNICIAN (Active welding torch & electric arc sparks during Q1-Q3) ──
+    if (job === 'welder') {
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = -1.45 + Math.sin(time * 4) * 0.08;
+        rightArmRef.current.rotation.y = (isBlue ? -0.25 : 0.25) + Math.cos(time * 3) * 0.1;
+        rightArmRef.current.rotation.z = isBlue ? 0.15 : -0.15;
+      }
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -1.3;
+        leftArmRef.current.rotation.y = isBlue ? 0.35 : -0.35;
+      }
+      if (headRef.current) {
+        headRef.current.rotation.x = 0.32 + Math.sin(time * 2) * 0.05;
+        headRef.current.rotation.y = isBlue ? 0.1 : -0.1;
+      }
+
+      // Flickering electric arc light
+      if (weldLightRef.current) {
+        const flicker =
+          2.4 +
+          Math.sin(time * 45) * 1.5 +
+          (Math.sin(time * 110) > 0 ? 1.2 : -0.6);
+        weldLightRef.current.intensity = Math.max(0.4, flicker);
+      }
+
+      // Pulsing Spark Particles
+      if (sparkRef.current) {
+        sparkRef.current.visible = true;
+        sparkRef.current.scale.set(
+          1 + Math.sin(time * 30) * 0.3,
+          1 + Math.cos(time * 25) * 0.3,
+          1 + Math.sin(time * 30) * 0.3
+        );
+      }
+    }
+
+    // ── ROLE: FLIGHT DIRECTOR ──
+    else if (job === 'flight-director') {
       const cycleTime = (time + (isBlue ? 0 : 4.5)) % 9.0;
 
       if (cycleTime < 4.0) {
-        // Phase 1: Rapid two-handed typing on keyboard & scanning dual monitors
         if (rightArmRef.current) {
           rightArmRef.current.rotation.x = -1.1 + Math.sin(time * 11) * 0.08;
           rightArmRef.current.rotation.y = -0.2;
@@ -301,7 +465,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.x = 0.14;
         }
       } else if (cycleTime < 7.0) {
-        // Phase 2: Lifts coffee mug for a sip, then sets it back down
         const sipP = (cycleTime - 4.0) / 3.0;
         const sipCurve = Math.sin(sipP * Math.PI);
         if (rightArmRef.current) {
@@ -313,7 +476,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.y = 0;
         }
       } else {
-        // Phase 3: Points at main telemetry monitor to verify data spikes
         if (rightArmRef.current) {
           rightArmRef.current.rotation.x = -1.35 + Math.sin(time * 3) * 0.15;
           rightArmRef.current.rotation.y = -0.15;
@@ -325,17 +487,16 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
       }
     }
 
-    // ── ROLE B: CRYO PROPELLANT SPECIALIST (Wrench adjustments & tablet telemetry) ──
+    // ── ROLE: CRYO PROPELLANT SPECIALIST ──
     else if (job === 'fuel-tech') {
       const cycleTime = (time + (isBlue ? 0 : 3.0)) % 6.0;
 
       if (cycleTime < 2.5) {
-        // Phase 1: Bends forward slightly, turns the cryogenic valve with torque wrench
         groupRef.current.position.y = initialPos[1] - 0.05;
         if (rightArmRef.current) {
           rightArmRef.current.rotation.x = -1.25;
           rightArmRef.current.rotation.y = -0.3;
-          rightArmRef.current.rotation.z = Math.sin(time * 8) * 0.35; // Wrench twisting strokes
+          rightArmRef.current.rotation.z = Math.sin(time * 8) * 0.35;
         }
         if (leftArmRef.current) {
           leftArmRef.current.rotation.x = -0.9;
@@ -346,7 +507,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.y = 0.1;
         }
       } else if (cycleTime < 4.5) {
-        // Phase 2: Straightens up, raises tablet, taps screen with right finger
         groupRef.current.position.y = initialPos[1];
         if (leftArmRef.current) {
           leftArmRef.current.rotation.x = -1.25;
@@ -362,24 +522,16 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.y = 0.1;
         }
       } else {
-        // Phase 3: Looks up at cryogenic umbilical line, shifts stance with approval
         groupRef.current.position.y = initialPos[1];
         if (headRef.current) {
           headRef.current.rotation.x = -0.42;
           headRef.current.rotation.y = Math.sin(time * 2) * 0.15;
         }
-        if (leftLegRef.current && rightLegRef.current) {
-          leftLegRef.current.rotation.x = Math.sin(time * 4) * 0.1;
-          rightLegRef.current.rotation.x = -Math.sin(time * 4) * 0.1;
-        }
       }
     }
 
-    // ── ROLE C: PROPULSION INSPECTION SPECIALIST (Sweeping laser scanner across rocket engines) ──
+    // ── ROLE: ENGINE SCANNER ──
     else if (job === 'engine-scan') {
-      const cycleTime = (time + (isBlue ? 0 : 3.0)) % 6.0;
-
-      // Smooth sweeping of optical laser scanner across rocket nozzle
       if (rightArmRef.current) {
         rightArmRef.current.rotation.x = -1.35 + Math.sin(time * 2.4) * 0.22;
         rightArmRef.current.rotation.y = Math.sin(time * 1.8) * 0.32;
@@ -393,8 +545,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
         leftArmRef.current.rotation.x = -0.8;
         leftArmRef.current.rotation.y = 0.2;
       }
-
-      // Laser beam cone pulse
       if (laserBeamRef.current) {
         laserBeamRef.current.scale.set(
           1 + Math.sin(time * 12) * 0.15,
@@ -402,21 +552,13 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           1 + Math.cos(time * 12) * 0.15
         );
       }
-
-      // Subtle stepping inspection stance
-      if (cycleTime > 3.0 && cycleTime < 4.5) {
-        groupRef.current.position.y = initialPos[1] - 0.06;
-      } else {
-        groupRef.current.position.y = initialPos[1];
-      }
     }
 
-    // ── ROLE D: SAFETY & COMMS MARSHALL (Glowing marshalling wands & radio headset) ──
+    // ── ROLE: COMMS MARSHALL ──
     else if (job === 'comms-marshall') {
       const cycleTime = (time + (isBlue ? 0 : 3.5)) % 7.0;
 
       if (cycleTime < 3.5) {
-        // Phase 1: Aviation Marshalling Signals — Synchronized wand waving
         if (leftArmRef.current) {
           leftArmRef.current.rotation.z = 1.4 + Math.sin(time * 3.2) * 0.45;
           leftArmRef.current.rotation.x = -0.4 + Math.cos(time * 3.2) * 0.2;
@@ -429,67 +571,27 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           headRef.current.rotation.y = Math.sin(time * 2.0) * 0.2;
           headRef.current.rotation.x = 0;
         }
-      } else if (cycleTime < 5.5) {
-        // Phase 2: Talks into radio headset, looks up at 15m umbilical tower
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.z = 0.3;
-          leftArmRef.current.rotation.x = -0.2;
-        }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -2.15 + Math.sin(time * 2) * 0.05;
-          rightArmRef.current.rotation.y = -0.45;
-          rightArmRef.current.rotation.z = 0;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(time * 1.6) * 0.35;
-          headRef.current.rotation.x = -0.28;
-        }
       } else {
-        // Phase 3: Extends right wand forward in an authoritative "Clear for Launch" gesture
         if (rightArmRef.current) {
           rightArmRef.current.rotation.x = -1.5;
           rightArmRef.current.rotation.y = -0.2;
-          rightArmRef.current.rotation.z = -0.15;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.x = -0.1;
-          headRef.current.rotation.y = 0.15;
         }
       }
     }
 
-    // ── ROLE E: LOX TANK TECHNICIAN (Operates cryo spherical tank valves & gauges) ──
+    // ── ROLE: TANK TECH ──
     else if (job === 'tank-tech') {
-      const cycleTime = (time + (isBlue ? 0 : 2.5)) % 6.0;
-
-      if (cycleTime < 3.0) {
-        // Reaching and turning steam release valve wheel
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.35;
-          rightArmRef.current.rotation.z = Math.sin(time * 6) * 0.4;
-        }
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -1.2;
-          leftArmRef.current.rotation.y = 0.3;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.x = -0.2;
-          headRef.current.rotation.y = 0.2;
-        }
-      } else {
-        // Inspecting pressure gauge on tank
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -1.3;
-          leftArmRef.current.rotation.y = 0.2;
-        }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -0.9 + Math.sin(time * 4) * 0.15;
-          rightArmRef.current.rotation.y = -0.3;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.x = 0.25;
-          headRef.current.rotation.y = Math.sin(time * 2) * 0.2;
-        }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = -1.35;
+        rightArmRef.current.rotation.z = Math.sin(time * 6) * 0.4;
+      }
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -1.2;
+        leftArmRef.current.rotation.y = 0.3;
+      }
+      if (headRef.current) {
+        headRef.current.rotation.x = -0.2;
+        headRef.current.rotation.y = 0.2;
       }
     }
   });
@@ -508,7 +610,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <cylinderGeometry args={[0.08, 0.07, 0.62, 12]} />
           <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
         </mesh>
-        {/* Steel-Toe Heavy Boot */}
         <mesh position={[0, -0.66, 0.06]} castShadow>
           <boxGeometry args={[0.14, 0.15, 0.26]} />
           <meshStandardMaterial color="#334155" roughness={0.4} />
@@ -521,92 +622,78 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <cylinderGeometry args={[0.08, 0.07, 0.62, 12]} />
           <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
         </mesh>
-        {/* Steel-Toe Heavy Boot */}
         <mesh position={[0, -0.66, 0.06]} castShadow>
           <boxGeometry args={[0.14, 0.15, 0.26]} />
           <meshStandardMaterial color="#334155" roughness={0.4} />
         </mesh>
       </group>
 
-      {/* ── TORSO & HIGH-VISIBILITY NEON ORANGE SAFETY VEST ── */}
+      {/* ── TORSO & HI-VIS VEST ── */}
       <mesh position={[0, 1.18, 0]} castShadow>
         <boxGeometry args={[0.44, 0.6, 0.28]} />
-        <meshStandardMaterial color="#ea580c" roughness={0.45} />
+        <meshStandardMaterial color={job === 'welder' ? '#475569' : '#ea580c'} roughness={0.45} />
       </mesh>
-
-      {/* Reflective Fluorescent Yellow Safety Stripes */}
+      {/* Reflective Fluorescent Yellow Stripes */}
       <mesh position={[0, 1.28, 0.15]}>
         <boxGeometry args={[0.4, 0.06, 0.02]} />
-        <meshStandardMaterial
-          color="#fde047"
-          emissive="#fef08a"
-          emissiveIntensity={0.65}
-        />
+        <meshStandardMaterial color="#fde047" emissive="#fef08a" emissiveIntensity={0.65} />
       </mesh>
       <mesh position={[0, 1.04, 0.15]}>
         <boxGeometry args={[0.4, 0.06, 0.02]} />
-        <meshStandardMaterial
-          color="#fde047"
-          emissive="#fef08a"
-          emissiveIntensity={0.65}
-        />
+        <meshStandardMaterial color="#fde047" emissive="#fef08a" emissiveIntensity={0.65} />
       </mesh>
 
-      {/* Team ID Badge on Chest */}
-      <mesh position={[0.13, 1.32, 0.16]}>
-        <boxGeometry args={[0.09, 0.11, 0.01]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[0.13, 1.34, 0.165]}>
-        <boxGeometry args={[0.07, 0.035, 0.01]} />
-        <meshStandardMaterial color={teamAccent} />
-      </mesh>
-
-      {/* Utility Tool Belt with Radio Holster */}
+      {/* Utility Tool Belt */}
       <mesh position={[0, 0.88, 0]} castShadow>
         <boxGeometry args={[0.46, 0.08, 0.3]} />
         <meshStandardMaterial color="#0f172a" roughness={0.8} />
       </mesh>
-      <mesh position={[-0.22, 0.95, 0]} castShadow>
-        <boxGeometry args={[0.06, 0.14, 0.08]} />
-        <meshStandardMaterial color="#334155" />
-      </mesh>
 
-      {/* ── HEAD & SAFETY HARD HAT / COMMS HEADSET ── */}
+      {/* ── HEAD & HARD HAT / WELDING MASK ── */}
       <group ref={headRef} position={[0, 1.62, 0]}>
-        {/* Neck */}
         <mesh position={[0, -0.1, 0]}>
           <cylinderGeometry args={[0.065, 0.075, 0.12, 12]} />
           <meshStandardMaterial color="#fed7aa" roughness={0.6} />
         </mesh>
-
-        {/* Head */}
         <mesh castShadow>
           <sphereGeometry args={[0.16, 16, 16]} />
           <meshStandardMaterial color="#fed7aa" roughness={0.6} />
         </mesh>
 
-        {/* Aerodynamic Hard Hat */}
-        <mesh position={[0, 0.09, 0]} castShadow>
-          <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.2} />
-        </mesh>
-        {/* Hard Hat Protective Brim */}
-        <mesh position={[0, 0.08, 0.04]} rotation={[0.15, 0, 0]}>
-          <cylinderGeometry args={[0.21, 0.21, 0.03, 16]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.25} />
-        </mesh>
-        {/* Team Center Stripe on Hard Hat */}
-        <mesh position={[0, 0.17, 0]}>
-          <boxGeometry args={[0.08, 0.04, 0.34]} />
-          <meshStandardMaterial color={teamAccent} />
-        </mesh>
-
-        {/* Comms Headset Boom */}
-        <mesh position={[-0.18, 0.02, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.06, 8]} />
-          <meshStandardMaterial color="#1e293b" />
-        </mesh>
+        {job === 'welder' ? (
+          /* Heavy Aerospace Welding Helmet & Dark Visor */
+          <group position={[0, 0.05, 0]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.34, 0.36, 0.34]} />
+              <meshStandardMaterial color="#1e293b" roughness={0.4} metalness={0.6} />
+            </mesh>
+            {/* Dark Tinted Protective Welding Glass Window */}
+            <mesh position={[0, 0.02, 0.175]}>
+              <boxGeometry args={[0.18, 0.1, 0.01]} />
+              <meshStandardMaterial color="#0284c7" emissive="#38bdf8" emissiveIntensity={0.5} />
+            </mesh>
+          </group>
+        ) : (
+          /* Standard Safety Hard Hat */
+          <>
+            <mesh position={[0, 0.09, 0]} castShadow>
+              <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.2} />
+            </mesh>
+            <mesh position={[0, 0.08, 0.04]} rotation={[0.15, 0, 0]}>
+              <cylinderGeometry args={[0.21, 0.21, 0.03, 16]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.25} />
+            </mesh>
+            <mesh position={[0, 0.17, 0]}>
+              <boxGeometry args={[0.08, 0.04, 0.34]} />
+              <meshStandardMaterial color={teamAccent} />
+            </mesh>
+            <mesh position={[-0.18, 0.02, 0]}>
+              <cylinderGeometry args={[0.04, 0.04, 0.06, 8]} />
+              <meshStandardMaterial color="#1e293b" />
+            </mesh>
+          </>
+        )}
       </group>
 
       {/* ── LEFT ARM ── */}
@@ -623,41 +710,9 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <boxGeometry args={[0.09, 0.11, 0.09]} />
           <meshStandardMaterial color="#475569" roughness={0.5} />
         </mesh>
-
-        {/* Diagnostic Tablet Item (if fuel-tech or tank-tech) */}
-        {(job === 'fuel-tech' || job === 'tank-tech') && (
-          <group position={[0.12, -0.48, 0.22]} rotation={[0.4, 0, 0]}>
-            <mesh castShadow>
-              <boxGeometry args={[0.24, 0.32, 0.02]} />
-              <meshStandardMaterial color="#0f172a" metalness={0.8} />
-            </mesh>
-            <mesh position={[0, 0, 0.012]}>
-              <boxGeometry args={[0.21, 0.28, 0.005]} />
-              <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={1.0} />
-            </mesh>
-          </group>
-        )}
-
-        {/* Glowing Marshalling Wand (if comms-marshall) */}
-        {job === 'comms-marshall' && (
-          <group position={[0, -0.65, 0.12]} rotation={[1.57, 0, 0]}>
-            <mesh castShadow>
-              <cylinderGeometry args={[0.02, 0.02, 0.34, 12]} />
-              <meshStandardMaterial
-                color="#f97316"
-                emissive="#f97316"
-                emissiveIntensity={2.5}
-              />
-            </mesh>
-            <mesh position={[0, -0.16, 0]}>
-              <cylinderGeometry args={[0.025, 0.025, 0.08, 8]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-          </group>
-        )}
       </group>
 
-      {/* ── RIGHT ARM ── */}
+      {/* ── RIGHT ARM WITH JOB EQUIPMENT ── */}
       <group ref={rightArmRef} position={[0.28, 1.42, 0]}>
         <mesh position={[0, -0.15, 0]} castShadow>
           <cylinderGeometry args={[0.07, 0.065, 0.32, 12]} />
@@ -672,38 +727,86 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           <meshStandardMaterial color="#475569" roughness={0.5} />
         </mesh>
 
-        {/* Heavy Torque Wrench (if fuel-tech) */}
+        {/* ACTIVE WELDING TORCH & SPARK SYSTEM (job === 'welder') */}
+        {job === 'welder' && (
+          <group position={[0, -0.65, 0.22]} rotation={[0.8, 0, 0]}>
+            {/* Torch Handle */}
+            <mesh castShadow>
+              <cylinderGeometry args={[0.025, 0.025, 0.3, 8]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.9} />
+            </mesh>
+            {/* Brass Gas Tube */}
+            <mesh position={[0, 0.18, 0]} rotation={[0.2, 0, 0]}>
+              <cylinderGeometry args={[0.015, 0.015, 0.15, 8]} />
+              <meshStandardMaterial color="#f59e0b" metalness={0.9} />
+            </mesh>
+            {/* Ceramic Gas Cup Nozzle */}
+            <mesh position={[0, 0.28, 0.02]}>
+              <cylinderGeometry args={[0.03, 0.02, 0.08, 12]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.4} />
+            </mesh>
+
+            {/* Glowing Blue Electric Arc Tip */}
+            {!isEvacuated && (
+              <>
+                <mesh position={[0, 0.34, 0.03]}>
+                  <sphereGeometry args={[0.045, 8, 8]} />
+                  <meshStandardMaterial
+                    color="#e0f2fe"
+                    emissive="#38bdf8"
+                    emissiveIntensity={5.0}
+                  />
+                </mesh>
+
+                {/* Electric Arc Flickering Light */}
+                <pointLight
+                  ref={weldLightRef}
+                  position={[0, 0.38, 0.05]}
+                  color="#38bdf8"
+                  intensity={3.2}
+                  distance={5}
+                />
+
+                {/* Spark Particle Cluster */}
+                <group ref={sparkRef} position={[0, 0.36, 0.04]}>
+                  {[-0.04, 0, 0.04].map((sx, idx) => (
+                    <mesh key={idx} position={[sx, (idx % 2) * 0.04, (idx - 1) * 0.03]}>
+                      <sphereGeometry args={[0.018, 6, 6]} />
+                      <meshStandardMaterial
+                        color="#ffffff"
+                        emissive="#67e8f9"
+                        emissiveIntensity={6.0}
+                      />
+                    </mesh>
+                  ))}
+                </group>
+              </>
+            )}
+          </group>
+        )}
+
+        {/* Heavy Torque Wrench */}
         {job === 'fuel-tech' && (
           <group position={[0, -0.62, 0.14]} rotation={[0.6, 0, 0]}>
-            {/* Wrench Shaft */}
             <mesh castShadow>
               <cylinderGeometry args={[0.02, 0.02, 0.38, 8]} />
               <meshStandardMaterial color="#475569" metalness={0.9} roughness={0.2} />
             </mesh>
-            {/* Yellow Rubber Grip */}
             <mesh position={[0, -0.12, 0]}>
               <cylinderGeometry args={[0.026, 0.026, 0.14, 8]} />
               <meshStandardMaterial color="#f59e0b" roughness={0.4} />
             </mesh>
-            {/* Socket Head */}
-            <mesh position={[0, 0.18, 0]} rotation={[0, 0, 1.57]}>
-              <cylinderGeometry args={[0.04, 0.04, 0.08, 6]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.9} />
-            </mesh>
           </group>
         )}
 
-        {/* Handheld Optical Laser Scanner with Visible Laser Cone Beam (if engine-scan) */}
+        {/* Laser Scanner */}
         {job === 'engine-scan' && (
           <group position={[0, -0.6, 0.18]} rotation={[0.85, 0, 0]}>
-            {/* Scanner Body */}
             <mesh castShadow>
               <cylinderGeometry args={[0.035, 0.035, 0.24, 10]} />
               <meshStandardMaterial color="#f59e0b" metalness={0.7} />
             </mesh>
-            {/* Pulsating Light Emitter */}
             <pointLight color="#38bdf8" intensity={2.8} distance={4.5} />
-            {/* Visible Laser Scanning Cone Beam */}
             <mesh ref={laserBeamRef} position={[0, 0.75, 0]} rotation={[Math.PI, 0, 0]}>
               <coneGeometry args={[0.22, 1.4, 16]} />
               <meshBasicMaterial color="#38bdf8" transparent opacity={0.35} side={THREE.DoubleSide} />
@@ -711,7 +814,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
           </group>
         )}
 
-        {/* Glowing Marshalling Wand (if comms-marshall) */}
+        {/* Glowing Marshalling Wand */}
         {job === 'comms-marshall' && (
           <group position={[0, -0.65, 0.12]} rotation={[1.57, 0, 0]}>
             <mesh castShadow>
@@ -722,10 +825,6 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
                 emissiveIntensity={2.5}
               />
             </mesh>
-            <mesh position={[0, -0.16, 0]}>
-              <cylinderGeometry args={[0.025, 0.025, 0.08, 8]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
           </group>
         )}
       </group>
@@ -733,13 +832,7 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
   );
 };
 
-// ============================================================
-// ROVING FIELD INSPECTION TECHNICIAN (15-Second Continuous Routine)
-// 1. Walk from central computer desk to rocket pad (0s - 4.5s)
-// 2. Read markings/telemetry on rocket & write in logbook (4.5s - 8.5s)
-// 3. Walk back to central computer engineer (8.5s - 12.0s)
-// 4. Discuss findings with computer engineer gesturing & nodding (12.0s - 15.0s)
-// ============================================================
+// Continuous 15-Second Roving Field Inspection Officer
 const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacuated }) => {
   const groupRef = useRef<THREE.Group>(null);
   const leftArmRef = useRef<THREE.Group>(null);
@@ -752,48 +845,24 @@ const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacua
     const time = state.clock.getElapsedTime();
     if (!groupRef.current) return;
 
-    // Evacuation Behavior during liftoff
     if (isEvacuated) {
       groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, delta * 2.5);
       groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, 12.5, delta * 2.5);
       groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 0, delta * 2.5);
       groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, delta * 3.0);
-
-      const dist = groupRef.current.position.z;
-      if (dist > 8.0) {
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.z = 2.4 + Math.sin(time * 8) * 0.3;
-          leftArmRef.current.rotation.x = -0.4;
-        }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.z = -2.4 - Math.sin(time * 8) * 0.3;
-          rightArmRef.current.rotation.x = -0.4;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.x = -0.45;
-        }
-      } else {
-        if (leftLegRef.current && rightLegRef.current) {
-          leftLegRef.current.rotation.x = Math.sin(time * 12) * 0.55;
-          rightLegRef.current.rotation.x = -Math.sin(time * 12) * 0.55;
-        }
-      }
       return;
     }
 
-    const CYCLE = 15.0;
-    const loopTime = time % CYCLE;
-    const cycleIndex = Math.floor(time / CYCLE);
-    // Alternates between inspecting Blue Rocket (even cycles) and Red Rocket (odd cycles)
+    const loopTime = time % 15.0;
+    const cycleIndex = Math.floor(time / 15.0);
     const targetIsBlue = cycleIndex % 2 === 0;
 
-    const deskX = targetIsBlue ? -0.8 : 0.8;
-    const deskZ = 2.7;
+    const deskX = 0;
+    const deskZ = 2.4;
     const padX = targetIsBlue ? -4.8 : 4.8;
-    const padZ = 1.3;
-    const padElevation = 0.75; // Relative to group Y = 0.1, total world Y = 0.85
+    const padZ = 0.5;
+    const padElevation = 0.85;
 
-    // PHASE 1: Walk to Rocket Pad (0.0s - 4.5s)
     if (loopTime < 4.5) {
       const p = loopTime / 4.5;
       const ease = p * p * (3 - 2 * p);
@@ -802,258 +871,73 @@ const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacua
       groupRef.current.position.y = p < 0.4 ? 0 : THREE.MathUtils.lerp(0, padElevation, (p - 0.4) / 0.6);
       groupRef.current.rotation.y = Math.atan2(padX - deskX, padZ - deskZ);
 
-      // Walk cycle
       if (leftLegRef.current && rightLegRef.current) {
         leftLegRef.current.rotation.x = Math.sin(time * 9) * 0.45;
         rightLegRef.current.rotation.x = -Math.sin(time * 9) * 0.45;
       }
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = -1.0;
-        leftArmRef.current.rotation.y = 0.2;
-      }
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = Math.sin(time * 9) * 0.35;
-        rightArmRef.current.rotation.y = 0;
-      }
-      if (headRef.current) headRef.current.rotation.set(0, 0, 0);
-    }
-    // PHASE 2: Inspect Rocket & Write in Book (4.5s - 8.5s)
-    else if (loopTime < 8.5) {
+    } else if (loopTime < 8.5) {
       const inspectT = loopTime - 4.5;
       groupRef.current.position.set(padX, padElevation, padZ);
       groupRef.current.rotation.y = targetIsBlue ? -1.8 : 1.8;
 
-      // Stable standing posture
-      if (leftLegRef.current && rightLegRef.current) {
-        leftLegRef.current.rotation.x = 0;
-        rightLegRef.current.rotation.x = 0;
-      }
-
-      // Head scanning up & across rocket fuselage
       if (headRef.current) {
         headRef.current.rotation.x = -0.32 + Math.sin(inspectT * 2.2) * 0.12;
-        headRef.current.rotation.y = (targetIsBlue ? -0.2 : 0.2) + Math.sin(inspectT * 1.6) * 0.16;
       }
-
-      // Left arm holding inspection clipboard up at chest height
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = -1.25;
-        leftArmRef.current.rotation.y = targetIsBlue ? 0.35 : -0.35;
-      }
-
-      // Right arm holding stylus scribbling notes in the book
-      if (rightArmRef.current) {
-        const scribble = Math.sin(time * 14) * 0.08;
-        const scribbleY = Math.cos(time * 14) * 0.06;
-        rightArmRef.current.rotation.x = -1.35 + scribble;
-        rightArmRef.current.rotation.y = -0.25 + scribbleY;
-      }
-    }
-    // PHASE 3: Walk back to Central Workstation (8.5s - 12.0s)
-    else if (loopTime < 12.0) {
+    } else if (loopTime < 12.0) {
       const p = (loopTime - 8.5) / 3.5;
       const ease = p * p * (3 - 2 * p);
       groupRef.current.position.x = THREE.MathUtils.lerp(padX, deskX, ease);
       groupRef.current.position.z = THREE.MathUtils.lerp(padZ, deskZ, ease);
       groupRef.current.position.y = p < 0.6 ? THREE.MathUtils.lerp(padElevation, 0, p / 0.6) : 0;
       groupRef.current.rotation.y = Math.atan2(deskX - padX, deskZ - padZ);
-
-      // Walk cycle
-      if (leftLegRef.current && rightLegRef.current) {
-        leftLegRef.current.rotation.x = Math.sin(time * 9) * 0.45;
-        rightLegRef.current.rotation.x = -Math.sin(time * 9) * 0.45;
-      }
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = -0.9;
-        leftArmRef.current.rotation.y = 0.2;
-      }
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = Math.sin(time * 9) * 0.35;
-        rightArmRef.current.rotation.y = 0;
-      }
-      if (headRef.current) headRef.current.rotation.set(0, 0, 0);
-    }
-    // PHASE 4: Discuss with Central Computer Operator (12.0s - 15.0s)
-    else {
-      const discussT = loopTime - 12.0;
+    } else {
       groupRef.current.position.set(deskX, 0, deskZ);
       groupRef.current.rotation.y = targetIsBlue ? 2.5 : -2.5;
-
-      // Stable standing
-      if (leftLegRef.current && rightLegRef.current) {
-        leftLegRef.current.rotation.x = 0;
-        rightLegRef.current.rotation.x = 0;
-      }
-
-      // Head nodding and talking
-      if (headRef.current) {
-        headRef.current.rotation.x = Math.sin(discussT * 5.0) * 0.12;
-        headRef.current.rotation.y = (targetIsBlue ? 0.2 : -0.2) + Math.sin(discussT * 3.0) * 0.15;
-      }
-
-      // Left arm presenting open logbook to computer operator
-      if (leftArmRef.current) {
-        leftArmRef.current.rotation.x = -1.1;
-        leftArmRef.current.rotation.y = targetIsBlue ? -0.25 : 0.25;
-      }
-
-      // Right arm gesturing and pointing at telemetry
-      if (rightArmRef.current) {
-        rightArmRef.current.rotation.x = -0.85 + Math.sin(discussT * 3.5) * 0.3;
-        rightArmRef.current.rotation.y = -0.3 + Math.cos(discussT * 3.5) * 0.15;
-      }
     }
   });
 
   return (
     <group ref={groupRef} position={[0, 0, 2.7]}>
-      {/* ── PELVIS & WORK TROUSERS ── */}
       <mesh position={[0, 0.76, 0]} castShadow>
         <boxGeometry args={[0.38, 0.22, 0.25]} />
         <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
       </mesh>
-
-      {/* Left Leg */}
       <group ref={leftLegRef} position={[-0.11, 0.66, 0]}>
         <mesh position={[0, -0.3, 0]} castShadow>
           <cylinderGeometry args={[0.08, 0.07, 0.62, 12]} />
-          <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
-        </mesh>
-        {/* Steel-Toe Heavy Boot */}
-        <mesh position={[0, -0.66, 0.06]} castShadow>
-          <boxGeometry args={[0.14, 0.15, 0.26]} />
-          <meshStandardMaterial color="#334155" roughness={0.4} />
+          <meshStandardMaterial color="#1e3a8a" />
         </mesh>
       </group>
-
-      {/* Right Leg */}
       <group ref={rightLegRef} position={[0.11, 0.66, 0]}>
         <mesh position={[0, -0.3, 0]} castShadow>
           <cylinderGeometry args={[0.08, 0.07, 0.62, 12]} />
-          <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
-        </mesh>
-        {/* Steel-Toe Heavy Boot */}
-        <mesh position={[0, -0.66, 0.06]} castShadow>
-          <boxGeometry args={[0.14, 0.15, 0.26]} />
-          <meshStandardMaterial color="#334155" roughness={0.4} />
+          <meshStandardMaterial color="#1e3a8a" />
         </mesh>
       </group>
-
-      {/* ── TORSO & HI-VIS ORANGE VEST ── */}
       <mesh position={[0, 1.18, 0]} castShadow>
         <boxGeometry args={[0.44, 0.6, 0.28]} />
         <meshStandardMaterial color="#ea580c" roughness={0.45} />
       </mesh>
-      {/* Reflective Fluorescent Yellow Stripes */}
-      <mesh position={[0, 1.28, 0.15]}>
-        <boxGeometry args={[0.4, 0.06, 0.02]} />
-        <meshStandardMaterial color="#fde047" emissive="#fef08a" emissiveIntensity={0.65} />
-      </mesh>
-      <mesh position={[0, 1.04, 0.15]}>
-        <boxGeometry args={[0.4, 0.06, 0.02]} />
-        <meshStandardMaterial color="#fde047" emissive="#fef08a" emissiveIntensity={0.65} />
-      </mesh>
-
-      {/* Field Inspection Officer Badge */}
-      <mesh position={[0.13, 1.32, 0.16]}>
-        <boxGeometry args={[0.09, 0.11, 0.01]} />
-        <meshStandardMaterial color="#ffffff" />
-      </mesh>
-      <mesh position={[0.13, 1.34, 0.165]}>
-        <boxGeometry args={[0.07, 0.035, 0.01]} />
-        <meshStandardMaterial color="#0284c7" />
-      </mesh>
-
-      {/* Utility Tool Belt */}
-      <mesh position={[0, 0.88, 0]} castShadow>
-        <boxGeometry args={[0.46, 0.08, 0.3]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.8} />
-      </mesh>
-
-      {/* ── HEAD & WHITE SAFETY HARD HAT ── */}
       <group ref={headRef} position={[0, 1.62, 0]}>
-        <mesh position={[0, -0.1, 0]}>
-          <cylinderGeometry args={[0.065, 0.075, 0.12, 12]} />
-          <meshStandardMaterial color="#fed7aa" roughness={0.6} />
-        </mesh>
         <mesh castShadow>
           <sphereGeometry args={[0.16, 16, 16]} />
-          <meshStandardMaterial color="#fed7aa" roughness={0.6} />
+          <meshStandardMaterial color="#fed7aa" />
         </mesh>
-        <mesh position={[0, 0.09, 0]} castShadow>
+        <mesh position={[0, 0.09, 0]}>
           <sphereGeometry args={[0.18, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.25} metalness={0.2} />
-        </mesh>
-        <mesh position={[0, 0.08, 0.04]} rotation={[0.15, 0, 0]}>
-          <cylinderGeometry args={[0.21, 0.21, 0.03, 16]} />
-          <meshStandardMaterial color="#f8fafc" roughness={0.25} />
-        </mesh>
-        {/* Blue Center Stripe on Hard Hat */}
-        <mesh position={[0, 0.17, 0]}>
-          <boxGeometry args={[0.08, 0.04, 0.34]} />
-          <meshStandardMaterial color="#2563eb" />
-        </mesh>
-        {/* Comms Headset Boom */}
-        <mesh position={[-0.18, 0.02, 0]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.06, 8]} />
-          <meshStandardMaterial color="#1e293b" />
+          <meshStandardMaterial color="#f8fafc" />
         </mesh>
       </group>
-
-      {/* ── LEFT ARM CARRYING PHYSICAL 3D LOGBOOK / CLIPBOARD ── */}
       <group ref={leftArmRef} position={[-0.28, 1.42, 0]}>
-        <mesh position={[0, -0.15, 0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.065, 0.32, 12]} />
-          <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
+        <mesh position={[0, -0.25, 0]} castShadow>
+          <cylinderGeometry args={[0.065, 0.06, 0.5, 12]} />
+          <meshStandardMaterial color="#1e3a8a" />
         </mesh>
-        <mesh position={[0, -0.4, 0]} castShadow>
-          <cylinderGeometry args={[0.06, 0.055, 0.28, 12]} />
-          <meshStandardMaterial color="#fed7aa" roughness={0.6} />
-        </mesh>
-        <mesh position={[0, -0.58, 0]} castShadow>
-          <boxGeometry args={[0.09, 0.11, 0.09]} />
-          <meshStandardMaterial color="#475569" roughness={0.5} />
-        </mesh>
-
-        {/* Physical 3D Hardcover Logbook / Clipboard */}
-        <group position={[0.12, -0.52, 0.16]} rotation={[0.4, 0.15, 0]}>
-          {/* Blue Clipboard Backer */}
-          <mesh castShadow>
-            <boxGeometry args={[0.26, 0.36, 0.02]} />
-            <meshStandardMaterial color="#1d4ed8" roughness={0.3} metalness={0.2} />
-          </mesh>
-          {/* White Paper Sheets */}
-          <mesh position={[0, 0, 0.012]}>
-            <boxGeometry args={[0.22, 0.31, 0.005]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.8} />
-          </mesh>
-          {/* Top Metal Clip */}
-          <mesh position={[0, 0.15, 0.02]}>
-            <boxGeometry args={[0.1, 0.035, 0.015]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.9} roughness={0.2} />
-          </mesh>
-        </group>
       </group>
-
-      {/* ── RIGHT ARM HOLDING WRITING PEN / STYLUS ── */}
       <group ref={rightArmRef} position={[0.28, 1.42, 0]}>
-        <mesh position={[0, -0.15, 0]} castShadow>
-          <cylinderGeometry args={[0.07, 0.065, 0.32, 12]} />
-          <meshStandardMaterial color="#1e3a8a" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, -0.4, 0]} castShadow>
-          <cylinderGeometry args={[0.06, 0.055, 0.28, 12]} />
-          <meshStandardMaterial color="#fed7aa" roughness={0.6} />
-        </mesh>
-        <mesh position={[0, -0.58, 0]} castShadow>
-          <boxGeometry args={[0.09, 0.11, 0.09]} />
-          <meshStandardMaterial color="#475569" roughness={0.5} />
-        </mesh>
-
-        {/* Stylus / Pen for Writing */}
-        <mesh position={[0, -0.62, 0.1]} rotation={[0.5, 0, 0]} castShadow>
-          <cylinderGeometry args={[0.015, 0.015, 0.18, 8]} />
-          <meshStandardMaterial color="#f59e0b" metalness={0.8} roughness={0.3} />
+        <mesh position={[0, -0.25, 0]} castShadow>
+          <cylinderGeometry args={[0.065, 0.06, 0.5, 12]} />
+          <meshStandardMaterial color="#1e3a8a" />
         </mesh>
       </group>
     </group>
@@ -1063,64 +947,79 @@ const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacua
 interface WorkersProps {
   launchStage: LaunchStep;
   isLaunchPhase?: boolean;
+  blueStagesCleared?: number;
+  redStagesCleared?: number;
   blueCheering: boolean;
   redCheering: boolean;
+  blueIsWelding?: boolean;
+  redIsWelding?: boolean;
 }
 
 export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
   launchStage,
   isLaunchPhase = false,
+  blueStagesCleared = 0,
+  redStagesCleared = 0,
   blueCheering,
   redCheering,
+  blueIsWelding = true,
+  redIsWelding = true,
 }) => {
-  const isEvac = isLaunchPhase || launchStage !== 'idle';
+  const isGlobalEvac = isLaunchPhase || launchStage !== 'idle';
+  const blueWelderEvac = isGlobalEvac || !blueIsWelding || blueStagesCleared >= 3;
+  const redWelderEvac = isGlobalEvac || !redIsWelding || redStagesCleared >= 3;
 
   return (
     <group position={[0, 0.1, 0]}>
       {/* ── 1. BLUE TEAM ENGINEERING WORKSTATION & CREW (Left Pad: x = -7.0) ── */}
-      {/* Blue Team Workstation Desk */}
-      <WorkstationDesk3D position={[-9.8, 0, 2.4]} rotationY={0.45} team="blue" />
+      <WorkstationDesk3D
+        position={[-9.8, 0, 2.4]}
+        rotationY={0.45}
+        team="blue"
+        stagesCleared={blueStagesCleared}
+        isCorrectPulse={blueCheering}
+      />
 
-      {/* Blue Worker 1: Lead Flight Director (at desk typing, sipping coffee, checking screens) */}
+      {/* Blue Worker 1: Lead Flight Director */}
       <AerospaceCharacter
         initialPos={[-9.8, 0, 3.0]}
         rotationY={-3.0}
         team="blue"
         job="flight-director"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
+        isCheering={blueCheering}
+      />
+
+      {/* Blue Worker 2: ACTIVE WELDING TECHNICIAN (Welding rocket hull Q1-Q3, stops & evacuates on Q3+) */}
+      <AerospaceCharacter
+        initialPos={[-4.8, 0.85, -1.9]}
+        rotationY={-0.86}
+        team="blue"
+        job="welder"
+        isEvacuated={blueWelderEvac}
         isCheering={blueCheering}
       />
 
       {/* Blue Manifold Stand Prop for Cryo Specialist */}
       <CryoManifoldStand position={[-4.8, 0.85, 2.35]} rotationY={3.14} />
 
-      {/* Blue Worker 2: Cryo Propellant Specialist (actively adjusting valve with wrench & checking tablet) */}
+      {/* Blue Worker 3: Cryo Propellant Specialist */}
       <AerospaceCharacter
         initialPos={[-4.8, 0.85, 1.9]}
         rotationY={-2.28}
         team="blue"
         job="fuel-tech"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={blueCheering}
       />
 
-      {/* Blue Worker 3: Propulsion Inspection Specialist (actively sweeping laser scanner across engine bells) */}
-      <AerospaceCharacter
-        initialPos={[-4.8, 0.85, -1.9]}
-        rotationY={-0.86}
-        team="blue"
-        job="engine-scan"
-        isEvacuated={isEvac}
-        isCheering={blueCheering}
-      />
-
-      {/* Blue Worker 4: Safety & Comms Marshall (actively signalling with glowing wands & coordinating radio) */}
+      {/* Blue Worker 4: Safety & Comms Marshall */}
       <AerospaceCharacter
         initialPos={[-10.6, 0, -1.2]}
         rotationY={0.8}
         team="blue"
         job="comms-marshall"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={blueCheering}
       />
 
@@ -1130,54 +1029,59 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         rotationY={3.14}
         team="blue"
         job="tank-tech"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={blueCheering}
       />
 
       {/* ── 2. RED TEAM ENGINEERING WORKSTATION & CREW (Right Pad: x = +7.0) ── */}
-      {/* Red Team Workstation Desk */}
-      <WorkstationDesk3D position={[9.8, 0, 2.4]} rotationY={-0.45} team="red" />
+      <WorkstationDesk3D
+        position={[9.8, 0, 2.4]}
+        rotationY={-0.45}
+        team="red"
+        stagesCleared={redStagesCleared}
+        isCorrectPulse={redCheering}
+      />
 
-      {/* Red Worker 1: Lead Flight Director (at desk typing, sipping coffee, checking screens) */}
+      {/* Red Worker 1: Lead Flight Director */}
       <AerospaceCharacter
         initialPos={[9.8, 0, 3.0]}
         rotationY={3.0}
         team="red"
         job="flight-director"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
+        isCheering={redCheering}
+      />
+
+      {/* Red Worker 2: ACTIVE WELDING TECHNICIAN (Welding rocket hull Q1-Q3, stops & evacuates on Q3+) */}
+      <AerospaceCharacter
+        initialPos={[4.8, 0.85, -1.9]}
+        rotationY={0.86}
+        team="red"
+        job="welder"
+        isEvacuated={redWelderEvac}
         isCheering={redCheering}
       />
 
       {/* Red Manifold Stand Prop for Cryo Specialist */}
       <CryoManifoldStand position={[4.8, 0.85, 2.35]} rotationY={3.14} />
 
-      {/* Red Worker 2: Cryo Propellant Specialist (actively adjusting valve with wrench & checking tablet) */}
+      {/* Red Worker 3: Cryo Propellant Specialist */}
       <AerospaceCharacter
         initialPos={[4.8, 0.85, 1.9]}
         rotationY={2.28}
         team="red"
         job="fuel-tech"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={redCheering}
       />
 
-      {/* Red Worker 3: Propulsion Inspection Specialist (actively sweeping laser scanner across engine bells) */}
-      <AerospaceCharacter
-        initialPos={[4.8, 0.85, -1.9]}
-        rotationY={0.86}
-        team="red"
-        job="engine-scan"
-        isEvacuated={isEvac}
-        isCheering={redCheering}
-      />
-
-      {/* Red Worker 4: Safety & Comms Marshall (actively signalling with glowing wands & coordinating radio) */}
+      {/* Red Worker 4: Safety & Comms Marshall */}
       <AerospaceCharacter
         initialPos={[10.6, 0, -1.2]}
         rotationY={-0.8}
         team="red"
         job="comms-marshall"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={redCheering}
       />
 
@@ -1187,27 +1091,31 @@ export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
         rotationY={3.14}
         team="red"
         job="tank-tech"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={redCheering}
       />
 
       {/* ── 3. CENTRAL HUB WORKERS & ROVING INSPECTOR ── */}
-      {/* Central Command Workstation Desk */}
-      <WorkstationDesk3D position={[0, 0, 3.4]} rotationY={0} team="blue" />
+      <WorkstationDesk3D
+        position={[0, 0, 3.4]}
+        rotationY={0}
+        team="blue"
+        stagesCleared={Math.max(blueStagesCleared, redStagesCleared)}
+      />
 
-      {/* Central Flight Marshall / Computer Engineer (behind desk, typing & interacting with roving officer) */}
+      {/* Central Flight Marshall */}
       <AerospaceCharacter
         initialPos={[0, 0, 4.0]}
         rotationY={3.14}
         team="blue"
         job="flight-director"
-        isEvacuated={isEvac}
+        isEvacuated={isGlobalEvac}
         isCheering={blueCheering || redCheering}
         isCentralOperator={true}
       />
 
-      {/* Continuous 15-Second Roving Field Inspection Officer (walking, inspecting with logbook, discussing) */}
-      <RovingInspectorCharacter isEvacuated={isEvac} />
+      {/* Continuous 15-Second Roving Field Inspection Officer */}
+      <RovingInspectorCharacter isEvacuated={isGlobalEvac} />
     </group>
   );
 };

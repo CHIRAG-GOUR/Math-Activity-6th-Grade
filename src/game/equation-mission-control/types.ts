@@ -65,13 +65,7 @@ export interface MissionCampaign {
   id: string;
   title: string;
   destinationOrbit: string;
-  challenges: [
-    MissionChallenge,
-    MissionChallenge,
-    MissionChallenge,
-    MissionChallenge,
-    MissionChallenge
-  ];
+  challenges: MissionChallenge[];
 }
 
 export interface TeamFeedback {
@@ -86,7 +80,7 @@ export interface TeamControlState {
   score: number;
   stageScore: number;
   streak: number;
-  stagesCleared: number;
+  stagesCleared: number; // 0 to 5 correct answers
   selectedAnswer: number | string | null;
   attemptsLeft: number;
   isLocked: boolean;
@@ -101,8 +95,8 @@ export interface Spacecraft3DState {
   // 5 Physical Preparation Stages
   stage1StructureDone: boolean; // Structural panels & avionics HUD active
   stage2FuelDone: boolean;      // Fuel umbilicals locked & liquid fuel at 100%
-  stage3EngineDone: boolean;    // Triple engine bells glowing amber
-  stage4NavDone: boolean;       // Radar dish deployed & gimbals aligned
+  stage3EngineDone: boolean;    // Triple engine bells glowing amber & welding stops
+  stage4NavDone: boolean;       // Brakes loosened & green signal active
   stage5Armed: boolean;         // Hold-down clamps released & armed for liftoff
 
   // Subsystem Metrics
@@ -115,6 +109,9 @@ export interface Spacecraft3DState {
   antennaDeployed: boolean;
   serviceArmsAngle: number;     // 0 (clamped) to 1 (retracted 80deg)
   clampsReleased: boolean;
+  brakesReleased: boolean;      // Released on 4th correct answer
+  greenSignalActive: boolean;   // Active on 4th correct answer
+  isWeldingActive: boolean;     // Active during Q1-Q3, stops on Q4+
 
   // Liftoff Physics & Flight Telemetry
   launchStage: LaunchStep;

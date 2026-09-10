@@ -144,23 +144,43 @@ const LaunchPadTowerAssembly: React.FC<{
           <meshStandardMaterial color="#0f172a" roughness={0.3} metalness={0.8} />
         </mesh>
 
-        {/* 4 Heavy Steel Hold-Down Clamps (Y = 0.88) */}
-        {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, i) => (
-          <group
-            key={i}
-            position={[Math.cos(angle) * 1.6, 0.88, Math.sin(angle) * 1.6]}
-            rotation={[0, -angle, 0]}
-          >
-            <mesh castShadow>
-              <boxGeometry args={[0.36, 0.45, 0.5]} />
-              <meshStandardMaterial color="#334155" metalness={0.8} roughness={0.3} />
-            </mesh>
-            <mesh position={[0, 0.28, -0.1]}>
-              <cylinderGeometry args={[0.06, 0.06, 0.3, 8]} />
-              <meshStandardMaterial color="#f59e0b" metalness={0.7} />
-            </mesh>
-          </group>
-        ))}
+        {/* 4 Heavy Steel Hold-Down Clamps & Brakes (Loosen and rotate outward on 4th correct) */}
+        {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((angle, i) => {
+          const isBrakesLoose = shipState.brakesReleased;
+          const clampReleaseAngle = isBrakesLoose ? 0.45 : 0;
+
+          return (
+            <group
+              key={i}
+              position={[Math.cos(angle) * (isBrakesLoose ? 1.85 : 1.6), 0.88, Math.sin(angle) * (isBrakesLoose ? 1.85 : 1.6)]}
+              rotation={[0, -angle, clampReleaseAngle]}
+            >
+              {/* Hydraulic Brake Base Block */}
+              <mesh castShadow>
+                <boxGeometry args={[0.36, 0.45, 0.5]} />
+                <meshStandardMaterial
+                  color={isBrakesLoose ? '#15803d' : '#334155'}
+                  metalness={0.8}
+                  roughness={0.3}
+                />
+              </mesh>
+              {/* Clamp Jaw Pivot */}
+              <mesh position={[0, 0.28, -0.1]} rotation={[isBrakesLoose ? 0.6 : 0, 0, 0]}>
+                <cylinderGeometry args={[0.06, 0.06, 0.3, 8]} />
+                <meshStandardMaterial color={isBrakesLoose ? '#22c55e' : '#f59e0b'} metalness={0.7} />
+              </mesh>
+              {/* Status LED on Brake Block */}
+              <mesh position={[0, 0.15, 0.26]}>
+                <boxGeometry args={[0.12, 0.08, 0.02]} />
+                <meshStandardMaterial
+                  color={isBrakesLoose ? '#22c55e' : '#f59e0b'}
+                  emissive={isBrakesLoose ? '#22c55e' : '#b45309'}
+                  emissiveIntensity={isBrakesLoose ? 2.5 : 0.8}
+                />
+              </mesh>
+            </group>
+          );
+        })}
 
         {/* Yellow/Black Hazard Border Stripes around Pad Deck (Y = 0.85) */}
         {[0, Math.PI / 4, Math.PI / 2, (3 * Math.PI) / 4, Math.PI, (5 * Math.PI) / 4, (3 * Math.PI) / 2, (7 * Math.PI) / 4].map(
@@ -230,6 +250,55 @@ const LaunchPadTowerAssembly: React.FC<{
             </mesh>
           </group>
         ))}
+
+        {/* ── GREEN SIGNAL GO LIGHT BEACON (Active on 4th correct) ── */}
+        <group position={[isBlue ? 0.95 : -0.95, 11.4, 0.75]}>
+          {/* Beacon Housing Box */}
+          <mesh castShadow>
+            <boxGeometry args={[0.35, 1.1, 0.3]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.8} />
+          </mesh>
+
+          {/* Red Signal Lamp (Top) */}
+          <mesh position={[0, 0.35, 0.16]}>
+            <cylinderGeometry args={[0.09, 0.09, 0.08, 16]} />
+            <meshStandardMaterial
+              color="#ef4444"
+              emissive="#ef4444"
+              emissiveIntensity={shipState.greenSignalActive ? 0.1 : 0.8}
+            />
+          </mesh>
+
+          {/* Amber Signal Lamp (Middle) */}
+          <mesh position={[0, 0, 0.16]}>
+            <cylinderGeometry args={[0.09, 0.09, 0.08, 16]} />
+            <meshStandardMaterial
+              color="#f59e0b"
+              emissive="#f59e0b"
+              emissiveIntensity={shipState.greenSignalActive ? 0.1 : 1.2}
+            />
+          </mesh>
+
+          {/* Bright Green Signal Go Lamp (Bottom) */}
+          <mesh position={[0, -0.35, 0.16]}>
+            <cylinderGeometry args={[0.11, 0.11, 0.09, 16]} />
+            <meshStandardMaterial
+              color={shipState.greenSignalActive ? '#22c55e' : '#14532d'}
+              emissive={shipState.greenSignalActive ? '#22c55e' : '#000000'}
+              emissiveIntensity={shipState.greenSignalActive ? 4.5 : 0}
+            />
+          </mesh>
+
+          {/* Green Go Signal Illumination Point Light when Active */}
+          {shipState.greenSignalActive && (
+            <pointLight
+              position={[0, -0.35, 0.4]}
+              color="#22c55e"
+              intensity={4.0}
+              distance={8}
+            />
+          )}
+        </group>
 
         {/* Vertical Access Ladder along back of tower */}
         <group position={[0, 8.2, isBlue ? -0.75 : 0.75]}>

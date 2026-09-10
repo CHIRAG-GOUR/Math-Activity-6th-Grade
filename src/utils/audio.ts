@@ -963,6 +963,109 @@ class SoundEngine {
     });
   }
 
+  // 6. Welding Electric Arc & Sparks Crackle
+  public playWeldingSparks() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    for (let i = 0; i < 4; i++) {
+      const t = now + i * 0.06;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800 + Math.random() * 600, t);
+      osc.frequency.exponentialRampToValueAtTime(200, t + 0.04);
+
+      gain.gain.setValueAtTime(0.2, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.045);
+    }
+  }
+
+  // 7. Heavy Rocket Hold-Down Brakes Release & Pneumatic Clank
+  public playBrakesRelease() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Pneumatic pressure hiss
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.4);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1200, now);
+      filter.frequency.linearRampToValueAtTime(400, now + 0.35);
+
+      const gain = this.ctx.createGain();
+      gain.gain.setValueAtTime(0.4, now);
+      gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+
+      noise.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.ctx.destination);
+      noise.start(now);
+      noise.stop(now + 0.4);
+    } catch {}
+
+    // Heavy metallic latch clang
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(320, now + 0.08);
+    osc.frequency.exponentialRampToValueAtTime(80, now + 0.35);
+    gain.gain.setValueAtTime(0.5, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.38);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.start(now + 0.08);
+    osc.stop(now + 0.38);
+  }
+
+  // 8. Green Signal Go Radar Harmonic Chime
+  public playGreenSignalChime() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const notes = [587.33, 880.0, 1174.66, 1760.0]; // D5, A5, D6, A6 bright harmonic chime
+    notes.forEach((freq, idx) => {
+      if (!this.ctx) return;
+      const t = now + idx * 0.07;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.linearRampToValueAtTime(0.35, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.6);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.65);
+    });
+  }
+
   // Generic Sound Dispatcher for Arcade Activities
   public play(
     soundName:

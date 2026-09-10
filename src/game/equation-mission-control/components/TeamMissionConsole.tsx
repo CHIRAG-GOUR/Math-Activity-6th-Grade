@@ -119,8 +119,14 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
             <span>STAGE 0{stageIndex + 1}: {challenge.stageTitle.replace('STAGE ', '').split(':')[1] || challenge.stageTitle}</span>
           </div>
           <div className="flex items-center gap-1 shrink-0">
-            <span className="text-[7.5px] font-black px-1 py-0.2 rounded bg-slate-100 border border-slate-300 text-slate-700">
-              {teamState.stagesCleared}/5
+            <span
+              className={`text-[8px] font-black px-1.5 py-0.2 rounded border ${
+                teamState.stagesCleared >= 4
+                  ? 'bg-emerald-500 text-white border-emerald-600 animate-pulse'
+                  : 'bg-slate-100 border-slate-300 text-slate-700'
+              }`}
+            >
+              {teamState.stagesCleared}/5 GO
             </span>
             <span className="text-[8px] font-black px-1.5 py-0.2 rounded bg-white border border-slate-300 text-slate-800">
               +{challenge.points}P
@@ -128,6 +134,41 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
           </div>
         </div>
       ) : null}
+
+      {/* ── 3. 5-Step Subsystem Physical Preparation Bar ── */}
+      <div className="px-2 py-1 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-1">
+        {[
+          { icon: '💻', desc: 'AVN' },
+          { icon: '⛽', desc: 'FUEL' },
+          { icon: '🔥', desc: 'WELD' },
+          { icon: '🟢', desc: 'BRAKE' },
+          { icon: '🚀', desc: 'LAUNCH' },
+        ].map((step, idx) => {
+          const isCompleted = idx < teamState.stagesCleared;
+          const isNext = idx === teamState.stagesCleared;
+
+          return (
+            <div
+              key={idx}
+              title={`Step ${idx + 1}: ${isCompleted ? 'READY' : isNext ? 'IN PROGRESS' : 'LOCKED'}`}
+              className={`flex-1 py-1 rounded-md text-center border transition-all flex flex-col items-center justify-center ${
+                isCompleted
+                  ? isBlue
+                    ? 'bg-blue-600 border-blue-700 text-white shadow-xs'
+                    : 'bg-red-600 border-red-700 text-white shadow-xs'
+                  : isNext
+                  ? 'bg-amber-200 border-amber-400 text-amber-950 font-black animate-pulse'
+                  : 'bg-white border-slate-200 text-slate-400'
+              }`}
+            >
+              <span className="text-[9px] leading-none">{step.icon}</span>
+              <span className="text-[6.5px] font-black uppercase leading-none mt-0.5">
+                {step.desc}
+              </span>
+            </div>
+          );
+        })}
+      </div>
 
       {/* ── 3. Interactive Challenge Content (Identical max-h-[380px] to Train Game) ── */}
       <div className="p-2.5 flex flex-col gap-2 bg-slate-50 overflow-y-auto max-h-[380px] mc-scrollbar">

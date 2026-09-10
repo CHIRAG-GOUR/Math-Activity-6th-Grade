@@ -1,5 +1,5 @@
 // ============================================================
-// EQUATION MISSION CONTROL — Dynamic Non-Repeating Question Selector
+// EQUATION MISSION CONTROL — Dynamic 100+ Question Queue
 // ============================================================
 
 import {
@@ -9,7 +9,7 @@ import {
   STAGE_4_QUESTIONS,
   STAGE_5_QUESTIONS,
 } from './challenges';
-import { MissionChallenge, MissionCampaign } from '../types';
+import { MissionChallenge, MissionCampaign, StageIndex, MissionStageId } from '../types';
 
 function shuffle<T>(array: T[]): T[] {
   const arr = [...array];
@@ -27,11 +27,29 @@ export function generateDynamicCampaign(campaignIndex: number = 0): MissionCampa
   const s4Pool = shuffle(STAGE_4_QUESTIONS);
   const s5Pool = shuffle(STAGE_5_QUESTIONS);
 
-  const q1: MissionChallenge = { ...s1Pool[0], stageId: 'config', stageIndex: 0 };
-  const q2: MissionChallenge = { ...s2Pool[0], stageId: 'fuel', stageIndex: 1 };
-  const q3: MissionChallenge = { ...s3Pool[0], stageId: 'engine', stageIndex: 2 };
-  const q4: MissionChallenge = { ...s4Pool[0], stageId: 'navigation', stageIndex: 3 };
-  const q5: MissionChallenge = { ...s5Pool[0], stageId: 'launch', stageIndex: 4 };
+  const stageDefs: { id: MissionStageId; idx: StageIndex; pool: typeof STAGE_1_QUESTIONS }[] = [
+    { id: 'config', idx: 0, pool: s1Pool },
+    { id: 'fuel', idx: 1, pool: s2Pool },
+    { id: 'engine', idx: 2, pool: s3Pool },
+    { id: 'navigation', idx: 3, pool: s4Pool },
+    { id: 'launch', idx: 4, pool: s5Pool },
+  ];
+
+  const challenges: MissionChallenge[] = [];
+  const maxRounds = 20; // 20 rounds of 5 stages = 100 challenges
+
+  for (let r = 0; r < maxRounds; r++) {
+    for (let s = 0; s < 5; s++) {
+      const def = stageDefs[s];
+      const template = def.pool[r % def.pool.length];
+      challenges.push({
+        ...template,
+        id: `${template.id}-r${r}`,
+        stageId: def.id,
+        stageIndex: def.idx,
+      });
+    }
+  }
 
   const DESTINATIONS = [
     'International Space Station LEO Orbit (400 km)',
@@ -45,6 +63,6 @@ export function generateDynamicCampaign(campaignIndex: number = 0): MissionCampa
     id: `dyn-campaign-${Date.now()}`,
     title: `PROJECT ARES MISSION ${campaignIndex + 1}`,
     destinationOrbit: DESTINATIONS[campaignIndex % DESTINATIONS.length],
-    challenges: [q1, q2, q3, q4, q5],
+    challenges,
   };
 }

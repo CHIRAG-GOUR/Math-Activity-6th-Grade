@@ -173,8 +173,12 @@ export const MissionControlScene3D: React.FC = () => {
         <AerospaceWorkers3D
           launchStage={heroLaunchStage}
           isLaunchPhase={isLaunchPhase}
+          blueStagesCleared={blueTeam.stagesCleared}
+          redStagesCleared={redTeam.stagesCleared}
           blueCheering={blueTeam.lastResult === 'correct' || winner === 'blue'}
           redCheering={redTeam.lastResult === 'correct' || winner === 'red'}
+          blueIsWelding={blueSpacecraft.isWeldingActive && blueTeam.stagesCleared < 3}
+          redIsWelding={redSpacecraft.isWeldingActive && redTeam.stagesCleared < 3}
         />
       </Canvas>
     </div>

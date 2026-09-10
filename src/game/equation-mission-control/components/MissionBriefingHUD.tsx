@@ -17,6 +17,9 @@ import { StageIndex } from '../types';
 export const MissionBriefingHUD: React.FC = () => {
   const phase = useMissionControlStore((s) => s.phase);
   const currentStage = useMissionControlStore((s) => s.currentStageIndex);
+  const questionPoolIndex = useMissionControlStore((s) => s.questionPoolIndex);
+  const blueStages = useMissionControlStore((s) => s.blueTeam.stagesCleared);
+  const redStages = useMissionControlStore((s) => s.redTeam.stagesCleared);
   const challenge = useMissionControlStore((s) => s.activeChallenge);
   const timeRemaining = useMissionControlStore((s) => s.timeRemaining);
   const timerActive = useMissionControlStore((s) => s.timerActive);
@@ -51,7 +54,8 @@ export const MissionBriefingHUD: React.FC = () => {
   const timerColor =
     timeRemaining <= 8 ? '#ef4444' : timeRemaining <= 18 ? '#f59e0b' : '#10b981';
 
-  const STAGE_NAMES = ['CONFIGURE', 'FUEL', 'ENGINE', 'NAVIGATION', 'LAUNCH'];
+  const STAGE_NAMES = ['AVIONICS', 'FUEL', 'ENGINE', 'BRAKES', 'LIFTOFF'];
+  const maxStages = Math.max(blueStages, redStages);
 
   return (
     <header className="absolute top-2 inset-x-0 z-30 px-4 pointer-events-none select-none flex items-center justify-between gap-3">
@@ -68,14 +72,14 @@ export const MissionBriefingHUD: React.FC = () => {
 
       {/* Center: Mounted Physical Aerospace Briefing Display */}
       <div className="pointer-events-auto flex flex-col items-center">
-        <div className="px-5 py-2 rounded-2xl bg-white border-3 border-slate-900 mc-shadow-hard-lg flex items-center gap-5 relative">
+        <div className="px-5 py-2 rounded-2xl bg-white border-3 border-slate-900 mc-shadow-hard-lg flex items-center gap-4 relative">
           <div className="mc-screw absolute -top-1.5 -left-1.5" />
           <div className="mc-screw absolute -top-1.5 -right-1.5" />
 
           {/* Mission Info */}
           <div className="text-center leading-none">
             <div className="text-[9px] font-black tracking-widest text-amber-600 uppercase flex items-center justify-center gap-1">
-              <span>🚀</span> MISSION 0{currentStage + 1}
+              <span>🚀</span> QUESTION #{questionPoolIndex + 1}
             </div>
             <div className="text-xs font-black text-slate-950 mt-1 uppercase tracking-tight">
               {challenge?.stageTitle || 'DUAL SPACECRAFT PREPARATION'}
@@ -85,8 +89,10 @@ export const MissionBriefingHUD: React.FC = () => {
           {/* 5 Physical Stage Indicator Lights */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-900 border-2 border-slate-800">
             {([0, 1, 2, 3, 4] as StageIndex[]).map((idx) => {
-              const isDone = idx < currentStage;
-              const isCurrent = idx === currentStage;
+              const isDone = idx < maxStages;
+              const isCurrent = idx === maxStages;
+              const isSignalGreen = idx === 3 && maxStages >= 4;
+
               return (
                 <div
                   key={`stage-light-${idx}`}
@@ -95,7 +101,9 @@ export const MissionBriefingHUD: React.FC = () => {
                 >
                   <div
                     className={`w-2.5 h-2.5 rounded-full border transition-all ${
-                      isDone
+                      isSignalGreen
+                        ? 'bg-emerald-400 border-emerald-300 shadow-[0_0_12px_#22c55e] animate-bounce'
+                        : isDone
                         ? 'bg-emerald-500 border-emerald-400 shadow-[0_0_8px_#10b981]'
                         : isCurrent
                         ? 'bg-amber-400 border-amber-300 shadow-[0_0_8px_#facc15] animate-pulse'
@@ -104,7 +112,9 @@ export const MissionBriefingHUD: React.FC = () => {
                   />
                   <span
                     className={`text-[8px] font-black uppercase hidden md:inline ${
-                      isDone
+                      isSignalGreen
+                        ? 'text-emerald-300 font-extrabold'
+                        : isDone
                         ? 'text-emerald-400'
                         : isCurrent
                         ? 'text-amber-300'
