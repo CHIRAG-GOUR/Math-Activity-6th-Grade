@@ -229,42 +229,31 @@ export const MissionControlOverlays: React.FC = () => {
 
             {/* Winner Plaque */}
             {(() => {
-              const isWinnerBlue = winner === 'blue';
               const isWinnerRed = winner === 'red';
+              const winningTeam = isWinnerRed ? redTeam : blueTeam;
 
               return (
                 <div
                   className={`p-4 rounded-2xl border-3 mc-shadow-hard flex items-center justify-between ${
-                    isWinnerBlue
-                      ? 'bg-blue-100 border-blue-600 text-blue-950'
-                      : isWinnerRed
+                    isWinnerRed
                       ? 'bg-red-100 border-red-600 text-red-950'
-                      : 'bg-amber-100 border-amber-600 text-amber-950'
+                      : 'bg-blue-100 border-blue-600 text-blue-950'
                   }`}
                 >
                   <div className="flex items-center gap-3">
                     <Trophy className="w-8 h-8 text-amber-500 animate-bounce" />
                     <div>
                       <div className="text-[9px] font-black uppercase tracking-wider">
-                        MISSION CHAMPION
+                        MISSION CHAMPION & LIFTOFF WINNER
                       </div>
                       <div className="text-xl font-black">
-                        {isWinnerBlue
-                          ? blueTeam.name
-                          : isWinnerRed
-                          ? redTeam.name
-                          : 'CO-CHAMPIONS (DRAW)'}
+                        {winningTeam.name}
                       </div>
                     </div>
                   </div>
                   <div className="text-right">
                     <div className="text-2xl font-black font-mono">
-                      {isWinnerBlue
-                        ? blueTeam.score
-                        : isWinnerRed
-                        ? redTeam.score
-                        : blueTeam.score}{' '}
-                      PTS
+                      {winningTeam.score} PTS
                     </div>
                   </div>
                 </div>

@@ -191,24 +191,57 @@ const AerospaceCharacter: React.FC<CharacterProps> = ({
     const time = state.clock.getElapsedTime();
     if (!groupRef.current) return;
 
-    // 1. Evacuation Movement during Rocket Ignition & Ascent
+    // 1. Evacuation Movement to Perimeter Safety Line (Z >= 12) during Rocket Launch
     if (isEvacuated) {
-      const targetZ = initialPos[2] + 5.0;
-      const targetX = initialPos[0] + (isBlue ? -2.5 : 2.5);
+      // Safe observation line well clear of the launch pads
+      const targetZ = 12.0 + Math.abs(initialPos[0] * 0.15);
+      const targetX = initialPos[0] * 1.35;
+      const targetY = 0; // Descend to ground level safely
+
       groupRef.current.position.x = THREE.MathUtils.lerp(
         groupRef.current.position.x,
         targetX,
-        delta * 2.8
+        delta * 2.5
       );
       groupRef.current.position.z = THREE.MathUtils.lerp(
         groupRef.current.position.z,
         targetZ,
-        delta * 2.8
+        delta * 2.5
       );
-      // Jogging leg movement
-      if (leftLegRef.current && rightLegRef.current) {
-        leftLegRef.current.rotation.x = Math.sin(time * 10) * 0.5;
-        rightLegRef.current.rotation.x = -Math.sin(time * 10) * 0.5;
+      groupRef.current.position.y = THREE.MathUtils.lerp(
+        groupRef.current.position.y,
+        targetY,
+        delta * 2.5
+      );
+
+      // Face back toward the launch pad
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(
+        groupRef.current.rotation.y,
+        0,
+        delta * 3.0
+      );
+
+      // If already at safe distance, cheer and look up at ascending rocket
+      const distToPad = Math.abs(groupRef.current.position.z - initialPos[2]);
+      if (distToPad > 5.0) {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.z = 2.4 + Math.sin(time * 9) * 0.3;
+          leftArmRef.current.rotation.x = -0.4;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.z = -2.4 - Math.sin(time * 9) * 0.3;
+          rightArmRef.current.rotation.x = -0.4;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.x = -0.45;
+          headRef.current.rotation.y = 0;
+        }
+      } else {
+        // Jogging leg movement while running away
+        if (leftLegRef.current && rightLegRef.current) {
+          leftLegRef.current.rotation.x = Math.sin(time * 12) * 0.55;
+          rightLegRef.current.rotation.x = -Math.sin(time * 12) * 0.55;
+        }
       }
       return;
     }
@@ -722,12 +755,28 @@ const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacua
     // Evacuation Behavior during liftoff
     if (isEvacuated) {
       groupRef.current.position.x = THREE.MathUtils.lerp(groupRef.current.position.x, 0, delta * 2.5);
-      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, 8.0, delta * 2.5);
+      groupRef.current.position.z = THREE.MathUtils.lerp(groupRef.current.position.z, 12.5, delta * 2.5);
       groupRef.current.position.y = THREE.MathUtils.lerp(groupRef.current.position.y, 0, delta * 2.5);
-      groupRef.current.rotation.y = 0;
-      if (leftLegRef.current && rightLegRef.current) {
-        leftLegRef.current.rotation.x = Math.sin(time * 11) * 0.5;
-        rightLegRef.current.rotation.x = -Math.sin(time * 11) * 0.5;
+      groupRef.current.rotation.y = THREE.MathUtils.lerp(groupRef.current.rotation.y, 0, delta * 3.0);
+
+      const dist = groupRef.current.position.z;
+      if (dist > 8.0) {
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.z = 2.4 + Math.sin(time * 8) * 0.3;
+          leftArmRef.current.rotation.x = -0.4;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.z = -2.4 - Math.sin(time * 8) * 0.3;
+          rightArmRef.current.rotation.x = -0.4;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.x = -0.45;
+        }
+      } else {
+        if (leftLegRef.current && rightLegRef.current) {
+          leftLegRef.current.rotation.x = Math.sin(time * 12) * 0.55;
+          rightLegRef.current.rotation.x = -Math.sin(time * 12) * 0.55;
+        }
       }
       return;
     }
@@ -1013,21 +1062,18 @@ const RovingInspectorCharacter: React.FC<{ isEvacuated: boolean }> = ({ isEvacua
 
 interface WorkersProps {
   launchStage: LaunchStep;
+  isLaunchPhase?: boolean;
   blueCheering: boolean;
   redCheering: boolean;
 }
 
 export const AerospaceWorkers3D: React.FC<WorkersProps> = ({
   launchStage,
+  isLaunchPhase = false,
   blueCheering,
   redCheering,
 }) => {
-  const isEvac =
-    launchStage === 'ignition' ||
-    launchStage === 'thrust-ramp' ||
-    launchStage === 'liftoff' ||
-    launchStage === 'tower-clear' ||
-    launchStage === 'sky-ascent';
+  const isEvac = isLaunchPhase || launchStage !== 'idle';
 
   return (
     <group position={[0, 0.1, 0]}>

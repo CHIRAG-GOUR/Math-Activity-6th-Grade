@@ -708,6 +708,261 @@ class SoundEngine {
     endOsc.stop(endT + 0.46);
   }
 
+  // ============================================================
+  // ── EQUATION MISSION CONTROL REALTIME AUDIO SYNTHESIZERS ──
+  // ============================================================
+
+  // 1. Heavy Low-Frequency Rocket Ignition & Cryo Combustion Rumble
+  public playRocketIgnition() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // A. Sub-bass combustive sawtooth rumble (40Hz -> 85Hz)
+    const osc = this.ctx.createOscillator();
+    const oscGain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(42, now);
+    osc.frequency.linearRampToValueAtTime(80, now + 1.6);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(140, now);
+    filter.frequency.linearRampToValueAtTime(320, now + 1.6);
+
+    oscGain.gain.setValueAtTime(0.01, now);
+    oscGain.gain.linearRampToValueAtTime(0.85, now + 0.3);
+    oscGain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
+
+    osc.connect(filter);
+    filter.connect(oscGain);
+    oscGain.connect(this.ctx.destination);
+    osc.start(now);
+    osc.stop(now + 2.0);
+
+    // B. Turbulent Ignition Roar Noise Buffer
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2.0);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+      }
+      const noiseSource = this.ctx.createBufferSource();
+      noiseSource.buffer = noiseBuffer;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(260, now);
+      noiseFilter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, now);
+      noiseGain.gain.linearRampToValueAtTime(0.75, now + 0.35);
+      noiseGain.gain.exponentialRampToValueAtTime(0.01, now + 2.0);
+
+      noiseSource.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.ctx.destination);
+      noiseSource.start(now);
+      noiseSource.stop(now + 2.0);
+    } catch {}
+  }
+
+  // 2. High-Pressure Rocket Thrust Ramp & Booster Roar
+  public playRocketThrustRamp() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // Dual Oscillators for massive twin booster vibration
+    const osc1 = this.ctx.createOscillator();
+    const osc2 = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc1.type = 'sawtooth';
+    osc1.frequency.setValueAtTime(65, now);
+    osc1.frequency.linearRampToValueAtTime(130, now + 2.2);
+
+    osc2.type = 'triangle';
+    osc2.frequency.setValueAtTime(45, now);
+    osc2.frequency.linearRampToValueAtTime(95, now + 2.2);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(300, now);
+    filter.frequency.linearRampToValueAtTime(750, now + 2.2);
+
+    gain.gain.setValueAtTime(0.1, now);
+    gain.gain.linearRampToValueAtTime(0.95, now + 0.5);
+    gain.gain.exponentialRampToValueAtTime(0.02, now + 2.5);
+
+    osc1.connect(filter);
+    osc2.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
+    osc1.stop(now + 2.5);
+    osc2.stop(now + 2.5);
+
+    // High frequency exhaust jet hissing noise
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2.5);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const nFilter = this.ctx.createBiquadFilter();
+      nFilter.type = 'highpass';
+      nFilter.frequency.setValueAtTime(400, now);
+
+      const nGain = this.ctx.createGain();
+      nGain.gain.setValueAtTime(0.05, now);
+      nGain.gain.linearRampToValueAtTime(0.8, now + 0.6);
+      nGain.gain.exponentialRampToValueAtTime(0.01, now + 2.5);
+
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(this.ctx.destination);
+      noise.start(now);
+      noise.stop(now + 2.5);
+    } catch {}
+  }
+
+  // 3. Thunderous Rocket Liftoff & Atmospheric Ascent Whoosh
+  public playRocketLiftoff() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    // A. Ascending jet pitch frequency curve
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(80, now);
+    osc.frequency.exponentialRampToValueAtTime(360, now + 3.0);
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(450, now);
+    filter.frequency.linearRampToValueAtTime(1400, now + 2.8);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.linearRampToValueAtTime(1.0, now + 0.6);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 3.2);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(now);
+    osc.stop(now + 3.2);
+
+    // B. Crackling Rocket Flame Noise Burst
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 3.2);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = (Math.random() * 2 - 1);
+      }
+      const noise = this.ctx.createBufferSource();
+      noise.buffer = noiseBuffer;
+
+      const nFilter = this.ctx.createBiquadFilter();
+      nFilter.type = 'bandpass';
+      nFilter.frequency.setValueAtTime(550, now);
+      nFilter.frequency.linearRampToValueAtTime(900, now + 3.0);
+      nFilter.Q.setValueAtTime(1.2, now);
+
+      const nGain = this.ctx.createGain();
+      nGain.gain.setValueAtTime(0.15, now);
+      nGain.gain.linearRampToValueAtTime(0.9, now + 0.5);
+      nGain.gain.exponentialRampToValueAtTime(0.01, now + 3.2);
+
+      noise.connect(nFilter);
+      nFilter.connect(nGain);
+      nGain.connect(this.ctx.destination);
+      noise.start(now);
+      noise.stop(now + 3.2);
+    } catch {}
+  }
+
+  // 4. Pad Evacuation Warning Siren Klaxon
+  public playRocketSirens() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    for (let i = 0; i < 3; i++) {
+      const t = now + i * 0.45;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(650, t);
+      osc.frequency.linearRampToValueAtTime(950, t + 0.22);
+      osc.frequency.linearRampToValueAtTime(650, t + 0.42);
+
+      gain.gain.setValueAtTime(0.4, t);
+      gain.gain.exponentialRampToValueAtTime(0.01, t + 0.43);
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(t);
+      osc.stop(t + 0.44);
+    }
+  }
+
+  // 5. Triumphant Aerospace Victory Fanfare (Multi-voice Brass Chords)
+  public playVictoryFanfare() {
+    if (this.isMuted) return;
+    this.initCtx();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+
+    const chords = [
+      { notes: [261.63, 329.63, 392.0], duration: 0.25, time: 0 },       // C Major
+      { notes: [261.63, 329.63, 392.0], duration: 0.25, time: 0.28 },    // C Major
+      { notes: [261.63, 329.63, 392.0], duration: 0.25, time: 0.56 },    // C Major
+      { notes: [349.23, 440.0, 523.25], duration: 0.75, time: 0.84 },    // F Major
+      { notes: [392.0, 493.88, 587.33], duration: 0.45, time: 1.62 },    // G Major
+      { notes: [523.25, 659.25, 783.99, 1046.5], duration: 1.4, time: 2.1 }, // High C Major Brilliance
+    ];
+
+    chords.forEach((chord) => {
+      chord.notes.forEach((freq) => {
+        if (!this.ctx) return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, now + chord.time);
+
+        gain.gain.setValueAtTime(0.001, now + chord.time);
+        gain.gain.linearRampToValueAtTime(0.35, now + chord.time + 0.05);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + chord.time + chord.duration);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+        osc.start(now + chord.time);
+        osc.stop(now + chord.time + chord.duration + 0.05);
+      });
+    });
+  }
+
   // Generic Sound Dispatcher for Arcade Activities
   public play(
     soundName:
@@ -728,6 +983,11 @@ class SoundEngine {
       | 'alarm'
       | 'whistle'
       | 'horn'
+      | 'rocket-ignition'
+      | 'rocket-thrust'
+      | 'rocket-liftoff'
+      | 'rocket-siren'
+      | 'fanfare'
       | string
   ) {
     if (this.isMuted) return;
@@ -759,7 +1019,20 @@ class SoundEngine {
         this.playCountdownGo();
         break;
       case 'alarm':
-        this.playSecurityAlarm();
+      case 'rocket-siren':
+        this.playRocketSirens();
+        break;
+      case 'rocket-ignition':
+        this.playRocketIgnition();
+        break;
+      case 'rocket-thrust':
+        this.playRocketThrustRamp();
+        break;
+      case 'rocket-liftoff':
+        this.playRocketLiftoff();
+        break;
+      case 'fanfare':
+        this.playVictoryFanfare();
         break;
       default:
         this.playClick();

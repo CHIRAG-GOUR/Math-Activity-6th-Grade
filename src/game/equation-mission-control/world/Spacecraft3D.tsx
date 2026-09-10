@@ -130,30 +130,37 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
     const time = stateThree.clock.getElapsedTime();
 
     if (groupRef.current) {
-      // 1. Smooth Altitude Ascent
-      groupRef.current.position.y = THREE.MathUtils.lerp(
-        groupRef.current.position.y,
-        position[1] + state.altitude,
-        delta * 3.5
-      );
-
-      // 2. Engine Vibration during Ignition & Thrust Ramp
-      if (state.launchStage === 'ignition' || state.launchStage === 'thrust-ramp') {
-        const shake = (Math.random() - 0.5) * 0.08;
-        groupRef.current.position.x = position[0] + shake;
-        groupRef.current.position.z = position[2] + shake;
+      if (!isHeroWinner) {
+        // Losing team rocket stays clamped firmly on pad
+        groupRef.current.position.set(position[0], position[1], position[2]);
+        groupRef.current.rotation.set(0, 0, 0);
       } else {
-        groupRef.current.position.x = position[0];
-        groupRef.current.position.z = position[2];
-      }
-
-      // 3. Stage 4 Navigation Gimbal Pitch / Flight Alignment
-      if (state.stage4NavDone && state.launchStage === 'idle') {
-        groupRef.current.rotation.z = THREE.MathUtils.lerp(
-          groupRef.current.rotation.z,
-          isBlue ? -0.04 : 0.04,
-          delta * 2
+        // 1. Winning Rocket Majestic Smooth Altitude Ascent (Slow, powerful climb)
+        const targetY = position[1] + state.altitude;
+        groupRef.current.position.y = THREE.MathUtils.lerp(
+          groupRef.current.position.y,
+          targetY,
+          delta * (state.altitude < 15 ? 1.8 : 2.5)
         );
+
+        // 2. Engine Vibration during Ignition & Full Thrust Ramp
+        if (state.launchStage === 'ignition' || state.launchStage === 'thrust-ramp') {
+          const shake = (Math.random() - 0.5) * 0.1;
+          groupRef.current.position.x = position[0] + shake;
+          groupRef.current.position.z = position[2] + shake;
+        } else {
+          groupRef.current.position.x = position[0];
+          groupRef.current.position.z = position[2];
+        }
+
+        // 3. Stage 4 Navigation Gimbal Pitch / Flight Alignment
+        if (state.stage4NavDone && state.launchStage === 'idle') {
+          groupRef.current.rotation.z = THREE.MathUtils.lerp(
+            groupRef.current.rotation.z,
+            isBlue ? -0.04 : 0.04,
+            delta * 2
+          );
+        }
       }
     }
 
@@ -163,7 +170,7 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
       if (geom && geom.attributes.position) {
         const posAttr = geom.attributes.position;
         const waveSpeed = state.flagWaveSpeed * 4.0;
-        const prominence = state.flagProminence || 1;
+        const prominence = isHeroWinner ? 2.2 : (state.flagProminence || 1);
 
         for (let i = 0; i < posAttr.count; i++) {
           const u = posAttr.getX(i);
@@ -181,13 +188,18 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
     }
 
     // 6. Engine Flame Pulsing
-    if (flameMeshRef.current && state.exhaustFlameScale > 0) {
-      const pulse = 1 + Math.sin(time * 30) * 0.15;
+    if (flameMeshRef.current && isHeroWinner && state.exhaustFlameScale > 0) {
+      const pulse = 1 + Math.sin(time * 35) * 0.18;
       flameMeshRef.current.scale.set(
-        state.exhaustFlameScale * pulse,
-        state.exhaustFlameScale * (1.2 + Math.cos(time * 25) * 0.2),
-        state.exhaustFlameScale * pulse
+        pulse,
+        1.0 + Math.cos(time * 28) * 0.2,
+        pulse
       );
+    }
+
+    // 7. Billowing Smoke Expansion
+    if (smokeMeshRef.current && isHeroWinner && state.smokeVolume > 0) {
+      smokeMeshRef.current.rotation.y = time * 0.4;
     }
   });
 
@@ -518,33 +530,121 @@ export const Spacecraft3D: React.FC<SpacecraftProps> = ({
         </mesh>
       </group>
 
-      {/* ── 12. VOLUMETRIC EXHAUST FLAME & IGNITION PLUME (Liftoff) ── */}
-      {state.exhaustFlameScale > 0 && (
-        <group position={[0, -0.4, 0]}>
-          {/* Intense Inner Core Flame */}
-          <mesh ref={flameMeshRef}>
-            <coneGeometry args={[0.7, 3.5, 24]} />
-            <meshBasicMaterial color="#ffedd5" />
-          </mesh>
+      {/* ── 12. HIGH-FIDELITY VOLUMETRIC EXHAUST THRUST & IGNITION PLUME (Downwards) ── */}
+      {isHeroWinner && state.exhaustFlameScale > 0 && (
+        <group position={[0, 0.3, 0]}>
+          {/* A. DOWNWARD MAIN ENGINE EXHAUST PLUME */}
+          <group position={[0, -0.4, 0]} rotation={[Math.PI, 0, 0]}>
+            {/* 1. White-Hot Needle Core Flame */}
+            <mesh ref={flameMeshRef} position={[0, 1.4, 0]}>
+              <coneGeometry args={[0.35, 2.8, 20]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
 
-          {/* Outer Fiery Corona */}
-          <mesh scale={[1.4, 1.2, 1.4]} position={[0, -0.4, 0]}>
-            <coneGeometry args={[0.9, 4.2, 20]} />
-            <meshStandardMaterial
-              color="#ea580c"
-              emissive="#f97316"
-              emissiveIntensity={3.0}
-              transparent
-              opacity={0.85}
-            />
-          </mesh>
+            {/* 2. Intense Golden Burning Core */}
+            <mesh position={[0, 2.2, 0]}>
+              <coneGeometry args={[0.65, 4.4, 24]} />
+              <meshStandardMaterial
+                color="#fef08a"
+                emissive="#eab308"
+                emissiveIntensity={2.5}
+                transparent
+                opacity={0.92}
+              />
+            </mesh>
 
-          {/* Dynamic Ground Launch Glow */}
+            {/* 3. Outer Turbulent Fiery Plasma Corona */}
+            <mesh position={[0, 2.9, 0]}>
+              <coneGeometry args={[1.15, 6.0, 24]} />
+              <meshStandardMaterial
+                color="#ea580c"
+                emissive="#f97316"
+                emissiveIntensity={3.2}
+                transparent
+                opacity={0.82}
+              />
+            </mesh>
+
+            {/* 4. Shock Diamond Beads Array along Plume Axis */}
+            {[0.8, 1.6, 2.4, 3.2].map((yOffset, idx) => (
+              <mesh key={idx} position={[0, yOffset, 0]}>
+                <sphereGeometry args={[0.16 - idx * 0.03, 12, 12]} />
+                <meshStandardMaterial
+                  color="#e0f2fe"
+                  emissive="#38bdf8"
+                  emissiveIntensity={4.0}
+                />
+              </mesh>
+            ))}
+          </group>
+
+          {/* B. DUAL SOLID ROCKET BOOSTER (SRB) DOWNWARD THRUST PLUMES */}
+          {/* Left SRB Flame */}
+          <group position={[-1.35, -0.4, 0]} rotation={[Math.PI, 0, 0]}>
+            <mesh position={[0, 1.2, 0]}>
+              <coneGeometry args={[0.26, 2.4, 16]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+            <mesh position={[0, 1.8, 0]}>
+              <coneGeometry args={[0.48, 3.6, 16]} />
+              <meshStandardMaterial
+                color="#f97316"
+                emissive="#ea580c"
+                emissiveIntensity={2.8}
+                transparent
+                opacity={0.85}
+              />
+            </mesh>
+          </group>
+
+          {/* Right SRB Flame */}
+          <group position={[1.35, -0.4, 0]} rotation={[Math.PI, 0, 0]}>
+            <mesh position={[0, 1.2, 0]}>
+              <coneGeometry args={[0.26, 2.4, 16]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+            <mesh position={[0, 1.8, 0]}>
+              <coneGeometry args={[0.48, 3.6, 16]} />
+              <meshStandardMaterial
+                color="#f97316"
+                emissive="#ea580c"
+                emissiveIntensity={2.8}
+                transparent
+                opacity={0.85}
+              />
+            </mesh>
+          </group>
+
+          {/* C. BILLOWING LAUNCH PAD SMOKE CLOUDS (Pad Trench Deflector) */}
+          {state.smokeVolume > 0 && state.altitude < 18 && (
+            <group ref={smokeMeshRef} position={[0, -0.6, 0]}>
+              {[-1.8, -0.9, 0, 0.9, 1.8].map((sx, idx) => (
+                <mesh
+                  key={idx}
+                  position={[sx, 0.2, (Math.random() - 0.5) * 1.5]}
+                  scale={state.smokeVolume * 1.2}
+                >
+                  <sphereGeometry args={[0.85 + (idx % 2) * 0.25, 14, 14]} />
+                  <meshStandardMaterial
+                    color="#f1f5f9"
+                    emissive="#fdba74"
+                    emissiveIntensity={0.35}
+                    transparent
+                    opacity={Math.max(0.2, 0.7 - state.altitude * 0.035)}
+                    roughness={0.9}
+                  />
+                </mesh>
+              ))}
+            </group>
+          )}
+
+          {/* D. DYNAMIC GROUND TRENCH LAUNCH ILLUMINATION */}
           <pointLight
-            position={[0, -1.5, 0]}
+            position={[0, -1.8, 0]}
             color="#fb923c"
-            intensity={state.exhaustFlameScale * 6.0}
-            distance={20}
+            intensity={state.exhaustFlameScale * 9.0}
+            distance={28}
+            decay={1.8}
           />
         </group>
       )}

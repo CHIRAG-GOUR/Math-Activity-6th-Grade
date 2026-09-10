@@ -387,11 +387,25 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     const { currentStageIndex, campaign, blueTeam, redTeam } = get();
 
     if (currentStageIndex >= 4) {
-      // Match Complete -> Determine Winner and Launch Rocket!
+      // Match Complete -> Determine STRICT SINGLE WINNER (No dual launches!)
+      // Whoever answers more stages (e.g. 3-2, 4-1, 5-0) or has higher score
+      const blueStages = blueTeam.stagesCleared;
+      const redStages = redTeam.stagesCleared;
       const blueScore = blueTeam.score;
       const redScore = redTeam.score;
-      const winner: TeamId | 'draw' =
-        blueScore > redScore ? 'blue' : redScore > blueScore ? 'red' : 'draw';
+
+      let winner: TeamId = 'blue';
+      if (blueStages > redStages) {
+        winner = 'blue';
+      } else if (redStages > blueStages) {
+        winner = 'red';
+      } else if (blueScore > redScore) {
+        winner = 'blue';
+      } else if (redScore > blueScore) {
+        winner = 'red';
+      } else {
+        winner = blueTeam.lastResult === 'correct' ? 'blue' : 'red';
+      }
 
       set({ winnerTeam: winner });
       get().run12StepCinematicLaunch(winner);
@@ -413,24 +427,24 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   },
 
   // --------------------------------------------------------------------------
-  // 12-STEP DUAL-ROCKET CINEMATIC LIFTOFF SEQUENCER
+  // 12-STEP SINGLE-ROCKET CINEMATIC LIFTOFF SEQUENCER
+  // Only the winning team's rocket launches while the other remains parked!
   // --------------------------------------------------------------------------
   run12StepCinematicLaunch: (winner) => {
     clearLaunchInterval();
     clearAutoAdvance();
 
+    // Ensure winner is strictly 'blue' or 'red'
+    const finalWinner: TeamId = winner === 'red' ? 'red' : 'blue';
     const winnerName =
-      winner === 'red'
-        ? get().redTeam.name
-        : winner === 'blue'
-        ? get().blueTeam.name
-        : 'BOTH TEAMS';
+      finalWinner === 'red' ? get().redTeam.name : get().blueTeam.name;
 
     set({
       phase: 'launch-cinematic',
       cameraTarget: 'hero-launch',
       timerActive: false,
-      toastMessage: `🚀 ${winnerName} CLEARED ALL 5 STAGES! INITIATING LIFTOFF!`,
+      winnerTeam: finalWinner,
+      toastMessage: `🏆 ${winnerName} WON THE MISSION! INITIATING LIFTOFF!`,
     });
 
     const steps: LaunchStep[] = [
@@ -457,62 +471,68 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
         set({
           phase: 'mission-report',
           cameraTarget: 'overview',
-          toastMessage: '🏆 MISSION SUCCESSFUL!',
+          toastMessage: `🏆 MISSION SUCCESSFUL! ${winnerName} IS THE CHAMPION!`,
         });
-        soundManager.play('powerup');
+        soundManager.playVictoryFanfare();
         return;
       }
 
       const currentStep = steps[stepIdx];
       stepIdx++;
 
-      // Trigger audio per step
-      if (currentStep === 'hazard-lights') soundManager.play('alarm');
-      if (currentStep === 'ignition') soundManager.play('countdown');
-      if (currentStep === 'liftoff') soundManager.play('laser');
+      // Trigger Authentic Sound Synthesis Per Step
+      if (currentStep === 'arming') soundManager.play('alarm');
+      if (currentStep === 'hazard-lights') soundManager.playRocketSirens();
+      if (currentStep === 'umbilical-retract') soundManager.playVaultGear();
+      if (currentStep === 'clamp-release') soundManager.playVaultGear();
+      if (currentStep === 'ignition') soundManager.playRocketIgnition();
+      if (currentStep === 'thrust-ramp') soundManager.playRocketThrustRamp();
+      if (currentStep === 'liftoff') soundManager.playRocketLiftoff();
+      if (currentStep === 'complete') soundManager.playVictoryFanfare();
 
       set((s) => {
-        const isBlueWinner = winner === 'blue' || winner === 'draw';
-        const isRedWinner = winner === 'red' || winner === 'draw';
-
-        const updateShip = (ship: Spacecraft3DState, isHero: boolean) => {
+        // Function to update the winning hero spacecraft
+        const updateHeroShip = (ship: Spacecraft3DState): Spacecraft3DState => {
           let alt = ship.altitude;
           let flame = ship.exhaustFlameScale;
           let smoke = ship.smokeVolume;
           let arms = ship.serviceArmsAngle;
-          let flags = ship.flagProminence;
+          let flags = 2.0;
 
           if (currentStep === 'umbilical-retract') arms = 0.5;
           if (currentStep === 'clamp-release') arms = 1.0;
           if (currentStep === 'ignition') {
-            flame = 0.6;
-            smoke = 0.7;
+            flame = 0.9;
+            smoke = 1.2;
           }
           if (currentStep === 'thrust-ramp') {
-            flame = 1.2;
-            smoke = 1.5;
+            flame = 1.8;
+            smoke = 2.4;
           }
           if (currentStep === 'liftoff') {
-            alt = 3;
-            flame = 1.8;
-            smoke = 2.0;
-            if (isHero) flags = 2.0;
+            alt = 2.8;
+            flame = 2.2;
+            smoke = 3.0;
           }
           if (currentStep === 'tower-clear') {
-            alt = 12;
-            flame = 2.0;
+            alt = 11.5;
+            flame = 2.5;
+            smoke = 2.2;
           }
           if (currentStep === 'sky-ascent') {
-            alt = 35;
-            flame = 2.2;
+            alt = 34.0;
+            flame = 2.7;
+            smoke = 1.6;
           }
           if (currentStep === 'cloud-entry') {
-            alt = 75;
-            flame = 2.4;
+            alt = 72.0;
+            flame = 2.8;
+            smoke = 0.9;
           }
           if (currentStep === 'orbital-insertion') {
-            alt = 130;
-            flame = 1.5;
+            alt = 135.0;
+            flame = 1.8;
+            smoke = 0.3;
           }
 
           return {
@@ -527,12 +547,29 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           };
         };
 
-        return {
-          blueSpacecraft: updateShip(s.blueSpacecraft, isBlueWinner),
-          redSpacecraft: updateShip(s.redSpacecraft, isRedWinner),
-        };
+        // Parked losing rocket remains completely still on pad
+        const parkedShip = (ship: Spacecraft3DState): Spacecraft3DState => ({
+          ...ship,
+          launchStage: 'idle',
+          altitude: 0,
+          exhaustFlameScale: 0,
+          smokeVolume: 0,
+          clampsReleased: false,
+        });
+
+        if (finalWinner === 'blue') {
+          return {
+            blueSpacecraft: updateHeroShip(s.blueSpacecraft),
+            redSpacecraft: parkedShip(s.redSpacecraft),
+          };
+        } else {
+          return {
+            blueSpacecraft: parkedShip(s.blueSpacecraft),
+            redSpacecraft: updateHeroShip(s.redSpacecraft),
+          };
+        }
       });
-    }, 1300);
+    }, 1450);
   },
 
   setTimeRemaining: (t) => set({ timeRemaining: t }),

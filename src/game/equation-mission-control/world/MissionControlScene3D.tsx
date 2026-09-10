@@ -34,29 +34,38 @@ const DynamicCameraController: React.FC = () => {
 
   useFrame((_, delta) => {
     const isHeroLaunch = phase === 'launch-cinematic';
-    const heroShip = winner === 'red' ? redShip : blueShip;
+    const isRedHero = winner === 'red';
+    const heroShip = isRedHero ? redShip : blueShip;
 
     // Default Campus Establishing Shot (Wide, open, sunny)
     let targetCamPos = new THREE.Vector3(0, 8.6, 18.2);
     let targetLookAt = new THREE.Vector3(0, 5.0, 0);
 
-    // 1. Final Liftoff Cinematic Tracking Shot
+    // 1. Final Liftoff Cinematic Tracking Shot (Centered squarely on the winning rocket!)
     if (isHeroLaunch) {
-      const heroX = winner === 'red' ? 7.0 : winner === 'blue' ? -7.0 : 0;
+      const heroX = isRedHero ? 7.0 : -7.0;
       const shipAlt = heroShip.altitude;
 
-      if (shipAlt < 12) {
-        // Low altitude dramatic pad liftoff shot
-        targetCamPos.set(heroX + (winner === 'red' ? -3.5 : 3.5), 6.0 + shipAlt * 0.45, 13.5);
-        targetLookAt.set(heroX, 4.0 + shipAlt, 0);
-      } else if (shipAlt < 55) {
-        // Mid-sky tracking shot following ascent
-        targetCamPos.set(heroX * 0.4, 18.0 + shipAlt * 0.35, 23.0);
-        targetLookAt.set(heroX * 0.5, shipAlt + 3.0, 0);
+      if (shipAlt < 4.0) {
+        // Stage A: Ignition & Pad Flame Eruption (Dead-center hero framing)
+        targetCamPos.set(heroX, 5.2, 14.2);
+        targetLookAt.set(heroX, 4.2, 0);
+      } else if (shipAlt < 25.0) {
+        // Stage B: Liftoff & Tower Clearing (Smooth vertical craning following ascent)
+        targetCamPos.set(
+          heroX,
+          5.6 + shipAlt * 0.68,
+          15.6 + shipAlt * 0.16
+        );
+        targetLookAt.set(heroX, 4.2 + shipAlt * 0.88, 0);
       } else {
-        // High altitude wide shot piercing through sunny cloud layers
-        targetCamPos.set(0, 34.0, 32.0);
-        targetLookAt.set(heroX * 0.2, shipAlt * 0.85, 0);
+        // Stage C: High Sky & Cloud Layer Entry (Cinematic upward tracking)
+        targetCamPos.set(
+          heroX * 0.5,
+          20.0 + shipAlt * 0.45,
+          26.0 + shipAlt * 0.08
+        );
+        targetLookAt.set(heroX * 0.7, shipAlt * 0.92 + 2.0, 0);
       }
     } else {
       // 2. Stage-Specific Subtle Camera Focus
@@ -88,8 +97,8 @@ const DynamicCameraController: React.FC = () => {
     }
 
     // Smooth camera interpolation
-    camera.position.lerp(targetCamPos, delta * 2.4);
-    lookAtRef.current.lerp(targetLookAt, delta * 2.6);
+    camera.position.lerp(targetCamPos, delta * 2.6);
+    lookAtRef.current.lerp(targetLookAt, delta * 2.8);
     camera.lookAt(lookAtRef.current);
   });
 
@@ -97,6 +106,7 @@ const DynamicCameraController: React.FC = () => {
 };
 
 export const MissionControlScene3D: React.FC = () => {
+  const phase = useMissionControlStore((s) => s.phase);
   const blueSpacecraft = useMissionControlStore((s) => s.blueSpacecraft);
   const redSpacecraft = useMissionControlStore((s) => s.redSpacecraft);
   const blueTeam = useMissionControlStore((s) => s.blueTeam);
@@ -112,6 +122,9 @@ export const MissionControlScene3D: React.FC = () => {
     const y = (clientY / innerHeight) * 2 - 1;
     setParallax(x, y);
   };
+
+  const isLaunchPhase = phase === 'launch-cinematic' || phase === 'mission-report';
+  const heroLaunchStage = winner === 'red' ? redSpacecraft.launchStage : blueSpacecraft.launchStage;
 
   return (
     <div
@@ -145,7 +158,7 @@ export const MissionControlScene3D: React.FC = () => {
           position={[-7.0, 0.85, 0]}
           team="blue"
           state={blueSpacecraft}
-          isHeroWinner={winner === 'blue' || winner === 'draw'}
+          isHeroWinner={winner === 'blue'}
         />
 
         {/* ── RIGHT LAUNCH PAD: RED TEAM SPACECRAFT (x = +7.0) ── */}
@@ -153,14 +166,15 @@ export const MissionControlScene3D: React.FC = () => {
           position={[7.0, 0.85, 0]}
           team="red"
           state={redSpacecraft}
-          isHeroWinner={winner === 'red' || winner === 'draw'}
+          isHeroWinner={winner === 'red'}
         />
 
         {/* Stylized Animated Aerospace Engineers & 3D Workstations */}
         <AerospaceWorkers3D
-          launchStage={blueSpacecraft.launchStage}
-          blueCheering={blueTeam.lastResult === 'correct'}
-          redCheering={redTeam.lastResult === 'correct'}
+          launchStage={heroLaunchStage}
+          isLaunchPhase={isLaunchPhase}
+          blueCheering={blueTeam.lastResult === 'correct' || winner === 'blue'}
+          redCheering={redTeam.lastResult === 'correct' || winner === 'red'}
         />
       </Canvas>
     </div>
