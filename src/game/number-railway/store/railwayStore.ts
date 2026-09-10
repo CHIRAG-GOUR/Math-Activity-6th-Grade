@@ -108,14 +108,14 @@ interface RailwayActions {
 export type RailwayStore = RailwayGameState & RailwayActions;
 
 const computeStepProgressAndSignals = (step: number) => {
-  // Step 0 (0 Q answered): Far background staging yard (progress 0), all signals red
-  // Step 1 (1 Q answered): Approaching station (progress 0.06), all signals red
-  // Step 2 (2 Q answered): At station platform (progress 0.12), all signals red
-  // Step 3 (3 Q answered): Cleared Signal 1 (progress 0.18), Signal 1 turns GREEN
-  // Step 4 (4 Q answered): Approached Junction Switch approach (progress 0.23), Signal 2 turns GREEN (both green!)
-  // Step 5 (5 Q answered): Showdown departure (progress 0.23 -> 1.00)
+  // Step 0 (0 Q answered): Far background staging yard (progress 0.0), all signals red
+  // Step 1 (Q1 answered): Move forward from far staging to station platform (progress 0.10)
+  // Step 2 (Q2 answered): DO NOT MOVE (progress 0.10) -> Blow horn & whistle at station platform
+  // Step 3 (Q3 answered): DO NOT MOVE (progress 0.10) -> Blow horn & loud whistle -> Signal 1 turns GREEN
+  // Step 4 (Q4 answered): Move forward to switch approach (progress 0.18) -> Signal 2 turns GREEN (zero collision)
+  // Step 5 (Q5 answered / Showdown): Winner departs through junction to destination station (progress 0.18 -> 1.00)
   const progress =
-    step === 1 ? 0.06 : step === 2 ? 0.12 : step === 3 ? 0.18 : step >= 4 ? 0.23 : 0;
+    step === 1 ? 0.10 : step === 2 ? 0.10 : step === 3 ? 0.10 : step >= 4 ? 0.18 : 0;
   const signal1: SignalState = step >= 3 ? 'green' : 'red';
   const signal2: SignalState = step >= 4 ? 'green' : 'red';
 
@@ -337,15 +337,23 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       const nextGreen = Math.min(5, state.signalsGreenCount + 1);
       const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
 
-      // Play step atmospheric audio
+      // Atmospheric Audio Schedule:
+      // Q1: Move to station (bell)
+      // Q2: Horn & Whistle blast (staying at station)
+      // Q3: Horn & Loud Whistle blast + Signal 1 Green (staying at station)
+      // Q4: Move to junction approach + Signal 2 Green
       if (nextGreen === 1) {
-        soundManager.playTrainBells(2500);
+        soundManager.playTrainBells(2200);
       } else if (nextGreen === 2) {
-        soundManager.playTrainWhistle();
+        soundManager.playTrainHorn();
+        setTimeout(() => soundManager.playTrainWhistle(), 500);
       } else if (nextGreen === 3) {
         soundManager.playSignalChange();
+        soundManager.playTrainHorn();
+        setTimeout(() => soundManager.playLoudWhistle(), 400);
       } else if (nextGreen === 4) {
         soundManager.playSignalChange();
+        soundManager.playTrainHorn();
       }
 
       set((s) => ({
@@ -379,25 +387,27 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         blueTrain: {
           ...s.blueTrain,
           progress,
-          speed: 0.85,
+          speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
           smokeActive: true,
+          whistleActive: nextGreen === 2 || nextGreen === 3,
         },
         redTrain: {
           ...s.redTrain,
           progress,
-          speed: 0.85,
+          speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
           smokeActive: true,
+          whistleActive: nextGreen === 2 || nextGreen === 3,
         },
         onboardPassengers: [...s.onboardPassengers, newPassenger],
         toastMessage:
           nextGreen === 1
-            ? `🚂 ${s[key].name} ANSWERED! TRAIN ADVANCING FROM YARD...`
+            ? `🚂 ${s[key].name} ANSWERED! TRAIN ARRIVING AT STATION PLATFORM!`
             : nextGreen === 2
-              ? `🚉 ${s[key].name} PASSENGER BOARDED AT STATION PLATFORM!`
+              ? `📢 ${s[key].name} PASSENGER BOARDED — BLOWING STEAM HORN AT STATION!`
               : nextGreen === 3
-                ? `🟢 SIGNAL 1 GREEN! TRAIN CLEARING STATION EXIT BLOCK!`
+                ? `🟢 SIGNAL 1 GREEN! STEAM WHISTLE ECHOES THROUGH THE VALLEY!`
                 : nextGreen === 4
-                  ? `🟢 SIGNAL 2 GREEN! BOTH SIGNALS GREEN — APPROACHING JUNCTION!`
+                  ? `🟢 SIGNAL 2 GREEN! TRAINS MOVE UP TO SWITCH APPROACH!`
                   : `👥 ${s[key].name} PASSENGER BOARDED! ROUTE READY!`,
         timerActive: false,
       }));
@@ -456,6 +466,20 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           const nextGreen = Math.min(5, state.signalsGreenCount + 1);
           const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
 
+          if (nextGreen === 1) {
+            soundManager.playTrainBells(2200);
+          } else if (nextGreen === 2) {
+            soundManager.playTrainHorn();
+            setTimeout(() => soundManager.playTrainWhistle(), 500);
+          } else if (nextGreen === 3) {
+            soundManager.playSignalChange();
+            soundManager.playTrainHorn();
+            setTimeout(() => soundManager.playLoudWhistle(), 400);
+          } else if (nextGreen === 4) {
+            soundManager.playSignalChange();
+            soundManager.playTrainHorn();
+          }
+
           set({
             timerActive: false,
             signalsGreenCount: nextGreen,
@@ -468,14 +492,16 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
             blueTrain: {
               ...state.blueTrain,
               progress,
-              speed: 0.8,
+              speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
               smokeActive: true,
+              whistleActive: nextGreen === 2 || nextGreen === 3,
             },
             redTrain: {
               ...state.redTrain,
               progress,
-              speed: 0.8,
+              speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
               smokeActive: true,
+              whistleActive: nextGreen === 2 || nextGreen === 3,
             },
           });
           setTimeout(() => {
@@ -512,6 +538,20 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     const nextGreen = Math.min(5, state.signalsGreenCount + 1);
     const { progress, signal1, signal2 } = computeStepProgressAndSignals(nextGreen);
 
+    if (nextGreen === 1) {
+      soundManager.playTrainBells(2200);
+    } else if (nextGreen === 2) {
+      soundManager.playTrainHorn();
+      setTimeout(() => soundManager.playTrainWhistle(), 500);
+    } else if (nextGreen === 3) {
+      soundManager.playSignalChange();
+      soundManager.playTrainHorn();
+      setTimeout(() => soundManager.playLoudWhistle(), 400);
+    } else if (nextGreen === 4) {
+      soundManager.playSignalChange();
+      soundManager.playTrainHorn();
+    }
+
     // 0 points for both when timer expires with no correct answer, but step advances
     set((s) => ({
       blueTeam: { ...s.blueTeam, isLocked: true },
@@ -526,14 +566,16 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       blueTrain: {
         ...s.blueTrain,
         progress,
-        speed: 0.8,
+        speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
         smokeActive: true,
+        whistleActive: nextGreen === 2 || nextGreen === 3,
       },
       redTrain: {
         ...s.redTrain,
         progress,
-        speed: 0.8,
+        speed: nextGreen === 1 || nextGreen >= 4 ? 0.85 : 0,
         smokeActive: true,
+        whistleActive: nextGreen === 2 || nextGreen === 3,
       },
       timerActive: false,
       phase: 'question-reveal',
@@ -562,6 +604,14 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       toastMessage: null,
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
+      blueTrain: {
+        ...s.blueTrain,
+        whistleActive: false,
+      },
+      redTrain: {
+        ...s.redTrain,
+        whistleActive: false,
+      },
     }));
   },
 
@@ -652,7 +702,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       }));
     }, 3800);
 
-    // 4. Train departs from junction switch (0.24) and travels down the scenic line (after 5.0s)
+    // 4. Train departs from junction switch (0.18) and travels down the scenic line (after 5.0s)
     setTimeout(() => {
       soundManager.playTrainRunningAudio();
 
@@ -661,7 +711,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         toastMessage: `🚂 ${winnerName} EXPRESS ROARING DOWN THE LINE!`,
         [isBlue ? 'blueTrain' : 'redTrain']: {
           ...s[isBlue ? 'blueTrain' : 'redTrain'],
-          progress: 0.23,
+          progress: 0.18,
           speed: 1,
           state: 'departing',
           smokeActive: true,
@@ -670,18 +720,18 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
         },
       }));
 
-      let prog = 0.23;
+      let prog = 0.18;
       let tick = 0;
       travelInterval = setInterval(() => {
         tick++;
-        prog += (1.0 - 0.23) / 160; // Smooth 8-second cinematic ride
+        prog += (1.0 - 0.18) / 160; // Smooth 8-second cinematic ride
 
         // Loud whistle blasts 2 times spaced at intervals during train movement!
         if (tick === 50 || tick === 105) {
           soundManager.playLoudWhistle();
         }
 
-        const normT = (prog - 0.23) / (1.0 - 0.23);
+        const normT = (prog - 0.18) / (1.0 - 0.18);
         const spd = normT < 0.15 ? normT * 6.6 : normT > 0.85 ? (1 - normT) * 6.6 : 1;
 
         set((s) => ({
