@@ -1,0 +1,166 @@
+/* ============================================================
+   EQUATION MISSION CONTROL — Neo-Brutalist Aerospace Arcade CSS
+   Light Daytime Aerospace Campus Theme + Tactile Physical Controls
+   ============================================================ */
+
+:root {
+  --mc-blue-primary: #1d4ed8;
+  --mc-blue-light: #eff6ff;
+  --mc-blue-border: #2563eb;
+  --mc-blue-shadow: #1e3a8a;
+
+  --mc-red-primary: #b91c1c;
+  --mc-red-light: #fef2f2;
+  --mc-red-border: #dc2626;
+  --mc-red-shadow: #7f1d1d;
+
+  --mc-yellow-accent: #f59e0b;
+  --mc-yellow-dark: #b45309;
+
+  --mc-slate-surface: #f8fafc;
+  --mc-slate-card: #ffffff;
+  --mc-slate-border: #1e293b;
+  --mc-slate-shadow: #0f172a;
+}
+
+/* Aerospace Hazard Stripe Pattern */
+.mc-hazard-stripe {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #f59e0b,
+    #f59e0b 12px,
+    #1e293b 12px,
+    #1e293b 24px
+  );
+}
+
+.mc-hazard-stripe-subtle {
+  background-image: repeating-linear-gradient(
+    -45deg,
+    #fef08a 0,
+    #fef08a 8px,
+    #e2e8f0 8px,
+    #e2e8f0 16px
+  );
+}
+
+/* Neo-Brutalist Physical Box Shadows */
+.mc-shadow-hard {
+  box-shadow: 4px 4px 0px #0f172a;
+}
+
+.mc-shadow-hard-lg {
+  box-shadow: 6px 6px 0px #0f172a;
+}
+
+.mc-shadow-hard-xl {
+  box-shadow: 8px 8px 0px #0f172a;
+}
+
+.mc-shadow-blue {
+  box-shadow: 4px 4px 0px #1e3a8a;
+}
+
+.mc-shadow-red {
+  box-shadow: 4px 4px 0px #7f1d1d;
+}
+
+.mc-shadow-amber {
+  box-shadow: 4px 4px 0px #78350f;
+}
+
+/* Physical Tactile Button Press */
+.mc-pressable {
+  transition: all 0.08s ease-out;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: manipulation;
+}
+
+.mc-pressable:hover {
+  transform: translateY(-2px);
+}
+
+.mc-pressable:active {
+  transform: translate(3px, 3px) !important;
+  box-shadow: 1px 1px 0px #0f172a !important;
+}
+
+/* Screw Fastener Corner Markers */
+.mc-screw {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #e2e8f0, #94a3b8);
+  border: 1.5px solid #475569;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.8), 0 1px 2px rgba(0, 0, 0, 0.2);
+  position: relative;
+}
+
+.mc-screw::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 15%;
+  right: 15%;
+  height: 1.5px;
+  background: #334155;
+  transform: translateY(-50%) rotate(45deg);
+}
+
+/* Status Indicator LED */
+.mc-led-green {
+  background: #22c55e;
+  box-shadow: 0 0 10px #22c55e, 0 0 4px #86efac;
+}
+
+.mc-led-amber {
+  background: #f59e0b;
+  box-shadow: 0 0 10px #f59e0b, 0 0 4px #fde047;
+}
+
+.mc-led-red {
+  background: #ef4444;
+  box-shadow: 0 0 10px #ef4444, 0 0 4px #fca5a5;
+}
+
+.mc-led-blue {
+  background: #3b82f6;
+  box-shadow: 0 0 10px #3b82f6, 0 0 4px #93c5fd;
+}
+
+/* Animated radar scan / pulse */
+@keyframes radar-sweep {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.mc-radar-sweep {
+  animation: radar-sweep 4s linear infinite;
+}
+
+@keyframes pulse-subtle {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.85; transform: scale(0.98); }
+}
+
+.mc-pulse-subtle {
+  animation: pulse-subtle 2s ease-in-out infinite;
+}
+
+/* Custom Scrollbars for Consoles */
+.mc-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.mc-scrollbar::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.mc-scrollbar::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+  border-radius: 4px;
+}
+.mc-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #64748b;
+}

@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import '../game/carnival-of-chance/carnival-comic.css';
+import '../game/equation-mission-control/mission-control.css';
 
 export const metadata: Metadata = {
   title: 'Math Vault | Interactive Classroom Math Heist',

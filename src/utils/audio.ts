@@ -707,6 +707,65 @@ class SoundEngine {
     endOsc.start(endT);
     endOsc.stop(endT + 0.46);
   }
+
+  // Generic Sound Dispatcher for Arcade Activities
+  public play(
+    soundName:
+      | 'click'
+      | 'tap'
+      | 'pop'
+      | 'correct'
+      | 'success'
+      | 'wrong'
+      | 'error'
+      | 'buzz'
+      | 'lock'
+      | 'gear'
+      | 'laser'
+      | 'powerup'
+      | 'switch'
+      | 'countdown'
+      | 'alarm'
+      | 'whistle'
+      | 'horn'
+      | string
+  ) {
+    if (this.isMuted) return;
+    switch (soundName) {
+      case 'click':
+      case 'tap':
+      case 'switch':
+        this.playClick();
+        break;
+      case 'pop':
+      case 'lock':
+      case 'gear':
+        this.playVaultGear();
+        break;
+      case 'correct':
+      case 'success':
+      case 'powerup':
+        this.playCorrect(true);
+        break;
+      case 'wrong':
+      case 'error':
+      case 'buzz':
+        this.playWrong();
+        break;
+      case 'laser':
+        this.playMultiplier(2);
+        break;
+      case 'countdown':
+        this.playCountdownGo();
+        break;
+      case 'alarm':
+        this.playSecurityAlarm();
+        break;
+      default:
+        this.playClick();
+        break;
+    }
+  }
 }
 
 export const soundManager = new SoundEngine();

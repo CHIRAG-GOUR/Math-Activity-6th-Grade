@@ -33,11 +33,9 @@ export const ArcadeHubDashboard: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(soundManager.getMuted());
 
-  // Feature flag: Show wing exploration option once future activities (5-8) are ready
-  const ENABLE_FUTURE_WINGS_EXPLORATION = false;
-  const totalPages = ENABLE_FUTURE_WINGS_EXPLORATION
-    ? Math.ceil(ARCADE_CABINET_DATA.length / MACHINES_PER_PAGE)
-    : 1;
+  // Multi-wing exploration enabled for Wing 1 (Games 1-4) and Wing 2 (Game 5 Equation Mission Control)
+  const ENABLE_FUTURE_WINGS_EXPLORATION = true;
+  const totalPages = Math.ceil(ARCADE_CABINET_DATA.length / MACHINES_PER_PAGE);
 
   const goToNextPage = useCallback(() => {
     soundManager.playClick();
