@@ -122,6 +122,8 @@ export interface TeamGameState {
   hasSecondChance: boolean;
 }
 
+import { TeamPowerUps } from '@/types/powerUps';
+
 export type GamePhase =
   | 'intro'           // Cinematic reveal of Construction District
   | 'briefing'        // Blueprint mission announcement & target specs
@@ -129,6 +131,7 @@ export type GamePhase =
   | 'scanning'        // 3D measurement scanner sweeping over structures
   | 'round-result'    // Mathematical diagnostic breakdown & score animation
   | 'mega-build'      // Final championship mega round
+  | 'tie-break'       // 15-second sudden death speed duel
   | 'game-over';      // Winner podium celebration & stats
 
 export interface GameSettings {
@@ -137,3 +140,4 @@ export interface GameSettings {
   soundVolume: number;
   maxRounds: number;
 }
+

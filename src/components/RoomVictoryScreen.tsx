@@ -16,6 +16,7 @@ import { VaultHeistChampionCharacter } from './VaultHeistChampionCharacter';
 import { Vault3DDoor } from './Vault3DDoor';
 import { TeamState } from '@/types/game';
 import { soundManager } from '@/utils/audio';
+import { ChampionshipCertificateModal } from './shared/ChampionshipCertificateModal';
 
 interface RoomVictoryScreenProps {
   teamBlue: TeamState;
@@ -33,6 +34,7 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
   onChangeSettings,
 }) => {
   const [isMuted, setIsMuted] = useState(soundManager.getMuted());
+  const [isCertificateOpen, setIsCertificateOpen] = useState(false);
 
   // Check if at least one team scored points and it's not a tie
   const hasSolvedAny = teamBlue.score > 0 || teamRed.score > 0;
@@ -281,6 +283,18 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
           whileTap={{ scale: 0.95 }}
           onClick={() => {
             soundManager.playClick();
+            setIsCertificateOpen(true);
+          }}
+          className="px-6 py-3 rounded-xl bg-gradient-to-r from-amber-400 via-amber-300 to-yellow-400 border-2 border-black text-slate-950 font-black text-base uppercase font-game shadow-[4px_4px_0px_#000000] flex items-center gap-2 cursor-pointer hover:brightness-105"
+        >
+          <span>🏆 PRINT CERTIFICATE</span>
+        </motion.button>
+
+        <motion.button
+          whileHover={{ scale: 1.05 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => {
+            soundManager.playClick();
             onPlayAgain();
           }}
           className="px-8 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-600 border border-white text-white font-black text-base uppercase font-game shadow-md flex items-center gap-2 cursor-pointer"
@@ -313,6 +327,18 @@ export const RoomVictoryScreen: React.FC<RoomVictoryScreenProps> = ({
           {isMuted ? <VolumeX className="w-5 h-5 text-rose-500" /> : <Volume2 className="w-5 h-5 text-blue-600" />}
         </button>
       </div>
+
+      {/* Championship Certificate Modal */}
+      <ChampionshipCertificateModal
+        isOpen={isCertificateOpen}
+        onClose={() => setIsCertificateOpen(false)}
+        winnerName={winnerName}
+        winnerScore={blueWon ? teamBlue.score : teamRed.score}
+        gameTitle="Math Escape Vault"
+        topicTitle="Grade 6 Vault Cracker Operations"
+        runnerUpName={blueWon ? teamRed.name : teamBlue.name}
+        runnerUpScore={blueWon ? teamRed.score : teamBlue.score}
+      />
 
     </div>
   );

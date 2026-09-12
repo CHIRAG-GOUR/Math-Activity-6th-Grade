@@ -143,6 +143,8 @@ export interface OnboardPassenger {
 
 export type RoundWinner = TeamId | 'draw' | null;
 
+import { TeamPowerUps } from '@/types/powerUps';
+
 export interface RailwayGameState {
   phase: GamePhase;
 
@@ -154,6 +156,14 @@ export interface RailwayGameState {
 
   blueTeam: TeamState;
   redTeam: TeamState;
+
+  // Tactical Power-ups & Misconceptions (1 per match per team)
+  bluePowerUps: TeamPowerUps;
+  redPowerUps: TeamPowerUps;
+  blueMisconception: string | null;
+  redMisconception: string | null;
+  blueEliminatedOptions: (number | string)[];
+  redEliminatedOptions: (number | string)[];
 
   roundWinner: RoundWinner;
   matchWinner: RoundWinner;

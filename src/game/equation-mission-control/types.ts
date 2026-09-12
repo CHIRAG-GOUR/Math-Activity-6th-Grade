@@ -19,8 +19,10 @@ export type GamePhase =
   | 'title'              // Title & Team Customization
   | 'active-mission'     // Simultaneous Dual-Team Engineering Challenge
   | 'countdown'          // Final 5-4-3-2-1 Ignition Countdown
+  | 'tie-break'           // 15-second sudden death speed duel
   | 'launch-cinematic'   // 12-Step Cinematic Dual-Rocket Liftoff into Bright Blue Sky
   | 'mission-report';    // Final Aerospace Mission Certification & Champion Plaque
+
 
 export type LaunchStep =
   | 'idle'

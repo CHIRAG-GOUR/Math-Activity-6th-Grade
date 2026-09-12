@@ -10,6 +10,8 @@ import {
   TeamId,
   TeamState,
 } from '@/types/game';
+import { TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
+import { getMisconceptionHint } from '@/utils/misconceptions';
 import { generateQuestion, clearQuestionHistory } from '@/utils/questionGenerator';
 import { soundManager } from '@/utils/audio';
 import { initialBoostManager } from '@/utils/initialBoost';
@@ -25,6 +27,8 @@ import { VaultQuestionBox } from './VaultQuestionBox';
 import { FastCompetitiveConsole } from './FastCompetitiveConsole';
 import { TeamConsoleScoreHeader } from './TeamConsoleScoreHeader';
 import { GameFeedback } from './GameFeedback';
+import { PowerUpTray } from './shared/PowerUpTray';
+import { DigitalScratchpad } from './shared/DigitalScratchpad';
 
 const INITIAL_SETTINGS: GameSettings = {
   grade: '5-6',
@@ -98,6 +102,14 @@ export const MathEscapeVaultGame: React.FC = () => {
   const [currentQuestion, setCurrentQuestion] = useState<Question | null>(null);
   const [timeLeft, setTimeLeft] = useState<number>(INITIAL_SETTINGS.timePerRound);
 
+  // Earnable Tactical Power-ups (1 per match per team)
+  const [bluePowerUps, setBluePowerUps] = useState<TeamPowerUps>(initialTeamPowerUps());
+  const [redPowerUps, setRedPowerUps] = useState<TeamPowerUps>(initialTeamPowerUps());
+  const [blueMisconception, setBlueMisconception] = useState<string | null>(null);
+  const [redMisconception, setRedMisconception] = useState<string | null>(null);
+  const [blueHint5050, setBlueHint5050] = useState<string | null>(null);
+  const [redHint5050, setRedHint5050] = useState<string | null>(null);
+
   // Progressive vault door unlocking count
   const [correctCount, setCorrectCount] = useState<number>(0);
   const [lastSolvedTeam, setLastSolvedTeam] = useState<'blue' | 'red' | null>(null);
@@ -148,6 +160,14 @@ export const MathEscapeVaultGame: React.FC = () => {
       setTimeLeft(timerSec);
       setBlueAttempts(2);
       setRedAttempts(2);
+      setBlueMisconception(null);
+      setRedMisconception(null);
+      setBlueHint5050(null);
+      setRedHint5050(null);
+
+      // Reset active 2x multiplier for new round
+      setBluePowerUps((p) => ({ ...p, active2x: false }));
+      setRedPowerUps((p) => ({ ...p, active2x: false }));
 
       // Handle next round skip penalty for Blue
       if (blueSkipNextRound) {
@@ -238,6 +258,8 @@ export const MathEscapeVaultGame: React.FC = () => {
 
     setTeamBlue(initialBlue);
     setTeamRed(initialRed);
+    setBluePowerUps(initialTeamPowerUps());
+    setRedPowerUps(initialTeamPowerUps());
     setCorrectCount(startingCorrectCount);
     setLastSolvedTeam(initialSolvedTeam);
     setBlueStrikes(0);
@@ -254,12 +276,12 @@ export const MathEscapeVaultGame: React.FC = () => {
     setPhase('countdown');
   };
 
-  // Next round transition with TIE-BREAKER SUDDEN DEATH SUPPORT
+  // Next round transition with TIE-BREAKER SUDDEN DEATH SUPPORT (15s Speed Duel)
   const advanceRound = useCallback(() => {
     if (currentRound >= settings.totalRounds && !isSuperTieBreaker) {
       // Check if scores are tied!
       if (teamBlue.score === teamRed.score) {
-        // TRIGGER SUPER SUDDEN DEATH QUESTION
+        // TRIGGER SUPER SUDDEN DEATH QUESTION (15 Seconds)
         setIsSuperTieBreaker(true);
         setTieBreakerIntro(true);
         soundManager.playSecurityAlarm();
@@ -269,10 +291,10 @@ export const MathEscapeVaultGame: React.FC = () => {
           const activeTopics = settings.topics && settings.topics.length > 0 ? settings.topics : [settings.topic || 'mixed'];
           const q = generateQuestion(activeTopics, 'hard', '6', 99999);
           q.text = `⚡ [SUDDEN DEATH] ` + q.text;
-          q.subText = 'TIE-BREAKER SUPER QUESTION // FIRST TEAM TO SOLVE WINS';
+          q.subText = 'TIE-BREAKER 15s SPEED DUEL // FIRST TEAM TO SOLVE WINS';
           setCurrentQuestion(q);
           setCurrentRound(settings.totalRounds + 1);
-          setTimeLeft(35);
+          setTimeLeft(15);
 
           // Reset lockouts, strikes, and attempts for fair sudden death
           setBlueLockedOut(false);
@@ -411,6 +433,58 @@ export const MathEscapeVaultGame: React.FC = () => {
     }
   };
 
+  // Power-Up handlers (1 per match per team)
+  const handleUse5050 = (teamId: TeamId) => {
+    if (phase !== 'playing' || !currentQuestion) return;
+    if (teamId === 'blue') {
+      if (!bluePowerUps.fiftyFifty) return;
+      setBluePowerUps((prev) => ({ ...prev, fiftyFifty: false }));
+      const ansNum = Number(currentQuestion.answer);
+      if (!isNaN(ansNum)) {
+        const lower = Math.max(0, ansNum - Math.floor(Math.random() * 3 + 1));
+        const upper = ansNum + Math.floor(Math.random() * 3 + 2);
+        setBlueHint5050(`🔍 50:50 CLUE: Answer is between ${lower} and ${upper}`);
+      } else {
+        setBlueHint5050(`🔍 50:50 CLUE: Ends with "${String(currentQuestion.answer).slice(-1)}"`);
+      }
+    } else {
+      if (!redPowerUps.fiftyFifty) return;
+      setRedPowerUps((prev) => ({ ...prev, fiftyFifty: false }));
+      const ansNum = Number(currentQuestion.answer);
+      if (!isNaN(ansNum)) {
+        const lower = Math.max(0, ansNum - Math.floor(Math.random() * 3 + 1));
+        const upper = ansNum + Math.floor(Math.random() * 3 + 2);
+        setRedHint5050(`🔍 50:50 CLUE: Answer is between ${lower} and ${upper}`);
+      } else {
+        setRedHint5050(`🔍 50:50 CLUE: Ends with "${String(currentQuestion.answer).slice(-1)}"`);
+      }
+    }
+  };
+
+  const handleUseTimeFreeze = (teamId: TeamId) => {
+    if (phase !== 'playing') return;
+    if (teamId === 'blue') {
+      if (!bluePowerUps.timeFreeze) return;
+      setBluePowerUps((prev) => ({ ...prev, timeFreeze: false }));
+      setTimeLeft((prev) => prev + 10);
+    } else {
+      if (!redPowerUps.timeFreeze) return;
+      setRedPowerUps((prev) => ({ ...prev, timeFreeze: false }));
+      setTimeLeft((prev) => prev + 10);
+    }
+  };
+
+  const handleUse2x = (teamId: TeamId) => {
+    if (phase !== 'playing') return;
+    if (teamId === 'blue') {
+      if (!bluePowerUps.doublePoints) return;
+      setBluePowerUps((prev) => ({ ...prev, doublePoints: false, active2x: true }));
+    } else {
+      if (!redPowerUps.doublePoints) return;
+      setRedPowerUps((prev) => ({ ...prev, doublePoints: false, active2x: true }));
+    }
+  };
+
   // 3. FAST COMPETITIVE SUBMISSION (2 ATTEMPTS PER TEAM PER QUESTION)
   const handleSubmitPress = (teamId: TeamId) => {
     if (phase !== 'playing' || !currentQuestion) return;
@@ -428,7 +502,18 @@ export const MathEscapeVaultGame: React.FC = () => {
 
         const basePts = isSuperTieBreaker ? 200 : 100;
         const streakBonus = Math.min((teamBlue.streak + 1) * 15, 60);
-        const gained = basePts + streakBonus;
+        let gained = basePts + streakBonus;
+
+        // Apply Comeback Surge (+25%) if trailing by 2+ keys or behind significantly
+        const isBlueComeback = teamRed.keys - teamBlue.keys >= 2 || teamRed.score - teamBlue.score >= 150;
+        if (isBlueComeback) {
+          gained = Math.round(gained * 1.25);
+        }
+
+        // Apply 2x Multiplier power-up
+        if (bluePowerUps.active2x) {
+          gained = gained * 2;
+        }
 
         setTeamBlue((prev) => ({
           ...prev,
@@ -458,8 +543,10 @@ export const MathEscapeVaultGame: React.FC = () => {
         soundManager.playWrong();
 
         if (blueAttempts > 1) {
-          // 1st Mistake: Allow 2nd Attempt Retry!
+          // 1st Mistake: Allow 2nd Attempt Retry with targeted misconception hint!
           setBlueAttempts(1);
+          const hint = getMisconceptionHint(currentQuestion.topic || 'general', currentQuestion.text);
+          setBlueMisconception(hint);
           setTeamBlue((prev) => ({
             ...prev,
             currentInput: '',
@@ -517,7 +604,18 @@ export const MathEscapeVaultGame: React.FC = () => {
 
         const basePts = isSuperTieBreaker ? 200 : 100;
         const streakBonus = Math.min((teamRed.streak + 1) * 15, 60);
-        const gained = basePts + streakBonus;
+        let gained = basePts + streakBonus;
+
+        // Apply Comeback Surge (+25%) if trailing by 2+ keys or behind significantly
+        const isRedComeback = teamBlue.keys - teamRed.keys >= 2 || teamBlue.score - teamRed.score >= 150;
+        if (isRedComeback) {
+          gained = Math.round(gained * 1.25);
+        }
+
+        // Apply 2x Multiplier power-up
+        if (redPowerUps.active2x) {
+          gained = gained * 2;
+        }
 
         setTeamRed((prev) => ({
           ...prev,
@@ -547,8 +645,10 @@ export const MathEscapeVaultGame: React.FC = () => {
         soundManager.playWrong();
 
         if (redAttempts > 1) {
-          // 1st Mistake: Allow 2nd Attempt Retry!
+          // 1st Mistake: Allow 2nd Attempt Retry with targeted misconception hint!
           setRedAttempts(1);
+          const hint = getMisconceptionHint(currentQuestion.topic || 'general', currentQuestion.text);
+          setRedMisconception(hint);
           setTeamRed((prev) => ({
             ...prev,
             currentInput: '',
@@ -674,8 +774,8 @@ export const MathEscapeVaultGame: React.FC = () => {
           {/* MAIN ARENA GRID: TEAM 1 (LEFT) | CENTER (VAULT + ARDUINO) | TEAM 2 (RIGHT) */}
           <div className="w-full flex-1 grid grid-cols-12 gap-2 sm:gap-3 md:gap-4 items-center justify-center max-w-[1400px] mx-auto z-20 my-auto">
             
-            {/* LEFT COLUMN: TEAM 1 SCORE HEADER + COMPACT KEYPAD CONSOLE */}
-            <div className="col-span-3 lg:col-span-3 flex flex-col items-center justify-center">
+            {/* LEFT COLUMN: TEAM 1 SCORE HEADER + COMPACT KEYPAD CONSOLE + POWER-UPS + SCRATCHPAD */}
+            <div className="col-span-3 lg:col-span-3 flex flex-col items-center justify-center gap-1.5">
               <TeamConsoleScoreHeader team={teamBlue} />
               <FastCompetitiveConsole
                 team={teamBlue}
@@ -689,10 +789,24 @@ export const MathEscapeVaultGame: React.FC = () => {
                 correctAnswer={phase === 'round_reveal' && currentQuestion ? currentQuestion.answer : null}
                 isRevealed={phase === 'round_reveal'}
                 disabled={phase !== 'playing'}
+                isComebackSurge={teamRed.keys - teamBlue.keys >= 2 || teamRed.score - teamBlue.score >= 150}
+                misconceptionHint={blueMisconception}
+                hint5050={blueHint5050}
                 onDigitPress={handleDigitPress}
                 onClearPress={handleClearPress}
                 onSubmitPress={handleSubmitPress}
               />
+              <div className="w-full flex items-center justify-between gap-1 max-w-[360px]">
+                <PowerUpTray
+                  teamId="blue"
+                  powerUps={bluePowerUps}
+                  onUse5050={() => handleUse5050('blue')}
+                  onUseTimeFreeze={() => handleUseTimeFreeze('blue')}
+                  onUse2x={() => handleUse2x('blue')}
+                  disabled={phase !== 'playing'}
+                />
+                <DigitalScratchpad teamId="blue" teamName={teamBlue.name} position="left" />
+              </div>
             </div>
 
             {/* CENTER COLUMN: ARDUINO QUESTION BOX (TOP) + 3D ESCAPE ROOM VAULT */}
@@ -714,8 +828,8 @@ export const MathEscapeVaultGame: React.FC = () => {
               />
             </div>
 
-            {/* RIGHT COLUMN: TEAM 2 SCORE HEADER + COMPACT KEYPAD CONSOLE */}
-            <div className="col-span-3 lg:col-span-3 flex flex-col items-center justify-center">
+            {/* RIGHT COLUMN: TEAM 2 SCORE HEADER + COMPACT KEYPAD CONSOLE + POWER-UPS + SCRATCHPAD */}
+            <div className="col-span-3 lg:col-span-3 flex flex-col items-center justify-center gap-1.5">
               <TeamConsoleScoreHeader team={teamRed} />
               <FastCompetitiveConsole
                 team={teamRed}
@@ -729,10 +843,24 @@ export const MathEscapeVaultGame: React.FC = () => {
                 correctAnswer={phase === 'round_reveal' && currentQuestion ? currentQuestion.answer : null}
                 isRevealed={phase === 'round_reveal'}
                 disabled={phase !== 'playing'}
+                isComebackSurge={teamBlue.keys - teamRed.keys >= 2 || teamBlue.score - teamRed.score >= 150}
+                misconceptionHint={redMisconception}
+                hint5050={redHint5050}
                 onDigitPress={handleDigitPress}
                 onClearPress={handleClearPress}
                 onSubmitPress={handleSubmitPress}
               />
+              <div className="w-full flex items-center justify-between gap-1 max-w-[360px]">
+                <PowerUpTray
+                  teamId="red"
+                  powerUps={redPowerUps}
+                  onUse5050={() => handleUse5050('red')}
+                  onUseTimeFreeze={() => handleUseTimeFreeze('red')}
+                  onUse2x={() => handleUse2x('red')}
+                  disabled={phase !== 'playing'}
+                />
+                <DigitalScratchpad teamId="red" teamName={teamRed.name} position="right" />
+              </div>
             </div>
 
           </div>

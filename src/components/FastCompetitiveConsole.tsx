@@ -18,6 +18,9 @@ interface FastCompetitiveConsoleProps {
   correctAnswer: number | string | null;
   isRevealed: boolean;
   disabled: boolean;
+  isComebackSurge?: boolean;
+  misconceptionHint?: string | null;
+  hint5050?: string | null;
   onDigitPress: (teamId: TeamId, digit: string) => void;
   onClearPress: (teamId: TeamId) => void;
   onSubmitPress: (teamId: TeamId) => void;
@@ -34,6 +37,9 @@ export const FastCompetitiveConsole: React.FC<FastCompetitiveConsoleProps> = ({
   attemptsLeft = 2,
   isRevealed,
   disabled,
+  isComebackSurge = false,
+  misconceptionHint = null,
+  hint5050 = null,
   onDigitPress,
   onClearPress,
   onSubmitPress,
@@ -120,7 +126,27 @@ export const FastCompetitiveConsole: React.FC<FastCompetitiveConsoleProps> = ({
             <span>STEAL!</span>
           </span>
         )}
+
+        {isComebackSurge && !isLockedOut && (
+          <span className="px-2 py-0.5 rounded-full text-[9px] font-black uppercase font-game bg-gradient-to-r from-orange-500 to-amber-400 text-slate-950 border border-orange-600 animate-pulse shadow flex items-center gap-0.5">
+            <span>🔥 COMEBACK SURGE (+25%)</span>
+          </span>
+        )}
       </div>
+
+      {/* Misconception Hint on 1st Mistake */}
+      {attemptsLeft === 1 && misconceptionHint && !isBlocked && (
+        <div className="mb-2 px-2.5 py-1 rounded-lg bg-amber-400/20 border-2 border-amber-400 text-amber-900 dark:text-amber-200 text-[10.5px] font-bold font-game flex items-center gap-1.5 animate-fadeIn">
+          <span>{misconceptionHint}</span>
+        </div>
+      )}
+
+      {/* 50:50 Eliminator Clue (if active) */}
+      {hint5050 && !isBlocked && (
+        <div className="mb-2 px-2.5 py-1 rounded-lg bg-sky-400/20 border-2 border-sky-400 text-sky-900 dark:text-sky-200 text-[10.5px] font-bold font-game flex items-center gap-1.5 animate-pulse">
+          <span>{hint5050}</span>
+        </div>
+      )}
 
       {/* 2. DIGITAL LCD DISPLAY */}
       <div

@@ -20,6 +20,8 @@ import {
 import { ROUNDS, NETWORK_STATIONS, getTieBreaker, buildRounds } from '../engine/challenges';
 import { soundManager } from '@/utils/audio';
 import { initialBoostManager } from '@/utils/initialBoost';
+import { TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
+import { getMisconceptionHint } from '@/utils/misconceptions';
 
 const createTeamState = (id: TeamId, customName?: string): TeamState => ({
   id,
@@ -90,6 +92,11 @@ interface RailwayActions {
   lockInTeam: (team: TeamId) => void;
   handleTimerExpired: () => void;
   advanceQuestion: () => void;
+
+  // Tactical Power-up Actions (1 per match per team)
+  usePowerUp5050: (team: TeamId) => void;
+  usePowerUpTimeFreeze: (team: TeamId) => void;
+  usePowerUp2x: (team: TeamId) => void;
 
   beginShowdown: () => void;
   startTieBreak: () => void;
@@ -174,6 +181,14 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
 
   blueTeam: createTeamState('blue', 'TEAM BLUE'),
   redTeam: createTeamState('red', 'TEAM RED'),
+
+  // Tactical Power-ups & Misconceptions (1 per match per team)
+  bluePowerUps: initialTeamPowerUps(),
+  redPowerUps: initialTeamPowerUps(),
+  blueMisconception: null,
+  redMisconception: null,
+  blueEliminatedOptions: [],
+  redEliminatedOptions: [],
 
   roundWinner: null,
   matchWinner: null,
@@ -277,6 +292,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       questionIndexInRound: 0,
       activeChallenge: firstRound.questions[0],
       isTieBreak: false,
+      bluePowerUps: initialTeamPowerUps(),
+      redPowerUps: initialTeamPowerUps(),
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
       blueTeam: {
         ...s.blueTeam,
         score: isBlueBoosted ? 100 : 0,
@@ -338,6 +359,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       isTieBreak: false,
       blueTeam: resetTeamForRound(s.blueTeam),
       redTeam: resetTeamForRound(s.redTeam),
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
       roundWinner: null,
       signalsGreenCount: 0,
       onboardPassengers: [],
@@ -366,6 +393,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       timerActive: true,
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
     }));
   },
 
@@ -398,7 +431,22 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       // ── WINNING ANSWER: ONLY THIS TEAM'S TRAIN ADVANCES ──
       soundManager.playCorrect();
       const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const pointsGained = ch.points + speedBonus;
+      let pointsGained = ch.points + speedBonus;
+
+      // Apply Comeback Surge (+25%) if trailing by 2+ correct answers or behind by 150+ pts
+      const isComeback = isBlue
+        ? (otherTeamState.roundCorrect - teamState.roundCorrect >= 2 || otherTeamState.score - teamState.score >= 150)
+        : (otherTeamState.roundCorrect - teamState.roundCorrect >= 2 || otherTeamState.score - teamState.score >= 150);
+      if (isComeback) {
+        pointsGained = Math.round(pointsGained * 1.25);
+      }
+
+      // Apply 2x Multiplier Power-up if armed
+      const teamPower = isBlue ? state.bluePowerUps : state.redPowerUps;
+      if (teamPower.active2x) {
+        pointsGained = pointsGained * 2;
+      }
+
       const newStreak = teamState.streak + 1;
       const newTeamCorrect = teamState.roundCorrect + 1;
 
@@ -440,7 +488,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
           roundCorrect: newTeamCorrect,
           lastScoreGained: pointsGained,
           lastFeedback: {
-            message: `✅ CORRECT! +${pointsGained} PTS`,
+            message: `✅ CORRECT! +${pointsGained} PTS${isComeback ? ' 🔥 COMEBACK SURGE!' : ''}${teamPower.active2x ? ' 💥 2X MULTIPLIER!' : ''}`,
             isCorrect: true,
             pointsEarned: pointsGained,
           },
@@ -517,7 +565,8 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       soundManager.playWrong();
 
       if (teamState.attemptsLeft > 1) {
-        // 1st Mistake: Allow 2nd Attempt Retry!
+        // 1st Mistake: Allow 2nd Attempt Retry with targeted misconception hint!
+        const hint = getMisconceptionHint('numbers', ch.prompt);
         set((s) => ({
           [key]: {
             ...s[key],
@@ -530,6 +579,7 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
               pointsEarned: 0,
             },
           },
+          [isBlue ? 'blueMisconception' : 'redMisconception']: hint,
           toastMessage: `⚠️ ${s[key].name} INCORRECT — 1 ATTEMPT REMAINING!`,
         }));
       } else {
@@ -577,6 +627,68 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
     }
   },
 
+  // ── Tactical Power-up Actions (1 per match per team) ──
+  usePowerUp5050: (team) => {
+    const state = get();
+    const ch = state.activeChallenge;
+    if (!ch || (state.phase !== 'challenge' && state.phase !== 'tie-break')) return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.fiftyFifty) return;
+
+    // Eliminate up to 2 wrong options
+    const wrongOpts = ch.options
+      .filter((o) => !ch.validation(o.value) && String(o.value) !== String(ch.correctAnswer))
+      .map((o) => o.value);
+    const toEliminate = wrongOpts.slice(0, 2);
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        fiftyFifty: false,
+      },
+      [isBlue ? 'blueEliminatedOptions' : 'redEliminatedOptions']: toEliminate,
+      toastMessage: `🔍 50:50 ELIMINATOR ACTIVATED FOR ${s[isBlue ? 'blueTeam' : 'redTeam'].name}! 2 OPTIONS ELIMINATED!`,
+    }));
+  },
+
+  usePowerUpTimeFreeze: (team) => {
+    const state = get();
+    if (state.phase !== 'challenge' && state.phase !== 'tie-break') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.timeFreeze) return;
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        timeFreeze: false,
+      },
+      timeRemaining: s.timeRemaining + 10,
+      toastMessage: `⏳ TIME FREEZE ACTIVATED! +10 SECONDS ADDED!`,
+    }));
+  },
+
+  usePowerUp2x: (team) => {
+    const state = get();
+    if (state.phase !== 'challenge' && state.phase !== 'tie-break') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.doublePoints) return;
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        doublePoints: false,
+        active2x: true,
+      },
+      toastMessage: `💥 2X MULTIPLIER ARMED FOR ${s[isBlue ? 'blueTeam' : 'redTeam'].name}! DOUBLE POINTS ON NEXT WIN!`,
+    }));
+  },
+
   handleTimerExpired: () => {
     const state = get();
     if (state.phase !== 'challenge' && state.phase !== 'tie-break') return;
@@ -600,33 +712,46 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       return;
     }
 
+    // Normal round timer expired → lock both out & reveal
     const totalQInRound = state.rounds[state.currentRoundIndex]?.questions.length || 5;
     const nextGreen = Math.min(totalQInRound, state.signalsGreenCount + 1);
 
-    // 0 points for both when timer expires with no correct answer; NEITHER TRAIN MOVES
     set((s) => ({
-      blueTeam: { ...s.blueTeam, isLocked: true },
-      redTeam: { ...s.redTeam, isLocked: true },
-      signalsGreenCount: nextGreen,
-      blueTrain: {
-        ...s.blueTrain,
-        speed: 0,
-        whistleActive: false,
-      },
-      redTrain: {
-        ...s.redTrain,
-        speed: 0,
-        whistleActive: false,
-      },
       timerActive: false,
-      toastMessage: '⏰ TIME EXPIRED! NO ADVANCEMENT THIS QUESTION.',
-      phase: 'question-reveal',
+      signalsGreenCount: nextGreen,
+      blueTeam: {
+        ...s.blueTeam,
+        isLocked: true,
+        lastResult: 'wrong',
+        lastFeedback: {
+          message: '⌛ TIME EXPIRED — NO ANSWER',
+          isCorrect: false,
+          pointsEarned: 0,
+        },
+      },
+      redTeam: {
+        ...s.redTeam,
+        isLocked: true,
+        lastResult: 'wrong',
+        lastFeedback: {
+          message: '⌛ TIME EXPIRED — NO ANSWER',
+          isCorrect: false,
+          pointsEarned: 0,
+        },
+      },
+      toastMessage: '⌛ TIME EXPIRED! NO TEAM AUTHORIZED.',
     }));
+
+    setTimeout(() => {
+      set({ phase: 'question-reveal', timerActive: false });
+    }, 600);
   },
 
   advanceQuestion: () => {
     const state = get();
     const curRound = state.rounds[state.currentRoundIndex];
+    if (!curRound) return;
+
     const totalQ = curRound.questions.length;
     const nextQIndex = state.questionIndexInRound + 1;
 
@@ -646,6 +771,12 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       toastMessage: null,
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
       blueTrain: {
         ...s.blueTrain,
         whistleActive: false,
@@ -681,11 +812,17 @@ export const useRailwayStore = create<RailwayStore>((set, get) => ({
       phase: 'tie-break',
       isTieBreak: true,
       activeChallenge: tb,
-      timeRemaining: tb.timeLimit,
+      timeRemaining: 15, // 15-second rapid Sudden Death Speed Duel
       timerActive: true,
-      toastMessage: '⚡ SUDDEN-DEATH TIE-BREAKER! FIRST CORRECT WINS ROUTE!',
+      toastMessage: '⚡ SUDDEN-DEATH SPEED DUEL (15s)! FIRST CORRECT WINS ROUTE!',
       blueTeam: clearTeamForQuestion(s.blueTeam),
       redTeam: clearTeamForQuestion(s.redTeam),
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
     }));
   },
 

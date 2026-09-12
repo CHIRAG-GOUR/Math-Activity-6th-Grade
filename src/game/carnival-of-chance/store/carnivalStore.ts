@@ -21,6 +21,8 @@ import {
 import { ATTRACTIONS_META, CARNIVAL_CHALLENGES } from '../engine/probabilityData';
 import { carnivalAudio } from '../audio/CarnivalAudioManager';
 import { initialBoostManager } from '@/utils/initialBoost';
+import { TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
+import { getMisconceptionHint } from '@/utils/misconceptions';
 
 interface CarnivalState {
   // Activity Lifecycle & Isolation
@@ -34,6 +36,15 @@ interface CarnivalState {
   // Dual-Team Independent State (Simultaneous Touch)
   blueTeam: TeamState;
   redTeam: TeamState;
+
+  // Tactical Power-ups & Misconceptions (1 per match per team)
+  bluePowerUps: TeamPowerUps;
+  redPowerUps: TeamPowerUps;
+  blueMisconception: string | null;
+  redMisconception: string | null;
+  blueEliminatedChoices: string[];
+  redEliminatedChoices: string[];
+  isTieBreak: boolean;
 
   // Rebound & Activity Winner State
   activityWinner: TeamId | 'tie' | null;
@@ -61,9 +72,15 @@ interface CarnivalState {
   triggerMachineOperate: () => void;
   runBatchTrials: (count: number) => void;
   nextChallengeOrComplete: () => void;
+  startTieBreak: () => void;
   restartCurrentActivity: () => void;
   toggleMute: () => void;
   tickTimer: () => void;
+
+  // Tactical Power-up Actions
+  usePowerUp5050: (team: TeamId) => void;
+  usePowerUpTimeFreeze: (team: TeamId) => void;
+  usePowerUp2x: (team: TeamId) => void;
 }
 
 const initialTeam = (id: TeamId, name: string): TeamState => ({
@@ -93,6 +110,14 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
 
   blueTeam: initialTeam('blue', 'TEAM BLUE'),
   redTeam: initialTeam('red', 'TEAM RED'),
+
+  bluePowerUps: initialTeamPowerUps(),
+  redPowerUps: initialTeamPowerUps(),
+  blueMisconception: null,
+  redMisconception: null,
+  blueEliminatedChoices: [],
+  redEliminatedChoices: [],
+  isTieBreak: false,
 
   activityWinner: null,
   toastMessage: null,
@@ -144,6 +169,13 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       batchTrialResults: [],
       timeRemaining: 50,
       timerActive: true,
+      bluePowerUps: initialTeamPowerUps(),
+      redPowerUps: initialTeamPowerUps(),
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedChoices: [],
+      redEliminatedChoices: [],
+      isTieBreak: false,
       blueTeam: {
         ...state.blueTeam,
         activityScore: isBlueBoosted ? 100 : 0,
@@ -183,6 +215,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       drawnOutcome: null,
       batchTrialResults: [],
       timerActive: false,
+      isTieBreak: false,
     });
   },
 
@@ -197,11 +230,12 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
   },
 
   selectChoice: (team: TeamId, choiceId: string) => {
-    const { phase, blueTeam, redTeam } = get();
+    const { phase, blueTeam, redTeam, blueEliminatedChoices, redEliminatedChoices } = get();
     if (phase !== 'predicting') return;
 
     const teamState = team === 'blue' ? blueTeam : redTeam;
-    if (teamState.isLocked) return;
+    const eliminated = team === 'blue' ? blueEliminatedChoices : redEliminatedChoices;
+    if (teamState.isLocked || eliminated.includes(choiceId)) return;
 
     carnivalAudio.playWheelTick(1.2);
 
@@ -215,7 +249,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
 
   // ── Dual-Turn & Rebound Engine (2 Attempts per Team) ──
   confirmPrediction: (team: TeamId) => {
-    const { activeChallenge, phase, blueTeam, redTeam, timeRemaining } = get();
+    const { activeChallenge, phase, blueTeam, redTeam, timeRemaining, isTieBreak, bluePowerUps, redPowerUps } = get();
     if (phase !== 'predicting' || !activeChallenge) return;
 
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
@@ -233,7 +267,23 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       carnivalAudio.playScoreTick();
 
       const timeBonus = Math.floor(timeRemaining * 1.5);
-      const pointsToAdd = activeChallenge.points + timeBonus;
+      let pointsToAdd = (isTieBreak ? 200 : activeChallenge.points) + timeBonus;
+
+      // Apply Comeback Surge (+25%) if trailing by 2+ tickets or 150+ pts
+      const isBlue = team === 'blue';
+      const isComeback = isBlue
+        ? (otherTeamState.goldTickets - teamState.goldTickets >= 2 || otherTeamState.activityScore - teamState.activityScore >= 150)
+        : (otherTeamState.goldTickets - teamState.goldTickets >= 2 || otherTeamState.activityScore - teamState.activityScore >= 150);
+      if (isComeback) {
+        pointsToAdd = Math.round(pointsToAdd * 1.25);
+      }
+
+      // Apply 2x Multiplier power-up if armed
+      const teamPower = isBlue ? bluePowerUps : redPowerUps;
+      if (teamPower.active2x) {
+        pointsToAdd = pointsToAdd * 2;
+      }
+
       const ticketsToAdd = activeChallenge.goldTickets;
       const newStreak = teamState.streak + 1;
 
@@ -255,9 +305,33 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
           ...s[otherKey],
           isLocked: true, // Question claimed by the first correct answerer!
         },
-        toastMessage: `🎉 ${s[key].name} ANSWERED FIRST & CORRECT! (+${pointsToAdd} PTS)`,
+        toastMessage: `🎉 ${s[key].name} ANSWERED FIRST & CORRECT! (+${pointsToAdd} PTS)${isComeback ? ' 🔥 COMEBACK SURGE!' : ''}${teamPower.active2x ? ' 💥 2X MULTIPLIER!' : ''}`,
         timerActive: false,
       }));
+
+      if (isTieBreak) {
+        // Sudden death resolved instantly!
+        setTimeout(() => {
+          let updatedBlue = { ...get().blueTeam };
+          let updatedRed = { ...get().redTeam };
+          if (team === 'blue') {
+            updatedBlue.goldTickets += 2;
+            initialBoostManager.recordWinner('blue', updatedBlue.name, 'Carnival of Chance');
+          } else {
+            updatedRed.goldTickets += 2;
+            initialBoostManager.recordWinner('red', updatedRed.name, 'Carnival of Chance');
+          }
+          set({
+            phase: 'completed',
+            activityWinner: team,
+            blueTeam: updatedBlue,
+            redTeam: updatedRed,
+            timerActive: false,
+            isTieBreak: false,
+          });
+        }, 1200);
+        return;
+      }
 
       setTimeout(() => {
         get().triggerMachineOperate();
@@ -267,8 +341,10 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       // ── WRONG ANSWER: CHECK ATTEMPTS REMAINING (2 ATTEMPTS PER TEAM) ──
       carnivalAudio.playIncorrect();
 
+      const isBlue = team === 'blue';
       if (teamState.attemptsLeft > 1) {
-        // 1st Mistake: Give 2nd Chance Retry!
+        // 1st Mistake: Give 2nd Chance Retry with targeted misconception hint!
+        const hint = getMisconceptionHint('probability', activeChallenge.prompt);
         set((s) => ({
           [key]: {
             ...s[key],
@@ -277,6 +353,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
             isConfirmed: false,
             isLocked: false,
           },
+          [isBlue ? 'blueMisconception' : 'redMisconception']: hint,
           toastMessage: `⚠️ ${s[key].name} INCORRECT — 1 CHANCE REMAINING!`,
         }));
       } else {
@@ -306,6 +383,68 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
     }
   },
 
+  // ── Tactical Power-ups ──
+  usePowerUp5050: (team) => {
+    const state = get();
+    const ch = state.activeChallenge;
+    if (!ch || state.phase !== 'predicting') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.fiftyFifty) return;
+
+    // Eliminate up to 2 incorrect choices
+    const wrongChoices = ch.choices
+      .filter((c) => c.id !== ch.correctAnswerId)
+      .map((c) => c.id);
+    const toEliminate = wrongChoices.slice(0, 2);
+
+    carnivalAudio.playScoreTick();
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        fiftyFifty: false,
+      },
+      [isBlue ? 'blueEliminatedChoices' : 'redEliminatedChoices']: toEliminate,
+      toastMessage: `🔍 50:50 ELIMINATOR ACTIVATED FOR ${s[isBlue ? 'blueTeam' : 'redTeam'].name}! 2 OPTIONS REMOVED!`,
+    }));
+  },
+
+  usePowerUpTimeFreeze: (team) => {
+    const state = get();
+    if (state.phase !== 'predicting') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.timeFreeze) return;
+
+    carnivalAudio.playScoreTick();
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        timeFreeze: false,
+      },
+      timeRemaining: s.timeRemaining + 10,
+      toastMessage: `⏳ TIME FREEZE ACTIVATED! +10 SECONDS ADDED!`,
+    }));
+  },
+
+  usePowerUp2x: (team) => {
+    const state = get();
+    if (state.phase !== 'predicting') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.doublePoints) return;
+
+    carnivalAudio.playScoreTick();
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        doublePoints: false,
+        active2x: true,
+      },
+      toastMessage: `💥 2X MULTIPLIER ARMED FOR ${s[isBlue ? 'blueTeam' : 'redTeam'].name}! DOUBLE POINTS ON NEXT WIN!`,
+    }));
+  },
+
   triggerMachineOperate: () => {
     const { activeChallenge, activeActivity } = get();
     if (!activeChallenge) return;
@@ -332,7 +471,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
       colorName: chosen.colorName,
     };
 
-    // Play activity specific sound sequence for static activities (3D machines handle frame-synced audio)
+    // Play activity specific sound sequence for static activities
     if (activeActivity === 'mystery-bag') {
       carnivalAudio.playBagOpen();
       setTimeout(() => carnivalAudio.playBallRoll(), 700);
@@ -398,6 +537,50 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
     });
   },
 
+  startTieBreak: () => {
+    const { activeActivity } = get();
+    const allChallenges = CARNIVAL_CHALLENGES[activeActivity] || CARNIVAL_CHALLENGES['odds-wheel'] || [];
+    const tb = allChallenges[allChallenges.length - 1] || allChallenges[0];
+
+    carnivalAudio.playBellChime();
+    set((s) => ({
+      phase: 'predicting',
+      isTieBreak: true,
+      activeChallenge: {
+        ...tb,
+        missionTitle: '⚡ SUDDEN DEATH SPEED DUEL',
+        prompt: `⚡ [TIE-BREAKER 15s] ` + tb.prompt,
+      },
+      timeRemaining: 15, // 15-second rapid speed duel
+      timerActive: true,
+      toastMessage: '⚡ SCORES TIED! 15s SUDDEN-DEATH SPEED DUEL! FIRST CORRECT PREDICTION WINS!',
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedChoices: [],
+      redEliminatedChoices: [],
+      blueTeam: {
+        ...s.blueTeam,
+        selectedChoiceId: null,
+        isConfirmed: false,
+        isLocked: false,
+        isCorrect: null,
+        lastResult: null,
+        attemptsLeft: 2,
+      },
+      redTeam: {
+        ...s.redTeam,
+        selectedChoiceId: null,
+        isConfirmed: false,
+        isLocked: false,
+        isCorrect: null,
+        lastResult: null,
+        attemptsLeft: 2,
+      },
+    }));
+  },
+
   nextChallengeOrComplete: () => {
     const { activeActivity, challengeIndex, attractions, blueTeam, redTeam, questionCountConfig } = get();
     const allChallenges = CARNIVAL_CHALLENGES[activeActivity] || [];
@@ -414,6 +597,12 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
         batchTrialResults: [],
         timeRemaining: 50,
         timerActive: true,
+        bluePowerUps: { ...s.bluePowerUps, active2x: false },
+        redPowerUps: { ...s.redPowerUps, active2x: false },
+        blueMisconception: null,
+        redMisconception: null,
+        blueEliminatedChoices: [],
+        redEliminatedChoices: [],
         blueTeam: {
           ...s.blueTeam,
           selectedChoiceId: null,
@@ -436,6 +625,12 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
         },
       }));
     } else {
+      // Check if scores are tied → trigger sudden death tiebreaker!
+      if (blueTeam.activityScore === redTeam.activityScore) {
+        get().startTieBreak();
+        return;
+      }
+
       // ═══════════════════════════════════════════════════════════════
       // ATTRACTION COMPLETED: DECIDE WINNER & RECORD INITIAL BOOST
       // ═══════════════════════════════════════════════════════════════
@@ -473,6 +668,7 @@ export const useCarnivalStore = create<CarnivalState>((set, get) => ({
         redTeam: updatedRed,
         attractions: updatedAttractions,
         timerActive: false,
+        isTieBreak: false,
       });
     }
   },

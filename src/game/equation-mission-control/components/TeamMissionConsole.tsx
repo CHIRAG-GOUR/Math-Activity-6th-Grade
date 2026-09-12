@@ -5,6 +5,7 @@
 // - Compact question card & clean typography
 // - Turn-based first answerer & rebound indicator
 // - Guaranteed solid Blue/Red selected states with bold white text
+// - Tactical Power-ups, Scratchpad, Comeback Surge & Coach Tips
 // ============================================================
 
 'use client';
@@ -14,6 +15,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useMissionControlStore } from '../store/missionControlStore';
 import { TeamId } from '../types';
 import { soundManager } from '@/utils/audio';
+import { PowerUpTray } from '@/components/shared/PowerUpTray';
+import { DigitalScratchpad } from '@/components/shared/DigitalScratchpad';
 
 interface Props {
   team: TeamId;
@@ -28,9 +31,17 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
   const targetStages = useMissionControlStore((s) => s.targetStages);
   const phase = useMissionControlStore((s) => s.phase);
 
+  // Power-Ups & Misconceptions
+  const powerUps = useMissionControlStore((s) => (isBlue ? s.bluePowerUps : s.redPowerUps));
+  const eliminatedOptions = useMissionControlStore((s) => (isBlue ? s.blueEliminatedOptions : s.redEliminatedOptions));
+  const misconception = useMissionControlStore((s) => (isBlue ? s.blueMisconception : s.redMisconception));
+
   // Store actions
   const setAnswer = useMissionControlStore((s) => s.setTeamAnswer);
   const lockIn = useMissionControlStore((s) => s.lockInTeam);
+  const use5050 = useMissionControlStore((s) => s.usePowerUp5050);
+  const useTimeFreeze = useMissionControlStore((s) => s.usePowerUpTimeFreeze);
+  const use2x = useMissionControlStore((s) => s.usePowerUp2x);
 
   const teamTitle = isBlue ? teamState.name || 'BLUE TEAM' : teamState.name || 'RED TEAM';
   const teamPrimaryColor = isBlue ? '#2563eb' : '#dc2626';
@@ -40,7 +51,12 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
     ? 'linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%)'
     : 'linear-gradient(135deg, #dc2626 0%, #b91c1c 100%)';
 
-  const isPlayable = phase === 'active-mission';
+  const isPlayable = phase === 'active-mission' || phase === 'tie-break';
+
+  // Check Comeback Surge
+  const isComebackSurge =
+    otherTeamState.stagesCleared - teamState.stagesCleared >= 2 ||
+    otherTeamState.score - teamState.score >= 150;
 
   const handleSelectOption = useCallback(
     (val: number | string) => {
@@ -61,7 +77,7 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
 
   return (
     <div
-      className="w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden font-sans flex flex-col pointer-events-auto"
+      className="w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden font-sans flex flex-col pointer-events-auto max-h-[94vh] overflow-y-auto"
       style={{ borderColor: teamBorderColor }}
       onPointerDown={(e) => e.stopPropagation()}
     >
@@ -96,6 +112,13 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
           </div>
         </div>
       </div>
+
+      {/* ── COMEBACK SURGE BADGE ── */}
+      {isComebackSurge && (
+        <div className="px-2.5 py-1 bg-amber-400 border-b border-slate-900 text-slate-950 font-black text-[9px] uppercase tracking-wider flex items-center justify-center gap-1 animate-pulse">
+          <span>⚡ COMEBACK SURGE (+25% BONUS ACTIVE)</span>
+        </div>
+      )}
 
       {/* ── 2. Rebound Notice or Stage Status Pill ── */}
       {isReboundOpportunity ? (
@@ -136,6 +159,17 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
         </div>
       ) : null}
 
+      {/* ── TARGETED MISCONCEPTION COACH TIP (On 1st error) ── */}
+      {misconception && !teamState.isLocked && teamState.attemptsLeft === 1 && (
+        <div className="px-2.5 py-1.5 bg-amber-50 border-b border-amber-300 text-slate-900 text-[9px] font-bold text-left flex items-start gap-1">
+          <span className="text-xs shrink-0">💡</span>
+          <div>
+            <span className="font-black text-amber-900 uppercase block text-[8px]">COACH TIP:</span>
+            <span>{misconception}</span>
+          </div>
+        </div>
+      )}
+
       {/* ── 3. Subsystem Physical Preparation Bar ── */}
       <div className="px-2 py-1 bg-slate-100 border-b border-slate-200 flex items-center justify-between gap-1">
         {[
@@ -171,8 +205,8 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
         })}
       </div>
 
-      {/* ── 3. Interactive Challenge Content (Identical max-h-[380px] to Train Game) ── */}
-      <div className="p-2.5 flex flex-col gap-2 bg-slate-50 overflow-y-auto max-h-[380px] mc-scrollbar">
+      {/* ── 4. Interactive Challenge Content ── */}
+      <div className="p-2.5 flex flex-col gap-2 bg-slate-50 overflow-y-auto max-h-[340px] mc-scrollbar">
         {isPlayable && challenge ? (
           <>
             {/* Compact Question Card */}
@@ -191,7 +225,10 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
                 const isSelected =
                   teamState.selectedAnswer !== null &&
                   String(teamState.selectedAnswer) === String(opt.value);
-                const isLocked = teamState.isLocked;
+                const isEliminated = eliminatedOptions.some(
+                  (eo) => String(eo).trim().toLowerCase() === String(opt.value).trim().toLowerCase()
+                );
+                const isLocked = teamState.isLocked || isEliminated;
 
                 return (
                   <motion.button
@@ -199,12 +236,14 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
                     whileTap={!isLocked ? { scale: 0.97 } : {}}
                     onClick={() => handleSelectOption(opt.value)}
                     disabled={isLocked}
-                    className="w-full py-2 px-2.5 rounded-xl font-mono text-xs font-black text-center transition-all duration-150 border-2 shadow-xs cursor-pointer"
+                    className={`w-full py-2 px-2.5 rounded-xl font-mono text-xs font-black text-center transition-all duration-150 border-2 shadow-xs cursor-pointer ${
+                      isEliminated ? 'line-through opacity-25 cursor-not-allowed bg-slate-200 text-slate-400' : ''
+                    }`}
                     style={{
-                      backgroundColor: isSelected ? teamPrimaryColor : '#ffffff',
-                      color: isSelected ? '#ffffff' : '#0f172a',
-                      borderColor: isSelected ? teamDarkBorder : '#cbd5e1',
-                      opacity: isLocked && !isSelected ? 0.35 : 1,
+                      backgroundColor: isSelected ? teamPrimaryColor : isEliminated ? '#e2e8f0' : '#ffffff',
+                      color: isSelected ? '#ffffff' : isEliminated ? '#94a3b8' : '#0f172a',
+                      borderColor: isSelected ? teamDarkBorder : isEliminated ? '#cbd5e1' : '#cbd5e1',
+                      opacity: isEliminated ? 0.3 : isLocked && !isSelected ? 0.35 : 1,
                       boxShadow: isSelected
                         ? `0 3px 10px ${isBlue ? 'rgba(37, 99, 235, 0.35)' : 'rgba(220, 38, 38, 0.35)'}`
                         : '0 1px 2px rgba(0,0,0,0.04)',
@@ -289,6 +328,27 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
           </div>
         )}
       </div>
+
+      {/* ── TACTICAL POWER-UPS TRAY ── */}
+      <div className="px-2 py-1.5 bg-white border-t border-slate-200">
+        <PowerUpTray
+          teamId={team}
+          powerUps={powerUps}
+          onUse5050={() => use5050(team)}
+          onUseTimeFreeze={() => useTimeFreeze(team)}
+          onUse2x={() => use2x(team)}
+          disabled={teamState.isLocked || !isPlayable}
+        />
+      </div>
+
+      {/* ── DIGITAL SCRATCHPAD (Rough Work) ── */}
+      <div className="p-1.5 bg-slate-50 border-t border-slate-200">
+        <DigitalScratchpad
+          teamId={team}
+          teamName={teamTitle}
+        />
+      </div>
     </div>
   );
 };
+

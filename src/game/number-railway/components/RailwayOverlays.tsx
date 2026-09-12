@@ -420,6 +420,8 @@ export const WinnerPlaqueOverlay: React.FC = () => {
   );
 };
 
+import { ChampionshipCertificateModal } from '@/components/shared/ChampionshipCertificateModal';
+
 // ── 6. Grand Network Restoration Ceremony ──
 export const NetworkCompleteOverlay: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
@@ -427,64 +429,86 @@ export const NetworkCompleteOverlay: React.FC = () => {
   const blueTeam = useRailwayStore((s) => s.blueTeam);
   const redTeam = useRailwayStore((s) => s.redTeam);
   const startGame = useRailwayStore((s) => s.startGame);
+  const [isCertificateOpen, setIsCertificateOpen] = React.useState(false);
 
   if (phase !== 'network-complete') return null;
 
   const isBlue = matchWinner === 'blue';
   const isRed = matchWinner === 'red';
   const championName = isRed ? redTeam.name : isBlue ? blueTeam.name : 'PERFECT CHAMPIONSHIP DRAW';
+  const winnerTeam = isRed ? redTeam : blueTeam;
+  const runnerUpTeam = isRed ? blueTeam : redTeam;
 
   return (
-    <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-md select-none p-6 text-slate-900 text-center">
-      <motion.div
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="max-w-xl w-full bg-white border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col items-center"
-      >
-        <Trophy className="w-20 h-20 text-amber-500 drop-shadow-md mb-2 animate-bounce" />
-        <span className="text-xs font-black tracking-widest text-amber-800 uppercase">
-          RAILWAY NETWORK RESTORED
-        </span>
+    <>
+      <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-900/50 backdrop-blur-md select-none p-6 text-slate-900 text-center">
+        <motion.div
+          initial={{ scale: 0.8, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          className="max-w-xl w-full bg-white border-2 border-amber-400 rounded-3xl p-6 shadow-2xl flex flex-col items-center"
+        >
+          <Trophy className="w-20 h-20 text-amber-500 drop-shadow-md mb-2 animate-bounce" />
+          <span className="text-xs font-black tracking-widest text-amber-800 uppercase">
+            RAILWAY NETWORK RESTORED
+          </span>
 
-        <h2 className="text-3xl sm:text-4xl font-black mt-1 mb-4 text-slate-950">
-          🏆 {championName} WINS CHAMPIONSHIP!
-        </h2>
+          <h2 className="text-3xl sm:text-4xl font-black mt-1 mb-4 text-slate-950">
+            🏆 {championName} WINS CHAMPIONSHIP!
+          </h2>
 
-        {/* Scores */}
-        <div className="flex gap-4 justify-center w-full my-4">
-          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isRed ? 'bg-red-50 border-red-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
-            <span className="text-[11px] font-black text-red-800 uppercase">{redTeam.name}</span>
-            <div className="text-3xl font-black text-slate-950 mt-1">{redTeam.score}</div>
-            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
-              {redTeam.roundsWon} Routes Cleared
+          {/* Scores */}
+          <div className="flex gap-4 justify-center w-full my-4">
+            <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isRed ? 'bg-red-50 border-red-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
+              <span className="text-[11px] font-black text-red-800 uppercase">{redTeam.name}</span>
+              <div className="text-3xl font-black text-slate-950 mt-1">{redTeam.score}</div>
+              <div className="text-[9px] text-slate-600 font-bold mt-0.5">
+                {redTeam.roundsWon} Routes Cleared
+              </div>
+            </div>
+
+            <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
+              <span className="text-[11px] font-black text-blue-800 uppercase">{blueTeam.name}</span>
+              <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
+              <div className="text-[9px] text-slate-600 font-bold mt-0.5">
+                {blueTeam.roundsWon} Routes Cleared
+              </div>
             </div>
           </div>
 
-          <div className={`flex-1 p-4 rounded-2xl border-2 transition-all ${isBlue ? 'bg-blue-50 border-blue-500 shadow-lg scale-105' : 'bg-slate-50 border-slate-200 opacity-85'}`}>
-            <span className="text-[11px] font-black text-blue-800 uppercase">{blueTeam.name}</span>
-            <div className="text-3xl font-black text-slate-950 mt-1">{blueTeam.score}</div>
-            <div className="text-[9px] text-slate-600 font-bold mt-0.5">
-              {blueTeam.roundsWon} Routes Cleared
-            </div>
+          {/* Actions */}
+          <div className="flex flex-col sm:flex-row gap-3 w-full justify-center mt-2">
+            <button
+              onClick={() => setIsCertificateOpen(true)}
+              className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-yellow-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md hover:scale-105 transition-all border-2 border-amber-600 flex items-center justify-center gap-1.5 cursor-pointer"
+            >
+              <span>🏆 PRINT CERTIFICATE</span>
+            </button>
+            <button
+              onClick={startGame}
+              className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md cursor-pointer"
+            >
+              PLAY AGAIN 🔄
+            </button>
+            <button
+              onClick={() => (window.location.href = '/')}
+              className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-slate-200 to-slate-300 text-slate-800 font-black text-xs uppercase tracking-wider shadow-md cursor-pointer"
+            >
+              ARCADE HUB
+            </button>
           </div>
-        </div>
+        </motion.div>
+      </div>
 
-        {/* Actions */}
-        <div className="flex gap-3 w-full justify-center mt-2">
-          <button
-            onClick={startGame}
-            className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-emerald-400 to-teal-500 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md cursor-pointer"
-          >
-            PLAY AGAIN 🔄
-          </button>
-          <button
-            onClick={() => (window.location.href = '/')}
-            className="flex-1 py-3.5 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 text-slate-950 font-black text-xs uppercase tracking-wider shadow-md cursor-pointer"
-          >
-            RETURN TO ARCADE HUB
-          </button>
-        </div>
-      </motion.div>
-    </div>
+      <ChampionshipCertificateModal
+        isOpen={isCertificateOpen}
+        onClose={() => setIsCertificateOpen(false)}
+        winnerName={winnerTeam.name}
+        winnerScore={winnerTeam.score}
+        gameTitle="The Great Number Railway"
+        topicTitle="Grade 6 Number Systems, Fractions & Integers"
+        runnerUpName={runnerUpTeam.name}
+        runnerUpScore={runnerUpTeam.score}
+      />
+    </>
   );
 };

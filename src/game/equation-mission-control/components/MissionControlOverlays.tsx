@@ -6,7 +6,7 @@
 
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useMissionControlStore } from '../store/missionControlStore';
 import {
@@ -18,11 +18,15 @@ import {
   CheckCircle2,
   Radio,
   Sparkles,
+  Printer,
 } from 'lucide-react';
 import { soundManager } from '@/utils/audio';
+import { ChampionshipCertificateModal } from '@/components/shared/ChampionshipCertificateModal';
 
 export const MissionControlOverlays: React.FC = () => {
+  const [showCertificate, setShowCertificate] = useState(false);
   const phase = useMissionControlStore((s) => s.phase);
+
   const campaign = useMissionControlStore((s) => s.campaign);
   const blueTeam = useMissionControlStore((s) => s.blueTeam);
   const redTeam = useMissionControlStore((s) => s.redTeam);
@@ -305,6 +309,15 @@ export const MissionControlOverlays: React.FC = () => {
               </div>
             </div>
 
+            {/* Print Championship Certificate Button */}
+            <button
+              onClick={() => setShowCertificate(true)}
+              className="w-full py-3 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 border-3 border-slate-900 mc-shadow-hard cursor-pointer transition-all"
+            >
+              <Printer className="w-4 h-4 stroke-[2.5]" />
+              <span>🏆 PRINT CHAMPIONSHIP CERTIFICATE</span>
+            </button>
+
             {/* Replay Buttons */}
             <div className="flex gap-3 w-full justify-center mt-1">
               <button
@@ -329,6 +342,19 @@ export const MissionControlOverlays: React.FC = () => {
           </motion.div>
         </div>
       )}
+
+      {/* Printable Certificate Modal */}
+      <ChampionshipCertificateModal
+        isOpen={showCertificate}
+        winnerName={winner === 'red' ? redTeam.name : blueTeam.name}
+        winnerScore={Math.max(blueTeam.score, redTeam.score)}
+        gameTitle="Equation Mission Control: Expressions & Equations"
+        topicTitle="Grade 6 One-Step & Two-Step Algebraic Equations"
+        runnerUpName={winner === 'red' ? blueTeam.name : redTeam.name}
+        runnerUpScore={Math.min(blueTeam.score, redTeam.score)}
+        onClose={() => setShowCertificate(false)}
+      />
     </>
   );
 };
+

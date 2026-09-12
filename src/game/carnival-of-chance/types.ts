@@ -1,7 +1,4 @@
-// ============================================================
-// THE GREAT CARNIVAL OF CHANCE — Core Types & Architecture
-// Grade 6 Mathematics: Probability & Physical Experimentation
-// ============================================================
+import { TeamPowerUps } from '@/types/powerUps';
 
 export type ActivityId =
   | 'hub'
@@ -30,6 +27,7 @@ export type ActivityPhase =
   | 'operating'        // 3D physical machine animation (spinning, bag opening, ball dropping)
   | 'observation'      // Showing theoretical vs actual random outcome & reasoning
   | 'batch-trials'     // Optional 10 or 50 trials experimental distribution
+  | 'tie-break'        // 15-second Sudden Death Speed Duel
   | 'completed';       // Attraction finished, points & stars awarded
 
 export interface ProbabilityBall {

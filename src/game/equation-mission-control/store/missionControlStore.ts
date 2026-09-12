@@ -18,6 +18,8 @@ import {
 import { generateDynamicCampaign } from '../engine/questionPool';
 import { soundManager } from '@/utils/audio';
 import { initialBoostManager } from '@/utils/initialBoost';
+import { TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
+import { getMisconceptionHint } from '@/utils/misconceptions';
 
 const createDefaultTeamState = (id: TeamId, name?: string): TeamControlState => ({
   id,
@@ -101,6 +103,12 @@ interface MissionControlActions {
   handleTimerExpired: () => void;
   advanceToNextStage: () => void;
 
+  // Tactical Power-ups & Tiebreaker
+  usePowerUp5050: (team: TeamId) => void;
+  usePowerUpTimeFreeze: (team: TeamId) => void;
+  usePowerUp2x: (team: TeamId) => void;
+  startTieBreak: () => void;
+
   run12StepCinematicLaunch: (winner: TeamId | 'draw') => void;
 
   setParallax: (x: number, y: number) => void;
@@ -127,6 +135,15 @@ export type MissionControlStore = {
   blueSpacecraft: Spacecraft3DState;
   redSpacecraft: Spacecraft3DState;
 
+  // Power-Ups & Misconceptions State
+  bluePowerUps: TeamPowerUps;
+  redPowerUps: TeamPowerUps;
+  blueMisconception: string | null;
+  redMisconception: string | null;
+  blueEliminatedOptions: (number | string)[];
+  redEliminatedOptions: (number | string)[];
+  isTieBreak: boolean;
+
   winnerTeam: TeamId | 'draw' | null;
   timeRemaining: number;
   timerActive: boolean;
@@ -136,6 +153,7 @@ export type MissionControlStore = {
   parallaxY: number;
   isMuted: boolean;
 } & MissionControlActions;
+
 
 const initialCampaign = generateDynamicCampaign(0);
 
@@ -152,6 +170,14 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   redTeam: createDefaultTeamState('red', 'RED TEAM'),
   blueSpacecraft: createDefaultSpacecraftState('blue'),
   redSpacecraft: createDefaultSpacecraftState('red'),
+
+  bluePowerUps: initialTeamPowerUps(),
+  redPowerUps: initialTeamPowerUps(),
+  blueMisconception: null,
+  redMisconception: null,
+  blueEliminatedOptions: [],
+  redEliminatedOptions: [],
+  isTieBreak: false,
 
   winnerTeam: null,
   timeRemaining: 40,
@@ -216,6 +242,13 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       timerActive: true,
       toastMessage: initialToast,
       cameraTarget: 'overview',
+      bluePowerUps: initialTeamPowerUps(),
+      redPowerUps: initialTeamPowerUps(),
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
+      isTieBreak: false,
       blueTeam: {
         ...createDefaultTeamState('blue', get().blueTeam.name),
         score: isBlueBoosted ? 100 : 0,
@@ -230,6 +263,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       redSpacecraft: initialRedShip,
     });
   },
+
 
   startStage: (stageIndex) => {
     clearAutoAdvance();
@@ -250,6 +284,96 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   setParallax: (x, y) => set({ parallaxX: x, parallaxY: y }),
   setCameraTarget: (target) => set({ cameraTarget: target }),
 
+  // ── Tactical Power-up Actions (1 per match per team) ──
+  usePowerUp5050: (team) => {
+    const state = get();
+    const ch = state.activeChallenge;
+    if (!ch || (state.phase !== 'active-mission' && state.phase !== 'tie-break')) return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.fiftyFifty) return;
+
+    const wrongOpts = ch.options
+      .filter((o) => String(o.value).trim().toLowerCase() !== String(ch.correctAnswer).trim().toLowerCase())
+      .map((o) => o.value);
+    const toEliminate = wrongOpts.slice(0, 2);
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        fiftyFifty: false,
+      },
+      [isBlue ? 'blueEliminatedOptions' : 'redEliminatedOptions']: toEliminate,
+      toastMessage: `🔍 50:50 ELIMINATOR ACTIVATED FOR ${isBlue ? s.blueTeam.name : s.redTeam.name}! 2 OPTIONS REMOVED!`,
+    }));
+  },
+
+  usePowerUpTimeFreeze: (team) => {
+    const state = get();
+    if (state.phase !== 'active-mission' && state.phase !== 'tie-break') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.timeFreeze) return;
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        timeFreeze: false,
+      },
+      timeRemaining: s.timeRemaining + 10,
+      toastMessage: `⏳ TIME FREEZE ACTIVATED! +10 SECONDS ADDED!`,
+    }));
+  },
+
+  usePowerUp2x: (team) => {
+    const state = get();
+    if (state.phase !== 'active-mission' && state.phase !== 'tie-break') return;
+    const isBlue = team === 'blue';
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    if (!powerUps.doublePoints) return;
+
+    soundManager.play('powerup');
+    set((s) => ({
+      [isBlue ? 'bluePowerUps' : 'redPowerUps']: {
+        ...powerUps,
+        doublePoints: false,
+        active2x: true,
+      },
+      toastMessage: `⚡ 2X SCORE MULTIPLIER ACTIVATED FOR ${isBlue ? s.blueTeam.name : s.redTeam.name}!`,
+    }));
+  },
+
+  // ── Sudden Death "Speed Duel" Tiebreaker (15-second rapid question) ──
+  startTieBreak: () => {
+    const rapidCampaign = generateDynamicCampaign(Date.now());
+    const rapidChallenge = rapidCampaign.challenges[0];
+
+    soundManager.play('powerup');
+    set((prev) => ({
+      phase: 'tie-break',
+      isTieBreak: true,
+      activeChallenge: rapidChallenge,
+      timeRemaining: 15,
+      timerActive: true,
+      cameraTarget: 'overview',
+      toastMessage: `🚨 SUDDEN DEATH SPEED DUEL! 15 SECONDS! FIRST CORRECT TELEMETRY WINS!`,
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
+      blueTeam: {
+        ...resetTeamForQuestion(prev.blueTeam),
+        attemptsLeft: 1,
+      },
+      redTeam: {
+        ...resetTeamForQuestion(prev.redTeam),
+        attemptsLeft: 1,
+      },
+    }));
+  },
+
   // --------------------------------------------------------------------------
   // FIRST-ANSWERER & REBOUND ENGINE (From Train Game)
   // RACE TO 5 CORRECT ANSWERS BEFORE ROCKET LIFTOFF
@@ -257,7 +381,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   setTeamAnswer: (team, answer) => {
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
     const cur = get()[key];
-    if (cur.isLocked || get().phase !== 'active-mission') return;
+    if (cur.isLocked || (get().phase !== 'active-mission' && get().phase !== 'tie-break')) return;
     soundManager.play('click');
     set({
       [key]: { ...cur, selectedAnswer: answer },
@@ -267,7 +391,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
   lockInTeam: (team) => {
     const state = get();
     const ch = state.activeChallenge;
-    if (!ch || state.phase !== 'active-mission') return;
+    if (!ch || (state.phase !== 'active-mission' && state.phase !== 'tie-break')) return;
 
     const isBlue = team === 'blue';
     const key = isBlue ? 'blueTeam' : 'redTeam';
@@ -276,6 +400,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     const teamState = state[key];
     const otherTeamState = state[otherKey];
     const ship = state[shipKey];
+    const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
 
     if (teamState.isLocked || teamState.selectedAnswer === null) return;
 
@@ -284,11 +409,19 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       String(teamState.selectedAnswer).trim().toLowerCase() ===
       String(ch.correctAnswer).trim().toLowerCase();
 
+    // Check Comeback Surge: +25% bonus points when trailing by 2+ stages or 150+ pts
+    const isTrailingByStages = otherTeamState.stagesCleared - teamState.stagesCleared >= 2;
+    const isTrailingByPoints = otherTeamState.score - teamState.score >= 150;
+    const isComebackSurge = isTrailingByStages || isTrailingByPoints;
+
     if (isCorrect) {
       // ── WINNING ANSWER: ONLY THIS TEAM'S ROCKET ADVANCES A STAGE ──
       soundManager.playCorrect();
       const speedBonus = Math.max(0, Math.floor(state.timeRemaining * 1.5));
-      const pointsGained = ch.points + speedBonus;
+      const rawPoints = ch.points + speedBonus;
+      const surgeBonus = isComebackSurge ? Math.round(rawPoints * 0.25) : 0;
+      const multiplier = powerUps.active2x ? 2 : 1;
+      const pointsGained = (rawPoints + surgeBonus) * multiplier;
       const newStreak = teamState.streak + 1;
       const newStagesCleared = teamState.stagesCleared + 1;
 
@@ -336,6 +469,24 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
         updatedShip.isWeldingActive = false;
       }
 
+      // Sudden Death Instant Win Handling
+      if (state.phase === 'tie-break' || state.isTieBreak) {
+        set({
+          winnerTeam: team,
+          timerActive: false,
+          [key]: {
+            ...teamState,
+            score: teamState.score + pointsGained,
+            stagesCleared: newStagesCleared,
+          },
+        });
+        get().run12StepCinematicLaunch(team);
+        return;
+      }
+
+      // Reset active 2x multiplier
+      const updatedPowerUps = powerUps.active2x ? { ...powerUps, active2x: false } : powerUps;
+
       set({
         [key]: {
           ...teamState,
@@ -347,7 +498,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           stagesCleared: newStagesCleared,
           lastScoreGained: pointsGained,
           lastFeedback: {
-            message: `✅ CORRECT! +${pointsGained} PTS (${newStagesCleared}/${state.targetStages} STAGES)`,
+            message: `✅ CORRECT! +${pointsGained} PTS (${newStagesCleared}/${state.targetStages} STAGES)${isComebackSurge ? ' [⚡SURGE +25%]' : ''}`,
             isCorrect: true,
             pointsEarned: pointsGained,
           },
@@ -356,6 +507,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
           ...otherTeamState,
           isLocked: true, // Claimed by first correct team
         },
+        [isBlue ? 'bluePowerUps' : 'redPowerUps']: updatedPowerUps,
         [shipKey]: updatedShip,
         timerActive: false,
         toastMessage: `🎉 ${teamState.name} CLEARED STAGE ${newStagesCleared}/${state.targetStages}! (+${pointsGained} PTS)`,
@@ -380,7 +532,9 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       soundManager.playWrong();
 
       if (teamState.attemptsLeft > 1) {
-        // 1st Mistake: Allow 1 Retry
+        // 1st Mistake: Allow 1 Retry with Misconception Hint
+        const hint = getMisconceptionHint('algebra', ch.briefingPrompt + ' ' + (ch.hint || ''));
+
         set({
           [key]: {
             ...teamState,
@@ -393,6 +547,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
               pointsEarned: 0,
             },
           },
+          [isBlue ? 'blueMisconception' : 'redMisconception']: hint,
           toastMessage: `⚠️ ${teamState.name} INCORRECT — 1 ATTEMPT REMAINING!`,
         });
       } else {
@@ -437,7 +592,7 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
 
   handleTimerExpired: () => {
     const state = get();
-    if (state.phase !== 'active-mission') return;
+    if (state.phase !== 'active-mission' && state.phase !== 'tie-break') return;
 
     soundManager.playWrong();
     const ch = state.activeChallenge;
@@ -464,6 +619,13 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
     const { campaign, questionPoolIndex, blueTeam, redTeam, targetStages } = get();
 
     // Check if either team has achieved target correct answers
+    if (blueTeam.stagesCleared >= targetStages && redTeam.stagesCleared >= targetStages) {
+      if (blueTeam.stagesCleared === redTeam.stagesCleared && blueTeam.score === redTeam.score) {
+        get().startTieBreak();
+        return;
+      }
+    }
+
     if (blueTeam.stagesCleared >= targetStages) {
       set({ winnerTeam: 'blue' });
       get().run12StepCinematicLaunch('blue');
@@ -487,12 +649,19 @@ export const useMissionControlStore = create<MissionControlStore>((set, get) => 
       activeChallenge: nextChallenge,
       timeRemaining: nextChallenge.timeLimit,
       timerActive: true,
+      blueMisconception: null,
+      redMisconception: null,
+      blueEliminatedOptions: [],
+      redEliminatedOptions: [],
+      bluePowerUps: { ...s.bluePowerUps, active2x: false },
+      redPowerUps: { ...s.redPowerUps, active2x: false },
       toastMessage: `🚀 Q${nextPoolIdx + 1}: ${nextChallenge.stageTitle} (${blueTeam.stagesCleared}/${targetStages} vs ${redTeam.stagesCleared}/${targetStages})`,
       cameraTarget: 'overview',
       blueTeam: resetTeamForQuestion(s.blueTeam),
       redTeam: resetTeamForQuestion(s.redTeam),
     }));
   },
+
 
   // --------------------------------------------------------------------------
   // 12-STEP SINGLE-ROCKET CINEMATIC LIFTOFF SEQUENCER

@@ -20,10 +20,14 @@ import {
   Hammer,
   Boxes,
   Gauge,
+  Sparkles,
+  Zap,
 } from 'lucide-react';
 import { MechanicType, TeamBuild, TeamId } from '../types';
 import { useBlueprintStore } from '../store/blueprintStore';
 import { blueprintAudio } from '../audio/blueprintAudio';
+import { PowerUpTray } from '@/components/shared/PowerUpTray';
+import { DigitalScratchpad } from '@/components/shared/DigitalScratchpad';
 
 interface TeamControlPanelProps {
   teamId: TeamId;
@@ -61,13 +65,28 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
     setShapeType,
     blueTeam,
     redTeam,
+    bluePowerUps,
+    redPowerUps,
+    blueMisconception,
+    redMisconception,
+    usePowerUp5050,
+    usePowerUpTimeFreeze,
+    usePowerUp2x,
     phase,
     activeChallenge,
   } = useBlueprintStore();
 
-  const teamState = teamId === 'blue' ? blueTeam : redTeam;
-  const scanResult = teamState.scanResult;
   const isBlue = teamId === 'blue';
+  const teamState = isBlue ? blueTeam : redTeam;
+  const otherTeam = isBlue ? redTeam : blueTeam;
+  const teamPowerUps = isBlue ? bluePowerUps : redPowerUps;
+  const misconception = isBlue ? blueMisconception : redMisconception;
+  const scanResult = teamState.scanResult;
+
+  // Check Comeback Surge
+  const isTrailingByChallenges = otherTeam.completedChallengesCount - teamState.completedChallengesCount >= 2;
+  const isTrailingByPoints = otherTeam.score - teamState.score >= 150;
+  const isComebackSurge = isTrailingByChallenges || isTrailingByPoints;
 
   const isCorrect = scanResult?.isCorrect === true;
   const isWrong = scanResult !== null && scanResult?.isCorrect === false;
@@ -115,7 +134,7 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
   return (
     <div
-      className={`w-full max-w-[340px] flex flex-col gap-2.5 p-3 rounded-2xl ${workstationClass} select-none z-20 text-slate-950`}
+      className={`w-full max-w-[340px] flex flex-col gap-2 p-3 rounded-2xl ${workstationClass} select-none z-20 text-slate-950 max-h-[92vh] overflow-y-auto`}
     >
       {/* ── TOP BOLTS & HAZARD SAFETY STRIPING ── */}
       <div className="flex items-center justify-between px-1">
@@ -123,6 +142,14 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
         <div className="h-2 flex-1 mx-3 rounded-full bb-hazard-stripe border border-slate-950" />
         <div className="bb-bolt" />
       </div>
+
+      {/* ── COMEBACK SURGE NOTIFIER ── */}
+      {isComebackSurge && (
+        <div className="bg-amber-400 text-slate-950 px-2.5 py-1 rounded-xl text-[10px] font-black uppercase tracking-wider flex items-center justify-center gap-1 shadow-md border-2 border-slate-950 animate-pulse">
+          <Zap className="w-3.5 h-3.5 fill-current" />
+          <span>⚡ COMEBACK SURGE (+25% BONUS POINTS)</span>
+        </div>
+      )}
 
       {/* ── CONSOLE WORKSTATION TEAM BANNER & 2-CHANCE BADGE ── */}
       <div
@@ -162,6 +189,21 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
         </div>
       </div>
 
+      {/* ── TARGETED MISCONCEPTION HINT (On 1st error) ── */}
+      {misconception && !isCorrect && teamState.attemptsLeft === 1 && (
+        <div className="bg-amber-100 border-2 border-amber-500 p-2 rounded-xl text-left shadow-md flex items-start gap-1.5 animate-in fade-in">
+          <span className="text-sm shrink-0">💡</span>
+          <div className="flex flex-col">
+            <span className="text-[9px] font-black uppercase tracking-wider text-amber-900">
+              COACH TIP:
+            </span>
+            <span className="text-[10px] font-bold text-slate-900 leading-tight">
+              {misconception}
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* ── ACTIVE MISSION OBJECTIVE / QUESTION STRIP ── */}
       {activeChallenge && (
         <div className="bg-amber-100/95 border-2 border-amber-400 px-2.5 py-1.5 rounded-xl text-slate-950 flex flex-col gap-0.5 shadow-sm">
@@ -179,6 +221,7 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
           </p>
         </div>
       )}
+
 
       {/* ── BRIGHT INDUSTRIAL GAUGES (AREA & VOLUME) ── */}
       <div className="grid grid-cols-2 gap-2 bg-amber-50 p-2 rounded-xl border-2 border-amber-300 shadow-sm">
@@ -493,6 +536,26 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
         )}
       </button>
 
+      {/* ── TACTICAL POWER-UPS TRAY ── */}
+      <div className="bg-white/95 p-1.5 rounded-xl border-2 border-slate-300 shadow-sm">
+        <PowerUpTray
+          teamId={teamId}
+          powerUps={teamPowerUps}
+          onUse5050={() => usePowerUp5050(teamId)}
+          onUseTimeFreeze={() => usePowerUpTimeFreeze(teamId)}
+          onUse2x={() => usePowerUp2x(teamId)}
+          disabled={isLocked || isConfirmed}
+        />
+      </div>
+
+      {/* ── DIGITAL SCRATCHPAD (Rough Work) ── */}
+      <div className="w-full">
+        <DigitalScratchpad
+          teamId={teamId}
+          teamName={teamName}
+        />
+      </div>
+
       {/* ── BOTTOM BOLTS ── */}
       <div className="flex items-center justify-between px-1">
         <div className="bb-bolt" />
@@ -501,3 +564,4 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
     </div>
   );
 };
+
