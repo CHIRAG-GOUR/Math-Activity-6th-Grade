@@ -15,7 +15,7 @@ import { usePatternStore } from '../store/patternStore';
 
 export const TrackBuilderMachine3D: React.FC = () => {
   const currentRound = usePatternStore((s) => s.currentRound);
-  const trackBuilderDeploying = usePatternStore((s) => s.trackBuilderDeploying);
+  const trackBuilderDeploying = currentRound === 2;
 
   const isVisible = currentRound >= 2;
   const boomRef = useRef<THREE.Group>(null);

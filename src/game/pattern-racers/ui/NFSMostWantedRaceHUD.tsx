@@ -1,459 +1,252 @@
 // ============================================================
-// PATTERN RACERS — Need for Speed / Forza Grand Prix HUD
-// Full-Screen High-Energy Live Racing Cockpit Overlay:
-// - Left: Blue Team Speedometer, Tachometer, NOS Tanks & D-Pad Arrow Controls
-// - Center: Real-Time Circuit Radar Minimap & Analog Virtual Touch Joystick
-// - Right: Red Team Speedometer, Tachometer, NOS Tanks & D-Pad Arrow Controls
-// - Advantage Display for Math Round Champions (3x Nitrous, Pole Position)
+// PATTERN RACERS — Live Grand Prix Cockpit HUD & 3-2-1 Countdown
+// HARD REQUIREMENT:
+// - Controls HUD appears ONLY at countdown "3" and during live race.
+// - Hidden completely during Questions 1-4.
+// - Giant 3-2-1-GO visual countdown.
+// - Split Dual Cockpit Controls for Blue (Left) & Red (Right) Teams.
+// - Head Start launch restraint timer for trailing team.
 // ============================================================
 
 'use client';
 
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { motion } from 'framer-motion';
+import React from 'react';
 import { usePatternStore } from '../store/patternStore';
-import { getTrackPointAt, TRACK_TOTAL_LENGTH_METERS, TRACK_FINISH_PROGRESS } from '../engine/trackPath';
-import { Flame, Gauge, Zap, ChevronUp, ChevronDown, ChevronLeft, ChevronRight, Navigation } from 'lucide-react';
+import {
+  Gauge,
+  Flame,
+  ArrowUp,
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ShieldCheck,
+  Zap,
+  Timer,
+  Flag,
+} from 'lucide-react';
 
 export const NFSMostWantedRaceHUD: React.FC = () => {
+  const phase = usePatternStore((s) => s.phase);
+  const countdownValue = usePatternStore((s) => s.countdownValue);
+  const raceWinner = usePatternStore((s) => s.raceWinner);
+
   const blueTeam = usePatternStore((s) => s.blueTeam);
   const redTeam = usePatternStore((s) => s.redTeam);
+
   const pressThrottle = usePatternStore((s) => s.pressThrottle);
   const releaseThrottle = usePatternStore((s) => s.releaseThrottle);
   const pressBrake = usePatternStore((s) => s.pressBrake);
   const releaseBrake = usePatternStore((s) => s.releaseBrake);
-  const setSteerInput = usePatternStore((s) => s.setSteerInput);
-  const switchLane = usePatternStore((s) => s.switchLane);
+  const startSteering = usePatternStore((s) => s.startSteering);
+  const stopSteering = usePatternStore((s) => s.stopSteering);
   const triggerNitro = usePatternStore((s) => s.triggerNitro);
-  const applyVirtualJoystick = usePatternStore((s) => s.applyVirtualJoystick);
-  const raceLights = usePatternStore((s) => s.raceLights);
 
-  const bCtrl = blueTeam.raceControls;
-  const rCtrl = redTeam.raceControls;
+  // HARD RULE: Only show when countdown has started or during live race
+  const isVisible = phase === 'pre_race_countdown' || phase === 'grand_prix_race';
 
-  // ── VIRTUAL JOYSTICK STATE ──
-  const joystickBaseRef = useRef<HTMLDivElement>(null);
-  const [joystickActive, setJoystickActive] = useState(false);
-  const [knobPos, setKnobPos] = useState({ x: 0, y: 0 });
-
-  const handleJoystickMove = useCallback((clientX: number, clientY: number) => {
-    if (!joystickBaseRef.current) return;
-    const rect = joystickBaseRef.current.getBoundingClientRect();
-    const centerX = rect.left + rect.width / 2;
-    const centerY = rect.top + rect.height / 2;
-    const maxRadius = rect.width / 2 - 15;
-
-    const dx = clientX - centerX;
-    const dy = clientY - centerY;
-    const distance = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-
-    const clampedDist = Math.min(distance, maxRadius);
-    const clampedX = Math.cos(angle) * clampedDist;
-    const clampedY = Math.sin(angle) * clampedDist;
-
-    setKnobPos({ x: clampedX, y: clampedY });
-
-    // Normalized inputs: X in [-1, 1], Y in [-1, 1] (negative Y is up)
-    const normX = clampedX / maxRadius;
-    const normY = -clampedY / maxRadius; // invert so up is positive throttle
-
-    applyVirtualJoystick('blue', { x: normX, y: normY });
-    applyVirtualJoystick('red', { x: normX, y: normY });
-  }, [applyVirtualJoystick]);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    setJoystickActive(true);
-    handleJoystickMove(e.clientX, e.clientY);
-  };
-
-  useEffect(() => {
-    const onPointerMove = (e: PointerEvent) => {
-      if (joystickActive) {
-        handleJoystickMove(e.clientX, e.clientY);
-      }
-    };
-    const onPointerUp = () => {
-      if (joystickActive) {
-        setJoystickActive(false);
-        setKnobPos({ x: 0, y: 0 });
-        setSteerInput('blue', 0);
-        setSteerInput('red', 0);
-        releaseThrottle('blue');
-        releaseThrottle('red');
-      }
-    };
-
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-    return () => {
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
-    };
-  }, [joystickActive, handleJoystickMove, setSteerInput, releaseThrottle]);
-
-  // Track progress calculations
-  const blueDistRemaining = Math.max(0, Math.round((TRACK_FINISH_PROGRESS - bCtrl.trackProgress) * TRACK_TOTAL_LENGTH_METERS));
-  const redDistRemaining = Math.max(0, Math.round((TRACK_FINISH_PROGRESS - rCtrl.trackProgress) * TRACK_TOTAL_LENGTH_METERS));
-  const blueIsLeader = bCtrl.trackProgress >= rCtrl.trackProgress;
-
-  // Mini-map coordinates along 2D SVG track curve
-  const getMinimapCoords = (progress: number) => {
-    const pt = getTrackPointAt(progress);
-    const svgX = 60 + pt.x * 2.2;
-    const svgY = 240 + (pt.z / 205) * 220;
-    return { x: svgX, y: svgY };
-  };
-
-  const blueDot = getMinimapCoords(bCtrl.trackProgress);
-  const redDot = getMinimapCoords(rCtrl.trackProgress);
+  if (!isVisible) return null;
 
   return (
-    <div className="absolute inset-0 z-30 pointer-events-none flex flex-col justify-between p-3 select-none">
-      {/* ── TOP RACE STATUS & ADVANTAGE BANNER ── */}
-      <div className="w-full flex items-start justify-between">
-        {/* Blue Team Top Stat Tag */}
-        <div className="flex items-center gap-2 bg-blue-950/80 backdrop-blur-md border-2 border-blue-500/80 px-4 py-2 rounded-2xl shadow-[0_0_20px_rgba(37,99,235,0.4)]">
-          <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-ping" />
+    <div className="absolute inset-0 z-30 pointer-events-none select-none flex flex-col justify-between p-4">
+      {/* ── 1. GIANT PHYSICAL 3-2-1-GO COUNTDOWN ── */}
+      {countdownValue !== null && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 pointer-events-none">
+          <div
+            key={`cd-${countdownValue}`}
+            className="animate-in zoom-in-50 duration-300 flex flex-col items-center justify-center"
+          >
+            <div className="text-[120px] font-black italic tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-amber-300 via-amber-400 to-orange-600 drop-shadow-[0_15px_35px_rgba(245,158,11,0.8)]">
+              {countdownValue}
+            </div>
+            <div className="px-6 py-2 rounded-2xl bg-slate-950/90 border-2 border-amber-400 text-amber-300 font-extrabold text-sm uppercase tracking-widest shadow-2xl">
+              {countdownValue === 'GO' ? 'RACE DUEL ENGAGED!' : 'CONTROLS ACTIVE — PREPARE LAUNCH'}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── 2. TOP RACE BANNER & TELEMETRY ── */}
+      <div className="w-full flex items-center justify-between px-6 pt-2">
+        {/* Blue Team Race Mini Banner */}
+        <div className="px-4 py-2 rounded-2xl bg-blue-950/90 backdrop-blur-md border-2 border-blue-500 shadow-lg flex items-center gap-3">
+          <div className="w-3 h-3 rounded-full bg-blue-400 animate-ping" />
           <div>
-            <div className="text-[10px] font-black uppercase text-blue-300 tracking-wider">
-              {blueTeam.name}
-            </div>
-            <div className="text-xs font-black text-white flex items-center gap-1.5">
-              <span>{blueIsLeader ? '🥇 1st PLACE' : '🥈 2nd PLACE'}</span>
-              <span className="text-blue-300 font-mono text-[10px]">({blueDistRemaining}m to flag)</span>
-            </div>
-            {bCtrl.hasAdvantage && (
-              <div className="text-[9px] font-black text-yellow-300 bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-400/30 mt-0.5">
-                ⚡ 3X NOS + POLE POSITION ADVANTAGE
-              </div>
-            )}
+            <div className="text-[10px] font-extrabold text-blue-300 uppercase tracking-widest">BLUE VELOCITY #01</div>
+            <div className="text-sm font-black text-white">{blueTeam.raceControls.speedKmh} KM/H</div>
           </div>
         </div>
 
-        {/* Center Mini-map Radar */}
-        <div className="flex flex-col items-center bg-slate-950/85 backdrop-blur-md border-2 border-slate-700/80 p-2.5 rounded-3xl shadow-2xl">
-          <div className="text-[10px] font-black uppercase tracking-widest text-amber-400 flex items-center gap-1 mb-1">
-            <Navigation className="w-3 h-3 text-amber-400 animate-spin" style={{ animationDuration: '6s' }} />
-            <span>CIRCUIT RADAR</span>
-          </div>
-
-          <div className="relative w-32 h-20 bg-slate-900/90 rounded-2xl border border-slate-800 overflow-hidden flex items-center justify-center">
-            {/* SVG Curving Circuit Track */}
-            <svg viewBox="0 0 120 260" className="w-full h-full p-2">
-              {/* Asphalt Line */}
-              <path
-                d="M 60 240 C 60 210, 60 190, 80 160 C 100 130, 80 100, 30 70 C 20 50, 60 30, 60 10"
-                fill="none"
-                stroke="#334155"
-                strokeWidth="16"
-                strokeLinecap="round"
-              />
-              {/* Dashed Center Guide */}
-              <path
-                d="M 60 240 C 60 210, 60 190, 80 160 C 100 130, 80 100, 30 70 C 20 50, 60 30, 60 10"
-                fill="none"
-                stroke="#e2e8f0"
-                strokeWidth="2"
-                strokeDasharray="4 4"
-              />
-              {/* Finish Line Checkered Mark */}
-              <line x1="45" y1="20" x2="75" y2="20" stroke="#fbbf24" strokeWidth="4" strokeDasharray="3 3" />
-
-              {/* Live Blue Racer Dot */}
-              <circle
-                cx={blueDot.x}
-                cy={blueDot.y}
-                r="7"
-                fill="#3b82f6"
-                stroke="#ffffff"
-                strokeWidth="2"
-                className="transition-all duration-75 shadow-lg"
-              />
-
-              {/* Live Red Racer Dot */}
-              <circle
-                cx={redDot.x}
-                cy={redDot.y}
-                r="7"
-                fill="#ef4444"
-                stroke="#ffffff"
-                strokeWidth="2"
-                className="transition-all duration-75 shadow-lg"
-              />
-            </svg>
-          </div>
+        {/* Center Finish Progress */}
+        <div className="px-5 py-1.5 rounded-full bg-slate-950/90 backdrop-blur-md border border-slate-700 text-xs font-black text-amber-400 uppercase tracking-widest flex items-center gap-2">
+          <Flag className="w-4 h-4 text-amber-400" />
+          <span>750M GRAND PRIX SPRINT</span>
         </div>
 
-        {/* Red Team Top Stat Tag */}
-        <div className="flex items-center gap-2 bg-red-950/80 backdrop-blur-md border-2 border-red-500/80 px-4 py-2 rounded-2xl shadow-[0_0_20px_rgba(220,38,38,0.4)]">
+        {/* Red Team Race Mini Banner */}
+        <div className="px-4 py-2 rounded-2xl bg-red-950/90 backdrop-blur-md border-2 border-red-500 shadow-lg flex items-center gap-3">
           <div className="text-right">
-            <div className="text-[10px] font-black uppercase text-red-300 tracking-wider">
-              {redTeam.name}
-            </div>
-            <div className="text-xs font-black text-white flex items-center justify-end gap-1.5">
-              <span className="text-red-300 font-mono text-[10px]">({redDistRemaining}m to flag)</span>
-              <span>{!blueIsLeader ? '🥇 1st PLACE' : '🥈 2nd PLACE'}</span>
-            </div>
-            {rCtrl.hasAdvantage && (
-              <div className="text-[9px] font-black text-yellow-300 bg-yellow-500/20 px-1.5 py-0.5 rounded border border-yellow-400/30 mt-0.5">
-                ⚡ 3X NOS + POLE POSITION ADVANTAGE
-              </div>
-            )}
+            <div className="text-[10px] font-extrabold text-red-300 uppercase tracking-widest">RED TURBO #02</div>
+            <div className="text-sm font-black text-white">{redTeam.raceControls.speedKmh} KM/H</div>
           </div>
-          <div className="w-3.5 h-3.5 rounded-full bg-red-500 animate-ping" />
+          <div className="w-3 h-3 rounded-full bg-red-400 animate-ping" />
         </div>
       </div>
 
-      {/* ── BOTTOM COCKPIT HUD CONTROLS ── */}
-      <div className="w-full flex items-end justify-between gap-4">
-        {/* ============================================================ */}
-        {/* 1. BLUE TEAM CONTROLS (LEFT)                                  */}
-        {/* ============================================================ */}
-        <div className="pointer-events-auto flex flex-col gap-2.5 p-3 rounded-3xl bg-slate-950/90 backdrop-blur-lg border-3 border-blue-500/80 shadow-[0_0_35px_rgba(37,99,235,0.4)] max-w-[340px]">
-          {/* Blue Speedometer & Tachometer Cluster */}
-          <div className="flex items-center justify-between bg-slate-900/90 border border-blue-500/40 px-3 py-2 rounded-2xl">
-            <div className="flex items-baseline gap-1">
-              <span className="font-mono text-3xl font-black text-white tracking-tighter drop-shadow">
-                {bCtrl.speedKmh}
+      {/* ── 3. DUAL-TEAM COCKPIT CONTROLS (LEFT FOR BLUE | RIGHT FOR RED) ── */}
+      <div className="w-full flex items-end justify-between pb-2">
+        {/* ── BLUE TEAM CONTROLS (LEFT) ── */}
+        <div className="pointer-events-auto flex flex-col gap-3 p-4 rounded-3xl bg-slate-950/90 backdrop-blur-xl border-2 border-blue-500/80 shadow-2xl w-80">
+          <div className="flex items-center justify-between border-b border-blue-900/60 pb-2">
+            <span className="font-black text-xs text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Gauge className="w-4 h-4" />
+              BLUE RACER COCKPIT
+            </span>
+            {blueTeam.raceControls.isHeldByHeadStart && (
+              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+                HOLDING: 3.5s HEAD START
               </span>
-              <span className="text-[10px] font-black text-blue-400">KM/H</span>
-            </div>
-
-            {/* Gear & RPM readout */}
-            <div className="text-right">
-              <div className="text-xs font-black text-amber-400">GEAR {bCtrl.gear}</div>
-              <div className="text-[10px] font-mono text-slate-400">{bCtrl.rpm} RPM</div>
-            </div>
+            )}
           </div>
 
-          {/* Blue NOS Nitrous Bar & Trigger */}
-          <div className="flex items-center gap-2">
-            <div className="flex-1 flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[10px] font-black text-blue-300">
-                <span className="flex items-center gap-1">
-                  <Flame className="w-3.5 h-3.5 text-blue-400" />
-                  <span>NITROUS TANKS: {bCtrl.nitroCharges}x</span>
-                </span>
-                <span>{Math.round(bCtrl.nitroRemaining)}%</span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden border border-blue-400/40">
-                <div
-                  className={`h-full transition-all duration-75 ${
-                    bCtrl.nitroActive ? 'bg-cyan-300 shadow-[0_0_12px_#38bdf8]' : 'bg-blue-500'
-                  }`}
-                  style={{ width: `${bCtrl.nitroRemaining}%` }}
-                />
-              </div>
-            </div>
-
-            {/* NOS Button */}
+          {/* Throttle / Brake / Steer Touch Buttons */}
+          <div className="grid grid-cols-3 gap-2">
             <button
-              onPointerDown={() => triggerNitro('blue')}
-              disabled={bCtrl.nitroCharges <= 0 && bCtrl.nitroRemaining <= 0}
-              className={`px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider border-2 cursor-pointer transition active:scale-90 flex items-center gap-1 ${
-                bCtrl.nitroActive
-                  ? 'bg-cyan-400 text-slate-950 border-cyan-200 shadow-[0_0_20px_#22d3ee]'
-                  : bCtrl.nitroCharges > 0
-                  ? 'bg-blue-600 hover:bg-blue-500 text-white border-blue-300 shadow-[0_0_15px_rgba(37,99,235,0.6)]'
-                  : 'bg-slate-800 text-slate-500 border-slate-700'
-              }`}
+              onPointerDown={() => startSteering('blue', 'left')}
+              onPointerUp={() => stopSteering('blue')}
+              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
             >
-              <Zap className="w-4 h-4 fill-current" />
-              <span>NOS</span>
+              <ArrowLeft className="w-7 h-7" />
             </button>
-          </div>
 
-          {/* Blue Arrow D-Pad Controls */}
-          <div className="flex items-center justify-center pt-1">
-            <div className="grid grid-cols-3 gap-2 w-48">
-              <div />
-              {/* UP / THROTTLE */}
+            <div className="flex flex-col gap-2">
               <button
                 onPointerDown={() => pressThrottle('blue')}
                 onPointerUp={() => releaseThrottle('blue')}
-                onPointerLeave={() => releaseThrottle('blue')}
-                className="h-12 rounded-xl bg-blue-600 hover:bg-blue-500 active:bg-blue-400 text-white font-black border-2 border-blue-300 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
+                disabled={blueTeam.raceControls.isHeldByHeadStart}
+                className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 border border-emerald-300 text-white font-black flex flex-col items-center justify-center shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-40"
               >
-                <ChevronUp className="w-7 h-7" />
-              </button>
-              <div />
-
-              {/* LEFT / STEER LEFT */}
-              <button
-                onPointerDown={() => switchLane('blue', 'left')}
-                className="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-blue-600 text-white font-black border-2 border-slate-600 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
-              >
-                <ChevronLeft className="w-7 h-7" />
+                <ArrowUp className="w-5 h-5" />
+                <span className="text-[10px] uppercase">GAS</span>
               </button>
 
-              {/* DOWN / BRAKE */}
               <button
                 onPointerDown={() => pressBrake('blue')}
                 onPointerUp={() => releaseBrake('blue')}
-                onPointerLeave={() => releaseBrake('blue')}
-                className="h-12 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-400 text-white font-black border-2 border-rose-300 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
+                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer"
               >
-                <ChevronDown className="w-7 h-7" />
-              </button>
-
-              {/* RIGHT / STEER RIGHT */}
-              <button
-                onPointerDown={() => switchLane('blue', 'right')}
-                className="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-blue-600 text-white font-black border-2 border-slate-600 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
-              >
-                <ChevronRight className="w-7 h-7" />
+                <ArrowDown className="w-4 h-4" />
+                <span className="text-[9px] uppercase">BRAKE</span>
               </button>
             </div>
-          </div>
-          <div className="text-[9px] font-mono text-center text-blue-300">
-            KEYBOARD: [W / A / S / D] + [SPACE / SHIFT]
-          </div>
-        </div>
 
-        {/* ============================================================ */}
-        {/* 2. CENTER VIRTUAL JOYSTICK & STEERING WHEEL                   */}
-        {/* ============================================================ */}
-        <div className="pointer-events-auto flex flex-col items-center gap-1">
-          <div className="text-[10px] font-black uppercase tracking-widest text-amber-300 bg-black/80 px-3 py-1 rounded-full border border-amber-400/40">
-            TOUCH JOYSTICK / STEERING WHEEL
-          </div>
-
-          <div
-            ref={joystickBaseRef}
-            onPointerDown={handlePointerDown}
-            className="relative w-36 h-36 sm:w-44 sm:h-44 rounded-full bg-slate-950/90 border-4 border-amber-400/80 shadow-[0_0_35px_rgba(251,191,36,0.3)] flex items-center justify-center touch-none cursor-grab active:cursor-grabbing backdrop-blur-lg"
-          >
-            {/* Background Crosshair Guides */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-full h-0.5 bg-amber-400/20" />
-              <div className="h-full w-0.5 bg-amber-400/20 absolute" />
-              <div className="w-20 h-20 rounded-full border border-amber-400/30" />
-            </div>
-
-            {/* Draggable Analog Joystick Knob */}
-            <motion.div
-              animate={{ x: knobPos.x, y: knobPos.y }}
-              transition={{ type: 'spring', damping: 20, stiffness: 350 }}
-              className={`w-16 h-16 sm:w-20 sm:h-20 rounded-full border-3 shadow-2xl flex flex-col items-center justify-center text-slate-950 transition-colors ${
-                joystickActive
-                  ? 'bg-gradient-to-b from-amber-300 to-amber-500 border-white shadow-[0_0_25px_#f59e0b]'
-                  : 'bg-gradient-to-b from-slate-200 to-slate-400 border-slate-700'
-              }`}
-            >
-              <Gauge className="w-6 h-6 text-slate-950" />
-              <span className="text-[8px] font-black uppercase tracking-tighter">STEER</span>
-            </motion.div>
-          </div>
-          <div className="text-[9px] font-black text-slate-400 uppercase tracking-wider">
-            DRAG TO ACCELERATE & STEER
-          </div>
-        </div>
-
-        {/* ============================================================ */}
-        {/* 3. RED TEAM CONTROLS (RIGHT)                                 */}
-        {/* ============================================================ */}
-        <div className="pointer-events-auto flex flex-col gap-2.5 p-3 rounded-3xl bg-slate-950/90 backdrop-blur-lg border-3 border-red-500/80 shadow-[0_0_35px_rgba(220,38,38,0.4)] max-w-[340px]">
-          {/* Red Speedometer & Tachometer Cluster */}
-          <div className="flex items-center justify-between bg-slate-900/90 border border-red-500/40 px-3 py-2 rounded-2xl">
-            {/* Gear & RPM readout */}
-            <div>
-              <div className="text-xs font-black text-amber-400">GEAR {rCtrl.gear}</div>
-              <div className="text-[10px] font-mono text-slate-400">{rCtrl.rpm} RPM</div>
-            </div>
-
-            <div className="flex items-baseline gap-1 text-right">
-              <span className="font-mono text-3xl font-black text-white tracking-tighter drop-shadow">
-                {rCtrl.speedKmh}
-              </span>
-              <span className="text-[10px] font-black text-red-400">KM/H</span>
-            </div>
-          </div>
-
-          {/* Red NOS Nitrous Bar & Trigger */}
-          <div className="flex items-center gap-2">
-            {/* NOS Button */}
             <button
-              onPointerDown={() => triggerNitro('red')}
-              disabled={rCtrl.nitroCharges <= 0 && rCtrl.nitroRemaining <= 0}
-              className={`px-3 py-2 rounded-xl font-black text-xs uppercase tracking-wider border-2 cursor-pointer transition active:scale-90 flex items-center gap-1 ${
-                rCtrl.nitroActive
-                  ? 'bg-amber-400 text-slate-950 border-amber-200 shadow-[0_0_20px_#f59e0b]'
-                  : rCtrl.nitroCharges > 0
-                  ? 'bg-red-600 hover:bg-red-500 text-white border-red-300 shadow-[0_0_15px_rgba(220,38,38,0.6)]'
-                  : 'bg-slate-800 text-slate-500 border-slate-700'
-              }`}
+              onPointerDown={() => startSteering('blue', 'right')}
+              onPointerUp={() => stopSteering('blue')}
+              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
             >
-              <Zap className="w-4 h-4 fill-current" />
-              <span>NOS</span>
+              <ArrowRight className="w-7 h-7" />
+            </button>
+          </div>
+
+          {/* Nitro Boost Button */}
+          <button
+            onClick={() => triggerNitro('blue')}
+            disabled={blueTeam.raceControls.nitroCharges <= 0 || blueTeam.raceControls.nitroActive}
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-98 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(6,182,212,0.6)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+          >
+            <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
+            <span>NITROUS BOOST ({blueTeam.raceControls.nitroCharges} LEFT)</span>
+          </button>
+        </div>
+
+        {/* ── RED TEAM CONTROLS (RIGHT) ── */}
+        <div className="pointer-events-auto flex flex-col gap-3 p-4 rounded-3xl bg-slate-950/90 backdrop-blur-xl border-2 border-red-500/80 shadow-2xl w-80">
+          <div className="flex items-center justify-between border-b border-red-900/60 pb-2">
+            <span className="font-black text-xs text-red-400 uppercase tracking-wider flex items-center gap-1.5">
+              <Gauge className="w-4 h-4" />
+              RED RACER COCKPIT
+            </span>
+            {redTeam.raceControls.isHeldByHeadStart && (
+              <span className="px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-black animate-pulse">
+                HOLDING: 3.5s HEAD START
+              </span>
+            )}
+          </div>
+
+          {/* Throttle / Brake / Steer Touch Buttons */}
+          <div className="grid grid-cols-3 gap-2">
+            <button
+              onPointerDown={() => startSteering('red', 'left')}
+              onPointerUp={() => stopSteering('red')}
+              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+            >
+              <ArrowLeft className="w-7 h-7" />
             </button>
 
-            <div className="flex-1 flex flex-col gap-1">
-              <div className="flex items-center justify-between text-[10px] font-black text-red-300">
-                <span>{Math.round(rCtrl.nitroRemaining)}%</span>
-                <span className="flex items-center gap-1">
-                  <span>NITROUS TANKS: {rCtrl.nitroCharges}x</span>
-                  <Flame className="w-3.5 h-3.5 text-red-400" />
-                </span>
-              </div>
-              <div className="w-full h-2.5 rounded-full bg-slate-800 overflow-hidden border border-red-400/40">
-                <div
-                  className={`h-full transition-all duration-75 ${
-                    rCtrl.nitroActive ? 'bg-amber-300 shadow-[0_0_12px_#f59e0b]' : 'bg-red-500'
-                  }`}
-                  style={{ width: `${rCtrl.nitroRemaining}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          {/* Red Arrow D-Pad Controls */}
-          <div className="flex items-center justify-center pt-1">
-            <div className="grid grid-cols-3 gap-2 w-48">
-              <div />
-              {/* UP / THROTTLE */}
+            <div className="flex flex-col gap-2">
               <button
                 onPointerDown={() => pressThrottle('red')}
                 onPointerUp={() => releaseThrottle('red')}
-                onPointerLeave={() => releaseThrottle('red')}
-                className="h-12 rounded-xl bg-red-600 hover:bg-red-500 active:bg-red-400 text-white font-black border-2 border-red-300 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
+                disabled={redTeam.raceControls.isHeldByHeadStart}
+                className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 border border-emerald-300 text-white font-black flex flex-col items-center justify-center shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-40"
               >
-                <ChevronUp className="w-7 h-7" />
-              </button>
-              <div />
-
-              {/* LEFT / STEER LEFT */}
-              <button
-                onPointerDown={() => switchLane('red', 'left')}
-                className="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-red-600 text-white font-black border-2 border-slate-600 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
-              >
-                <ChevronLeft className="w-7 h-7" />
+                <ArrowUp className="w-5 h-5" />
+                <span className="text-[10px] uppercase">GAS</span>
               </button>
 
-              {/* DOWN / BRAKE */}
               <button
                 onPointerDown={() => pressBrake('red')}
                 onPointerUp={() => releaseBrake('red')}
-                onPointerLeave={() => releaseBrake('red')}
-                className="h-12 rounded-xl bg-rose-600 hover:bg-rose-500 active:bg-rose-400 text-white font-black border-2 border-rose-300 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
+                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer"
               >
-                <ChevronDown className="w-7 h-7" />
-              </button>
-
-              {/* RIGHT / STEER RIGHT */}
-              <button
-                onPointerDown={() => switchLane('red', 'right')}
-                className="h-12 rounded-xl bg-slate-800 hover:bg-slate-700 active:bg-red-600 text-white font-black border-2 border-slate-600 shadow-md flex items-center justify-center cursor-pointer active:scale-90 transition"
-              >
-                <ChevronRight className="w-7 h-7" />
+                <ArrowDown className="w-4 h-4" />
+                <span className="text-[9px] uppercase">BRAKE</span>
               </button>
             </div>
+
+            <button
+              onPointerDown={() => startSteering('red', 'right')}
+              onPointerUp={() => stopSteering('red')}
+              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+            >
+              <ArrowRight className="w-7 h-7" />
+            </button>
           </div>
-          <div className="text-[9px] font-mono text-center text-red-300">
-            KEYBOARD: [↑ / ← / ↓ / →] + [ENTER / NUM 0]
-          </div>
+
+          {/* Nitro Boost Button */}
+          <button
+            onClick={() => triggerNitro('red')}
+            disabled={redTeam.raceControls.nitroCharges <= 0 || redTeam.raceControls.nitroActive}
+            className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 active:scale-98 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(239,68,68,0.6)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+          >
+            <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
+            <span>NITROUS BOOST ({redTeam.raceControls.nitroCharges} LEFT)</span>
+          </button>
         </div>
       </div>
+
+      {/* ── 4. WINNER PODIUM MODAL ON FINISH ── */}
+      {raceWinner && (
+        <div className="absolute inset-0 flex items-center justify-center z-50 bg-slate-950/80 backdrop-blur-md pointer-events-auto">
+          <div className="p-8 rounded-3xl bg-slate-900 border-2 border-amber-400 shadow-2xl text-center flex flex-col items-center gap-4 max-w-md animate-in zoom-in-75">
+            <div className="w-16 h-16 rounded-full bg-amber-500/20 border-2 border-amber-400 flex items-center justify-center text-3xl">
+              🏆
+            </div>
+            <div className="text-2xl font-black text-white uppercase tracking-wider">
+              {raceWinner === 'blue' ? 'BLUE VELOCITY #01 WINS!' : 'RED TURBO #02 WINS!'}
+            </div>
+            <p className="text-sm text-slate-300 font-medium">
+              Championship victory secured! Outstanding sequence calculation and race execution.
+            </p>
+            <button
+              onClick={() => usePatternStore.getState().resetGame()}
+              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 font-black text-sm uppercase tracking-widest shadow-xl hover:brightness-110 active:scale-95 cursor-pointer"
+            >
+              RACE AGAIN (RESTART)
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

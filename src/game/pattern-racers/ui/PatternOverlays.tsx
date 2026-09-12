@@ -1,45 +1,51 @@
 // ============================================================
-// PATTERN RACERS — Match Overlays, Starting Lights & Winner Podium
+// PATTERN RACERS — Match Overlays, Transition Banners & Podium
+// - Intro Match Briefing Modal
+// - Phase Transition Broadcast Banners (Garage -> Pit -> Grid)
+// - Championship Victory Podium & Printable Certificate
 // ============================================================
 
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePatternStore } from '../store/patternStore';
 import { ChampionshipCertificateModal } from '@/components/shared/ChampionshipCertificateModal';
-import { Trophy, Play, RotateCcw, Home } from 'lucide-react';
+import { Trophy, Play, RotateCcw, Home, Flag } from 'lucide-react';
 
 export const PatternOverlays: React.FC = () => {
   const phase = usePatternStore((s) => s.phase);
-  const startMatch = usePatternStore((s) => s.startMatch);
-  const restartGame = usePatternStore((s) => s.restartGame);
-  const raceLights = usePatternStore((s) => s.raceLights);
+  const currentRound = usePatternStore((s) => s.currentRound);
+  const setGamePhase = usePatternStore((s) => s.setGamePhase);
+  const resetGame = usePatternStore((s) => s.resetGame);
   const raceWinner = usePatternStore((s) => s.raceWinner);
   const blueTeam = usePatternStore((s) => s.blueTeam);
   const redTeam = usePatternStore((s) => s.redTeam);
-  const questionCountConfig = usePatternStore((s) => s.questionCountConfig);
-  const setQuestionCount = usePatternStore((s) => s.setQuestionCount);
 
   const [showCertificate, setShowCertificate] = useState(false);
-  const [lightsVisible, setLightsVisible] = useState(false);
-
-  // Auto-hide starting lights after green light is triggered
-  useEffect(() => {
-    if (phase === 'grand_prix_race') {
-      setLightsVisible(true);
-      const timer = setTimeout(() => {
-        setLightsVisible(false);
-      }, 4000);
-      return () => clearTimeout(timer);
-    } else {
-      setLightsVisible(false);
-    }
-  }, [phase]);
 
   const winningTeam =
     raceWinner === 'red' ? redTeam : raceWinner === 'blue' ? blueTeam : blueTeam.score >= redTeam.score ? blueTeam : redTeam;
   const losingTeam = winningTeam.id === 'blue' ? redTeam : blueTeam;
+
+  const getTransitionMessage = () => {
+    if (currentRound === 1) {
+      return {
+        title: 'STAGE 1 COMPLETE: GARAGE DEPARTURE',
+        subtitle: 'GARAGE DOORS OPEN — CARS ENTERING PIT SERVICE BAY!',
+      };
+    }
+    if (currentRound === 2) {
+      return {
+        title: 'STAGE 2 COMPLETE: PIT INSPECTION VERIFIED',
+        subtitle: 'TYRE PRESSURES LOCKED — CARS ROLLING ONTO STARTING GRID!',
+      };
+    }
+    return {
+      title: 'GRID STAGING IN PROGRESS',
+      subtitle: 'REVVING ENGINES — PREPARING LAUNCH SEQUENCE!',
+    };
+  };
 
   return (
     <>
@@ -64,79 +70,50 @@ export const PatternOverlays: React.FC = () => {
               </h2>
 
               <p className="text-xs sm:text-sm font-bold text-slate-700 leading-relaxed max-w-md mx-auto">
-                Progress through 5 authentic Formula Grand Prix stages: calibrate engine diagnostics, execute rapid pit stops, rollout of the factory, stage at the starting grid, and duel down the stadium track with real race controls!
+                Follow your race car through its physical journey: Departure from Garages, Pit Inspection, Starting Grid Staging, Revving Signals, and the final Grand Prix Sprint with 3.5s Head Start powers!
               </p>
 
               {/* 5 Physical Stages Summary */}
-              <div className="grid grid-cols-5 gap-1.5 p-2 rounded-xl bg-slate-100 border-2 border-slate-300 text-[10px] font-black uppercase">
-                <div className="p-1 rounded bg-white border border-slate-300">1. DIAGNOSTICS</div>
-                <div className="p-1 rounded bg-white border border-slate-300">2. PIT STOP</div>
-                <div className="p-1 rounded bg-white border border-slate-300">3. ROLLOUT</div>
-                <div className="p-1 rounded bg-white border border-slate-300">4. GRID LINE</div>
+              <div className="grid grid-cols-5 gap-1.5 p-2 rounded-xl bg-slate-100 border-2 border-slate-300 text-[9px] font-black uppercase">
+                <div className="p-1 rounded bg-white border border-slate-300">1. GARAGE</div>
+                <div className="p-1 rounded bg-white border border-slate-300">2. PIT CHECK</div>
+                <div className="p-1 rounded bg-white border border-slate-300">3. GRID REV 1</div>
+                <div className="p-1 rounded bg-white border border-slate-300">4. PRE-GRID 2</div>
                 <div className="p-1 rounded bg-white border border-slate-300">5. LIVE RACE!</div>
-              </div>
-
-              {/* Question Pacing Selection */}
-              <div className="p-3 rounded-2xl bg-slate-50 border-2 border-slate-300">
-                <span className="text-[10px] font-black uppercase text-slate-600 block mb-2">
-                  SELECT MATCH PACING
-                </span>
-                <div className="grid grid-cols-4 gap-2">
-                  {([5, 10, 15, 20] as const).map((cnt) => (
-                    <button
-                      key={`intro-pacing-${cnt}`}
-                      onClick={() => setQuestionCount(cnt)}
-                      className={`py-2 rounded-xl border-2 font-black text-xs transition cursor-pointer ${
-                        questionCountConfig === cnt
-                          ? 'bg-amber-400 text-slate-950 border-slate-900 shadow-[2px_2px_0px_#000000]'
-                          : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100'
-                      }`}
-                    >
-                      {cnt} QUESTIONS
-                    </button>
-                  ))}
-                </div>
               </div>
 
               {/* Launch Match Button */}
               <button
-                onClick={startMatch}
+                onClick={() => setGamePhase('round_active')}
                 className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wider border-3 border-slate-900 shadow-[4px_4px_0px_#000000] flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-white" />
-                <span>START GRAND PRIX STAGES</span>
+                <span>ENTER TEAM GARAGES & START</span>
               </button>
             </motion.div>
           </div>
         )}
 
-        {/* ── 2. STARTING LIGHTS COUNTDOWN OVERLAY ── */}
-        {phase === 'grand_prix_race' && lightsVisible && (
-          <div className="fixed top-18 left-1/2 -translate-x-1/2 z-40 flex flex-col items-center gap-2 pointer-events-none select-none">
-            <motion.div
-              initial={{ scale: 0.8, opacity: 0, y: -20 }}
-              animate={{ scale: 1, opacity: 1, y: 0 }}
-              exit={{ scale: 0.8, opacity: 0, y: -20 }}
-              className="px-6 py-3 bg-slate-950 border-4 border-slate-900 rounded-2xl shadow-2xl flex items-center gap-3"
-            >
-              {raceLights.map((isLit, idx) => {
-                const isGreen = idx === 4;
-                const isYellow = idx === 3;
-                const color = isGreen ? 'bg-emerald-500 shadow-emerald-500/80' : isYellow ? 'bg-amber-400 shadow-amber-400/80' : 'bg-red-600 shadow-red-600/80';
-                return (
-                  <div
-                    key={`overlay-light-${idx}`}
-                    className={`w-6 h-6 rounded-full border-2 border-black transition-all ${
-                      isLit ? `${color} shadow-lg scale-110` : 'bg-slate-800'
-                    }`}
-                  />
-                );
-              })}
-            </motion.div>
-            <span className="text-xs font-black uppercase text-yellow-300 tracking-widest bg-black/80 px-3 py-1 rounded-full border border-yellow-400/40">
-              {raceLights[4] ? '🟢 RACERS AWAY! RACE TO THE FINISH!' : '🔴 START GRID LOCKED'}
-            </span>
-          </div>
+        {/* ── 2. PHASE TRANSITION BROADCAST BANNER ── */}
+        {phase === 'phase_transition' && (
+          <motion.div
+            initial={{ y: -50, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -50, opacity: 0 }}
+            className="fixed top-8 left-1/2 -translate-x-1/2 z-50 pointer-events-none select-none flex flex-col items-center gap-2"
+          >
+            <div className="px-6 py-3 rounded-2xl bg-slate-950/95 backdrop-blur-md border-3 border-amber-400 shadow-2xl flex items-center gap-3">
+              <div className="w-4 h-4 rounded-full bg-emerald-500 animate-ping" />
+              <div className="text-center">
+                <div className="text-[10px] font-black uppercase text-amber-400 tracking-widest">
+                  {getTransitionMessage().title}
+                </div>
+                <div className="text-sm font-black uppercase text-white tracking-wider">
+                  {getTransitionMessage().subtitle}
+                </div>
+              </div>
+            </div>
+          </motion.div>
         )}
 
         {/* ── 3. CHAMPIONSHIP VICTORY PODIUM ── */}
@@ -184,7 +161,7 @@ export const PatternOverlays: React.FC = () => {
 
                 <div className="flex gap-2">
                   <button
-                    onClick={restartGame}
+                    onClick={resetGame}
                     className="flex-1 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-xs uppercase border-3 border-slate-900 shadow-[3px_3px_0px_#000000] flex items-center justify-center gap-1.5 cursor-pointer transition active:scale-95"
                   >
                     <RotateCcw className="w-4 h-4" />

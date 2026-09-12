@@ -1,95 +1,125 @@
 // ============================================================
 // PATTERN RACERS — 3D Grand Prix Track Path & Curvature Engine
-// Continuous Parametric Spline for NFS-Style Racing Circuit:
-// - Sector 1: Starting Grid Straight (z: 4 -> -20, x: 0)
-// - Sector 2: Sweeping High-Speed Right Banked Sweeper (z: -20 -> -65, x: 0 -> 18)
-// - Sector 3: Mountain Cutting S-Chicane (z: -65 -> -125, x: 18 -> -14)
-// - Sector 4: Sweeping Left Return Bank (z: -125 -> -160, x: -14 -> 0)
-// - Sector 5: Stadium Final Straight towards Checkered Finish Arch (z: -160 -> -200, x: 0)
+// Continuous Parametric Hermite Spline for 820-Meter Grand Prix Racing Circuit:
+// - Sector 1 (t: 0.00 -> 0.38): Main Stadium Straightaway (z: 16 -> -260, x: 0) — 100% Dead Straight!
+// - Sector 2 (t: 0.38 -> 0.58): Turn 1 "Ascari" High-Speed Right Sweeper (z: -260 -> -440, x: 0 -> 24)
+// - Sector 3 (t: 0.58 -> 0.76): Turn 2 "Senna" S-Chicane Transition (z: -440 -> -580, x: 24 -> -10)
+// - Sector 4 (t: 0.76 -> 0.88): Turn 3 "Parabolica" Return Sweeper (z: -580 -> -680, x: -10 -> 0)
+// - Sector 5 (t: 0.88 -> 1.00): Checkered Finish Line Stadium Straight (z: -680 -> -820, x: 0) — 100% Dead Straight!
 // ============================================================
 
 export interface TrackPoint {
   x: number;
   y: number;
   z: number;
-  angle: number;       // Road heading angle in radians (Y-rotation)
-  normalX: number;     // Left/Right perpendicular vector
-  normalZ: number;
+  angle: number;       // Three.js Box / Barrier orientation angle in radians (atan2(Tx, Tz))
+  carAngle: number;    // Vehicle forward heading angle in radians (atan2(-Tx, -Tz))
+  normalX: number;     // Right-pointing unit normal vector X
+  normalZ: number;     // Right-pointing unit normal vector Z
+  tangentX: number;    // Forward unit tangent vector X
+  tangentZ: number;    // Forward unit tangent vector Z
   bankAngle: number;   // Roll banking on high-speed turns
 }
 
-// 6 Key Track Spline Control Nodes
-const TRACK_NODES = [
-  { t: 0.0,  x: 0,   y: 0, z: 4,    bank: 0 },
-  { t: 0.12, x: 0,   y: 0, z: -20,  bank: 0 },
-  { t: 0.25, x: 10,  y: 0, z: -42,  bank: 0.08 },
-  { t: 0.38, x: 18,  y: 0, z: -68,  bank: 0.12 },
-  { t: 0.52, x: 6,   y: 0, z: -98,  bank: -0.06 },
-  { t: 0.65, x: -14, y: 0, z: -128, bank: -0.12 },
-  { t: 0.78, x: -8,  y: 0, z: -152, bank: -0.06 },
-  { t: 0.88, x: 0,   y: 0, z: -172, bank: 0 },
-  { t: 1.0,  x: 0,   y: 0, z: -205, bank: 0 },
-];
-
-// Smooth Catmull-Rom / Hermite spline interpolation
-function interpolateSpline(p0: number, p1: number, p2: number, p3: number, u: number): number {
-  const u2 = u * u;
-  const u3 = u2 * u;
-  return (
-    0.5 *
-    (2 * p1 +
-      (-p0 + p2) * u +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * u2 +
-      (-p0 + 3 * p1 - 3 * p2 + p3) * u3)
-  );
+interface HermiteNode {
+  t: number;
+  x: number;
+  y: number;
+  z: number;
+  tx: number; // Tangent dx/dt
+  ty: number; // Tangent dy/dt
+  tz: number; // Tangent dz/dt
+  bank: number;
 }
+
+// 7 Smooth Precision Hermite Spline Nodes spanning 820 meters
+const SPLINE_NODES: HermiteNode[] = [
+  { t: 0.00, x: 0,   y: 0, z: 16,   tx: 0,   ty: 0, tz: -750, bank: 0 },
+  { t: 0.38, x: 0,   y: 0, z: -260, tx: 0,   ty: 0, tz: -750, bank: 0 },
+  { t: 0.58, x: 24,  y: 0, z: -440, tx: 70,  ty: 0, tz: -720, bank: 0.05 },
+  { t: 0.76, x: -10, y: 0, z: -580, tx: -60, ty: 0, tz: -740, bank: -0.04 },
+  { t: 0.88, x: 0,   y: 0, z: -680, tx: 0,   ty: 0, tz: -760, bank: 0 },
+  { t: 1.00, x: 0,   y: 0, z: -820, tx: 0,   ty: 0, tz: -760, bank: 0 },
+];
 
 export function getTrackPointAt(progress: number): TrackPoint {
   const clampedT = Math.max(0, Math.min(1, progress));
-  const numSegments = TRACK_NODES.length - 1;
-  const scaledT = clampedT * numSegments;
-  const idx = Math.min(Math.floor(scaledT), numSegments - 1);
-  const u = scaledT - idx;
 
-  const n0 = TRACK_NODES[Math.max(0, idx - 1)];
-  const n1 = TRACK_NODES[idx];
-  const n2 = TRACK_NODES[Math.min(numSegments, idx + 1)];
-  const n3 = TRACK_NODES[Math.min(numSegments, idx + 2)];
+  // Find the active segment
+  let idx = 0;
+  for (let i = 0; i < SPLINE_NODES.length - 1; i++) {
+    if (clampedT >= SPLINE_NODES[i].t && clampedT <= SPLINE_NODES[i + 1].t) {
+      idx = i;
+      break;
+    }
+  }
 
-  const x = interpolateSpline(n0.x, n1.x, n2.x, n3.x, u);
-  const y = interpolateSpline(n0.y, n1.y, n2.y, n3.y, u);
-  const z = interpolateSpline(n0.z, n1.z, n2.z, n3.z, u);
-  const bankAngle = n1.bank + (n2.bank - n1.bank) * u;
+  const n0 = SPLINE_NODES[idx];
+  const n1 = SPLINE_NODES[idx + 1];
 
-  // Tangent gradient for forward direction
-  const deltaU = 0.005;
-  const nextX = interpolateSpline(n0.x, n1.x, n2.x, n3.x, Math.min(1, u + deltaU));
-  const nextZ = interpolateSpline(n0.z, n1.z, n2.z, n3.z, Math.min(1, u + deltaU));
+  const dt = n1.t - n0.t || 1;
+  const u = Math.max(0, Math.min(1, (clampedT - n0.t) / dt));
+  const u2 = u * u;
+  const u3 = u2 * u;
 
-  const dirX = nextX - x;
-  const dirZ = nextZ - z;
-  const len = Math.sqrt(dirX * dirX + dirZ * dirZ) || 1;
-  const unitDirX = dirX / len;
-  const unitDirZ = dirZ / len;
+  // Hermite basis functions
+  const h0 = 2 * u3 - 3 * u2 + 1;
+  const h1 = u3 - 2 * u2 + u;
+  const h2 = -2 * u3 + 3 * u2;
+  const h3 = u3 - u2;
 
-  // Heading angle
-  const angle = Math.atan2(unitDirX, unitDirZ);
+  // Scaled tangents for local interval
+  const m0x = n0.tx * dt;
+  const m0y = n0.ty * dt;
+  const m0z = n0.tz * dt;
+  const m1x = n1.tx * dt;
+  const m1y = n1.ty * dt;
+  const m1z = n1.tz * dt;
 
-  // Perpendicular normal (pointing right of track)
-  const normalX = -unitDirZ;
-  const normalZ = unitDirX;
+  const x = h0 * n0.x + h1 * m0x + h2 * n1.x + h3 * m1x;
+  const y = h0 * n0.y + h1 * m0y + h2 * n1.y + h3 * m1y;
+  const z = h0 * n0.z + h1 * m0z + h2 * n1.z + h3 * m1z;
+
+  // First derivative with respect to u
+  const dh0 = 6 * u2 - 6 * u;
+  const dh1 = 3 * u2 - 4 * u + 1;
+  const dh2 = -6 * u2 + 6 * u;
+  const dh3 = 3 * u2 - 2 * u;
+
+  const dx = (dh0 * n0.x + dh1 * m0x + dh2 * n1.x + dh3 * m1x) / dt;
+  const dz = (dh0 * n0.z + dh1 * m0z + dh2 * n1.z + dh3 * m1z) / dt;
+
+  const len = Math.sqrt(dx * dx + dz * dz) || 1;
+  const unitTx = dx / len;
+  const unitTz = dz / len;
+
+  // Box geometry alignment angle (along local Z)
+  const angle = Math.atan2(unitTx, unitTz);
+
+  // Vehicle forward heading angle in Three.js (mesh front points to -Z)
+  const carAngle = Math.atan2(-unitTx, -unitTz);
+
+  // Perpendicular unit normal pointing to the right of the track
+  const normalX = -unitTz;
+  const normalZ = unitTx;
+
+  const bankAngle = n0.bank + (n1.bank - n0.bank) * u;
 
   return {
     x,
     y,
     z,
     angle,
+    carAngle,
     normalX,
     normalZ,
+    tangentX: unitTx,
+    tangentZ: unitTz,
     bankAngle,
   };
 }
 
 // Total track length in meters
-export const TRACK_TOTAL_LENGTH_METERS = 750;
-export const TRACK_FINISH_PROGRESS = 0.95; // 95% is the checkered line at z = -195
+export const TRACK_TOTAL_LENGTH_METERS = 820;
+export const TRACK_FINISH_PROGRESS = 0.94; // 94% is the checkered line at z ≈ -765
+

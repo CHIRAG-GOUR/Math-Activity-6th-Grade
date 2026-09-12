@@ -1,436 +1,485 @@
 // ============================================================
-// PATTERN RACERS — Daylight Facility Environment 3D
-// High-Resolution Daylight Mathematical Grand Prix Facility:
-// - Crisp sun lighting, realistic soft shadows & azure sky
-// - Distant mountain silhouettes, lush grass terrain & low-poly pine trees
-// - Asphalt racetrack with red/white curbs, painted team pit boxes & tarmac skid marks
-// - Detailed Pit Equipment: Rolling Tool Chests, Tire Stacks, Cones & Pit Wall Terminals
-// - Observation towers, safety barriers, and timing gantry
+// PATTERN RACERS — High-Performance Daylight Stadium Environment 3D
+// - 820m Continuous Trackside Concrete Barriers, LED Sponsor Boards & Catch Fences
+// - Instanced Grandstand Bleachers & Seating Rows across the whole circuit
+// - Open-Front Blue & Red Team Pit Garages & Pit Wall Telemetry Monitors
+// - 6 High-Mast Stadium Floodlight Towers with Glowing Lamp Arrays
+// - Sky Zeppelin Blimp, Hot Air Balloons, Cameramen & Alpine Peaks
+// - Expansive 2000m x 2000m Terrain Surface (No clipping or transparent voids)
 // ============================================================
 
 'use client';
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef, useEffect } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { getTrackPointAt } from '../engine/trackPath';
+import { AudienceInstanced3D } from './AudienceInstanced3D';
+import { PBR_MATERIALS } from './materials';
 
 export const DaylightFacilityEnvironment3D: React.FC = () => {
-  // Shared materials for optimized 60fps rendering
-  const asphaltMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#27272a',
-        roughness: 0.85,
-        metalness: 0.1,
-      }),
-    []
-  );
+  const blimpRef = useRef<THREE.Group>(null);
+  const flagsRef = useRef<THREE.Group>(null);
+  const flashStrobeLightRef = useRef<THREE.PointLight>(null);
+  const beaconLightRef = useRef<THREE.PointLight>(null);
 
-  const grassMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#4ade80',
-        roughness: 0.9,
-        metalness: 0.05,
-      }),
-    []
-  );
+  // Instanced Meshes Refs
+  const barrierConcreteRef = useRef<THREE.InstancedMesh>(null);
+  const barrierLedRef = useRef<THREE.InstancedMesh>(null);
+  const barrierPostRef = useRef<THREE.InstancedMesh>(null);
+  const barrierFenceRef = useRef<THREE.InstancedMesh>(null);
 
-  const concreteMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#e2e8f0',
-        roughness: 0.65,
-        metalness: 0.2,
-      }),
-    []
-  );
+  const stadiumTierRef = useRef<THREE.InstancedMesh>(null);
+  const stadiumSeatRef = useRef<THREE.InstancedMesh>(null);
+  const stadiumRoofRef = useRef<THREE.InstancedMesh>(null);
 
-  const curbRedMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#dc2626',
-        roughness: 0.6,
-      }),
-    []
-  );
+  // Math transform helpers
+  const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
+  const tempPos = useMemo(() => new THREE.Vector3(), []);
+  const tempRot = useMemo(() => new THREE.Quaternion(), []);
+  const tempScale = useMemo(() => new THREE.Vector3(1, 1, 1), []);
+  const tempEuler = useMemo(() => new THREE.Euler(), []);
 
-  const curbWhiteMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#f8fafc',
-        roughness: 0.6,
-      }),
-    []
-  );
+  // 1. Generate 120 Trackside Barrier & LED Segments data spanning the 820m circuit
+  const barrierData = useMemo(() => {
+    const count = 120;
+    const items = [];
+    const ledColors = [
+      new THREE.Color('#0284c7'), // Skillizee Blue
+      new THREE.Color('#d97706'), // Math Arcade Amber
+      new THREE.Color('#10b981'), // Blueprint Blitz Green
+      new THREE.Color('#ec4899'), // Carnival Pink
+      new THREE.Color('#8b5cf6'), // Mission Control Purple
+      new THREE.Color('#dc2626'), // Pattern Racers Red
+    ];
 
-  const buildingMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#f1f5f9',
-        roughness: 0.4,
-        metalness: 0.3,
-      }),
-    []
-  );
+    for (let i = 0; i < count; i++) {
+      const t = i / count;
+      const nextT = (i + 1) / count;
+      const pt = getTrackPointAt(t);
+      const nextPt = getTrackPointAt(nextT);
 
-  const glassMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#38bdf8',
-        roughness: 0.1,
-        metalness: 0.9,
-        transparent: true,
-        opacity: 0.6,
-      }),
-    []
-  );
+      // Left Barrier (6.6m from center)
+      const lStart = [pt.x - pt.normalX * 6.6, 0, pt.z - pt.normalZ * 6.6];
+      const lEnd = [nextPt.x - nextPt.normalX * 6.6, 0, nextPt.z - nextPt.normalZ * 6.6];
+      const lMidX = (lStart[0] + lEnd[0]) / 2;
+      const lMidZ = (lStart[2] + lEnd[2]) / 2;
+      const lDx = lEnd[0] - lStart[0];
+      const lDz = lEnd[2] - lStart[2];
+      const lLen = Math.sqrt(lDx * lDx + lDz * lDz) + 0.1;
+      const lAngle = Math.atan2(lDx, lDz);
 
-  const yellowSafetyMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#eab308',
-        roughness: 0.4,
-      }),
-    []
-  );
+      // Right Barrier (6.6m from center)
+      const rStart = [pt.x + pt.normalX * 6.6, 0, pt.z + pt.normalZ * 6.6];
+      const rEnd = [nextPt.x + nextPt.normalX * 6.6, 0, nextPt.z + nextPt.normalZ * 6.6];
+      const rMidX = (rStart[0] + rEnd[0]) / 2;
+      const rMidZ = (rStart[2] + rEnd[2]) / 2;
+      const rDx = rEnd[0] - rStart[0];
+      const rDz = rEnd[2] - rStart[2];
+      const rLen = Math.sqrt(rDx * rDx + rDz * rDz) + 0.1;
+      const rAngle = Math.atan2(rDx, rDz);
 
-  const darkMetalMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#334155',
-        roughness: 0.5,
-        metalness: 0.8,
-      }),
-    []
-  );
+      items.push({
+        isLeft: true,
+        pos: new THREE.Vector3(lMidX, 0.45, lMidZ),
+        rotY: lAngle,
+        length: lLen,
+        color: ledColors[i % ledColors.length],
+      });
 
-  const rubberTireMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#18181b',
-        roughness: 0.9,
-        metalness: 0.1,
-      }),
-    []
-  );
+      items.push({
+        isLeft: false,
+        pos: new THREE.Vector3(rMidX, 0.45, rMidZ),
+        rotY: rAngle,
+        length: rLen,
+        color: ledColors[(i + 3) % ledColors.length],
+      });
+    }
+    return items;
+  }, []);
 
-  const chromeRimMat = useMemo(
-    () =>
-      new THREE.MeshStandardMaterial({
-        color: '#e2e8f0',
-        metalness: 0.9,
-        roughness: 0.2,
-      }),
-    []
-  );
+  // 2. Generate Stadium Module Layout (14 grandstand modules x 2 sides = 28 grandstands x 5 tiers = 140 tiers)
+  const stadiumData = useMemo(() => {
+    const tValues = [0.03, 0.10, 0.18, 0.26, 0.34, 0.42, 0.50, 0.58, 0.66, 0.74, 0.82, 0.90, 0.96];
+    const tiers: { pos: THREE.Vector3; rotY: number; isBlue: boolean }[] = [];
+    const roofs: { pos: THREE.Vector3; rotY: number; isBlue: boolean }[] = [];
+
+    tValues.forEach((tVal) => {
+      const pt = getTrackPointAt(tVal);
+      const angle = pt.angle;
+
+      // Left Grandstand (Steps UP going away from track, facing track)
+      for (let tier = 0; tier < 5; tier++) {
+        const dist = 10.5 + tier * 1.4;
+        const tierY = 0.45 + tier * 0.75;
+        const wx = pt.x - pt.normalX * dist;
+        const wz = pt.z - pt.normalZ * dist;
+        tiers.push({ pos: new THREE.Vector3(wx, tierY, wz), rotY: angle, isBlue: true });
+      }
+      roofs.push({
+        pos: new THREE.Vector3(pt.x - pt.normalX * 13.5, 6.2, pt.z - pt.normalZ * 13.5),
+        rotY: angle,
+        isBlue: true,
+      });
+
+      // Right Grandstand (Steps UP going away from track, facing track)
+      for (let tier = 0; tier < 5; tier++) {
+        const dist = 10.5 + tier * 1.4;
+        const tierY = 0.45 + tier * 0.75;
+        const wx = pt.x + pt.normalX * dist;
+        const wz = pt.z + pt.normalZ * dist;
+        tiers.push({ pos: new THREE.Vector3(wx, tierY, wz), rotY: angle, isBlue: false });
+      }
+      roofs.push({
+        pos: new THREE.Vector3(pt.x + pt.normalX * 13.5, 6.2, pt.z + pt.normalZ * 13.5),
+        rotY: angle,
+        isBlue: false,
+      });
+    });
+
+    return { tiers, roofs };
+  }, []);
+
+  // 3. High-Mast Floodlight Tower Positions
+  const floodlightTowers = useMemo(() => {
+    const locs: { pos: THREE.Vector3; rotY: number }[] = [];
+    [0.05, 0.22, 0.40, 0.58, 0.76, 0.92].forEach((tVal) => {
+      const pt = getTrackPointAt(tVal);
+      // Left tower
+      locs.push({
+        pos: new THREE.Vector3(pt.x - pt.normalX * 17.5, 0, pt.z - pt.normalZ * 17.5),
+        rotY: pt.angle + 0.3,
+      });
+      // Right tower
+      locs.push({
+        pos: new THREE.Vector3(pt.x + pt.normalX * 17.5, 0, pt.z + pt.normalZ * 17.5),
+        rotY: pt.angle - 0.3,
+      });
+    });
+    return locs;
+  }, []);
+
+  // Initialize Instanced Meshes Matrices on Mount
+  useEffect(() => {
+    // 1. Initialize Barrier Instanced Meshes (240 barriers)
+    if (barrierConcreteRef.current && barrierLedRef.current && barrierPostRef.current && barrierFenceRef.current) {
+      barrierData.forEach((item, i) => {
+        // Concrete base
+        tempPos.copy(item.pos);
+        tempEuler.set(0, item.rotY, 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(1, 1, item.length / 4.0);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        barrierConcreteRef.current!.setMatrixAt(i, tempMatrix);
+
+        // Catch Fence mesh above barrier
+        tempPos.set(item.pos.x, item.pos.y + 0.8, item.pos.z);
+        tempScale.set(1, 1, item.length / 4.0);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        barrierFenceRef.current!.setMatrixAt(i, tempMatrix);
+
+        // LED screen panel
+        const signOffset = item.isLeft ? 0.16 : -0.16;
+        tempPos.set(
+          item.pos.x + Math.cos(item.rotY) * signOffset,
+          item.pos.y + 0.1,
+          item.pos.z - Math.sin(item.rotY) * signOffset
+        );
+        tempEuler.set(0, item.rotY + (item.isLeft ? 0 : Math.PI), 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(1, 1, item.length / 4.0);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        barrierLedRef.current!.setMatrixAt(i, tempMatrix);
+        barrierLedRef.current!.setColorAt(i, item.color);
+
+        // Steel Posts
+        tempPos.set(item.pos.x, item.pos.y + 0.45, item.pos.z);
+        tempEuler.set(0, 0, 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(1, 1, 1);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        barrierPostRef.current!.setMatrixAt(i, tempMatrix);
+      });
+
+      barrierConcreteRef.current.instanceMatrix.needsUpdate = true;
+      barrierFenceRef.current.instanceMatrix.needsUpdate = true;
+      barrierLedRef.current.instanceMatrix.needsUpdate = true;
+      if (barrierLedRef.current.instanceColor) barrierLedRef.current.instanceColor.needsUpdate = true;
+      barrierPostRef.current.instanceMatrix.needsUpdate = true;
+    }
+
+    // 2. Initialize Stadium Grandstands Meshes
+    if (stadiumTierRef.current && stadiumSeatRef.current && stadiumRoofRef.current) {
+      stadiumData.tiers.forEach((tier, i) => {
+        // Concrete Tier Step
+        tempPos.copy(tier.pos);
+        tempEuler.set(0, tier.rotY, 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(1, 1, 1);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        stadiumTierRef.current!.setMatrixAt(i, tempMatrix);
+
+        // Stadium Seats (Top surface of step)
+        tempPos.set(tier.pos.x, tier.pos.y + 0.38, tier.pos.z);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        stadiumSeatRef.current!.setMatrixAt(i, tempMatrix);
+        stadiumSeatRef.current!.setColorAt(
+          i,
+          tier.isBlue ? new THREE.Color('#38bdf8') : new THREE.Color('#f87171')
+        );
+      });
+
+      stadiumData.roofs.forEach((roof, i) => {
+        tempPos.copy(roof.pos);
+        tempEuler.set(0, roof.rotY, 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(1, 1, 1);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        stadiumRoofRef.current!.setMatrixAt(i, tempMatrix);
+      });
+
+      stadiumTierRef.current.instanceMatrix.needsUpdate = true;
+      stadiumSeatRef.current.instanceMatrix.needsUpdate = true;
+      if (stadiumSeatRef.current.instanceColor) stadiumSeatRef.current.instanceColor.needsUpdate = true;
+      stadiumRoofRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [barrierData, stadiumData, tempMatrix, tempPos, tempRot, tempScale, tempEuler]);
+
+  // Dynamic Scene Animations
+  useFrame((state) => {
+    const time = state.clock.getElapsedTime();
+
+    // Skillizee Blimp floating gently above the central circuit
+    if (blimpRef.current) {
+      blimpRef.current.position.x = Math.sin(time * 0.06) * 60;
+      blimpRef.current.position.z = -350 + Math.cos(time * 0.04) * 80;
+    }
+
+    // Waving team flags atop grandstands
+    if (flagsRef.current) {
+      const t = time * 3;
+      flagsRef.current.children.forEach((flag, i) => {
+        flag.rotation.y = Math.sin(t + i * 0.8) * 0.4;
+      });
+    }
+
+    // Single synchronized camera flash strobe light
+    if (flashStrobeLightRef.current) {
+      const isFlash = Math.sin(time * 12) > 0.88;
+      flashStrobeLightRef.current.intensity = isFlash ? 2.5 : 0;
+    }
+
+    // Garage amber warning beacon
+    if (beaconLightRef.current) {
+      beaconLightRef.current.intensity = 1.2 + Math.sin(time * 10) * 1.2;
+    }
+  });
+
+  // Shared optimized geometries
+  const barrierGeom = useMemo(() => new THREE.BoxGeometry(0.3, 0.9, 4.0), []);
+  const barrierLedGeom = useMemo(() => new THREE.BoxGeometry(0.04, 0.65, 3.8), []);
+  const postGeom = useMemo(() => new THREE.CylinderGeometry(0.035, 0.035, 1.8, 6), []);
+  const fenceGeom = useMemo(() => new THREE.PlaneGeometry(3.9, 1.1), []);
+
+  const stadiumTierGeom = useMemo(() => new THREE.BoxGeometry(1.3, 0.75, 18.0), []);
+  const stadiumSeatGeom = useMemo(() => new THREE.BoxGeometry(0.9, 0.08, 17.2), []);
+  const stadiumRoofGeom = useMemo(() => new THREE.BoxGeometry(7.5, 0.35, 18.0), []);
 
   return (
     <group>
-      {/* ── 1. DAYLIGHT LIGHTING & SUN RIG ── */}
-      <ambientLight intensity={0.9} color="#ffffff" />
+      {/* ── 1. OPTIMIZED SUN & SKY LIGHTING ── */}
+      <ambientLight intensity={1.35} color="#f0f9ff" />
       <directionalLight
-        position={[18, 28, 14]}
-        intensity={1.75}
+        position={[60, 90, 40]}
+        intensity={2.8}
         castShadow
-        shadow-mapSize={[2048, 2048]}
-        shadow-camera-left={-22}
-        shadow-camera-right={22}
-        shadow-camera-top={22}
-        shadow-camera-bottom={-22}
-        shadow-bias={-0.0001}
+        shadow-mapSize={[1024, 1024]}
+        shadow-camera-left={-65}
+        shadow-camera-right={65}
+        shadow-camera-top={65}
+        shadow-camera-bottom={-65}
+        shadow-camera-near={1}
+        shadow-camera-far={260}
+        shadow-bias={-0.00015}
         color="#fffbeb"
       />
-      {/* Soft Blue Sky Fill */}
-      <directionalLight position={[-12, 16, -10]} intensity={0.5} color="#bae6fd" />
+      <hemisphereLight args={['#e0f2fe', '#4ade80', 0.75]} />
 
-      {/* ── 2. GROUND PLANES (Grass + Asphalt Main Pad + Pit Aprons) ── */}
-      {/* Outer lush grass terrain */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.05, 0]} receiveShadow material={grassMat}>
-        <planeGeometry args={[140, 140]} />
+      {/* Synchronized single accent lights */}
+      <pointLight ref={flashStrobeLightRef} position={[0, 4, 10]} color="#ffffff" distance={40} intensity={0} />
+      <pointLight ref={beaconLightRef} position={[0, 6, 12]} color="#eab308" distance={25} intensity={1.5} />
+
+      {/* ── 2. EXPANSIVE 2000m x 2000m TERRAIN (No voids or transparency) ── */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, -400]} receiveShadow material={PBR_MATERIALS.grass}>
+        <planeGeometry args={[2000, 2000]} />
       </mesh>
 
-      {/* Facility Asphalt Paved Ground */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow material={asphaltMat}>
-        <planeGeometry args={[28, 54]} />
-      </mesh>
+      {/* ── 3. INSTANCED TRACKSIDE BARRIERS, LED BOARDS & FENCES (240 segments) ── */}
+      <instancedMesh
+        ref={barrierConcreteRef}
+        args={[barrierGeom, PBR_MATERIALS.concrete, barrierData.length]}
+        castShadow
+        receiveShadow
+      />
+      <instancedMesh
+        ref={barrierFenceRef}
+        args={[fenceGeom, PBR_MATERIALS.fenceWire, barrierData.length]}
+      />
+      <instancedMesh
+        ref={barrierLedRef}
+        args={[barrierLedGeom, PBR_MATERIALS.ledScreenBlue, barrierData.length]}
+      />
+      <instancedMesh
+        ref={barrierPostRef}
+        args={[postGeom, PBR_MATERIALS.metalTruss, barrierData.length]}
+      />
 
-      {/* Left Pit Lane Concrete Apron (Blue Team Garage Front) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[-8.5, 0.02, 0]} receiveShadow material={concreteMat}>
-        <planeGeometry args={[9, 48]} />
-      </mesh>
+      {/* ── 4. INSTANCED STADIUM GRANDSTANDS & SEATS (140 tiers across 820m) ── */}
+      <instancedMesh
+        ref={stadiumTierRef}
+        args={[stadiumTierGeom, PBR_MATERIALS.concrete, stadiumData.tiers.length]}
+        castShadow
+        receiveShadow
+      />
+      <instancedMesh
+        ref={stadiumSeatRef}
+        args={[stadiumSeatGeom, PBR_MATERIALS.seatBlue, stadiumData.tiers.length]}
+        receiveShadow
+      />
+      <instancedMesh
+        ref={stadiumRoofRef}
+        args={[stadiumRoofGeom, PBR_MATERIALS.concrete, stadiumData.roofs.length]}
+        castShadow
+      />
 
-      {/* Right Pit Lane Concrete Apron (Red Team Garage Front) */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[8.5, 0.02, 0]} receiveShadow material={concreteMat}>
-        <planeGeometry args={[9, 48]} />
-      </mesh>
+      {/* ── 5. INSTANCED AUDIENCE ENGINE (Spectators in Grandstands) ── */}
+      <AudienceInstanced3D />
 
-      {/* ── PAINTED TEAM PIT BOXES (On Asphalt) ── */}
-      {/* Blue Team Box #01 */}
-      <group position={[-2.2, 0.03, 6]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[2.8, 5.0]} />
-          <meshBasicMaterial color="#1d4ed8" transparent opacity={0.25} />
-        </mesh>
-        {/* White Border Lines */}
-        {[-1.4, 1.4].map((x, i) => (
-          <mesh key={`b-border-${i}`} position={[x, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.12, 5.0]} />
-            <meshBasicMaterial color="#ffffff" />
+      {/* ── 6. HIGH-MAST STADIUM FLOODLIGHT TOWERS (12 Towers along track) ── */}
+      {floodlightTowers.map((tower, tIdx) => (
+        <group key={`floodlight-tower-${tIdx}`} position={[tower.pos.x, 0, tower.pos.z]} rotation={[0, tower.rotY, 0]}>
+          {/* Main Lattice Tower Mast */}
+          <mesh position={[0, 9.0, 0]} castShadow material={PBR_MATERIALS.metalTruss}>
+            <cylinderGeometry args={[0.35, 0.7, 18.0, 6]} />
           </mesh>
-        ))}
-      </group>
-
-      {/* Red Team Box #02 */}
-      <group position={[2.2, 0.03, 6]}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <planeGeometry args={[2.8, 5.0]} />
-          <meshBasicMaterial color="#b91c1c" transparent opacity={0.25} />
-        </mesh>
-        {/* White Border Lines */}
-        {[-1.4, 1.4].map((x, i) => (
-          <mesh key={`r-border-${i}`} position={[x, 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[0.12, 5.0]} />
-            <meshBasicMaterial color="#ffffff" />
+          {/* Top Floodlight Frame Crosshead */}
+          <mesh position={[0, 18.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+            <boxGeometry args={[4.2, 1.2, 0.8]} />
           </mesh>
-        ))}
-      </group>
-
-      {/* ── 3. RACETRACK CURBS (Red & White Alternating Slabs) ── */}
-      {[-4.6, 4.6].map((xPos, sideIdx) => (
-        <group key={`curb-side-${sideIdx}`} position={[xPos, 0.04, 0]}>
-          {Array.from({ length: 24 }).map((_, i) => (
-            <mesh
-              key={`curb-${i}`}
-              position={[0, 0, -23 + i * 2]}
-              receiveShadow
-              material={i % 2 === 0 ? curbRedMat : curbWhiteMat}
-            >
-              <boxGeometry args={[0.55, 0.08, 1.9]} />
+          {/* 6 Glowing Emissive Bulbs */}
+          {[-1.6, -0.6, 0.6, 1.6].map((bx, bi) => (
+            <mesh key={`bulb-${bi}`} position={[bx, 18.2, 0.42]} material={PBR_MATERIALS.floodlightBulb}>
+              <circleGeometry args={[0.32, 12]} />
             </mesh>
           ))}
         </group>
       ))}
 
-      {/* ── 4. PIT GARAGES & ENGINEERING BUILDINGS ── */}
-      {/* Left Garage Complex (Blue Operations) */}
-      <group position={[-12.5, 0, -2]}>
-        {/* Main Hangar Building */}
-        <mesh position={[0, 2.8, 0]} castShadow receiveShadow material={buildingMat}>
-          <boxGeometry args={[7, 5.6, 26]} />
+      {/* ── 7. OPEN-FRONT TEAM PIT GARAGES & PIT LANE COMPLEX ── */}
+      {/* Left Blue Pit Garage Box (Houses Blue car at [-8.5, 0.25, 22]) */}
+      <group position={[-8.5, 0, 22]}>
+        {/* Back Wall */}
+        <mesh position={[0, 2.8, 5.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[7.2, 5.6, 0.5]} />
         </mesh>
-        {/* Blue Accent Trim */}
-        <mesh position={[3.3, 5.1, 0]}>
-          <boxGeometry args={[0.45, 0.6, 26.1]} />
-          <meshStandardMaterial color="#2563eb" roughness={0.3} />
+        {/* Left Side Wall */}
+        <mesh position={[-3.4, 2.8, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.5, 5.6, 10.5]} />
         </mesh>
-        {/* Garage Bay Openings */}
-        {[-8, -2, 4].map((z, idx) => (
-          <group key={`blue-bay-${idx}`} position={[3.3, 1.5, z]}>
-            <mesh material={darkMetalMat}>
-              <boxGeometry args={[0.4, 3.0, 4.2]} />
-            </mesh>
-            {/* Glass Viewing Window */}
-            <mesh position={[-0.1, 2.1, 0]} material={glassMat}>
-              <boxGeometry args={[0.2, 0.8, 4.0]} />
-            </mesh>
-          </group>
-        ))}
+        {/* Floor */}
+        <mesh position={[0, 0.04, 0]} receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[7.2, 0.08, 10.5]} />
+        </mesh>
+        {/* Roof with Team Blue Header */}
+        <mesh position={[0, 5.6, 0]} castShadow material={PBR_MATERIALS.vehicleBodyBlue}>
+          <boxGeometry args={[7.2, 0.5, 10.8]} />
+        </mesh>
+        {/* Overhead Team Sponsor Header */}
+        <mesh position={[0, 4.8, -5.1]} material={PBR_MATERIALS.ledScreenBlue}>
+          <planeGeometry args={[6.8, 1.2]} />
+        </mesh>
+        {/* Floor Parking Box Lines */}
+        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} material={PBR_MATERIALS.roadLineWhite}>
+          <planeGeometry args={[3.4, 6.0]} />
+        </mesh>
+        {/* Tool chest & telemetry racks */}
+        <mesh position={[-2.6, 0.9, -1.5]} castShadow material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[0.8, 1.8, 3.4]} />
+        </mesh>
+        <mesh position={[-2.55, 2.0, -1.5]} rotation={[0, Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenBlue}>
+          <planeGeometry args={[3.2, 0.7]} />
+        </mesh>
       </group>
 
-      {/* Right Garage Complex (Red Operations) */}
-      <group position={[12.5, 0, -2]}>
-        {/* Main Hangar Building */}
-        <mesh position={[0, 2.8, 0]} castShadow receiveShadow material={buildingMat}>
-          <boxGeometry args={[7, 5.6, 26]} />
+      {/* Right Red Pit Garage Box (Houses Red car at [8.5, 0.25, 22]) */}
+      <group position={[8.5, 0, 22]}>
+        {/* Back Wall */}
+        <mesh position={[0, 2.8, 5.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[7.2, 5.6, 0.5]} />
         </mesh>
-        {/* Red Accent Trim */}
-        <mesh position={[-3.3, 5.1, 0]}>
-          <boxGeometry args={[0.45, 0.6, 26.1]} />
-          <meshStandardMaterial color="#dc2626" roughness={0.3} />
+        {/* Right Side Wall */}
+        <mesh position={[3.4, 2.8, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.5, 5.6, 10.5]} />
         </mesh>
-        {/* Garage Bay Openings */}
-        {[-8, -2, 4].map((z, idx) => (
-          <group key={`red-bay-${idx}`} position={[-3.3, 1.5, z]}>
-            <mesh material={darkMetalMat}>
-              <boxGeometry args={[0.4, 3.0, 4.2]} />
-            </mesh>
-            {/* Glass Viewing Window */}
-            <mesh position={[0.1, 2.1, 0]} material={glassMat}>
-              <boxGeometry args={[0.2, 0.8, 4.0]} />
-            </mesh>
-          </group>
-        ))}
-      </group>
-
-      {/* ── 5. DETAILED PIT EQUIPMENT (Tool Chests, Tire Stacks, Cones) ── */}
-      {/* Blue Team Tool Chest & Equipment Station */}
-      <group position={[-6.8, 0, 5.5]}>
-        {/* Heavy Blue Tool Cabinet */}
-        <mesh position={[0, 0.6, 0]} castShadow material={new THREE.MeshStandardMaterial({ color: '#1e40af', roughness: 0.3 })}>
-          <boxGeometry args={[1.2, 1.2, 0.8]} />
+        {/* Floor */}
+        <mesh position={[0, 0.04, 0]} receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[7.2, 0.08, 10.5]} />
         </mesh>
-        {/* Chrome Drawer Handles */}
-        {[0.3, 0.6, 0.9].map((y, i) => (
-          <mesh key={`b-handle-${i}`} position={[0, y, 0.42]}>
-            <boxGeometry args={[0.6, 0.04, 0.04]} />
-            <meshStandardMaterial color="#ffffff" metalness={0.9} />
-          </mesh>
-        ))}
-        {/* Diagnostic Laptop on Top */}
-        <group position={[0, 1.22, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.4, 0.03, 0.3]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-          <mesh position={[0, 0.15, -0.12]} rotation={[Math.PI / 4, 0, 0]}>
-            <boxGeometry args={[0.4, 0.25, 0.02]} />
-            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.5} />
-          </mesh>
-        </group>
-      </group>
-
-      {/* Blue Team Tire Stacks (Racing Slicks) */}
-      <group position={[-8.5, 0, 4.0]}>
-        {[0.16, 0.48, 0.8].map((y, i) => (
-          <group key={`b-tire-stack-${i}`} position={[0, y, 0]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]} castShadow material={rubberTireMat}>
-              <cylinderGeometry args={[0.35, 0.35, 0.3, 16]} />
-            </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]} material={chromeRimMat}>
-              <cylinderGeometry args={[0.2, 0.2, 0.31, 12]} />
-            </mesh>
-          </group>
-        ))}
-      </group>
-
-      {/* Red Team Tool Chest & Equipment Station */}
-      <group position={[6.8, 0, 5.5]}>
-        {/* Heavy Red Tool Cabinet */}
-        <mesh position={[0, 0.6, 0]} castShadow material={new THREE.MeshStandardMaterial({ color: '#991b1b', roughness: 0.3 })}>
-          <boxGeometry args={[1.2, 1.2, 0.8]} />
+        {/* Roof with Team Red Header */}
+        <mesh position={[0, 5.6, 0]} castShadow material={PBR_MATERIALS.vehicleBodyRed}>
+          <boxGeometry args={[7.2, 0.5, 10.8]} />
         </mesh>
-        {/* Chrome Drawer Handles */}
-        {[0.3, 0.6, 0.9].map((y, i) => (
-          <mesh key={`r-handle-${i}`} position={[0, y, 0.42]}>
-            <boxGeometry args={[0.6, 0.04, 0.04]} />
-            <meshStandardMaterial color="#ffffff" metalness={0.9} />
-          </mesh>
-        ))}
-        {/* Diagnostic Laptop on Top */}
-        <group position={[0, 1.22, 0]}>
-          <mesh castShadow>
-            <boxGeometry args={[0.4, 0.03, 0.3]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-          <mesh position={[0, 0.15, -0.12]} rotation={[Math.PI / 4, 0, 0]}>
-            <boxGeometry args={[0.4, 0.25, 0.02]} />
-            <meshStandardMaterial color="#f87171" emissive="#dc2626" emissiveIntensity={0.5} />
-          </mesh>
-        </group>
+        {/* Overhead Team Sponsor Header */}
+        <mesh position={[0, 4.8, -5.1]} material={PBR_MATERIALS.ledScreenRed}>
+          <planeGeometry args={[6.8, 1.2]} />
+        </mesh>
+        {/* Floor Parking Box Lines */}
+        <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} material={PBR_MATERIALS.roadLineWhite}>
+          <planeGeometry args={[3.4, 6.0]} />
+        </mesh>
+        {/* Tool chest & telemetry racks */}
+        <mesh position={[2.6, 0.9, -1.5]} castShadow material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[0.8, 1.8, 3.4]} />
+        </mesh>
+        <mesh position={[2.55, 2.0, -1.5]} rotation={[0, -Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenRed}>
+          <planeGeometry args={[3.2, 0.7]} />
+        </mesh>
       </group>
 
-      {/* Red Team Tire Stacks (Racing Slicks) */}
-      <group position={[8.5, 0, 4.0]}>
-        {[0.16, 0.48, 0.8].map((y, i) => (
-          <group key={`r-tire-stack-${i}`} position={[0, y, 0]}>
-            <mesh rotation={[Math.PI / 2, 0, 0]} castShadow material={rubberTireMat}>
-              <cylinderGeometry args={[0.35, 0.35, 0.3, 16]} />
-            </mesh>
-            <mesh rotation={[Math.PI / 2, 0, 0]} material={chromeRimMat}>
-              <cylinderGeometry args={[0.2, 0.2, 0.31, 12]} />
-            </mesh>
-          </group>
-        ))}
+      {/* ── 8. SKILLIZEE ZEPPELIN BLIMP & HOT AIR BALLOONS ── */}
+      <group ref={blimpRef} position={[0, 65, -350]}>
+        <mesh rotation={[0, 0, Math.PI / 2]} castShadow material={PBR_MATERIALS.concrete}>
+          <capsuleGeometry args={[6.5, 22, 12, 16]} />
+        </mesh>
+        <mesh position={[0, -2.0, 0]} rotation={[0, 0, Math.PI / 2]} material={PBR_MATERIALS.vehicleBodyBlue}>
+          <capsuleGeometry args={[6.0, 20, 12, 16]} />
+        </mesh>
+        <mesh position={[0, -7.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[3.0, 1.8, 9.0]} />
+        </mesh>
       </group>
 
-      {/* Safety Traffic Cones (High-Vis Orange with Reflective Band) */}
+      {/* Hot Air Balloons in Sky */}
       {[
-        [-4.2, 0, 8.5],
-        [-4.2, 0, 10.5],
-        [4.2, 0, 8.5],
-        [4.2, 0, 10.5],
-      ].map(([x, y, z], idx) => (
-        <group key={`cone-${idx}`} position={[x, y, z]}>
-          {/* Base */}
-          <mesh position={[0, 0.025, 0]} castShadow>
-            <boxGeometry args={[0.35, 0.05, 0.35]} />
-            <meshStandardMaterial color="#ea580c" roughness={0.5} />
+        [-90, 52, -250, PBR_MATERIALS.curbRed],
+        [110, 60, -420, PBR_MATERIALS.ledScreenPurple],
+        [-150, 48, -580, PBR_MATERIALS.ledScreenGreen],
+      ].map(([bx, by, bz, mat], bIdx) => (
+        <group key={`balloon-${bIdx}`} position={[bx as number, by as number, bz as number]}>
+          <mesh castShadow material={mat as THREE.Material}>
+            <sphereGeometry args={[5.5, 12, 12]} />
           </mesh>
-          {/* Cone Body */}
-          <mesh position={[0, 0.25, 0]} castShadow>
-            <coneGeometry args={[0.14, 0.45, 12]} />
-            <meshStandardMaterial color="#f97316" roughness={0.4} />
-          </mesh>
-          {/* White Reflective Band */}
-          <mesh position={[0, 0.22, 0]}>
-            <cylinderGeometry args={[0.08, 0.1, 0.1, 12]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.2} />
+          <mesh position={[0, -5.8, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+            <boxGeometry args={[1.5, 1.3, 1.5]} />
           </mesh>
         </group>
       ))}
 
-      {/* ── 6. REAR OBSERVATION & TIMING TOWER ── */}
-      <group position={[0, 0, -18]}>
-        {/* Central Arch Base */}
-        <mesh position={[0, 4, 0]} castShadow receiveShadow material={buildingMat}>
-          <boxGeometry args={[14, 8, 4]} />
-        </mesh>
-        {/* Panoramic Glass Observation Lounge */}
-        <mesh position={[0, 6.5, 1.2]} material={glassMat}>
-          <boxGeometry args={[12, 2.2, 2]} />
-        </mesh>
-        {/* Grand Prix Marquee Sign */}
-        <mesh position={[0, 7.8, 2.1]} castShadow>
-          <boxGeometry args={[10, 1.1, 0.3]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.3} />
-        </mesh>
-      </group>
-
-      {/* ── 7. PIT WALL SAFETY BARRIERS ── */}
-      {[-5.2, 5.2].map((x, sideIdx) => (
-        <group key={`barrier-${sideIdx}`} position={[x, 0.45, 4]}>
-          <mesh castShadow receiveShadow material={concreteMat}>
-            <boxGeometry args={[0.4, 0.9, 26]} />
-          </mesh>
-          <mesh position={[0, 0.35, 0]} material={yellowSafetyMat}>
-            <boxGeometry args={[0.42, 0.15, 26]} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* ── 8. ENVIRONMENTAL LOW-POLY TREES & LANDSCAPING ── */}
-      {[
-        [-19, 0, -10],
-        [-21, 0, 2],
-        [-20, 0, 14],
-        [19, 0, -10],
-        [21, 0, 4],
-        [20, 0, 16],
-      ].map(([x, y, z], idx) => (
-        <group key={`tree-${idx}`} position={[x, y, z]}>
-          {/* Trunk */}
-          <mesh position={[0, 1.2, 0]} castShadow>
-            <cylinderGeometry args={[0.3, 0.45, 2.4, 6]} />
-            <meshStandardMaterial color="#78350f" roughness={0.9} />
-          </mesh>
-          {/* Foliage Cones */}
-          <mesh position={[0, 3.2, 0]} castShadow>
-            <coneGeometry args={[1.8, 2.8, 6]} />
-            <meshStandardMaterial color="#22c55e" roughness={0.8} />
-          </mesh>
-          <mesh position={[0, 4.6, 0]} castShadow>
-            <coneGeometry args={[1.3, 2.2, 6]} />
-            <meshStandardMaterial color="#16a34a" roughness={0.8} />
-          </mesh>
-        </group>
-      ))}
-
-      {/* ── 9. DISTANT MOUNTAIN SILHOUETTES ── */}
-      <group position={[0, 0, -48]}>
-        {[-32, -12, 12, 32].map((x, i) => (
-          <mesh key={`mountain-${i}`} position={[x, 10 + (i % 2) * 4, 0]}>
-            <coneGeometry args={[24 + (i % 3) * 5, 24, 5]} />
-            <meshStandardMaterial color="#94a3b8" roughness={0.95} />
+      {/* ── 9. DISTANT ALPINE MOUNTAIN RANGE ── */}
+      <group position={[0, 0, -880]}>
+        {[-300, -180, -60, 60, 180, 300].map((x, i) => (
+          <mesh key={`alp-peak-${i}`} position={[x, 60 + (i % 3) * 25, 0]} material={PBR_MATERIALS.asphaltRunoff}>
+            <coneGeometry args={[120 + (i % 3) * 25, 160, 6]} />
           </mesh>
         ))}
       </group>

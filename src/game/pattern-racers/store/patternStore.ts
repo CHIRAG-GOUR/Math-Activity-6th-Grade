@@ -1,11 +1,11 @@
 // ============================================================
-// PATTERN RACERS — Central Zustand Store
-// Dual-Team Simultaneous Interaction & 5-Stage Physical Grand Prix System:
-// - Stage 1: Factory Telemetry & Diagnostics (Engine Checks)
-// - Stage 2: Rapid Pit Stop Tire Change (Hydraulic Lifts)
-// - Stage 3: Factory Rollout onto Pit Lane
-// - Stage 4: Starting Grid Staging & Stadium Alignment
-// - Stage 5: Live Interactive Grand Prix Racing Duel with Cockpit Controls!
+// PATTERN RACERS — Global Game State & Deterministic Physics Store
+// Strict 5-Round Continuous Physical Journey:
+// - Round 1: Garage Departure (Cars parked in Left/Right Garages -> Drive to Pit Lane)
+// - Round 2: Pit Inspection (Cars parked in Pit Lane, Mechanics inspect tires -> Roll to Grid)
+// - Round 3: Grid Staging & Rev 1 (Stationary on Grid boxes, Revving, Signal 1 turns Green)
+// - Round 4: Pre-Grid Rev & Signal 2 (Stationary on Grid boxes, High RPM, Signal 2 turns Green)
+// - Round 5: Final Launch Challenge + 3-2-1 Countdown + Live Race (Signal 3 Green, 3-4s Head Start)
 // ============================================================
 
 import { create } from 'zustand';
@@ -17,130 +17,41 @@ import {
   TeamConsoleState,
   VehiclePhysicsState,
   FacilityWorker,
-  LiveRaceControls,
+  VehicleFlowState,
 } from '../types';
 import { initialTeamPowerUps } from '@/types/powerUps';
-import { getChallengesForRound, generateDynamicChallenge } from '../engine/sequenceData';
-import { patternAudio } from '../engine/patternAudio';
-import { getMisconceptionHint } from '@/utils/misconceptions';
+import { getTrackPointAt, TRACK_FINISH_PROGRESS } from '../engine/trackPath';
+import { PatternQuestion, getQuestionForRound } from '../engine/questionBank';
 
-let timerInterval: ReturnType<typeof setInterval> | null = null;
-let raceInterval: ReturnType<typeof setInterval> | null = null;
-let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
-
-const clearTimers = () => {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-  if (raceInterval) {
-    clearInterval(raceInterval);
-    raceInterval = null;
-  }
-  if (autoAdvanceTimer) {
-    clearTimeout(autoAdvanceTimer);
-    autoAdvanceTimer = null;
-  }
+// ── 1. DETERMINISTIC VEHICLE COORDINATE MILESTONES ──
+export const VEHICLE_COORDINATES = {
+  // Round 1: Parked inside Garages (Left & Right)
+  garageStart: {
+    blue: [-8.5, 0.25, 22] as [number, number, number],
+    red: [8.5, 0.25, 22] as [number, number, number],
+  },
+  // Round 2: Pit Lane / Service Bays
+  pitInspection: {
+    blue: [-4.5, 0.25, 14] as [number, number, number],
+    red: [4.5, 0.25, 14] as [number, number, number],
+  },
+  // Round 3-5: Starting Grid Boxes
+  startingGrid: {
+    blue: [-2.0, 0.25, 6] as [number, number, number],
+    red: [2.0, 0.25, 6] as [number, number, number],
+  },
 };
 
-import { getTrackPointAt, TRACK_FINISH_PROGRESS, TRACK_TOTAL_LENGTH_METERS } from '../engine/trackPath';
-
-const defaultRaceControls = (
-  initialLane: 'left' | 'right',
-  hasAdvantage: boolean = false,
-  advantageDescription: string = ''
-): LiveRaceControls => ({
-  throttle: 0,
-  steer: 0,
-  speedKmh: 120,
-  nitroRemaining: 100,
-  nitroCharges: hasAdvantage ? 3 : 1,
-  maxNitroCharges: hasAdvantage ? 3 : 1,
-  nitroActive: false,
-  laneOffset: initialLane === 'left' ? -1.8 : 1.8,
-  lane: initialLane === 'left' ? 'left' : 'right',
-  distanceCovered: 0,
-  trackProgress: 0,
-  rpm: 4500,
-  gear: 3,
-  topSpeedMax: hasAdvantage ? 360 : 290,
-  hasAdvantage,
-  advantageDescription,
-});
-
-interface PatternState {
-  phase: GamePhase;
-  currentRound: RoundNumber;
-  activeChallenge: SequenceChallenge;
-  questionCountConfig: 5 | 10 | 15 | 20;
-  questionIndex: number;
-  totalQuestions: number;
-  timeRemaining: number;
-
-  // Dual Team States
-  blueTeam: TeamConsoleState;
-  redTeam: TeamConsoleState;
-
-  // 3D Physical World Simulation
-  blueVehicle: VehiclePhysicsState;
-  redVehicle: VehiclePhysicsState;
-  trackCompletion: number;
-  functionMachineActive: boolean;
-  activeCapsuleValue: number | null;
-  trackBuilderDeploying: boolean;
-  raceLights: [boolean, boolean, boolean, boolean, boolean]; // 3 Red, 1 Yellow, 1 Green
-  raceWinner: TeamId | 'tie' | null;
-
-  // Sudden death tie breaker
-  isTieBreak: boolean;
-  tieBreakTimer: number;
-
-  // Facility Workers
-  workers: FacilityWorker[];
-
-  // Actions
-  setQuestionCount: (count: 5 | 10 | 15 | 20) => void;
-  startMatch: () => void;
-  updateBlueStep: (step: number) => void;
-  updateRedStep: (step: number) => void;
-  updateBlueBuilder: (start: number, step: number, dir: 'increasing' | 'decreasing') => void;
-  updateRedBuilder: (start: number, step: number, dir: 'increasing' | 'decreasing') => void;
-  updateBlueOutput: (val: number) => void;
-  updateRedOutput: (val: number) => void;
-  updateBlueOperator: (op: '+' | '-' | '×' | '÷', val: number) => void;
-  updateRedOperator: (op: '+' | '-' | '×' | '÷', val: number) => void;
-  updateBlueHybrid: (step: number, output: number) => void;
-  updateRedHybrid: (step: number, output: number) => void;
-
-  // Live Stage 5 Racing Cockpit Actions
-  pressThrottle: (teamId: TeamId) => void;
-  releaseThrottle: (teamId: TeamId) => void;
-  pressBrake: (teamId: TeamId) => void;
-  releaseBrake: (teamId: TeamId) => void;
-  setSteerInput: (teamId: TeamId, steerVal: number) => void;
-  triggerNitro: (teamId: TeamId) => void;
-  switchLane: (teamId: TeamId, direction: 'left' | 'right') => void;
-  applyVirtualJoystick: (teamId: TeamId, joy: { x: number; y: number }) => void;
-
-  submitAnswer: (teamId: TeamId) => void;
-  handleTimerExpired: () => void;
-  usePowerUp5050: (teamId: TeamId) => void;
-  usePowerUpTimeFreeze: (teamId: TeamId) => void;
-  usePowerUp2x: (teamId: TeamId) => void;
-  advanceRound: () => void;
-  startLiveGrandPrixRace: () => void;
-  startTieBreak: () => void;
-  restartGame: () => void;
-}
-
+// ── 2. PIT CREW & MARSHAL CREW ──
 const INITIAL_WORKERS: FacilityWorker[] = [
-  { id: 'w1', name: 'Blue Lead Engineer', role: 'mechanic', position: [-3.8, 0, 5.2], rotationY: -0.5, animationState: 'typing', targetRound: 1 },
-  { id: 'w2', name: 'Blue Pit Technician', role: 'telemetry', position: [-6.8, 0, 3.2], rotationY: 0.8, animationState: 'working', targetRound: 1 },
-  { id: 'w3', name: 'Red Lead Engineer', role: 'mechanic', position: [3.8, 0, 5.2], rotationY: 0.5, animationState: 'typing', targetRound: 1 },
-  { id: 'w4', name: 'Red Pit Technician', role: 'telemetry', position: [6.8, 0, 3.2], rotationY: -0.8, animationState: 'working', targetRound: 1 },
-  { id: 'w5', name: 'Hydraulics Specialist', role: 'engineer', position: [-4.2, 0, 1.2], rotationY: 1.2, animationState: 'working', targetRound: 2 },
-  { id: 'w6', name: 'Telemetry Scientist', role: 'telemetry', position: [3.6, 0, -4.5], rotationY: -1.4, animationState: 'typing', targetRound: 3 },
-  { id: 'w7', name: 'Chief Track Marshal', role: 'marshal', position: [5.2, 0, 4.2], rotationY: -1.6, animationState: 'waving', targetRound: 4 },
+  { id: 'w1', name: 'Marco', role: 'telemetry', position: [-9.8, 0, 20], rotationY: 0.3, animationState: 'typing', targetRound: 1 },
+  { id: 'w2', name: 'Leo', role: 'mechanic', position: [-7.2, 0, 21], rotationY: -0.4, animationState: 'working', targetRound: 1 },
+  { id: 'w3', name: 'Sofia', role: 'telemetry', position: [9.8, 0, 20], rotationY: -0.3, animationState: 'typing', targetRound: 1 },
+  { id: 'w4', name: 'Lucas', role: 'mechanic', position: [7.2, 0, 21], rotationY: 0.4, animationState: 'working', targetRound: 1 },
+  { id: 'w5', name: 'Carlos', role: 'inspector', position: [-5.8, 0, 14], rotationY: 0.5, animationState: 'inspecting_wheel', targetRound: 2 },
+  { id: 'w6', name: 'Elena', role: 'inspector', position: [5.8, 0, 14], rotationY: -0.5, animationState: 'inspecting_wheel', targetRound: 2 },
+  { id: 'w7', name: 'David', role: 'marshal', position: [-4.2, 0, 6], rotationY: 0.6, animationState: 'waving', targetRound: 3 },
+  { id: 'w8', name: 'Alex', role: 'marshal', position: [4.2, 0, 6], rotationY: -0.6, animationState: 'waving', targetRound: 3 },
 ];
 
 const createInitialTeam = (id: TeamId, name: string): TeamConsoleState => ({
@@ -155,963 +66,972 @@ const createInitialTeam = (id: TeamId, name: string): TeamConsoleState => ({
   isCorrect: null,
   lastFeedback: null,
   activeMisconception: null,
+  selectedOption: null,
+  selectedOptionValue: null,
   selectedStep: 3,
-  builderStart: 20,
-  builderStep: -3,
-  builderDirection: 'decreasing',
+  builderStart: 4,
+  builderStep: 3,
   computedOutput: 10,
-  selectedOperator: '×',
+  selectedOperator: '+',
   selectedOperand: 3,
   hybridStep: 3,
-  hybridOutput: 15,
-  raceControls: defaultRaceControls(id === 'blue' ? 'left' : 'right'),
+  hybridOutput: 20,
+  raceControls: {
+    throttle: 0,
+    steer: 0,
+    speedKmh: 0,
+    nitroRemaining: 100,
+    nitroCharges: 2,
+    maxNitroCharges: 2,
+    nitroActive: false,
+    laneOffset: id === 'blue' ? -2.0 : 2.0,
+    distanceCovered: 0,
+    trackProgress: 0,
+    rpm: 2500,
+    gear: 1,
+    isHeldByHeadStart: false,
+    hasAdvantage: false,
+    advantageDescription: '',
+  },
   powerUps: initialTeamPowerUps(),
   multiplierActive: false,
   surgeActive: false,
   eliminatedOptions: [],
 });
 
-const createInitialVehicle = (teamId: TeamId): VehiclePhysicsState => ({
-  teamId,
-  stage: 'garage_diagnostics',
-  worldPosition: teamId === 'blue' ? [-2.2, 0.25, 6] : [2.2, 0.25, 6],
-  rotationY: 0,
-  liftY: 0,
-  wheelsDetached: false,
-  speed: 0,
-  boostActive: false,
-  isRacing: false,
-  distanceTraveled: 0,
-  finishedRace: false,
-});
+interface PatternRacersState {
+  phase: GamePhase;
+  currentRound: RoundNumber;
+  currentQuestion: PatternQuestion;
+  questionIndex: number;
+  activeChallenge: SequenceChallenge; // kept for legacy 3D machines
+  timeRemaining: number;
+  isTimerRunning: boolean;
 
-export const usePatternStore = create<PatternState>((set, get) => ({
+  // Signal Lights: 3 Starting Lamps [Lamp1, Lamp2, Lamp3] (true = Green, false = Red)
+  signalLights: [boolean, boolean, boolean];
+
+  // 3-2-1 Countdown state
+  countdownValue: number | 'GO' | null;
+
+  // Head Start state
+  headStartTeam: TeamId | null;
+  headStartSeconds: number;
+  headStartRestraintActive: boolean;
+
+  // Physical Vehicles
+  blueVehicle: VehiclePhysicsState;
+  redVehicle: VehiclePhysicsState;
+  workers: FacilityWorker[];
+
+  // Game Results & View
+  raceWinner: TeamId | 'tie' | null;
+  activeCameraView: 1 | 2 | 3;
+  splitViewMode: boolean;
+  roughWorkOpen: boolean;
+
+  // Dual Team Consoles
+  blueTeam: TeamConsoleState;
+  redTeam: TeamConsoleState;
+
+  // Actions
+  setGamePhase: (phase: GamePhase) => void;
+  advanceRound: (hasPhysicalMovement?: boolean) => void;
+  submitAnswer: (teamId: TeamId) => void;
+  selectOption: (teamId: TeamId, optionId: 'A' | 'B' | 'C' | 'D', value: number | string) => void;
+  resetRoundSubmission: (teamId: TeamId) => void;
+
+  // Team input setters
+  setSelectedStep: (teamId: TeamId, step: number) => void;
+  setBuilderStart: (teamId: TeamId, val: number) => void;
+  setBuilderStep: (teamId: TeamId, val: number) => void;
+  setComputedOutput: (teamId: TeamId, output: number) => void;
+  setSelectedOperator: (teamId: TeamId, op: '+' | '-' | '×' | '÷') => void;
+  setSelectedOperand: (teamId: TeamId, val: number) => void;
+  setHybridStep: (teamId: TeamId, val: number) => void;
+  setHybridOutput: (teamId: TeamId, val: number) => void;
+
+  // Live Stage 5 Race Controls
+  pressThrottle: (teamId: TeamId) => void;
+  releaseThrottle: (teamId: TeamId) => void;
+  pressBrake: (teamId: TeamId) => void;
+  releaseBrake: (teamId: TeamId) => void;
+  startSteering: (teamId: TeamId, direction: 'left' | 'right') => void;
+  stopSteering: (teamId: TeamId) => void;
+  triggerNitro: (teamId: TeamId) => void;
+  updateRacePhysics: (delta: number) => void;
+
+  // Power-Ups
+  use5050: (teamId: TeamId) => void;
+  useTimeFreeze: (teamId: TeamId) => void;
+  use2x: (teamId: TeamId) => void;
+
+  // Utilities
+  setActiveCameraView: (view: 1 | 2 | 3) => void;
+  setSplitViewMode: (split: boolean) => void;
+  toggleRoughWork: () => void;
+  resetGame: () => void;
+}
+
+export const usePatternStore = create<PatternRacersState>((set, get) => ({
   phase: 'intro',
   currentRound: 1,
-  activeChallenge: getChallengesForRound(1)[0] || generateDynamicChallenge(1, 1),
-  questionCountConfig: 5,
   questionIndex: 0,
-  totalQuestions: 5,
+  currentQuestion: getQuestionForRound(1, 0),
+  activeChallenge: {
+    id: 'pr_legacy_01',
+    round: 1,
+    skill: 'sequence_step',
+    difficulty: 'easy',
+    title: 'GARAGE TELEMETRY & IGNITION',
+    stageName: 'STAGE 1: GARAGE DEPARTURE',
+    instruction: 'Select the correct option to energize ignition and advance to the next stage.',
+    sequence: [2, 4, 6, 8, 10],
+    commonDifference: 2,
+    expectedStep: 2,
+    misconceptionTip: 'Look at the step between numbers: 4 - 2 = 2.',
+    mathExplanation: 'Constant step added is 2.',
+  },
   timeRemaining: 45,
+  isTimerRunning: false,
+
+  // Start with 3 RED lights: [false, false, false]
+  signalLights: [false, false, false],
+  countdownValue: null,
+  headStartTeam: null,
+  headStartSeconds: 3.5,
+  headStartRestraintActive: false,
+
+  blueVehicle: {
+    teamId: 'blue',
+    flowState: 'garage_idle',
+    worldPosition: VEHICLE_COORDINATES.garageStart.blue,
+    rotationY: 0,
+    speed: 0,
+    rpm: 2500,
+    boostActive: false,
+    isRacing: false,
+    distanceTraveled: 0,
+    finishedRace: false,
+  },
+
+  redVehicle: {
+    teamId: 'red',
+    flowState: 'garage_idle',
+    worldPosition: VEHICLE_COORDINATES.garageStart.red,
+    rotationY: 0,
+    speed: 0,
+    rpm: 2500,
+    boostActive: false,
+    isRacing: false,
+    distanceTraveled: 0,
+    finishedRace: false,
+  },
+
+  workers: INITIAL_WORKERS,
+  raceWinner: null,
+  activeCameraView: 1,
+  splitViewMode: true,
+  roughWorkOpen: false,
 
   blueTeam: createInitialTeam('blue', 'Blue Velocity'),
   redTeam: createInitialTeam('red', 'Red Turbo'),
 
-  blueVehicle: createInitialVehicle('blue'),
-  redVehicle: createInitialVehicle('red'),
+  setGamePhase: (phase) => set({ phase }),
 
-  trackCompletion: 0,
-  functionMachineActive: false,
-  activeCapsuleValue: null,
-  trackBuilderDeploying: false,
-  raceLights: [false, false, false, false, false],
-  raceWinner: null,
-
-  isTieBreak: false,
-  tieBreakTimer: 15,
-  workers: INITIAL_WORKERS,
-
-  setQuestionCount: (count) => {
-    set({
-      questionCountConfig: count,
-      totalQuestions: count,
+  // ── OPTION SELECTION (A, B, C, D) ──
+  selectOption: (teamId, optionId, value) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      if (targetTeam.isLocked) return {};
+      const updated: TeamConsoleState = {
+        ...targetTeam,
+        selectedOption: optionId,
+        selectedOptionValue: value,
+      };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
   },
 
-  startMatch: () => {
-    clearTimers();
-    patternAudio.playEngineRev();
-    patternAudio.startBgm();
+  // ── SUBMIT ANSWER (Evaluates math & updates physical state) ──
+  submitAnswer: (teamId) => {
+    const state = get();
+    const q = state.currentQuestion;
+    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
+    if (team.isLocked) return;
 
-    const firstChallenge = getChallengesForRound(1)[0] || generateDynamicChallenge(1, 101);
-    set({
-      phase: 'round_active',
-      currentRound: 1,
-      questionIndex: 0,
-      activeChallenge: firstChallenge,
-      trackCompletion: 0,
-      timeRemaining: 45,
-      blueTeam: createInitialTeam('blue', 'Blue Velocity'),
-      redTeam: createInitialTeam('red', 'Red Turbo'),
-      blueVehicle: createInitialVehicle('blue'),
-      redVehicle: createInitialVehicle('red'),
+    // Check if an option was selected
+    const selectedVal = team.selectedOptionValue !== null ? team.selectedOptionValue : team.selectedOption;
+    const isCorrect = String(selectedVal) === String(q.correctAnswer);
+    const points = isCorrect ? (team.multiplierActive ? 200 : 100) : 0;
+    const feedback = isCorrect ? '✓ CORRECT! +100 PTS' : '✗ INCORRECT';
+
+    set((s) => {
+      const updatedTeam: TeamConsoleState = {
+        ...(teamId === 'blue' ? s.blueTeam : s.redTeam),
+        score: (teamId === 'blue' ? s.blueTeam.score : s.redTeam.score) + points,
+        isCorrect,
+        hasSubmitted: true,
+        isLocked: true,
+        lastFeedback: feedback,
+        activeMisconception: isCorrect ? null : q.misconceptionTip,
+      };
+
+      return teamId === 'blue' ? { blueTeam: updatedTeam } : { redTeam: updatedTeam };
     });
 
-    // 1-Second Timer Interval
-    timerInterval = setInterval(() => {
-      const state = get();
-      if (state.phase !== 'round_active' && state.phase !== 'tie_break') return;
+    const nextState = get();
+    const blueDone = nextState.blueTeam.hasSubmitted;
+    const redDone = nextState.redTeam.hasSubmitted;
+    const anyCorrect = nextState.blueTeam.isCorrect || nextState.redTeam.isCorrect;
 
-      if (state.timeRemaining > 1) {
-        set({ timeRemaining: state.timeRemaining - 1 });
+    // If at least one team was correct -> advance with physical movement after 1.4s
+    if (anyCorrect) {
+      setTimeout(() => {
+        get().advanceRound(true);
+      }, 1400);
+    } else if (blueDone && redDone) {
+      // If BOTH are submitted and BOTH are wrong -> move onto next question but cars remain in same place!
+      setTimeout(() => {
+        get().advanceRound(false);
+      }, 1800);
+    }
+  },
+
+  resetRoundSubmission: (teamId) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        hasSubmitted: false,
+        isCorrect: null,
+        isLocked: false,
+        selectedOption: null,
+        selectedOptionValue: null,
+        lastFeedback: null,
+      };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+    });
+  },
+
+  // ── ADVANCE ROUND (5-Round Continuous Physical Journey) ──
+  advanceRound: (hasPhysicalMovement: boolean = true) => {
+    const { currentRound, blueTeam, redTeam, questionIndex } = get();
+    const nextQIdx = questionIndex + 1;
+
+    // ─────────────────────────────────────────────────────────────
+    // TRANSITION 1 -> 2: GARAGE DEPARTURE (Garage -> Pit Lane)
+    // ─────────────────────────────────────────────────────────────
+    if (currentRound === 1) {
+      if (hasPhysicalMovement) {
+        set({
+          phase: 'phase_transition',
+          activeCameraView: 1,
+          blueVehicle: { ...get().blueVehicle, flowState: 'garage_to_pit', speed: 30, rpm: 4000 },
+          redVehicle: { ...get().redVehicle, flowState: 'garage_to_pit', speed: 30, rpm: 4000 },
+        });
+
+        const startTime = Date.now();
+        const durationMs = 3000;
+
+        const anim = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(1.0, elapsed / durationMs);
+          const ease = progress * progress * (3 - 2 * progress);
+
+          // Blue drives from [-8.5, 0.25, 22] -> [-4.5, 0.25, 14]
+          const bx = -8.5 + ease * 4.0;
+          const bz = 22 - ease * 8.0;
+
+          // Red drives from [8.5, 0.25, 22] -> [4.5, 0.25, 14]
+          const rx = 8.5 - ease * 4.0;
+          const rz = 22 - ease * 8.0;
+
+          set((s) => ({
+            blueVehicle: {
+              ...s.blueVehicle,
+              worldPosition: [bx, 0.25, bz],
+              speed: progress < 0.9 ? 25 : 0,
+            },
+            redVehicle: {
+              ...s.redVehicle,
+              worldPosition: [rx, 0.25, rz],
+              speed: progress < 0.9 ? 25 : 0,
+            },
+          }));
+
+          if (progress >= 1.0) {
+            clearInterval(anim);
+            set({
+              phase: 'round_active',
+              currentRound: 2,
+              questionIndex: nextQIdx,
+              currentQuestion: getQuestionForRound(2, nextQIdx),
+              activeCameraView: 2,
+              signalLights: [false, false, false], // [🔴 🔴 🔴]
+              blueVehicle: {
+                ...get().blueVehicle,
+                flowState: 'pit_inspection',
+                worldPosition: VEHICLE_COORDINATES.pitInspection.blue,
+                speed: 0,
+                rpm: 2800,
+              },
+              redVehicle: {
+                ...get().redVehicle,
+                flowState: 'pit_inspection',
+                worldPosition: VEHICLE_COORDINATES.pitInspection.red,
+                speed: 0,
+                rpm: 2800,
+              },
+              blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+              redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+            });
+          }
+        }, 30);
       } else {
-        set({ timeRemaining: 0 });
-        get().handleTimerExpired();
+        // Both wrong: Move to Q2 without moving cars
+        set({
+          phase: 'round_active',
+          currentRound: 2,
+          questionIndex: nextQIdx,
+          currentQuestion: getQuestionForRound(2, nextQIdx),
+          activeCameraView: 1,
+          signalLights: [false, false, false],
+          blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+          redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        });
       }
-    }, 1000);
-  },
+      return;
+    }
 
-  updateBlueStep: (step) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      blueTeam: { ...state.blueTeam, selectedStep: step },
-    }));
-  },
+    // ─────────────────────────────────────────────────────────────
+    // TRANSITION 2 -> 3: PIT INSPECTION -> STARTING GRID
+    // ─────────────────────────────────────────────────────────────
+    if (currentRound === 2) {
+      if (hasPhysicalMovement) {
+        set({
+          phase: 'phase_transition',
+          activeCameraView: 2,
+          blueVehicle: { ...get().blueVehicle, flowState: 'pit_to_grid', speed: 30, rpm: 4500 },
+          redVehicle: { ...get().redVehicle, flowState: 'pit_to_grid', speed: 30, rpm: 4500 },
+        });
 
-  updateRedStep: (step) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      redTeam: { ...state.redTeam, selectedStep: step },
-    }));
-  },
+        const startTime = Date.now();
+        const durationMs = 3000;
 
-  updateBlueBuilder: (start, step, dir) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      blueTeam: {
-        ...state.blueTeam,
-        builderStart: start,
-        builderStep: step,
-        builderDirection: dir,
-      },
-    }));
-  },
+        const anim = setInterval(() => {
+          const elapsed = Date.now() - startTime;
+          const progress = Math.min(1.0, elapsed / durationMs);
+          const ease = progress * progress * (3 - 2 * progress);
 
-  updateRedBuilder: (start, step, dir) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      redTeam: {
-        ...state.redTeam,
-        builderStart: start,
-        builderStep: step,
-        builderDirection: dir,
-      },
-    }));
-  },
+          // Blue drives from [-4.5, 0.25, 14] -> [-2.0, 0.25, 6] (Grid Box 1)
+          const bx = -4.5 + ease * 2.5;
+          const bz = 14 - ease * 8.0;
 
-  updateBlueOutput: (val) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      blueTeam: { ...state.blueTeam, computedOutput: val },
-    }));
-  },
+          // Red drives from [4.5, 0.25, 14] -> [2.0, 0.25, 6] (Grid Box 2)
+          const rx = 4.5 - ease * 2.5;
+          const rz = 14 - ease * 8.0;
 
-  updateRedOutput: (val) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      redTeam: { ...state.redTeam, computedOutput: val },
-    }));
-  },
+          set((s) => ({
+            blueVehicle: {
+              ...s.blueVehicle,
+              worldPosition: [bx, 0.25, bz],
+              speed: progress < 0.9 ? 25 : 0,
+            },
+            redVehicle: {
+              ...s.redVehicle,
+              worldPosition: [rx, 0.25, rz],
+              speed: progress < 0.9 ? 25 : 0,
+            },
+          }));
 
-  updateBlueOperator: (op, val) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      blueTeam: { ...state.blueTeam, selectedOperator: op, selectedOperand: val },
-    }));
-  },
+          if (progress >= 1.0) {
+            clearInterval(anim);
+            set({
+              phase: 'round_active',
+              currentRound: 3,
+              questionIndex: nextQIdx,
+              currentQuestion: getQuestionForRound(3, nextQIdx),
+              activeCameraView: 2,
+              // 1st Green Signal turns ON: [🟢 🔴 🔴]
+              signalLights: [true, false, false],
+              blueVehicle: {
+                ...get().blueVehicle,
+                flowState: 'grid_rev_stage_1',
+                worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
+                speed: 0,
+                rpm: 4500,
+              },
+              redVehicle: {
+                ...get().redVehicle,
+                flowState: 'grid_rev_stage_1',
+                worldPosition: VEHICLE_COORDINATES.startingGrid.red,
+                speed: 0,
+                rpm: 4500,
+              },
+              blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+              redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+            });
+          }
+        }, 30);
+      } else {
+        // Both wrong: Move to Q3, 1st light turns green, cars stay in place
+        set({
+          phase: 'round_active',
+          currentRound: 3,
+          questionIndex: nextQIdx,
+          currentQuestion: getQuestionForRound(3, nextQIdx),
+          activeCameraView: 2,
+          signalLights: [true, false, false],
+          blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+          redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        });
+      }
+      return;
+    }
 
-  updateRedOperator: (op, val) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      redTeam: { ...state.redTeam, selectedOperator: op, selectedOperand: val },
-    }));
-  },
+    // ─────────────────────────────────────────────────────────────
+    // TRANSITION 3 -> 4: GRID REVVING + 2ND GREEN SIGNAL
+    // ─────────────────────────────────────────────────────────────
+    if (currentRound === 3) {
+      set({
+        currentRound: 4,
+        questionIndex: nextQIdx,
+        currentQuestion: getQuestionForRound(4, nextQIdx),
+        activeCameraView: 2,
+        // 2nd Green Signal turns ON: [🟢 🟢 🔴]
+        signalLights: [true, true, false],
+        blueVehicle: {
+          ...get().blueVehicle,
+          flowState: 'grid_rev_stage_2',
+          worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
+          rpm: 6500,
+        },
+        redVehicle: {
+          ...get().redVehicle,
+          flowState: 'grid_rev_stage_2',
+          worldPosition: VEHICLE_COORDINATES.startingGrid.red,
+          rpm: 6500,
+        },
+        blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+      });
+      return;
+    }
 
-  updateBlueHybrid: (step, output) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      blueTeam: { ...state.blueTeam, hybridStep: step, hybridOutput: output },
-    }));
-  },
+    // ─────────────────────────────────────────────────────────────
+    // TRANSITION 4 -> 5: FINAL LAUNCH CHALLENGE
+    // ─────────────────────────────────────────────────────────────
+    if (currentRound === 4) {
+      set({
+        currentRound: 5,
+        questionIndex: nextQIdx,
+        currentQuestion: getQuestionForRound(5, nextQIdx),
+        activeCameraView: 2,
+        signalLights: [true, true, false], // Pre-countdown: [🟢 🟢 🔴]
+        blueVehicle: {
+          ...get().blueVehicle,
+          flowState: 'grid_countdown',
+          worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
+          rpm: 8500,
+        },
+        redVehicle: {
+          ...get().redVehicle,
+          flowState: 'grid_countdown',
+          worldPosition: VEHICLE_COORDINATES.startingGrid.red,
+          rpm: 8500,
+        },
+        blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+      });
+      return;
+    }
 
-  updateRedHybrid: (step, output) => {
-    patternAudio.playDialClick();
-    set((state) => ({
-      redTeam: { ...state.redTeam, hybridStep: step, hybridOutput: output },
-    }));
-  },
+    // ─────────────────────────────────────────────────────────────
+    // ROUND 5 COMPLETE: 3-2-1 COUNTDOWN & LIVE GRAND PRIX RACE LAUNCH
+    // ─────────────────────────────────────────────────────────────
+    if (currentRound === 5) {
+      // 1. All 3 Signals Turn GREEN: [🟢 🟢 🟢]
+      set({
+        phase: 'pre_race_countdown',
+        signalLights: [true, true, true],
+        countdownValue: 3, // CONTROLS HUD APPEARS AT 3!
+      });
 
-  // ── LIVE STAGE 5 COCKPIT CONTROLS ──
-  pressThrottle: (teamId) => {
-    patternAudio.playEngineRev();
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      const curControls = team.raceControls;
-      const newThrottle = Math.min(100, curControls.throttle + 30);
-      const targetSpeed = Math.min(curControls.topSpeedMax, curControls.speedKmh + 22);
+      // Calculate Advantage for Head Start (3.5 Seconds)
+      const bluePts = blueTeam.score;
+      const redPts = redTeam.score;
+      const blueWonAdvantage = bluePts > redPts;
+      const redWonAdvantage = redPts > bluePts;
 
-      return {
-        [teamKey]: {
-          ...team,
+      const headStartWinner: TeamId | null = blueWonAdvantage ? 'blue' : redWonAdvantage ? 'red' : null;
+
+      set({
+        headStartTeam: headStartWinner,
+        headStartSeconds: 3.5,
+        headStartRestraintActive: headStartWinner !== null,
+        blueTeam: {
+          ...get().blueTeam,
           raceControls: {
-            ...curControls,
-            throttle: newThrottle,
-            speedKmh: targetSpeed,
-            rpm: Math.min(12000, 4500 + newThrottle * 65),
-            gear: Math.min(8, Math.floor(targetSpeed / 42) + 1),
+            ...get().blueTeam.raceControls,
+            isHeldByHeadStart: headStartWinner === 'red',
+            hasAdvantage: blueWonAdvantage,
+            nitroCharges: blueWonAdvantage ? 3 : 1,
+            advantageDescription: blueWonAdvantage ? '3.5s HEAD START + 3x NITRO BOOST' : '',
           },
         },
+        redTeam: {
+          ...get().redTeam,
+          raceControls: {
+            ...get().redTeam.raceControls,
+            isHeldByHeadStart: headStartWinner === 'blue',
+            hasAdvantage: redWonAdvantage,
+            nitroCharges: redWonAdvantage ? 3 : 1,
+            advantageDescription: redWonAdvantage ? '3.5s HEAD START + 3x NITRO BOOST' : '',
+          },
+        },
+      });
+
+      // Countdown Step: 3 -> 2
+      setTimeout(() => {
+        set({ countdownValue: 2 });
+        // Countdown Step: 2 -> 1
+        setTimeout(() => {
+          set({ countdownValue: 1 });
+          // Countdown Step: 1 -> GO!
+          setTimeout(() => {
+            set({
+              countdownValue: 'GO',
+              phase: 'grand_prix_race',
+              activeCameraView: 3,
+              blueVehicle: {
+                ...get().blueVehicle,
+                flowState: 'racing',
+                isRacing: true,
+                speed: headStartWinner === 'red' ? 0 : 90,
+              },
+              redVehicle: {
+                ...get().redVehicle,
+                flowState: 'racing',
+                isRacing: true,
+                speed: headStartWinner === 'blue' ? 0 : 90,
+              },
+            });
+
+            // If head start is active, release trailing team after 3.5 seconds!
+            if (headStartWinner !== null) {
+              setTimeout(() => {
+                set((s) => ({
+                  headStartRestraintActive: false,
+                  blueTeam: {
+                    ...s.blueTeam,
+                    raceControls: { ...s.blueTeam.raceControls, isHeldByHeadStart: false },
+                  },
+                  redTeam: {
+                    ...s.redTeam,
+                    raceControls: { ...s.redTeam.raceControls, isHeldByHeadStart: false },
+                  },
+                }));
+              }, 3500);
+            }
+
+            // Hide GO text after 1.2s
+            setTimeout(() => set({ countdownValue: null }), 1200);
+          }, 1000);
+        }, 1000);
+      }, 1000);
+    }
+  },
+
+  // ── LIVE RACE CONTROLS & PHYSICS ──
+  pressThrottle: (teamId) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      if (targetTeam.raceControls.isHeldByHeadStart) return {}; // Held by head start
+
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, throttle: 1.0 },
       };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
   },
 
   releaseThrottle: (teamId) => {
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...team.raceControls,
-            throttle: Math.max(0, team.raceControls.throttle - 25),
-          },
-        },
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, throttle: 0 },
       };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
   },
 
   pressBrake: (teamId) => {
-    patternAudio.playPneumaticDepressurize();
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      const curControls = team.raceControls;
-      const newSpeed = Math.max(50, curControls.speedKmh - 35);
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...curControls,
-            throttle: 0,
-            speedKmh: newSpeed,
-            rpm: Math.max(2500, curControls.rpm - 2000),
-            gear: Math.max(1, Math.floor(newSpeed / 45) + 1),
-          },
-        },
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, throttle: -0.8 },
       };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
   },
 
   releaseBrake: (teamId) => {
-    // Return to neutral deceleration
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, throttle: 0 },
+      };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+    });
   },
 
-  setSteerInput: (teamId, steerVal) => {
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      const clampedSteer = Math.max(-1, Math.min(1, steerVal));
-      const newLaneOffset = Math.max(-3.5, Math.min(3.5, team.raceControls.laneOffset + clampedSteer * 0.45));
-      const lane = newLaneOffset < -1.2 ? 'left' : newLaneOffset > 1.2 ? 'right' : 'center';
-
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...team.raceControls,
-            steer: clampedSteer,
-            laneOffset: newLaneOffset,
-            lane,
-          },
-        },
+  startSteering: (teamId, direction) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const steerVal = direction === 'left' ? -1.0 : 1.0;
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, steer: steerVal },
       };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+    });
+  },
+
+  stopSteering: (teamId) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        raceControls: { ...targetTeam.raceControls, steer: 0 },
+      };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
   },
 
   triggerNitro: (teamId) => {
-    patternAudio.playPowerUp2x();
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
-      const team = state[teamKey];
-      if (team.raceControls.nitroCharges <= 0 && team.raceControls.nitroRemaining <= 0) return state;
+    const state = get();
+    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
+    if (team.raceControls.nitroCharges <= 0 || team.raceControls.nitroActive) return;
 
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...team.raceControls,
-            nitroActive: true,
-            speedKmh: team.raceControls.topSpeedMax,
-            rpm: 12200,
-          },
-        },
-        [vehicleKey]: {
-          ...state[vehicleKey],
-          boostActive: true,
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated = {
+        ...targetTeam,
+        raceControls: {
+          ...targetTeam.raceControls,
+          nitroActive: true,
+          nitroCharges: targetTeam.raceControls.nitroCharges - 1,
         },
       };
+      return teamId === 'blue'
+        ? { blueTeam: updated, blueVehicle: { ...s.blueVehicle, boostActive: true } }
+        : { redTeam: updated, redVehicle: { ...s.redVehicle, boostActive: true } };
     });
-  },
 
-  switchLane: (teamId, direction) => {
-    patternAudio.playDialClick();
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      const delta = direction === 'left' ? -1.4 : 1.4;
-      const newOffset = Math.max(-3.5, Math.min(3.5, team.raceControls.laneOffset + delta));
-      const lane = newOffset < -1.2 ? 'left' : newOffset > 1.2 ? 'right' : 'center';
-
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...team.raceControls,
-            laneOffset: newOffset,
-            lane,
-            steer: direction === 'left' ? -0.5 : 0.5,
-          },
-        },
-      };
-    });
-  },
-
-  applyVirtualJoystick: (teamId, joy) => {
-    // joy.x in [-1, 1], joy.y in [-1, 1] (y > 0 = up / accelerate, y < 0 = down / brake)
-    set((state) => {
-      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const team = state[teamKey];
-      const cur = team.raceControls;
-
-      let newThrottle = cur.throttle;
-      let newSpeed = cur.speedKmh;
-
-      if (joy.y > 0.1) {
-        newThrottle = Math.min(100, Math.round(joy.y * 100));
-        newSpeed = Math.min(cur.topSpeedMax, cur.speedKmh + joy.y * 15);
-      } else if (joy.y < -0.2) {
-        newThrottle = 0;
-        newSpeed = Math.max(50, cur.speedKmh - Math.abs(joy.y) * 20);
-      }
-
-      const steerDelta = joy.x * 0.35;
-      const newOffset = Math.max(-3.5, Math.min(3.5, cur.laneOffset + steerDelta));
-      const lane = newOffset < -1.2 ? 'left' : newOffset > 1.2 ? 'right' : 'center';
-
-      return {
-        [teamKey]: {
-          ...team,
-          raceControls: {
-            ...cur,
-            throttle: newThrottle,
-            speedKmh: Math.round(newSpeed),
-            steer: joy.x,
-            laneOffset: newOffset,
-            lane,
-            rpm: Math.min(12000, 3500 + newThrottle * 70),
-            gear: Math.min(8, Math.floor(newSpeed / 42) + 1),
-          },
-        },
-      };
-    });
-  },
-
-  // ── SUBMIT ANSWER (Dual Simultaneous Interaction) ──
-  submitAnswer: (teamId) => {
-    const { activeChallenge, currentRound, blueTeam, redTeam, isTieBreak } = get();
-    const team = teamId === 'blue' ? blueTeam : redTeam;
-    const opponent = teamId === 'blue' ? redTeam : blueTeam;
-
-    if (team.isLocked || team.hasSubmitted) return;
-
-    let isCorrect = false;
-
-    if (currentRound === 1) {
-      isCorrect = team.selectedStep === activeChallenge.expectedStep;
-    } else if (currentRound === 2) {
-      const correctStart = (activeChallenge.sequence && activeChallenge.sequence[0]) || activeChallenge.startValue || 20;
-      isCorrect =
-        team.builderStart === correctStart &&
-        team.builderStep === activeChallenge.expectedStep;
-    } else if (currentRound === 3) {
-      isCorrect = team.computedOutput === activeChallenge.expectedOutput;
-    } else if (currentRound === 4) {
-      isCorrect =
-        team.selectedOperator === activeChallenge.expectedOperator &&
-        team.selectedOperand === activeChallenge.expectedOperand;
-    } else if (currentRound === 5) {
-      isCorrect =
-        team.hybridStep === activeChallenge.expectedStep &&
-        team.hybridOutput === activeChallenge.expectedOutput;
-    }
-
-    if (isCorrect) {
-      patternAudio.playCorrect();
-      patternAudio.playHydraulicLock();
-
-      const isSurging = opponent.score - team.score >= 150 || team.surgeActive;
-      const basePoints = 100;
-      const surgeBonus = isSurging ? 25 : 0;
-      const multiplier = team.multiplierActive ? 2 : 1;
-      const pointsEarned = (basePoints + surgeBonus) * multiplier;
-
-      // 5-STAGE PHYSICAL WORLD TRANSITION:
-      set((state) => {
-        const updatedTeam = teamId === 'blue' ? state.blueTeam : state.redTeam;
-        const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
-        const curVehicle = state[vehicleKey];
-        const newScore = updatedTeam.score + pointsEarned;
-        const newProgress = Math.min(updatedTeam.roundProgress + 1, 5);
-
-        let nextStage = curVehicle.stage;
-        let nextPos = [...curVehicle.worldPosition] as [number, number, number];
-
-        if (currentRound === 1) {
-          // Stage 1 Solved: Diagnostics complete!
-          nextStage = 'pit_tire_change';
-        } else if (currentRound === 2) {
-          // Stage 2 Solved: Tires swapped! Rollout to pit lane!
-          nextStage = 'factory_rollout';
-          nextPos = [teamId === 'blue' ? -2.2 : 2.2, 0.25, 4.5];
-        } else if (currentRound === 3) {
-          // Stage 3 Solved: Function machine charged! Move to Starting Grid!
-          nextStage = 'grid_staging';
-          nextPos = [teamId === 'blue' ? -2.2 : 0.25, 0.25, 3.5];
-        } else if (currentRound === 4) {
-          // Stage 4 Solved: Transmission locked on Grid!
-          nextStage = 'grid_staging';
-          nextPos = [teamId === 'blue' ? -2.2 : 2.2, 0.25, 3.5];
-        } else if (currentRound === 5) {
-          // Stage 5 Solved: SUPER NITRO SPRINT!
-          nextStage = 'live_racing';
-        }
-
-        return {
-          [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
-            ...updatedTeam,
-            score: newScore,
-            roundProgress: newProgress,
-            streak: updatedTeam.streak + 1,
-            isCorrect: true,
-            hasSubmitted: true,
-            isLocked: true,
-            multiplierActive: false,
-            lastFeedback: `+${pointsEarned} PTS! ${activeChallenge.mathExplanation}`,
-            activeMisconception: null,
-          },
-          [vehicleKey]: {
-            ...curVehicle,
-            stage: nextStage,
-            boostActive: true,
-            worldPosition: nextPos,
-          },
-          trackCompletion: Math.max(state.trackCompletion, newProgress),
-          functionMachineActive: currentRound >= 3,
-          activeCapsuleValue: activeChallenge.functionInput || activeChallenge.expectedOutput || null,
-          trackBuilderDeploying: currentRound === 2,
+    setTimeout(() => {
+      set((s) => {
+        const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+        const updated = {
+          ...targetTeam,
+          raceControls: { ...targetTeam.raceControls, nitroActive: false },
         };
+        return teamId === 'blue'
+          ? { blueTeam: updated, blueVehicle: { ...s.blueVehicle, boostActive: false } }
+          : { redTeam: updated, redVehicle: { ...s.redVehicle, boostActive: false } };
       });
+    }, 2800);
+  },
 
-      // If in Stage 5, solve gives instant massive nitro burst in race
-      if (currentRound === 5) {
-        get().triggerNitro(teamId);
-      }
+  // ── UPDATE 60 FPS RACE KINEMATICS ──
+  updateRacePhysics: (delta) => {
+    const state = get();
+    if (state.phase !== 'grand_prix_race') return;
 
-      if (isTieBreak) {
-        clearTimers();
-        set({ raceWinner: teamId, phase: 'podium_ceremony' });
-        return;
-      }
+    // Constrain delta to prevent huge physics jumps on frame drop
+    const dt = Math.min(0.05, Math.max(0.001, delta));
 
-      // Check if should advance round
-      clearTimers();
-      autoAdvanceTimer = setTimeout(() => {
-        const currentPhase = get().phase;
-        if (currentPhase === 'round_active') {
-          get().advanceRound();
-        }
-      }, 2200);
+    let bProgress = state.blueTeam.raceControls.trackProgress;
+    let rProgress = state.redTeam.raceControls.trackProgress;
+    let bSpeed = state.blueTeam.raceControls.speedKmh;
+    let rSpeed = state.redTeam.raceControls.speedKmh;
+    let bLane = state.blueTeam.raceControls.laneOffset ?? -1.8;
+    let rLane = state.redTeam.raceControls.laneOffset ?? 1.8;
 
-    } else {
-      patternAudio.playWrong();
+    const bSteer = state.blueTeam.raceControls.steer || 0;
+    const rSteer = state.redTeam.raceControls.steer || 0;
 
-      if (team.attemptsLeft > 1) {
-        const hint = activeChallenge.misconceptionTip || getMisconceptionHint('numbers', activeChallenge.title);
-        set((state) => ({
-          [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
-            ...team,
-            attemptsLeft: 1,
-            activeMisconception: hint,
-            lastFeedback: 'Re-calibrate and try once more!',
-          },
-        }));
+    // ── 1. BLUE VEHICLE ACCELERATION & STEERING ──
+    if (!state.blueTeam.raceControls.isHeldByHeadStart) {
+      // Base engine idle gives forward momentum, GAS roars up to 330, BRAKE slows down
+      let bAccel = 0;
+      if (state.blueTeam.raceControls.throttle > 0) {
+        bAccel = 150;
+      } else if (state.blueTeam.raceControls.throttle < 0) {
+        bAccel = -200;
       } else {
-        const isBlue = teamId === 'blue';
-        const otherTeam = isBlue ? redTeam : blueTeam;
-
-        set((state) => ({
-          [isBlue ? 'blueTeam' : 'redTeam']: {
-            ...team,
-            attemptsLeft: 0,
-            isLocked: true,
-            hasSubmitted: true,
-            isCorrect: false,
-            lastFeedback: `❌ MISSED: ${activeChallenge.mathExplanation}`,
-          },
-        }));
-
-        // ── BOTH WRONG CHECK ──
-        if (otherTeam.attemptsLeft <= 0 || otherTeam.isLocked) {
-          patternAudio.playPneumaticDepressurize();
-
-          set((state) => ({
-            blueTeam: {
-              ...state.blueTeam,
-              isLocked: true,
-              lastFeedback: `❌ BOTH TEAMS MISSED! ${activeChallenge.mathExplanation}`,
-            },
-            redTeam: {
-              ...state.redTeam,
-              isLocked: true,
-              lastFeedback: `❌ BOTH TEAMS MISSED! ${activeChallenge.mathExplanation}`,
-            },
-            // Keep cars in exact current position (0 movement)
-            blueVehicle: { ...state.blueVehicle, boostActive: false },
-            redVehicle: { ...state.redVehicle, boostActive: false },
-          }));
-
-          clearTimers();
-          autoAdvanceTimer = setTimeout(() => {
-            if (get().phase === 'round_active') {
-              get().advanceRound();
-            }
-          }, 2500);
-        }
-      }
-    }
-  },
-
-  handleTimerExpired: () => {
-    const { phase, activeChallenge } = get();
-    if (phase !== 'round_active' && phase !== 'tie_break') return;
-
-    patternAudio.playPneumaticDepressurize();
-
-    set((state) => ({
-      blueTeam: {
-        ...state.blueTeam,
-        attemptsLeft: 0,
-        isLocked: true,
-        isCorrect: false,
-        lastFeedback: `⏱️ TIME'S UP! ${activeChallenge.mathExplanation}`,
-      },
-      redTeam: {
-        ...state.redTeam,
-        attemptsLeft: 0,
-        isLocked: true,
-        isCorrect: false,
-        lastFeedback: `⏱️ TIME'S UP! ${activeChallenge.mathExplanation}`,
-      },
-      blueVehicle: { ...state.blueVehicle, boostActive: false },
-      redVehicle: { ...state.redVehicle, boostActive: false },
-    }));
-
-    clearTimers();
-    autoAdvanceTimer = setTimeout(() => {
-      if (get().phase === 'round_active') {
-        get().advanceRound();
-      }
-    }, 2500);
-  },
-
-  usePowerUp5050: (teamId) => {
-    const { currentRound, activeChallenge } = get();
-    patternAudio.playPowerUp5050();
-
-    set((state) => {
-      const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-      if (!team.powerUps.fiftyFifty) return state;
-
-      let updatedTeam = {
-        ...team,
-        powerUps: { ...team.powerUps, fiftyFifty: false },
-      };
-
-      if (currentRound === 1) {
-        updatedTeam.eliminatedOptions = ['-5', '+8', '+12', '-4'];
-      } else if (currentRound === 2) {
-        const correctStart = (activeChallenge.sequence && activeChallenge.sequence[0]) || activeChallenge.startValue || 20;
-        updatedTeam.builderStart = correctStart;
-      } else if (currentRound === 3) {
-        const correctOut = activeChallenge.expectedOutput || 13;
-        updatedTeam.computedOutput = correctOut - 1;
-      } else if (currentRound === 4) {
-        if (activeChallenge.expectedOperator) updatedTeam.selectedOperator = activeChallenge.expectedOperator;
-      } else if (currentRound === 5) {
-        if (activeChallenge.expectedStep) updatedTeam.hybridStep = activeChallenge.expectedStep;
+        // Natural idle rolling / wind drag
+        bAccel = bSpeed < 100 ? 50 : -25;
       }
 
-      return {
-        [teamId === 'blue' ? 'blueTeam' : 'redTeam']: updatedTeam,
-      };
-    });
-  },
+      if (state.blueTeam.raceControls.nitroActive) {
+        bAccel += 240;
+      }
 
-  usePowerUpTimeFreeze: (teamId) => {
-    patternAudio.playPowerUpFreeze();
-    set((state) => {
-      const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-      if (!team.powerUps.timeFreeze) return state;
+      bSpeed = Math.max(20, Math.min(360, bSpeed + bAccel * dt));
+      bProgress += (bSpeed / 3600) * dt * 2.8;
 
-      return {
-        timeRemaining: state.timeRemaining + 10,
-        [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
-          ...team,
-          powerUps: { ...team.powerUps, timeFreeze: false },
-        },
-      };
-    });
-  },
-
-  usePowerUp2x: (teamId) => {
-    patternAudio.playPowerUp2x();
-    set((state) => {
-      const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-      if (!team.powerUps.doublePoints) return state;
-
-      return {
-        [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
-          ...team,
-          multiplierActive: true,
-          powerUps: { ...team.powerUps, doublePoints: false, active2x: true },
-        },
-      };
-    });
-  },
-
-  advanceRound: () => {
-    clearTimers();
-    const { currentRound, questionIndex, totalQuestions } = get();
-    const nextQIndex = questionIndex + 1;
-
-    if (nextQIndex >= totalQuestions || currentRound >= 5) {
-      // Trigger Stage 5 Live Grand Prix Race!
-      get().startLiveGrandPrixRace();
-      return;
+      // Steering lateral shift
+      bLane += bSteer * 5.2 * dt;
     }
 
-    const nextRound = Math.min(currentRound + 1, 5) as RoundNumber;
-    const challengePool = getChallengesForRound(nextRound);
-    const nextChallenge = challengePool[nextQIndex % challengePool.length] || generateDynamicChallenge(nextRound, nextQIndex * 37 + 11);
-
-    set((state) => {
-      // Update vehicle positions based on new stage
-      const bluePos: [number, number, number] =
-        nextRound === 2 ? [-2.2, 0.25, 6] :
-        nextRound === 3 ? [-2.2, 0.25, 4.5] :
-        nextRound === 4 ? [-2.2, 0.25, 3.5] :
-        [-2.2, 0.25, 3.5];
-
-      const redPos: [number, number, number] =
-        nextRound === 2 ? [2.2, 0.25, 6] :
-        nextRound === 3 ? [2.2, 0.25, 4.5] :
-        nextRound === 4 ? [2.2, 0.25, 3.5] :
-        [2.2, 0.25, 3.5];
-
-      return {
-        phase: 'round_active',
-        currentRound: nextRound,
-        questionIndex: nextQIndex,
-        activeChallenge: nextChallenge,
-        timeRemaining: 45,
-        functionMachineActive: nextRound >= 3,
-        trackBuilderDeploying: nextRound === 2,
-        blueVehicle: {
-          ...state.blueVehicle,
-          worldPosition: bluePos,
-          stage: nextRound === 2 ? 'pit_tire_change' : nextRound === 3 ? 'factory_rollout' : 'grid_staging',
-        },
-        redVehicle: {
-          ...state.redVehicle,
-          worldPosition: redPos,
-          stage: nextRound === 2 ? 'pit_tire_change' : nextRound === 3 ? 'factory_rollout' : 'grid_staging',
-        },
-        blueTeam: {
-          ...state.blueTeam,
-          attemptsLeft: 2,
-          isLocked: false,
-          hasSubmitted: false,
-          isCorrect: null,
-          lastFeedback: null,
-          activeMisconception: null,
-          eliminatedOptions: [],
-        },
-        redTeam: {
-          ...state.redTeam,
-          attemptsLeft: 2,
-          isLocked: false,
-          hasSubmitted: false,
-          isCorrect: null,
-          lastFeedback: null,
-          activeMisconception: null,
-          eliminatedOptions: [],
-        },
-      };
-    });
-
-    // Start timer interval for new stage
-    timerInterval = setInterval(() => {
-      const state = get();
-      if (state.phase !== 'round_active' && state.phase !== 'tie_break') return;
-
-      if (state.timeRemaining > 1) {
-        set({ timeRemaining: state.timeRemaining - 1 });
+    // ── 2. RED VEHICLE ACCELERATION & STEERING ──
+    if (!state.redTeam.raceControls.isHeldByHeadStart) {
+      let rAccel = 0;
+      if (state.redTeam.raceControls.throttle > 0) {
+        rAccel = 150;
+      } else if (state.redTeam.raceControls.throttle < 0) {
+        rAccel = -200;
       } else {
-        set({ timeRemaining: 0 });
-        get().handleTimerExpired();
+        rAccel = rSpeed < 100 ? 50 : -25;
       }
-    }, 1000);
-  },
 
-  // ── STAGE 5: LIVE INTERACTIVE GRAND PRIX RACING DUEL ──
-  startLiveGrandPrixRace: () => {
-    clearTimers();
+      if (state.redTeam.raceControls.nitroActive) {
+        rAccel += 240;
+      }
 
-    const curBlueScore = get().blueTeam.score;
-    const curRedScore = get().redTeam.score;
-    const blueHasAdvantage = curBlueScore > curRedScore;
-    const redHasAdvantage = curRedScore > curBlueScore;
-    const isTiedScores = curBlueScore === curRedScore;
+      rSpeed = Math.max(20, Math.min(360, rSpeed + rAccel * dt));
+      rProgress += (rSpeed / 3600) * dt * 2.8;
 
-    const blueStartProgress = blueHasAdvantage ? 0.025 : 0.0;
-    const redStartProgress = redHasAdvantage ? 0.025 : 0.0;
-
-    const bluePt = getTrackPointAt(blueStartProgress);
-    const redPt = getTrackPointAt(redStartProgress);
-
-    const blueControls = defaultRaceControls(
-      'left',
-      blueHasAdvantage,
-      blueHasAdvantage
-        ? 'POLE POSITION + 3X NITROUS CHARGES (MATH LEADER!)'
-        : isTiedScores
-        ? 'DEADLOCK GRID DUEL (2X NITROUS)'
-        : 'PURSUIT CONTENDER (1X NITROUS)'
-    );
-    const redControls = defaultRaceControls(
-      'right',
-      redHasAdvantage,
-      redHasAdvantage
-        ? 'POLE POSITION + 3X NITROUS CHARGES (MATH LEADER!)'
-        : isTiedScores
-        ? 'DEADLOCK GRID DUEL (2X NITROUS)'
-        : 'PURSUIT CONTENDER (1X NITROUS)'
-    );
-
-    if (isTiedScores) {
-      blueControls.nitroCharges = 2;
-      blueControls.maxNitroCharges = 2;
-      redControls.nitroCharges = 2;
-      redControls.maxNitroCharges = 2;
+      // Steering lateral shift
+      rLane += rSteer * 5.2 * dt;
     }
 
-    blueControls.trackProgress = blueStartProgress;
-    redControls.trackProgress = redStartProgress;
+    // ── 3. TRACK BARRIER BOUNDARY CLAMPING (Cannot pass buildings/fences) ──
+    const ROAD_BOUNDARY_LIMIT = 3.8; // +/- 3.8 meters track edge
+    if (bLane < -ROAD_BOUNDARY_LIMIT) {
+      bLane = -ROAD_BOUNDARY_LIMIT;
+      bSpeed = Math.max(20, bSpeed - 30 * dt); // Barrier scrape friction
+    } else if (bLane > ROAD_BOUNDARY_LIMIT) {
+      bLane = ROAD_BOUNDARY_LIMIT;
+      bSpeed = Math.max(20, bSpeed - 30 * dt);
+    }
 
-    const initialBluePos: [number, number, number] = [
-      bluePt.x + blueControls.laneOffset * bluePt.normalX,
+    if (rLane < -ROAD_BOUNDARY_LIMIT) {
+      rLane = -ROAD_BOUNDARY_LIMIT;
+      rSpeed = Math.max(20, rSpeed - 30 * dt);
+    } else if (rLane > ROAD_BOUNDARY_LIMIT) {
+      rLane = ROAD_BOUNDARY_LIMIT;
+      rSpeed = Math.max(20, rSpeed - 30 * dt);
+    }
+
+    // ── 4. CAR-TO-CAR PHYSICAL COLLISION REBOUND ──
+    const progressDiff = Math.abs(bProgress - rProgress);
+    const lateralDiff = Math.abs(bLane - rLane);
+    const COLLISION_LENGTH = 0.016; // ~12m spline proximity
+    const COLLISION_WIDTH = 1.75;   // ~1.75m lateral vehicle width
+
+    if (progressDiff < COLLISION_LENGTH && lateralDiff < COLLISION_WIDTH) {
+      // Elastic rebound impulse - push apart laterally
+      const pushForce = 3.8 * dt;
+      if (bLane < rLane) {
+        bLane = Math.max(-ROAD_BOUNDARY_LIMIT, bLane - pushForce);
+        rLane = Math.min(ROAD_BOUNDARY_LIMIT, rLane + pushForce);
+      } else {
+        bLane = Math.min(ROAD_BOUNDARY_LIMIT, bLane + pushForce);
+        rLane = Math.max(-ROAD_BOUNDARY_LIMIT, rLane - pushForce);
+      }
+
+      // Mutual collision impact deceleration
+      bSpeed = Math.max(25, bSpeed * 0.94 - 15 * dt);
+      rSpeed = Math.max(25, rSpeed * 0.94 - 15 * dt);
+    }
+
+    // ── 5. CALCULATE 3D SPLINE POSITION & ROTATION ──
+    const bPt = getTrackPointAt(Math.min(1.0, bProgress));
+    const rPt = getTrackPointAt(Math.min(1.0, rProgress));
+
+    const bPos: [number, number, number] = [
+      bPt.x + bPt.normalX * bLane,
       0.25,
-      bluePt.z + blueControls.laneOffset * bluePt.normalZ,
+      bPt.z + bPt.normalZ * bLane,
     ];
-    const initialRedPos: [number, number, number] = [
-      redPt.x + redControls.laneOffset * redPt.normalX,
+    const rPos: [number, number, number] = [
+      rPt.x + rPt.normalX * rLane,
       0.25,
-      redPt.z + redControls.laneOffset * redPt.normalZ,
+      rPt.z + rPt.normalZ * rLane,
     ];
 
-    set({
-      phase: 'grand_prix_race',
-      currentRound: 5,
-      raceLights: [true, true, true, false, false], // 3 Red Lights
-      blueTeam: { ...get().blueTeam, raceControls: blueControls },
-      redTeam: { ...get().redTeam, raceControls: redControls },
+    // Check Finish Line
+    let winner = state.raceWinner;
+    if (!winner) {
+      if (bProgress >= TRACK_FINISH_PROGRESS && rProgress >= TRACK_FINISH_PROGRESS) {
+        winner = bProgress >= rProgress ? 'blue' : 'red';
+      } else if (bProgress >= TRACK_FINISH_PROGRESS) {
+        winner = 'blue';
+      } else if (rProgress >= TRACK_FINISH_PROGRESS) {
+        winner = 'red';
+      }
+    }
+
+    set((s) => ({
+      raceWinner: winner,
       blueVehicle: {
-        ...get().blueVehicle,
-        worldPosition: initialBluePos,
-        rotationY: bluePt.angle,
-        isRacing: true,
-        speed: 120,
-        boostActive: false,
+        ...s.blueVehicle,
+        worldPosition: bPos,
+        rotationY: bPt.angle + bSteer * 0.1,
+        speed: bSpeed,
+        finishedRace: bProgress >= TRACK_FINISH_PROGRESS,
       },
       redVehicle: {
-        ...get().redVehicle,
-        worldPosition: initialRedPos,
-        rotationY: redPt.angle,
-        isRacing: true,
-        speed: 120,
-        boostActive: false,
+        ...s.redVehicle,
+        worldPosition: rPos,
+        rotationY: rPt.angle + rSteer * 0.1,
+        speed: rSpeed,
+        finishedRace: rProgress >= TRACK_FINISH_PROGRESS,
       },
-    });
-
-    patternAudio.playStartLightBeep(false);
-
-    // Light sequence: 3 Red -> Yellow -> GREEN
-    setTimeout(() => {
-      set({ raceLights: [true, true, true, true, false] });
-      patternAudio.playStartLightBeep(false);
-    }, 1000);
-
-    setTimeout(() => {
-      set({ raceLights: [false, false, false, false, true] }); // GREEN!
-      patternAudio.playStartLightBeep(true);
-      patternAudio.playEngineRev();
-
-      // High-Frequency Real-time Racing Physics Loop (40 FPS, 25ms tick)
-      raceInterval = setInterval(() => {
-        const state = get();
-        if (state.phase !== 'grand_prix_race') return;
-
-        let bControls = { ...state.blueTeam.raceControls };
-        let rControls = { ...state.redTeam.raceControls };
-
-        // ── BLUE CAR SPEED & NITRO SIMULATION ──
-        if (bControls.nitroActive) {
-          bControls.nitroRemaining = Math.max(0, bControls.nitroRemaining - 0.7);
-          bControls.speedKmh = Math.min(bControls.topSpeedMax, bControls.speedKmh + 6);
-          if (bControls.nitroRemaining <= 0) {
-            if (bControls.nitroCharges > 1) {
-              bControls.nitroCharges -= 1;
-              bControls.nitroRemaining = 100;
-            } else {
-              bControls.nitroCharges = 0;
-              bControls.nitroActive = false;
-            }
-          }
-        } else if (bControls.throttle > 0) {
-          const accelRate = bControls.hasAdvantage ? 3.5 : 2.5;
-          bControls.speedKmh = Math.min(bControls.topSpeedMax, bControls.speedKmh + accelRate);
-        } else {
-          bControls.speedKmh = Math.max(110, bControls.speedKmh - 1.2);
-        }
-
-        // ── RED CAR SPEED & NITRO SIMULATION ──
-        if (rControls.nitroActive) {
-          rControls.nitroRemaining = Math.max(0, rControls.nitroRemaining - 0.7);
-          rControls.speedKmh = Math.min(rControls.topSpeedMax, rControls.speedKmh + 6);
-          if (rControls.nitroRemaining <= 0) {
-            if (rControls.nitroCharges > 1) {
-              rControls.nitroCharges -= 1;
-              rControls.nitroRemaining = 100;
-            } else {
-              rControls.nitroCharges = 0;
-              rControls.nitroActive = false;
-            }
-          }
-        } else if (rControls.throttle > 0) {
-          const accelRate = rControls.hasAdvantage ? 3.5 : 2.5;
-          rControls.speedKmh = Math.min(rControls.topSpeedMax, rControls.speedKmh + accelRate);
-        } else {
-          rControls.speedKmh = Math.max(110, rControls.speedKmh - 1.2);
-        }
-
-        // Distance & Progress along Track Spline
-        const bMetersPerTick = (bControls.speedKmh * 1000 / 3600) * 0.025;
-        const rMetersPerTick = (rControls.speedKmh * 1000 / 3600) * 0.025;
-
-        const newBlueProgress = Math.min(1.0, bControls.trackProgress + bMetersPerTick / TRACK_TOTAL_LENGTH_METERS);
-        const newRedProgress = Math.min(1.0, rControls.trackProgress + rMetersPerTick / TRACK_TOTAL_LENGTH_METERS);
-
-        const newBlueDist = Math.min(TRACK_TOTAL_LENGTH_METERS, Math.round(newBlueProgress * TRACK_TOTAL_LENGTH_METERS));
-        const newRedDist = Math.min(TRACK_TOTAL_LENGTH_METERS, Math.round(newRedProgress * TRACK_TOTAL_LENGTH_METERS));
-
-        bControls.trackProgress = newBlueProgress;
-        bControls.distanceCovered = newBlueDist;
-        bControls.rpm = Math.min(12500, Math.round(2500 + (bControls.speedKmh / bControls.topSpeedMax) * 9000 + (bControls.nitroActive ? 1000 : 0)));
-        bControls.gear = Math.min(8, Math.max(1, Math.floor(bControls.speedKmh / 42) + 1));
-
-        rControls.trackProgress = newRedProgress;
-        rControls.distanceCovered = newRedDist;
-        rControls.rpm = Math.min(12500, Math.round(2500 + (rControls.speedKmh / rControls.topSpeedMax) * 9000 + (rControls.nitroActive ? 1000 : 0)));
-        rControls.gear = Math.min(8, Math.max(1, Math.floor(rControls.speedKmh / 42) + 1));
-
-        // World 3D Positions computed directly from Track Spline
-        const bPt = getTrackPointAt(newBlueProgress);
-        const rPt = getTrackPointAt(newRedProgress);
-
-        const bWorldPos: [number, number, number] = [
-          bPt.x + bControls.laneOffset * bPt.normalX,
-          bPt.y + 0.25,
-          bPt.z + bControls.laneOffset * bPt.normalZ,
-        ];
-        const rWorldPos: [number, number, number] = [
-          rPt.x + rControls.laneOffset * rPt.normalX,
-          rPt.y + 0.25,
-          rPt.z + rControls.laneOffset * rPt.normalZ,
-        ];
-
-        set({
-          blueTeam: { ...state.blueTeam, raceControls: bControls },
-          redTeam: { ...state.redTeam, raceControls: rControls },
-          blueVehicle: {
-            ...state.blueVehicle,
-            worldPosition: bWorldPos,
-            rotationY: bPt.angle + bControls.steer * 0.25,
-            speed: bControls.speedKmh,
-            distanceTraveled: newBlueDist,
-            boostActive: bControls.nitroActive,
-          },
-          redVehicle: {
-            ...state.redVehicle,
-            worldPosition: rWorldPos,
-            rotationY: rPt.angle + rControls.steer * 0.25,
-            speed: rControls.speedKmh,
-            distanceTraveled: newRedDist,
-            boostActive: rControls.nitroActive,
-          },
-        });
-
-        // Check if either vehicle crosses the Checkered Finish Line (progress >= TRACK_FINISH_PROGRESS)
-        if (newBlueProgress >= TRACK_FINISH_PROGRESS || newRedProgress >= TRACK_FINISH_PROGRESS) {
-          clearTimers();
-          const winner: TeamId | 'tie' =
-            newBlueProgress > newRedProgress ? 'blue' : newRedProgress > newBlueProgress ? 'red' : 'tie';
-
-          patternAudio.playCorrect();
-
-          setTimeout(() => {
-            if (winner === 'tie') {
-              get().startTieBreak();
-            } else {
-              set({
-                raceWinner: winner,
-                phase: 'podium_ceremony',
-              });
-            }
-          }, 1500);
-        }
-      }, 25);
-    }, 2000);
+      blueTeam: {
+        ...s.blueTeam,
+        raceControls: {
+          ...s.blueTeam.raceControls,
+          trackProgress: bProgress,
+          laneOffset: bLane,
+          speedKmh: Math.round(bSpeed),
+          rpm: Math.round(3200 + (bSpeed / 360) * 8800),
+        },
+      },
+      redTeam: {
+        ...s.redTeam,
+        raceControls: {
+          ...s.redTeam.raceControls,
+          trackProgress: rProgress,
+          laneOffset: rLane,
+          speedKmh: Math.round(rSpeed),
+          rpm: Math.round(3200 + (rSpeed / 360) * 8800),
+        },
+      },
+    }));
   },
 
-  startTieBreak: () => {
-    clearTimers();
-    const tieChallenge = generateDynamicChallenge(1, 999);
+  // Input Setters
+  setSelectedStep: (teamId, step) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, selectedStep: step } } : { redTeam: { ...s.redTeam, selectedStep: step } })),
+  setBuilderStart: (teamId, val) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, builderStart: val } } : { redTeam: { ...s.redTeam, builderStart: val } })),
+  setBuilderStep: (teamId, val) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, builderStep: val } } : { redTeam: { ...s.redTeam, builderStep: val } })),
+  setComputedOutput: (teamId, output) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, computedOutput: output } } : { redTeam: { ...s.redTeam, computedOutput: output } })),
+  setSelectedOperator: (teamId, op) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, selectedOperator: op } } : { redTeam: { ...s.redTeam, selectedOperator: op } })),
+  setSelectedOperand: (teamId, val) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, selectedOperand: val } } : { redTeam: { ...s.redTeam, selectedOperand: val } })),
+  setHybridStep: (teamId, val) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, hybridStep: val } } : { redTeam: { ...s.redTeam, hybridStep: val } })),
+  setHybridOutput: (teamId, val) =>
+    set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, hybridOutput: val } } : { redTeam: { ...s.redTeam, hybridOutput: val } })),
+
+  // Power-Ups
+  use5050: (teamId) => {
+    set((s) => {
+      const q = s.currentQuestion;
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      if (!targetTeam.powerUps.fiftyFifty) return {};
+
+      // Find wrong options to eliminate (up to 2)
+      const wrongOptions = q.options
+        .filter((o) => String(o.value) !== String(q.correctAnswer))
+        .slice(0, 2)
+        .map((o) => o.id);
+
+      const updated: TeamConsoleState = {
+        ...targetTeam,
+        powerUps: { ...targetTeam.powerUps, fiftyFifty: false },
+        eliminatedOptions: wrongOptions,
+      };
+
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+    });
+  },
+
+  useTimeFreeze: (teamId) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      if (!targetTeam.powerUps.timeFreeze) return {};
+
+      const updated: TeamConsoleState = {
+        ...targetTeam,
+        powerUps: { ...targetTeam.powerUps, timeFreeze: false },
+      };
+
+      return {
+        timeRemaining: s.timeRemaining + 10,
+        ...(teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated }),
+      };
+    });
+  },
+
+  use2x: (teamId) => {
+    set((s) => {
+      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      if (!targetTeam.powerUps.doublePoints) return {};
+
+      const updated: TeamConsoleState = {
+        ...targetTeam,
+        multiplierActive: true,
+        powerUps: { ...targetTeam.powerUps, doublePoints: false },
+      };
+
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+    });
+  },
+
+  setActiveCameraView: (view) => set({ activeCameraView: view }),
+  setSplitViewMode: (split) => set({ splitViewMode: split }),
+  toggleRoughWork: () => set((s) => ({ roughWorkOpen: !s.roughWorkOpen })),
+
+  resetGame: () => {
     set({
-      phase: 'tie_break',
-      isTieBreak: true,
-      timeRemaining: 15,
-      activeChallenge: tieChallenge,
-      blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, attemptsLeft: 1 },
-      redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, attemptsLeft: 1 },
+      phase: 'round_active',
+      currentRound: 1,
+      questionIndex: 0,
+      currentQuestion: getQuestionForRound(1, 0),
+      signalLights: [false, false, false],
+      countdownValue: null,
+      headStartTeam: null,
+      headStartRestraintActive: false,
+      raceWinner: null,
+      activeCameraView: 1,
+      blueVehicle: {
+        teamId: 'blue',
+        flowState: 'garage_idle',
+        worldPosition: VEHICLE_COORDINATES.garageStart.blue,
+        rotationY: 0,
+        speed: 0,
+        rpm: 2500,
+        boostActive: false,
+        isRacing: false,
+        distanceTraveled: 0,
+        finishedRace: false,
+      },
+      redVehicle: {
+        teamId: 'red',
+        flowState: 'garage_idle',
+        worldPosition: VEHICLE_COORDINATES.garageStart.red,
+        rotationY: 0,
+        speed: 0,
+        rpm: 2500,
+        boostActive: false,
+        isRacing: false,
+        distanceTraveled: 0,
+        finishedRace: false,
+      },
+      blueTeam: createInitialTeam('blue', 'Blue Velocity'),
+      redTeam: createInitialTeam('red', 'Red Turbo'),
     });
-
-    timerInterval = setInterval(() => {
-      const state = get();
-      if (state.phase !== 'tie_break') return;
-
-      if (state.timeRemaining > 1) {
-        set({ timeRemaining: state.timeRemaining - 1 });
-      } else {
-        set({ timeRemaining: 0 });
-        get().handleTimerExpired();
-      }
-    }, 1000);
-  },
-
-  restartGame: () => {
-    get().startMatch();
   },
 }));

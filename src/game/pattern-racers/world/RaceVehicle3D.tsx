@@ -1,21 +1,23 @@
 // ============================================================
-// PATTERN RACERS — Professional 3D Race Vehicles
+// PATTERN RACERS — Professional High-Performance 3D Race Vehicles
 // Blue Velocity (#01) & Red Turbo (#02)
-// 5-Stage Physical Behavior:
-// - Stage 1: Diagnostic scan beams & umbilical power connection
-// - Stage 2: Elevated on pneumatic jacks with active tire swap animation
-// - Stage 3: Factory rollout with exhaust flames & hangar exit
-// - Stage 4: Staged at starting line grid with idling engine
-// - Stage 5: High-speed live racing with throttle, lane shift & nitro boost
+// True Formula 1 / Le Mans Hypercar Aero Architecture:
+// - Low-slung monocoque chassis, aerodynamic nose & dual-plane front carbon splitter
+// - Contoured sidepod air intakes, halo safety structure & overhead airbox scoop
+// - Realistic 3D Driver with Team Racing Helmet & Reflective Visor
+// - Multi-tier high-downforce rear wing & rear aerodynamic diffuser strakes
+// - 4 Wide Racing Slick Wheels with Alloy Rims, Brake Calipers & STEERING FRONT WHEELS
+// - Dynamic RPM Engine Vibration across Rounds 1-5, Launch Squat, and Nitro Flames
 // ============================================================
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TeamId } from '../types';
 import { usePatternStore } from '../store/patternStore';
+import { PBR_MATERIALS } from './materials';
 
 interface Props {
   teamId: TeamId;
@@ -35,254 +37,301 @@ export const RaceVehicle3D: React.FC<Props> = ({
   speed = 0,
 }) => {
   const currentRound = usePatternStore((s) => s.currentRound);
+  const phase = usePatternStore((s) => s.phase);
+  const blueVehicle = usePatternStore((s) => s.blueVehicle);
+  const redVehicle = usePatternStore((s) => s.redVehicle);
+  const blueControls = usePatternStore((s) => s.blueTeam.raceControls);
+  const redControls = usePatternStore((s) => s.redTeam.raceControls);
+
   const isBlue = teamId === 'blue';
-  const primaryColor = isBlue ? '#2563eb' : '#dc2626';
-  const secondaryColor = isBlue ? '#60a5fa' : '#f87171';
-  const glowColor = isBlue ? '#38bdf8' : '#ef4444';
+  const veh = isBlue ? blueVehicle : redVehicle;
+  const controls = isBlue ? blueControls : redControls;
+  const steerInput = controls.steer || 0;
+
+  // Authentic Materials from Singleton Library
+  const bodyMat = isBlue ? PBR_MATERIALS.vehicleBodyBlue : PBR_MATERIALS.vehicleBodyRed;
+  const accentMat = isBlue ? PBR_MATERIALS.seatBlue : PBR_MATERIALS.seatYellow;
+  const helmetMat = isBlue ? PBR_MATERIALS.spectatorBlue : PBR_MATERIALS.spectatorRed;
+  const visorMat = isBlue ? PBR_MATERIALS.seatBlue : PBR_MATERIALS.spectatorYellow;
 
   const groupRef = useRef<THREE.Group>(null);
-  const wheelsRef = useRef<THREE.Group>(null);
-  const flagRef = useRef<THREE.Mesh>(null);
-  const exhaustGlowRef = useRef<THREE.PointLight>(null);
-  const scanLaserRef = useRef<THREE.Mesh>(null);
+  const frontLeftWheelRef = useRef<THREE.Group>(null);
+  const frontRightWheelRef = useRef<THREE.Group>(null);
+  const rearWheelsRef = useRef<THREE.Group>(null);
+  const chassisRollRef = useRef<THREE.Group>(null);
+  const nitroFlamesRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
-    // Dynamic vertical lift for Stage 2 Hydraulic Jacks
-    const isTireChange = currentRound === 2;
-    const baseElevation = isTireChange ? 0.35 : 0;
+    // Engine RPM vibration intensity across Rounds 1-5
+    const rpm = veh.rpm || 2500;
+    const vibIntensity = (rpm / 12000) * 0.012;
+    const idleTime = state.clock.getElapsedTime() * 30;
+    const shake = Math.sin(idleTime) * vibIntensity;
 
-    // Subtle engine idling vibration
     if (groupRef.current) {
-      const idleTime = state.clock.getElapsedTime() * 14;
-      const shake = (boostActive || isRacing) ? Math.sin(idleTime * 2) * 0.02 : Math.sin(idleTime) * 0.008;
-      groupRef.current.position.y = position[1] + baseElevation + shake;
+      groupRef.current.position.y = position[1] + shake;
       groupRef.current.position.x = position[0];
       groupRef.current.position.z = position[2];
       groupRef.current.rotation.y = rotationY;
     }
 
-    // Wheel rotation during live racing / rollout
-    if (wheelsRef.current) {
-      if (isRacing || currentRound >= 3) {
-        const rotSpeed = isRacing ? Math.max(12, speed * delta * 8) : 4 * delta;
-        wheelsRef.current.children.forEach((wheel) => {
-          wheel.rotation.x += rotSpeed;
-        });
+    // Dynamic Chassis Banking / Roll into turns (-8 deg to +8 deg)
+    if (chassisRollRef.current) {
+      const targetRoll = -steerInput * 0.12;
+      chassisRollRef.current.rotation.z = THREE.MathUtils.lerp(
+        chassisRollRef.current.rotation.z,
+        targetRoll,
+        delta * 8
+      );
+    }
+
+    // Front Wheels Physical Steering Angle (Turns left / right)
+    const targetSteerAngle = -steerInput * 0.45;
+    if (frontLeftWheelRef.current) {
+      frontLeftWheelRef.current.rotation.y = THREE.MathUtils.lerp(
+        frontLeftWheelRef.current.rotation.y,
+        targetSteerAngle,
+        delta * 12
+      );
+    }
+    if (frontRightWheelRef.current) {
+      frontRightWheelRef.current.rotation.y = THREE.MathUtils.lerp(
+        frontRightWheelRef.current.rotation.y,
+        targetSteerAngle,
+        delta * 12
+      );
+    }
+
+    // Wheel Rotation from Forward Speed or Head Start Burnout
+    const rotSpeed =
+      controls.isHeldByHeadStart
+        ? 25 * delta // Burnout on the spot while restrained
+        : isRacing
+        ? Math.max(12, speed * delta * 0.25)
+        : speed > 0
+        ? speed * delta * 0.2
+        : 0;
+
+    if (frontLeftWheelRef.current?.children[0]) frontLeftWheelRef.current.children[0].rotation.x += rotSpeed;
+    if (frontRightWheelRef.current?.children[0]) frontRightWheelRef.current.children[0].rotation.x += rotSpeed;
+    if (rearWheelsRef.current) {
+      rearWheelsRef.current.children.forEach((w) => {
+        w.rotation.x += rotSpeed;
+      });
+    }
+
+    // Dynamic Nitrous Flame Oscillation & Scale
+    if (nitroFlamesRef.current) {
+      if (boostActive) {
+        const flameScale = 1.0 + Math.sin(state.clock.getElapsedTime() * 35) * 0.35;
+        nitroFlamesRef.current.scale.set(flameScale, flameScale, flameScale * 1.5);
       }
-    }
-
-    // Dynamic waving cloth flag on rear wing
-    if (flagRef.current) {
-      const time = state.clock.getElapsedTime() * (isRacing ? 18 : 6);
-      flagRef.current.rotation.y = Math.sin(time) * 0.3;
-      flagRef.current.rotation.z = Math.cos(time * 0.8) * 0.12;
-    }
-
-    // Exhaust glow pulse on boost / race
-    if (exhaustGlowRef.current) {
-      if (boostActive || isRacing) {
-        exhaustGlowRef.current.intensity = 2.4 + Math.sin(state.clock.getElapsedTime() * 25) * 1.0;
-      } else if (currentRound >= 3) {
-        exhaustGlowRef.current.intensity = 0.8 + Math.sin(state.clock.getElapsedTime() * 10) * 0.3;
-      } else {
-        exhaustGlowRef.current.intensity = 0.15;
-      }
-    }
-
-    // Stage 1 Telemetry Scanner Laser sweep
-    if (scanLaserRef.current && currentRound === 1) {
-      const scanT = Math.sin(state.clock.getElapsedTime() * 3) * 1.4;
-      scanLaserRef.current.position.z = scanT;
     }
   });
 
   return (
     <group ref={groupRef} position={position}>
-      {/* ── 1. STAGE 2 HYDRAULIC PNEUMATIC JACKS (When in Tire Change) ── */}
-      {currentRound === 2 && (
-        <group position={[0, -0.25, 0]}>
-          {[-0.6, 0.6].map((x, i) =>
-            [-0.8, 0.8].map((z, zi) => (
-              <mesh key={`jack-${i}-${zi}`} position={[x, 0.12, z]} castShadow>
-                <cylinderGeometry args={[0.08, 0.12, 0.35, 8]} />
-                <meshStandardMaterial color="#eab308" metalness={0.8} />
-              </mesh>
-            ))
-          )}
-        </group>
-      )}
-
-      {/* ── 2. STAGE 1 SCANNING DIAGNOSTIC LASER BEAM ── */}
-      {currentRound === 1 && (
-        <mesh ref={scanLaserRef} position={[0, 0.35, 0]} rotation={[0, 0, Math.PI / 2]}>
-          <cylinderGeometry args={[0.015, 0.015, 1.8, 8]} />
-          <meshBasicMaterial color={glowColor} transparent opacity={0.7} />
+      {/* ── CHASSIS ROLL GROUP (Banks on turns) ── */}
+      <group ref={chassisRollRef}>
+        {/* ── 1. MAIN MONOCOQUE BODY & NOSE CONE ── */}
+        {/* Central Monocoque Cockpit Shell */}
+        <mesh position={[0, 0.26, 0.1]} castShadow receiveShadow material={bodyMat}>
+          <boxGeometry args={[1.15, 0.3, 2.6]} />
         </mesh>
-      )}
 
-      {/* ── 3. MAIN MONOCOQUE CHASSIS ── */}
-      <mesh position={[0, 0.22, 0]} castShadow receiveShadow>
-        <boxGeometry args={[1.3, 0.26, 3.2]} />
-        <meshStandardMaterial color={primaryColor} roughness={0.25} metalness={0.7} />
-      </mesh>
-
-      {/* Front Nose Wedge */}
-      <mesh position={[0, 0.16, -1.8]} castShadow>
-        <cylinderGeometry args={[0.2, 0.6, 0.9, 4]} />
-        <meshStandardMaterial color={primaryColor} roughness={0.25} metalness={0.7} />
-      </mesh>
-
-      {/* Front Aerodynamic Splitter / Wing */}
-      <mesh position={[0, 0.08, -2.1]} castShadow>
-        <boxGeometry args={[1.8, 0.06, 0.45]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.4} metalness={0.9} />
-      </mesh>
-
-      {/* Side Pods (Air Intakes) */}
-      {[-0.65, 0.65].map((x, i) => (
-        <group key={`sidepod-${i}`} position={[x, 0.2, 0]}>
-          <mesh castShadow receiveShadow>
-            <boxGeometry args={[0.35, 0.28, 1.8]} />
-            <meshStandardMaterial color={secondaryColor} roughness={0.3} metalness={0.6} />
-          </mesh>
-          {/* Radiator Vent */}
-          <mesh position={[0, 0, -0.91]}>
-            <planeGeometry args={[0.28, 0.22]} />
-            <meshBasicMaterial color="#000000" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* ── 4. COCKPIT & TINTED AERO WINDSHIELD ── */}
-      <mesh position={[0, 0.42, -0.2]} castShadow>
-        <boxGeometry args={[0.65, 0.22, 1.1]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.9} />
-      </mesh>
-      {/* Smoked Tint Glass Canopy */}
-      <mesh position={[0, 0.45, -0.2]}>
-        <sphereGeometry args={[0.42, 16, 12]} />
-        <meshStandardMaterial color="#38bdf8" roughness={0.1} metalness={0.9} transparent opacity={0.65} />
-      </mesh>
-
-      {/* ── 5. HIGH-DOWNFORCE REAR WING ── */}
-      <group position={[0, 0.65, 1.4]}>
-        <mesh castShadow>
-          <boxGeometry args={[1.9, 0.08, 0.5]} />
-          <meshStandardMaterial color={primaryColor} roughness={0.25} metalness={0.7} />
+        {/* Center Racing Stripe Decal */}
+        <mesh position={[0, 0.415, 0.1]} material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.26, 0.01, 2.62]} />
         </mesh>
-        {/* End Plates */}
-        {[-0.95, 0.95].map((x, i) => (
-          <mesh key={`wing-end-${i}`} position={[x, 0, 0]}>
-            <boxGeometry args={[0.05, 0.35, 0.55]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.4} />
-          </mesh>
-        ))}
-        {/* Dual Vertical Pylons */}
-        {[-0.35, 0.35].map((x, i) => (
-          <mesh key={`pylon-${i}`} position={[x, -0.32, 0]}>
-            <boxGeometry args={[0.06, 0.6, 0.15]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.5} />
-          </mesh>
-        ))}
-      </group>
 
-      {/* ── 6. WHEELS WITH RUBBER TIRES & ALLOY RIMS ── */}
-      <group ref={wheelsRef}>
-        {[
-          [-0.85, 0.22, -1.1], // Front Left
-          [0.85, 0.22, -1.1],  // Front Right
-          [-0.9, 0.28, 1.1],   // Rear Left
-          [0.9, 0.28, 1.1],    // Rear Right
-        ].map(([x, y, z], idx) => {
-          const isRear = idx >= 2;
-          const radius = isRear ? 0.32 : 0.26;
-          const width = isRear ? 0.32 : 0.24;
-          // Offset wheels slightly outward in Stage 2 during tire change
-          const xOffset = currentRound === 2 ? (x > 0 ? 0.2 : -0.2) : 0;
-
-          return (
-            <group key={`wheel-${idx}`} position={[x + xOffset, y, z]} rotation={[0, 0, Math.PI / 2]}>
-              {/* Outer Rubber Tire */}
-              <mesh castShadow>
-                <cylinderGeometry args={[radius, radius, width, 24]} />
-                <meshStandardMaterial color="#18181b" roughness={0.85} metalness={0.2} />
-              </mesh>
-              {/* Center Alloy Rim */}
-              <mesh position={[0, (width / 2) * (x > 0 ? 1.01 : -1.01), 0]}>
-                <cylinderGeometry args={[radius * 0.6, radius * 0.6, 0.05, 12]} />
-                <meshStandardMaterial color="#e2e8f0" roughness={0.2} metalness={0.9} />
-              </mesh>
-              {/* Pirelli-Style Colored Sidewall Ring */}
-              <mesh position={[0, (width / 2) * (x > 0 ? 1.005 : -1.005), 0]}>
-                <ringGeometry args={[radius * 0.65, radius * 0.85, 16]} />
-                <meshBasicMaterial color={currentRound >= 2 ? '#eab308' : '#64748b'} />
-              </mesh>
-            </group>
-          );
-        })}
-      </group>
-
-      {/* ── 7. HEADLIGHTS & BRAKE LED LIGHTS ── */}
-      {[-0.45, 0.45].map((x, i) => (
-        <mesh key={`headlight-${i}`} position={[x, 0.2, -1.65]}>
-          <sphereGeometry args={[0.08, 12, 12]} />
-          <meshBasicMaterial color={currentRound >= 3 ? '#ffffff' : '#94a3b8'} />
+        {/* Number Badge (#01 or #02) */}
+        <mesh position={[0, 0.42, 0.3]} material={PBR_MATERIALS.concrete}>
+          <circleGeometry args={[0.22, 16]} />
         </mesh>
-      ))}
-      <mesh position={[0, 0.25, 1.62]}>
-        <boxGeometry args={[0.8, 0.06, 0.04]} />
-        <meshBasicMaterial color="#ef4444" />
-      </mesh>
 
-      {/* ── 8. EXHAUST & TURBO THRUST GLOW + NITROUS FLAMES ── */}
-      {[-0.2, 0.2].map((xExhaust, exIdx) => (
-        <group key={`exhaust-pipe-${exIdx}`} position={[xExhaust, 0.18, 1.64]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.08, 0.08, 0.15, 12]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.6} metalness={0.9} />
+        {/* Sloping Aerodynamic Front Nose */}
+        <mesh position={[0, 0.2, -1.5]} rotation={[0.1, 0, 0]} castShadow receiveShadow material={bodyMat}>
+          <boxGeometry args={[0.65, 0.22, 1.3]} />
+        </mesh>
+        <mesh position={[0, 0.315, -1.5]} rotation={[0.1, 0, 0]} material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.2, 0.01, 1.32]} />
+        </mesh>
+
+        {/* ── 2. DUAL-PLANE CARBON FRONT WING & SPLITTER ── */}
+        <group position={[0, 0.08, -2.1]}>
+          {/* Main Lower Carbon Splitter */}
+          <mesh castShadow material={PBR_MATERIALS.vehicleCarbon}>
+            <boxGeometry args={[1.9, 0.05, 0.55]} />
           </mesh>
-
-          {/* Glowing Exhaust Flame Cones on Nitro Boost */}
-          {boostActive && (
-            <mesh position={[0, 0, 0.45]} rotation={[-Math.PI / 2, 0, 0]}>
-              <coneGeometry args={[0.16, 0.8, 12]} />
-              <meshBasicMaterial
-                color={isBlue ? '#38bdf8' : '#f97316'}
-                transparent
-                opacity={0.85}
-              />
+          {/* Upper Aero Flap */}
+          <mesh position={[0, 0.1, 0.05]} castShadow material={accentMat}>
+            <boxGeometry args={[1.75, 0.04, 0.3]} />
+          </mesh>
+          {/* Left & Right Endplate Winglets */}
+          {[-0.95, 0.95].map((x, i) => (
+            <mesh key={`fwing-end-${i}`} position={[x, 0.12, 0]} castShadow material={PBR_MATERIALS.vehicleCarbon}>
+              <boxGeometry args={[0.04, 0.28, 0.6]} />
             </mesh>
+          ))}
+        </group>
+
+        {/* ── 3. SCULPTED SIDE AIR INTAKE PODS & BARGEBOARDS ── */}
+        {[-0.68, 0.68].map((x, i) => (
+          <group key={`sidepod-${i}`} position={[x, 0.22, 0.1]}>
+            <mesh castShadow receiveShadow material={accentMat}>
+              <boxGeometry args={[0.36, 0.32, 1.9]} />
+            </mesh>
+            <mesh position={[0, 0, -0.96]}>
+              <planeGeometry args={[0.3, 0.26]} />
+              <meshBasicMaterial color="#000000" />
+            </mesh>
+            <mesh position={[x > 0 ? 0.06 : -0.06, -0.14, 0]} material={PBR_MATERIALS.vehicleCarbon}>
+              <boxGeometry args={[0.12, 0.03, 2.1]} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* ── 4. OPEN COCKPIT, 3D DRIVER & HALO SAFETY RING ── */}
+        {/* Cockpit Cutout Tub */}
+        <mesh position={[0, 0.26, -0.1]} material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[0.62, 0.22, 0.75]} />
+        </mesh>
+
+        {/* 3D Formula Driver (Helmet, Visor, Racing Suit) */}
+        <group position={[0, 0.38, -0.05]}>
+          <mesh position={[0, 0.02, 0]} castShadow material={accentMat}>
+            <boxGeometry args={[0.42, 0.3, 0.3]} />
+          </mesh>
+          <mesh position={[0, 0.26, 0]} castShadow material={helmetMat}>
+            <sphereGeometry args={[0.18, 12, 12]} />
+          </mesh>
+          <mesh position={[0, 0.26, -0.12]} rotation={[0.2, 0, 0]} material={visorMat}>
+            <boxGeometry args={[0.22, 0.09, 0.12]} />
+          </mesh>
+        </group>
+
+        {/* Carbon Fiber Halo Safety Ring */}
+        <group position={[0, 0.52, -0.1]}>
+          <mesh position={[0, 0, -0.32]} material={PBR_MATERIALS.vehicleCarbon}>
+            <cylinderGeometry args={[0.025, 0.025, 0.35, 8]} />
+          </mesh>
+          <mesh position={[0, 0.16, 0.05]} rotation={[Math.PI / 2, 0, 0]} material={PBR_MATERIALS.vehicleCarbon}>
+            <torusGeometry args={[0.28, 0.025, 8, 16, Math.PI]} />
+          </mesh>
+        </group>
+
+        {/* Overhead Engine Air Intake Scoop */}
+        <mesh position={[0, 0.62, 0.42]} rotation={[-0.2, 0, 0]} castShadow material={bodyMat}>
+          <boxGeometry args={[0.32, 0.24, 0.65]} />
+        </mesh>
+        <mesh position={[0, 0.68, 0.12]} rotation={[-0.2, 0, 0]}>
+          <circleGeometry args={[0.1, 12]} />
+          <meshBasicMaterial color="#000000" />
+        </mesh>
+
+        {/* ── 5. MULTI-TIER REAR HIGH-DOWNFORCE GT WING & DIFFUSER ── */}
+        <group position={[0, 0.68, 1.3]}>
+          <mesh castShadow material={PBR_MATERIALS.vehicleCarbon}>
+            <boxGeometry args={[1.85, 0.04, 0.42]} />
+          </mesh>
+          <mesh position={[0, -0.12, -0.05]} castShadow material={accentMat}>
+            <boxGeometry args={[1.7, 0.03, 0.3]} />
+          </mesh>
+          {[-0.45, 0.45].map((x, i) => (
+            <mesh key={`wing-pylon-${i}`} position={[x, -0.32, 0]} castShadow material={PBR_MATERIALS.vehicleCarbon}>
+              <boxGeometry args={[0.04, 0.6, 0.25]} />
+            </mesh>
+          ))}
+          {[-0.92, 0.92].map((x, i) => (
+            <mesh key={`rear-endplate-${i}`} position={[x, -0.05, 0]} castShadow material={bodyMat}>
+              <boxGeometry args={[0.04, 0.35, 0.48]} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* Rear Aerodynamic Diffuser & Strakes */}
+        <group position={[0, 0.12, 1.35]}>
+          <mesh material={PBR_MATERIALS.vehicleCarbon}>
+            <boxGeometry args={[1.2, 0.08, 0.4]} />
+          </mesh>
+          {[-0.4, -0.15, 0.15, 0.4].map((x, i) => (
+            <mesh key={`strake-${i}`} position={[x, -0.04, 0]} material={PBR_MATERIALS.vehicleCarbon}>
+              <boxGeometry args={[0.02, 0.12, 0.42]} />
+            </mesh>
+          ))}
+        </group>
+
+        {/* ── 6. DUAL EXHAUST PIPES & NITRO FLAME FX ── */}
+        <group position={[0, 0.25, 1.42]}>
+          {[-0.16, 0.16].map((x, i) => (
+            <mesh key={`exhaust-${i}`} position={[x, 0, 0]} rotation={[Math.PI / 2, 0, 0]} material={PBR_MATERIALS.darkWall}>
+              <cylinderGeometry args={[0.06, 0.06, 0.14, 8]} />
+            </mesh>
+          ))}
+
+          {/* Dynamic Nitrous Exhaust Flame Mesh (Sparks & expands on Nitro) */}
+          {boostActive && (
+            <group ref={nitroFlamesRef} position={[0, 0, 0.18]}>
+              {[-0.16, 0.16].map((x, i) => (
+                <mesh key={`flame-${i}`} position={[x, 0, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
+                  <coneGeometry args={[0.12, 0.8, 8]} />
+                  <meshBasicMaterial color="#38bdf8" />
+                </mesh>
+              ))}
+            </group>
           )}
         </group>
-      ))}
 
-      <pointLight
-        ref={exhaustGlowRef}
-        position={[0, 0.2, 2.2]}
-        color={boostActive ? (isBlue ? '#38bdf8' : '#f97316') : '#f59e0b'}
-        intensity={boostActive ? 4.5 : 0.4}
-        distance={4.5}
-      />
+        {/* ── 7. HIGH-INTENSITY LED HEADLIGHTS ── */}
+        <group position={[0, 0.16, -2.0]}>
+          {[-0.65, 0.65].map((x, i) => (
+            <mesh key={`headlight-${i}`} position={[x, 0, 0]}>
+              <boxGeometry args={[0.18, 0.04, 0.08]} />
+              <meshBasicMaterial color="#ffffff" />
+            </mesh>
+          ))}
+        </group>
+      </group>
 
-      {/* ── 9. NUMBER EMBLEM BADGE & WAVING TEAM FLAG ── */}
-      <mesh position={[0, 0.36, -0.9]} rotation={[-Math.PI / 4, 0, 0]}>
-        <cylinderGeometry args={[0.26, 0.26, 0.02, 16]} />
-        <meshStandardMaterial color="#ffffff" roughness={0.3} />
-      </mesh>
+      {/* ── 8. 4 HIGH-GRIP RACING WHEELS (FRONT WHEELS PHYSICAL STEERING) ── */}
+      {/* Front Left Steering Wheel */}
+      <group ref={frontLeftWheelRef} position={[-0.92, 0.22, -1.2]}>
+        <group>
+          {/* Rubber Tire */}
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow material={PBR_MATERIALS.vehicleRubber}>
+            <cylinderGeometry args={[0.3, 0.3, 0.32, 14]} />
+          </mesh>
+          {/* Alloy Rim */}
+          <mesh rotation={[0, 0, Math.PI / 2]} material={PBR_MATERIALS.vehicleRimChrome}>
+            <cylinderGeometry args={[0.2, 0.2, 0.33, 10]} />
+          </mesh>
+        </group>
+      </group>
 
-      <group position={[0, 0.7, 1.3]}>
-        <mesh position={[0, 0.35, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.7, 8]} />
-          <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-        </mesh>
-        <mesh ref={flagRef} position={[0.22, 0.55, 0]}>
-          <planeGeometry args={[0.42, 0.25]} />
-          <meshStandardMaterial
-            color={primaryColor}
-            roughness={0.8}
-            side={THREE.DoubleSide}
-          />
-        </mesh>
+      {/* Front Right Steering Wheel */}
+      <group ref={frontRightWheelRef} position={[0.92, 0.22, -1.2]}>
+        <group>
+          <mesh rotation={[0, 0, Math.PI / 2]} castShadow material={PBR_MATERIALS.vehicleRubber}>
+            <cylinderGeometry args={[0.3, 0.3, 0.32, 14]} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]} material={PBR_MATERIALS.vehicleRimChrome}>
+            <cylinderGeometry args={[0.2, 0.2, 0.33, 10]} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Rear Wheels (Wider Slicks) */}
+      <group ref={rearWheelsRef}>
+        {[-0.96, 0.96].map((x, i) => (
+          <group key={`rear-wheel-${i}`} position={[x, 0.24, 1.1]}>
+            <mesh rotation={[0, 0, Math.PI / 2]} castShadow material={PBR_MATERIALS.vehicleRubber}>
+              <cylinderGeometry args={[0.34, 0.34, 0.42, 14]} />
+            </mesh>
+            <mesh rotation={[0, 0, Math.PI / 2]} material={PBR_MATERIALS.vehicleRimChrome}>
+              <cylinderGeometry args={[0.22, 0.22, 0.43, 10]} />
+            </mesh>
+          </group>
+        ))}
       </group>
     </group>
   );
