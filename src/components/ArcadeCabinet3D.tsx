@@ -205,6 +205,27 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'pattern-racers') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#9a3412');
+      grad.addColorStop(0.5, '#ea580c');
+      grad.addColorStop(1, '#c2410c');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PATTERN RACERS', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#6b21a8');

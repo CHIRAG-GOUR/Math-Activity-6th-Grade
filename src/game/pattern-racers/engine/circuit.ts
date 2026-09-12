@@ -275,6 +275,51 @@ export class Circuit {
     return { s: this.normaliseS(bestS), lateral, dist: Math.sqrt(bestD2) };
   }
 
+  /**
+   * Nearest point search seeded with a hint — the value returned last frame.
+   * A car moves at most ~1 m per frame, so searching a small window around the
+   * previous result is both exact enough and far cheaper than sweeping the
+   * whole circuit 60 times a second.
+   *
+   * Falls back to a full sweep when the hint turns out to be bad (for example
+   * straight after a respawn or a teleport to the grid).
+   */
+  nearestSHinted(x: number, z: number, hintS: number, window = 45): NearestResult {
+    let bestS = hintS;
+    let bestD2 = Infinity;
+
+    const step = 3;
+    for (let d = -window; d <= window; d += step) {
+      const cand = hintS + d;
+      const f = this.sampleAt(cand);
+      const dx = x - f.x;
+      const dz = z - f.z;
+      const d2 = dx * dx + dz * dz;
+      if (d2 < bestD2) { bestD2 = d2; bestS = cand; }
+    }
+
+    // If the closest point sits on the window edge the hint was stale.
+    if (Math.abs(bestS - hintS) >= window - step) {
+      return this.nearestS(x, z);
+    }
+
+    let w = step;
+    for (let pass = 0; pass < 5; pass++) {
+      w *= 0.5;
+      for (const cand of [bestS - w, bestS + w]) {
+        const f = this.sampleAt(cand);
+        const dx = x - f.x;
+        const dz = z - f.z;
+        const d2 = dx * dx + dz * dz;
+        if (d2 < bestD2) { bestD2 = d2; bestS = cand; }
+      }
+    }
+
+    const f = this.sampleAt(bestS);
+    const lateral = (x - f.x) * f.rx + (z - f.z) * f.rz;
+    return { s: this.normaliseS(bestS), lateral, dist: Math.sqrt(bestD2) };
+  }
+
   /** Even samples along the whole circuit — used to generate road and walls. */
   sampleEvery(step: number): TrackFrame[] {
     const out: TrackFrame[] = [];
@@ -318,27 +363,35 @@ export const TRACK = {
 // radii and angles), which restores BOTH heading and lateral line — so it can
 // be dropped into the back straight without breaking closure.
 
+// Closure requires opposite straights to have equal FORWARD extent. The two
+// links are both 96 m. The chicane contributes 80.0 m of forward extent, so
+// the back straight's plain sections must sum to 300 - 80 = 220 m.
 const CIRCUIT_SPEC: SegmentSpec[] = [
-  { kind: 'straight', name: 'Start/Finish Straight', length: 280 },
+  { kind: 'straight', name: 'Main Straight', length: 300 },
   { kind: 'arc', name: 'T1 Numerator', radius: 65, angleDeg: 90, dir: 'right' },
-  { kind: 'straight', name: 'North Link', length: 120 },
+  { kind: 'straight', name: 'North Link', length: 96 },
   { kind: 'arc', name: 'T2 Divisor', radius: 65, angleDeg: 90, dir: 'right' },
-  { kind: 'straight', name: 'Back Straight A', length: 95 },
+  { kind: 'straight', name: 'Back Straight A', length: 110 },
   // "Sequence" chicane — out and back, net zero heading and net zero offset.
   { kind: 'arc', name: 'Chicane Entry', radius: 40, angleDeg: 30, dir: 'left' },
   { kind: 'arc', name: 'Chicane Apex 1', radius: 40, angleDeg: 30, dir: 'right' },
   { kind: 'arc', name: 'Chicane Apex 2', radius: 40, angleDeg: 30, dir: 'right' },
   { kind: 'arc', name: 'Chicane Exit', radius: 40, angleDeg: 30, dir: 'left' },
-  { kind: 'straight', name: 'Back Straight B', length: 95 },
+  { kind: 'straight', name: 'Back Straight B', length: 110 },
   { kind: 'arc', name: 'T3 Parabolica', radius: 65, angleDeg: 90, dir: 'right' },
-  { kind: 'straight', name: 'South Link', length: 120 },
+  { kind: 'straight', name: 'South Link', length: 96 },
   { kind: 'arc', name: 'T4 Remainder', radius: 65, angleDeg: 90, dir: 'right' },
 ];
 
 /**
- * Builder origin is the START/FINISH LINE at world (0, 0), pointing down -Z.
- * The starting grid therefore sits BEHIND the line, on the exit of T4 — which
- * is exactly where a real grid lives.
+ * Builder origin (0, 0) heading 0 is the start of the MAIN STRAIGHT, which runs
+ * down -Z. All four corners turn right, so the enclosed infield is on +X.
+ *
+ * The start/finish line is NOT the builder origin — it sits further down the
+ * straight at START_FINISH_S, just after the grid, which in turn sits just
+ * after the pit exit merge. That ordering is what makes the Round 2 -> 3
+ * transition (tyre bay -> pit exit -> grid) a short continuous drive instead
+ * of a full lap.
  */
 export const CIRCUIT = new Circuit(CIRCUIT_SPEC, { x: 0, z: 0, heading: 0 }, true);
 
@@ -353,41 +406,45 @@ export const CIRCUIT = new Circuit(CIRCUIT_SPEC, { x: 0, z: 0, heading: 0 }, tru
 // +X side of the main straight. The pit lane lives there.
 
 export const PIT = {
-  /** Lateral offset of the pit lane from the main straight centerline. */
-  laneOffset: 30,
+  /** Lateral offset of the working pit lane from the main straight centerline. */
+  laneOffset: 26,
   laneHalfWidth: 6.0,
-  /** Garage frontage sits a further 14 m infield, facing back at the lane. */
-  garageOffset: 44,
+  /** Garage frontage sits a further 13 m infield, doors facing the lane. */
+  garageOffset: 39,
   speedLimitKmh: 80,
+  /** Where the entry slip road leaves the main straight. */
+  entryS: 8,
 } as const;
 
+// The slip roads are a pair of equal, opposite arcs. To shift laterally by D
+// using radius R, each arc must sweep `acos(1 - D / (2R))`; the pair then
+// advances `2R*sin(theta)` along the original direction.
+const SLIP_RADIUS = 55;
+const SLIP_SHIFT = PIT.laneOffset - TRACK.halfWidth; // 26 - 7 = 19 m
+const SLIP_ANGLE_DEG =
+  (Math.acos(1 - SLIP_SHIFT / (2 * SLIP_RADIUS)) * 180) / Math.PI;
+
 const PIT_SPEC: SegmentSpec[] = [
-  // Entry slip road: peel off the racing surface and swing infield.
-  { kind: 'straight', name: 'Pit Entry', length: 26 },
-  { kind: 'arc', name: 'Pit Entry Curve', radius: 42, angleDeg: 32, dir: 'right' },
-  { kind: 'arc', name: 'Pit Entry Straighten', radius: 42, angleDeg: 32, dir: 'left' },
+  // Entry slip: peel off the racing surface and swing into the infield (+X is
+  // to the driver's right on the main straight, so that's a right then left).
+  { kind: 'arc', name: 'Pit Entry Curve', radius: SLIP_RADIUS, angleDeg: SLIP_ANGLE_DEG, dir: 'right' },
+  { kind: 'arc', name: 'Pit Entry Straighten', radius: SLIP_RADIUS, angleDeg: SLIP_ANGLE_DEG, dir: 'left' },
   // The working pit lane: garages, then the tyre/service bay.
-  { kind: 'straight', name: 'Pit Lane', length: 250 },
-  // Exit slip road: swing back out and merge with the main straight.
-  { kind: 'arc', name: 'Pit Exit Curve', radius: 42, angleDeg: 32, dir: 'left' },
-  { kind: 'arc', name: 'Pit Exit Straighten', radius: 42, angleDeg: 32, dir: 'right' },
-  { kind: 'straight', name: 'Pit Exit', length: 30 },
+  { kind: 'straight', name: 'Pit Lane', length: 110 },
+  // Exit slip: swing back out toward the track and straighten onto it.
+  { kind: 'arc', name: 'Pit Exit Curve', radius: SLIP_RADIUS, angleDeg: SLIP_ANGLE_DEG, dir: 'left' },
+  { kind: 'arc', name: 'Pit Exit Straighten', radius: SLIP_RADIUS, angleDeg: SLIP_ANGLE_DEG, dir: 'right' },
 ];
 
 /**
- * Pit entry branches off the main straight. The main straight runs s=0..280
- * from the start/finish line; the pit entry is placed just before the line on
- * the PREVIOUS lap, i.e. near the end of T4. We anchor it in world space from
- * a circuit sample so the two road surfaces physically meet.
+ * The pit lane branches off the MAIN STRAIGHT at its right-hand edge, so the
+ * two road surfaces physically meet rather than the lane floating beside them.
  */
-const PIT_ENTRY_S = CIRCUIT.length - 40; // 40 m before the start/finish line
-const pitEntryFrame = CIRCUIT.sampleAt(PIT_ENTRY_S);
+const pitEntryFrame = CIRCUIT.sampleAt(PIT.entryS);
 
 export const PIT_LANE = new Circuit(
   PIT_SPEC,
   {
-    // Start at the right-hand edge of the racing surface so the slip road
-    // grows out of the track rather than floating beside it.
     x: pitEntryFrame.x + pitEntryFrame.rx * TRACK.halfWidth,
     z: pitEntryFrame.z + pitEntryFrame.rz * TRACK.halfWidth,
     heading: pitEntryFrame.heading,
@@ -395,55 +452,67 @@ export const PIT_LANE = new Circuit(
   false
 );
 
+/** Distance along the MAIN STRAIGHT at which the pit exit rejoins the circuit. */
+export const PIT_MERGE_S =
+  PIT.entryS + 2 * (2 * SLIP_RADIUS * Math.sin((SLIP_ANGLE_DEG * Math.PI) / 180)) + 110;
+
 // ── NAMED WORLD LOCATIONS ───────────────────────────────────────────────────
 // Every gameplay waypoint is expressed in PIT-LANE or CIRCUIT track space and
 // converted to world coordinates here, so moving the circuit moves everything.
 
-/** Distance along the pit lane at which each feature sits. */
+export interface Slot { x: number; z: number; heading: number }
+
+/** Distances along the PIT LANE at which each feature sits. */
+const PIT_WORK_START = 2 * SLIP_RADIUS * ((SLIP_ANGLE_DEG * Math.PI) / 180); // end of entry slip
 export const PIT_STATIONS = {
-  garages: 95,
-  tyreBay: 185,
-  exitMerge: PIT_LANE.length - 15,
+  garages: PIT_WORK_START + 32,
+  tyreBay: PIT_WORK_START + 86,
 } as const;
 
-function pitSlot(s: number, lateral: number) {
+function pitSlot(s: number, lateral: number): Slot {
   const w = PIT_LANE.toWorld(s, lateral);
+  return { x: w.x, z: w.z, heading: w.heading };
+}
+function trackSlot(s: number, lateral: number): Slot {
+  const w = CIRCUIT.toWorld(s, lateral);
   return { x: w.x, z: w.z, heading: w.heading };
 }
 
 /**
- * Garage bays. Blue takes the bay nearer the pit exit so that the garage
- * camera (which looks across the lane toward the garages) frames blue on the
- * LEFT of screen and red on the RIGHT, per the spec.
+ * Garage bays, set back from the lane so the cars genuinely start INSIDE the
+ * garage with their noses pointing at the opening.
+ *
+ * Blue takes the bay further down the lane. The garage camera looks across the
+ * lane toward the doors (i.e. roughly along +X), and with the main straight
+ * running down -Z that puts the further-down-lane bay on screen-left — which
+ * is where the spec wants blue. Worth a visual confirmation once it renders.
  */
-export const GARAGE_SLOTS = {
-  blue: pitSlot(PIT_STATIONS.garages + 9, 11.5),
-  red: pitSlot(PIT_STATIONS.garages - 9, 11.5),
-} as const;
+export const GARAGE_SLOTS: Record<'blue' | 'red', Slot> = {
+  blue: pitSlot(PIT_STATIONS.garages + 9, 11.0),
+  red: pitSlot(PIT_STATIONS.garages - 9, 11.0),
+};
 
 /** Where the cars park for the tyre/service inspection in Round 2. */
-export const TYRE_BAY_SLOTS = {
-  blue: pitSlot(PIT_STATIONS.tyreBay + 8, 3.2),
-  red: pitSlot(PIT_STATIONS.tyreBay - 8, 3.2),
-} as const;
+export const TYRE_BAY_SLOTS: Record<'blue' | 'red', Slot> = {
+  blue: pitSlot(PIT_STATIONS.tyreBay + 8, 3.4),
+  red: pitSlot(PIT_STATIONS.tyreBay - 8, 3.4),
+};
 
 /**
- * Starting grid. Sits behind the start/finish line on the run to the line,
- * staggered like a real grid: pole on one side and slightly ahead.
+ * Starting grid — just past the pit exit merge, staggered like a real grid.
+ * Cars roll out of the pit lane and onto their boxes in one short drive.
  */
-export const GRID_SLOTS = {
-  blue: (() => {
-    const w = CIRCUIT.toWorld(CIRCUIT.length - 22, -3.0);
-    return { x: w.x, z: w.z, heading: w.heading };
-  })(),
-  red: (() => {
-    const w = CIRCUIT.toWorld(CIRCUIT.length - 30, 3.0);
-    return { x: w.x, z: w.z, heading: w.heading };
-  })(),
-} as const;
+export const GRID_S = PIT_MERGE_S + 12;
+export const GRID_SLOTS: Record<'blue' | 'red', Slot> = {
+  blue: trackSlot(GRID_S, -3.0),
+  red: trackSlot(GRID_S - 8, 3.0),
+};
 
-/** The finish line is the start/finish line — one full lap. */
-export const FINISH_S = 0;
+/**
+ * Start/finish line, 25 m ahead of the grid and ~50 m before T1 — enough of a
+ * launch run that the first corner arrives at roughly the grip limit.
+ */
+export const START_FINISH_S = GRID_S + 25;
 export const RACE_LAP_DISTANCE = CIRCUIT.length;
 
 /** Respawn checkpoints roughly every 100 m, used by the stuck/off-track recovery. */
@@ -453,6 +522,16 @@ export const CHECKPOINT_COUNT = Math.max(1, Math.round(CIRCUIT.length / CHECKPOI
 export function checkpointS(index: number): number {
   return CIRCUIT.normaliseS(index * (CIRCUIT.length / CHECKPOINT_COUNT));
 }
+
+/**
+ * Spans of the main straight's RIGHT-hand barrier that must be left open for
+ * the pit entry and pit exit — otherwise the generated wall would run straight
+ * across both slip roads. A pit wall is placed alongside the lane instead.
+ */
+export const WALL_GAPS: { from: number; to: number; side: 1 | -1 }[] = [
+  { from: PIT.entryS - 6, to: PIT.entryS + 62, side: 1 },
+  { from: PIT_MERGE_S - 62, to: PIT_MERGE_S + 6, side: 1 },
+];
 
 // ── DEV ASSERTION ───────────────────────────────────────────────────────────
 // A circuit that does not close produces a visible seam in the road and a gap
