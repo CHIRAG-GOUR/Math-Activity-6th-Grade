@@ -1,6 +1,11 @@
 // ============================================================
 // PATTERN RACERS — Central Zustand Store
 // Dual-Team Simultaneous Interaction & 3D World Physical Simulation
+// Features:
+// - Both-Wrong Handshake: Auto-advance with 0 car movement when both teams fail
+// - Timer Countdown & Expiration Handling
+// - Tactical Power-Ups (50:50, Time Freeze, 2x Boost)
+// - 3D Physical Simulation (Hydraulic track elevation, Function machine, Formula racers)
 // ============================================================
 
 import { create } from 'zustand';
@@ -17,6 +22,20 @@ import { initialTeamPowerUps } from '@/types/powerUps';
 import { getChallengesForRound, generateDynamicChallenge } from '../engine/sequenceData';
 import { patternAudio } from '../engine/patternAudio';
 import { getMisconceptionHint } from '@/utils/misconceptions';
+
+let timerInterval: ReturnType<typeof setInterval> | null = null;
+let autoAdvanceTimer: ReturnType<typeof setTimeout> | null = null;
+
+const clearTimers = () => {
+  if (timerInterval) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  if (autoAdvanceTimer) {
+    clearTimeout(autoAdvanceTimer);
+    autoAdvanceTimer = null;
+  }
+};
 
 interface PatternState {
   phase: GamePhase;
@@ -45,7 +64,7 @@ interface PatternState {
   isTieBreak: boolean;
   tieBreakTimer: number;
 
-  // Facility Workers
+  // Facility Workers (Properly Grounded at Designated Stations)
   workers: FacilityWorker[];
 
   // Actions
@@ -62,6 +81,7 @@ interface PatternState {
   updateBlueHybrid: (step: number, output: number) => void;
   updateRedHybrid: (step: number, output: number) => void;
   submitAnswer: (teamId: TeamId) => void;
+  handleTimerExpired: () => void;
   usePowerUp5050: (teamId: TeamId) => void;
   usePowerUpTimeFreeze: (teamId: TeamId) => void;
   usePowerUp2x: (teamId: TeamId) => void;
@@ -72,12 +92,13 @@ interface PatternState {
 }
 
 const INITIAL_WORKERS: FacilityWorker[] = [
-  { id: 'w1', name: 'Dr. Elena (Telemetry)', role: 'telemetry', position: [-4.5, 0, -2], rotationY: 0.4, animationState: 'typing', targetRound: 1 },
-  { id: 'w2', name: 'Marcus (Mechanic)', role: 'mechanic', position: [-3, 0, 1.5], rotationY: -0.8, animationState: 'working', targetRound: 1 },
-  { id: 'w3', name: 'Sarah (Hydraulics)', role: 'engineer', position: [0, 0, -3.5], rotationY: 0, animationState: 'working', targetRound: 2 },
-  { id: 'w4', name: 'Alex (Marshal)', role: 'marshal', position: [4.2, 0, 0.5], rotationY: -1.2, animationState: 'idle', targetRound: 3 },
-  { id: 'w5', name: 'Kenji (Power Unit)', role: 'mechanic', position: [3, 0, 2.8], rotationY: 1.5, animationState: 'working', targetRound: 4 },
-  { id: 'w6', name: 'Zack (Inspector)', role: 'inspector', position: [-1.2, 0, 4.5], rotationY: 3.14, animationState: 'waving', targetRound: 5 },
+  { id: 'w1', name: 'Blue Lead Engineer', role: 'mechanic', position: [-4.2, 0, 4.8], rotationY: -0.5, animationState: 'typing', targetRound: 1 },
+  { id: 'w2', name: 'Blue Pit Technician', role: 'telemetry', position: [-7.2, 0, 2.2], rotationY: 0.8, animationState: 'working', targetRound: 1 },
+  { id: 'w3', name: 'Red Lead Engineer', role: 'mechanic', position: [4.2, 0, 4.8], rotationY: 0.5, animationState: 'typing', targetRound: 1 },
+  { id: 'w4', name: 'Red Pit Technician', role: 'telemetry', position: [7.2, 0, 2.2], rotationY: -0.8, animationState: 'working', targetRound: 1 },
+  { id: 'w5', name: 'Hydraulics Specialist', role: 'engineer', position: [-4.6, 0, -1.2], rotationY: 1.2, animationState: 'working', targetRound: 2 },
+  { id: 'w6', name: 'Telemetry Scientist', role: 'telemetry', position: [3.6, 0, -6.5], rotationY: -1.4, animationState: 'typing', targetRound: 3 },
+  { id: 'w7', name: 'Chief Track Marshal', role: 'marshal', position: [5.2, 0, -18.5], rotationY: -1.6, animationState: 'waving', targetRound: 5 },
 ];
 
 const createInitialTeam = (id: TeamId, name: string): TeamConsoleState => ({
@@ -154,8 +175,10 @@ export const usePatternStore = create<PatternState>((set, get) => ({
   },
 
   startMatch: () => {
+    clearTimers();
     patternAudio.playEngineRev();
     patternAudio.startBgm();
+
     const firstChallenge = getChallengesForRound(1)[0] || generateDynamicChallenge(1, 101);
     set({
       phase: 'round_active',
@@ -163,11 +186,25 @@ export const usePatternStore = create<PatternState>((set, get) => ({
       questionIndex: 0,
       activeChallenge: firstChallenge,
       trackCompletion: 0,
+      timeRemaining: 45,
       blueTeam: createInitialTeam('blue', 'Blue Velocity'),
       redTeam: createInitialTeam('red', 'Red Turbo'),
       blueVehicle: createInitialVehicle('blue'),
       redVehicle: createInitialVehicle('red'),
     });
+
+    // Start 1-second interval timer
+    timerInterval = setInterval(() => {
+      const state = get();
+      if (state.phase !== 'round_active' && state.phase !== 'tie_break') return;
+
+      if (state.timeRemaining > 1) {
+        set({ timeRemaining: state.timeRemaining - 1 });
+      } else {
+        set({ timeRemaining: 0 });
+        get().handleTimerExpired();
+      }
+    }, 1000);
   },
 
   updateBlueStep: (step) => {
@@ -321,7 +358,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         };
       });
 
-      // Advance vehicle in 3D world
+      // Advance ONLY the winning vehicle in 3D world
       const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
       set((state) => ({
         [vehicleKey]: {
@@ -338,6 +375,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
 
       // Check if sudden death tie-break instant win
       if (isTieBreak) {
+        clearTimers();
         set({
           raceWinner: teamId,
           phase: 'podium_ceremony',
@@ -345,8 +383,9 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         return;
       }
 
-      // Check if round should advance
-      setTimeout(() => {
+      // Automatically advance round after celebration delay
+      clearTimers();
+      autoAdvanceTimer = setTimeout(() => {
         const currentPhase = get().phase;
         if (currentPhase === 'round_active') {
           get().advanceRound();
@@ -354,9 +393,11 @@ export const usePatternStore = create<PatternState>((set, get) => ({
       }, 2200);
 
     } else {
-      // 1st Wrong Attempt: Targeted Misconception Guidance
+      // ── WRONG ANSWER ──
       patternAudio.playWrong();
+
       if (team.attemptsLeft > 1) {
+        // 1st Mistake: Targeted Misconception Guidance
         const hint = activeChallenge.misconceptionTip || getMisconceptionHint('numbers', activeChallenge.title);
         set((state) => ({
           [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
@@ -367,40 +408,135 @@ export const usePatternStore = create<PatternState>((set, get) => ({
           },
         }));
       } else {
-        // 2nd Wrong: Lock team for this question
+        // 2nd Mistake: Lock team for this question
+        const isBlue = teamId === 'blue';
+        const otherTeam = isBlue ? redTeam : blueTeam;
+
         set((state) => ({
-          [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
+          [isBlue ? 'blueTeam' : 'redTeam']: {
             ...team,
             attemptsLeft: 0,
             isLocked: true,
             hasSubmitted: true,
             isCorrect: false,
-            lastFeedback: activeChallenge.mathExplanation,
+            lastFeedback: `❌ MISSED: ${activeChallenge.mathExplanation}`,
           },
         }));
+
+        // ── CHECK BOTH WRONG HANDSHAKE ──
+        // If BOTH teams have now exhausted attempts / locked out without answering correctly:
+        // DO NOT MOVE THE CARS ANYWHERE. Keep them as is. Advance smoothly to next question.
+        if (otherTeam.attemptsLeft <= 0 || otherTeam.isLocked) {
+          patternAudio.playPneumaticDepressurize();
+
+          set((state) => ({
+            blueTeam: {
+              ...state.blueTeam,
+              isLocked: true,
+              lastFeedback: `❌ BOTH TEAMS MISSED! ${activeChallenge.mathExplanation}`,
+            },
+            redTeam: {
+              ...state.redTeam,
+              isLocked: true,
+              lastFeedback: `❌ BOTH TEAMS MISSED! ${activeChallenge.mathExplanation}`,
+            },
+            // Keep blueVehicle & redVehicle positions strictly intact (0 movement)
+            blueVehicle: { ...state.blueVehicle, boostActive: false },
+            redVehicle: { ...state.redVehicle, boostActive: false },
+          }));
+
+          clearTimers();
+          autoAdvanceTimer = setTimeout(() => {
+            if (get().phase === 'round_active') {
+              get().advanceRound();
+            }
+          }, 2500);
+        }
       }
     }
   },
 
+  // ── TIMER EXPIRED HANDLER ──
+  handleTimerExpired: () => {
+    const { phase, activeChallenge, blueTeam, redTeam } = get();
+    if (phase !== 'round_active' && phase !== 'tie_break') return;
+
+    patternAudio.playPneumaticDepressurize();
+
+    set((state) => ({
+      blueTeam: {
+        ...state.blueTeam,
+        attemptsLeft: 0,
+        isLocked: true,
+        isCorrect: false,
+        lastFeedback: `⏱️ TIME'S UP! ${activeChallenge.mathExplanation}`,
+      },
+      redTeam: {
+        ...state.redTeam,
+        attemptsLeft: 0,
+        isLocked: true,
+        isCorrect: false,
+        lastFeedback: `⏱️ TIME'S UP! ${activeChallenge.mathExplanation}`,
+      },
+      // DO NOT MOVE CARS
+      blueVehicle: { ...state.blueVehicle, boostActive: false },
+      redVehicle: { ...state.redVehicle, boostActive: false },
+    }));
+
+    clearTimers();
+    autoAdvanceTimer = setTimeout(() => {
+      if (get().phase === 'round_active') {
+        get().advanceRound();
+      }
+    }, 2500);
+  },
+
   // ── POWER-UPS ──
   usePowerUp5050: (teamId) => {
-    patternAudio.playDialClick();
+    const { currentRound, activeChallenge } = get();
+    patternAudio.playPowerUp5050();
+
     set((state) => {
       const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
       if (!team.powerUps.fiftyFifty) return state;
 
+      let updatedTeam = {
+        ...team,
+        powerUps: { ...team.powerUps, fiftyFifty: false },
+      };
+
+      // Tactical 50:50 assistance per round type
+      if (currentRound === 1) {
+        // Narrow down step options
+        updatedTeam.eliminatedOptions = ['-5', '+8', '+12', '-4'];
+      } else if (currentRound === 2) {
+        // Snap start value directly to correct starting term!
+        const correctStart = (activeChallenge.sequence && activeChallenge.sequence[0]) || activeChallenge.startValue || 20;
+        updatedTeam.builderStart = correctStart;
+      } else if (currentRound === 3) {
+        // Set computed output within ±1 of target
+        const correctOut = activeChallenge.expectedOutput || 13;
+        updatedTeam.computedOutput = correctOut - 1;
+      } else if (currentRound === 4) {
+        // Lock the correct operator wheel!
+        if (activeChallenge.expectedOperator) {
+          updatedTeam.selectedOperator = activeChallenge.expectedOperator;
+        }
+      } else if (currentRound === 5) {
+        // Lock sequence step
+        if (activeChallenge.expectedStep) {
+          updatedTeam.hybridStep = activeChallenge.expectedStep;
+        }
+      }
+
       return {
-        [teamId === 'blue' ? 'blueTeam' : 'redTeam']: {
-          ...team,
-          powerUps: { ...team.powerUps, fiftyFifty: false },
-          eliminatedOptions: ['-5', '+8', '×6', '÷4'],
-        },
+        [teamId === 'blue' ? 'blueTeam' : 'redTeam']: updatedTeam,
       };
     });
   },
 
   usePowerUpTimeFreeze: (teamId) => {
-    patternAudio.playDialClick();
+    patternAudio.playPowerUpFreeze();
     set((state) => {
       const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
       if (!team.powerUps.timeFreeze) return state;
@@ -416,7 +552,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
   },
 
   usePowerUp2x: (teamId) => {
-    patternAudio.playDialClick();
+    patternAudio.playPowerUp2x();
     set((state) => {
       const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
       if (!team.powerUps.doublePoints) return state;
@@ -432,6 +568,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
   },
 
   advanceRound: () => {
+    clearTimers();
     const { currentRound, questionIndex, totalQuestions } = get();
     const nextQIndex = questionIndex + 1;
 
@@ -461,6 +598,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         isCorrect: null,
         lastFeedback: null,
         activeMisconception: null,
+        eliminatedOptions: [],
       },
       redTeam: {
         ...state.redTeam,
@@ -470,12 +608,27 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         isCorrect: null,
         lastFeedback: null,
         activeMisconception: null,
+        eliminatedOptions: [],
       },
     }));
+
+    // Restart timer interval for new question
+    timerInterval = setInterval(() => {
+      const state = get();
+      if (state.phase !== 'round_active' && state.phase !== 'tie_break') return;
+
+      if (state.timeRemaining > 1) {
+        set({ timeRemaining: state.timeRemaining - 1 });
+      } else {
+        set({ timeRemaining: 0 });
+        get().handleTimerExpired();
+      }
+    }, 1000);
   },
 
   // ── FINAL GRAND PRIX 3D RACE SIMULATION ──
   startFinalRace: () => {
+    clearTimers();
     set({
       phase: 'grand_prix_race',
       raceLights: [true, true, true, false, false], // 3 Red Lights
@@ -511,7 +664,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         },
       }));
 
-      // Race finish after 6 seconds of dynamic camera tracking
+      // Race finish after 5.5 seconds of dynamic camera tracking
       setTimeout(() => {
         const finalBlue = get().blueTeam.score;
         const finalRed = get().redTeam.score;
@@ -530,15 +683,28 @@ export const usePatternStore = create<PatternState>((set, get) => ({
   },
 
   startTieBreak: () => {
+    clearTimers();
     const tieChallenge = generateDynamicChallenge(1, 999);
     set({
       phase: 'tie_break',
       isTieBreak: true,
-      tieBreakTimer: 15,
+      timeRemaining: 15,
       activeChallenge: tieChallenge,
-      blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false },
-      redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false },
+      blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, attemptsLeft: 1 },
+      redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, attemptsLeft: 1 },
     });
+
+    timerInterval = setInterval(() => {
+      const state = get();
+      if (state.phase !== 'tie_break') return;
+
+      if (state.timeRemaining > 1) {
+        set({ timeRemaining: state.timeRemaining - 1 });
+      } else {
+        set({ timeRemaining: 0 });
+        get().handleTimerExpired();
+      }
+    }, 1000);
   },
 
   restartGame: () => {

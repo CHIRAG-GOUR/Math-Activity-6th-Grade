@@ -1,8 +1,9 @@
 // ============================================================
 // PATTERN RACERS — Professional Web Audio Soundscape
-// Custom Synthesized Audio for Formula Track & Machinery:
+// Custom Synthesized Audio for Formula Track, Machinery & Power-ups:
 // - Engine Revs, Accelerations, Gear Clicks, Hydraulic Releases
-// - Mechanical Dials, Locking Bolts, Capsule Conveyors
+// - Power-Up Activations (50:50, Time Freeze, 2x Multiplier)
+// - Pneumatic Air Depressurization (Both Teams Miss / Reset)
 // - Starting Gantry Lights & Race Launch Fanfare
 // ============================================================
 
@@ -12,8 +13,6 @@ class PatternAudioEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
   private bgmGain: GainNode | null = null;
-  private bgmOsc1: OscillatorNode | null = null;
-  private bgmOsc2: OscillatorNode | null = null;
   private bgmInterval: NodeJS.Timeout | null = null;
   private isBgmPlaying: boolean = false;
 
@@ -29,8 +28,8 @@ class PatternAudioEngine {
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
-    if (this.bgmGain) {
-      this.bgmGain.gain.value = muted ? 0 : 0.08;
+    if (this.bgmGain && this.ctx) {
+      this.bgmGain.gain.setValueAtTime(muted ? 0 : 0.08, this.ctx.currentTime);
     }
   }
 
@@ -54,8 +53,8 @@ class PatternAudioEngine {
     const t = this.ctx.currentTime;
 
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(800, t);
-    osc.frequency.exponentialRampToValueAtTime(300, t + 0.04);
+    osc.frequency.setValueAtTime(900, t);
+    osc.frequency.exponentialRampToValueAtTime(350, t + 0.04);
 
     gain.gain.setValueAtTime(0.2, t);
     gain.gain.linearRampToValueAtTime(0, t + 0.04);
@@ -76,7 +75,7 @@ class PatternAudioEngine {
     const t = this.ctx.currentTime;
 
     // Noise burst for pneumatic hiss
-    const bufferSize = this.ctx.sampleRate * 0.35;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.3);
     const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
@@ -87,21 +86,21 @@ class PatternAudioEngine {
     noise.buffer = buffer;
     const filter = this.ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1200, t);
-    filter.frequency.linearRampToValueAtTime(400, t + 0.35);
+    filter.frequency.setValueAtTime(1400, t);
+    filter.frequency.linearRampToValueAtTime(500, t + 0.3);
 
     const noiseGain = this.ctx.createGain();
     noiseGain.gain.setValueAtTime(0.18, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
     noise.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(this.ctx.destination);
 
     noise.start(t);
-    noise.stop(t + 0.35);
+    noise.stop(t + 0.3);
 
-    // Heavy metallic clank at t + 0.3s
+    // Heavy metallic clank
     setTimeout(() => {
       if (!this.ctx || this.isMuted) return;
       const osc = this.ctx.createOscillator();
@@ -109,8 +108,8 @@ class PatternAudioEngine {
       const t2 = this.ctx.currentTime;
 
       osc.type = 'square';
-      osc.frequency.setValueAtTime(180, t2);
-      osc.frequency.exponentialRampToValueAtTime(45, t2 + 0.15);
+      osc.frequency.setValueAtTime(200, t2);
+      osc.frequency.exponentialRampToValueAtTime(50, t2 + 0.15);
 
       clankGain.gain.setValueAtTime(0.35, t2);
       clankGain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.15);
@@ -120,39 +119,121 @@ class PatternAudioEngine {
 
       osc.start(t2);
       osc.stop(t2 + 0.15);
-    }, 280);
+    }, 250);
   }
 
-  // ── 3. Function Machine Gears & Capsule Conveyor ──
-  public playFunctionMachine() {
+  // ── 3. Pneumatic Air Release (Both Teams Miss / Reset) ──
+  public playPneumaticDepressurize() {
     if (this.isMuted) return;
     this.initContext();
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
+    const bufferSize = Math.floor(this.ctx.sampleRate * 0.45);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = Math.random() * 2 - 1;
+    }
 
-    // Series of mechanical gear ticks
-    for (let i = 0; i < 6; i++) {
-      const tickTime = t + i * 0.08;
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(900, t);
+    filter.frequency.linearRampToValueAtTime(250, t + 0.45);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.2, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    noise.start(t);
+    noise.stop(t + 0.45);
+  }
+
+  // ── 4. Power-Up: 50:50 Sonar Sweep ──
+  public playPowerUp5050() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(440, t);
+    osc.frequency.exponentialRampToValueAtTime(1320, t + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(880, t + 0.35);
+
+    gain.gain.setValueAtTime(0.25, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.35);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.35);
+  }
+
+  // ── 5. Power-Up: Time Freeze Ice Chime ──
+  public playPowerUpFreeze() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const freqs = [1046.5, 1318.5, 1567.98, 2093.0]; // C6, E6, G6, C7
+    freqs.forEach((freq, i) => {
+      if (!this.ctx) return;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
+      const noteTime = t + i * 0.06;
 
       osc.type = 'sine';
-      osc.frequency.setValueAtTime(600 + (i % 2) * 200, tickTime);
-      osc.frequency.exponentialRampToValueAtTime(150, tickTime + 0.05);
+      osc.frequency.setValueAtTime(freq, noteTime);
 
-      gain.gain.setValueAtTime(0.15, tickTime);
-      gain.gain.linearRampToValueAtTime(0, tickTime + 0.05);
+      gain.gain.setValueAtTime(0.18, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.4);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
-      osc.start(tickTime);
-      osc.stop(tickTime + 0.05);
-    }
+      osc.start(noteTime);
+      osc.stop(noteTime + 0.4);
+    });
   }
 
-  // ── 4. Vehicle Engine Acceleration Whoosh ──
+  // ── 6. Power-Up: 2x Multiplier Turbo Charge ──
+  public playPowerUp2x() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+
+    const t = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, t);
+    osc.frequency.exponentialRampToValueAtTime(600, t + 0.25);
+    osc.frequency.exponentialRampToValueAtTime(900, t + 0.45);
+
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.45);
+
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+
+    osc.start(t);
+    osc.stop(t + 0.45);
+  }
+
+  // ── 7. Vehicle Engine Acceleration Whoosh ──
   public playEngineRev() {
     if (this.isMuted) return;
     this.initContext();
@@ -163,12 +244,12 @@ class PatternAudioEngine {
     const gain = this.ctx.createGain();
 
     osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(90, t);
-    osc.frequency.exponentialRampToValueAtTime(380, t + 0.6);
-    osc.frequency.linearRampToValueAtTime(220, t + 0.9);
+    osc.frequency.setValueAtTime(100, t);
+    osc.frequency.exponentialRampToValueAtTime(420, t + 0.5);
+    osc.frequency.linearRampToValueAtTime(240, t + 0.9);
 
-    gain.gain.setValueAtTime(0.12, t);
-    gain.gain.linearRampToValueAtTime(0.25, t + 0.4);
+    gain.gain.setValueAtTime(0.14, t);
+    gain.gain.linearRampToValueAtTime(0.28, t + 0.35);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.9);
 
     osc.connect(gain);
@@ -178,7 +259,7 @@ class PatternAudioEngine {
     osc.stop(t + 0.9);
   }
 
-  // ── 5. Starting Light Beep (Red / Yellow / Green) ──
+  // ── 8. Starting Light Beep (Red / Yellow / Green) ──
   public playStartLightBeep(isGreen: boolean = false) {
     if (this.isMuted) return;
     this.initContext();
@@ -192,7 +273,7 @@ class PatternAudioEngine {
     const freq = isGreen ? 880 : 440;
     osc.frequency.setValueAtTime(freq, t);
 
-    gain.gain.setValueAtTime(isGreen ? 0.3 : 0.2, t);
+    gain.gain.setValueAtTime(isGreen ? 0.32 : 0.2, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + (isGreen ? 0.6 : 0.25));
 
     osc.connect(gain);
@@ -202,7 +283,7 @@ class PatternAudioEngine {
     osc.stop(t + (isGreen ? 0.6 : 0.25));
   }
 
-  // ── 6. Correct Mathematical Confirmation ──
+  // ── 9. Correct Mathematical Confirmation Fanfare ──
   public playCorrect() {
     if (this.isMuted) return;
     this.initContext();
@@ -220,18 +301,18 @@ class PatternAudioEngine {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, noteTime);
 
-      gain.gain.setValueAtTime(0.22, noteTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.3);
+      gain.gain.setValueAtTime(0.24, noteTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, noteTime + 0.32);
 
       osc.connect(gain);
       gain.connect(this.ctx.destination);
 
       osc.start(noteTime);
-      osc.stop(noteTime + 0.3);
+      osc.stop(noteTime + 0.32);
     });
   }
 
-  // ── 7. Non-Punishing Error Thud ──
+  // ── 10. Non-Punishing Error Tone ──
   public playWrong() {
     if (this.isMuted) return;
     this.initContext();
@@ -243,19 +324,19 @@ class PatternAudioEngine {
 
     osc.type = 'sine';
     osc.frequency.setValueAtTime(220, t);
-    osc.frequency.linearRampToValueAtTime(140, t + 0.2);
+    osc.frequency.linearRampToValueAtTime(130, t + 0.25);
 
     gain.gain.setValueAtTime(0.2, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
 
     osc.connect(gain);
     gain.connect(this.ctx.destination);
 
     osc.start(t);
-    osc.stop(t + 0.2);
+    osc.stop(t + 0.25);
   }
 
-  // ── 8. Grand Prix Background Music Loop ──
+  // ── 11. Grand Prix Background Music Loop ──
   public startBgm() {
     if (this.isBgmPlaying || typeof window === 'undefined') return;
     this.initContext();
@@ -317,3 +398,4 @@ class PatternAudioEngine {
 }
 
 export const patternAudio = new PatternAudioEngine();
+
