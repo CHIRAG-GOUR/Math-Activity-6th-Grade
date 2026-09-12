@@ -1,11 +1,15 @@
 // ============================================================
-// PATTERN RACERS — High-Performance Daylight Stadium Environment 3D
+// PATTERN RACERS — World-Class Grand Prix Facility Environment 3D
 // - 820m Continuous Trackside Concrete Barriers, LED Sponsor Boards & Catch Fences
 // - Instanced Grandstand Bleachers & Seating Rows across the whole circuit
-// - Open-Front Blue & Red Team Pit Garages & Pit Wall Telemetry Monitors
+// - Instanced Outer Alpine Forest & Perimeter Landscaping (120+ Trees)
+// - 3-Story VIP Paddock Club Hospitality Building & Command Center
+// - Open-Front Blue & Red Team Pit Garages & Pit Wall Telemetry Perches
+// - Grand Prix Digital Timing Control Tower with Live Race Displays
+// - 3 Overhead Gantry Bridges (Ascari Bridge, Chicane LED Gantry, Parabolica Arch)
 // - 6 High-Mast Stadium Floodlight Towers with Glowing Lamp Arrays
-// - Sky Zeppelin Blimp, Hot Air Balloons, Cameramen & Alpine Peaks
-// - Expansive 2000m x 2000m Terrain Surface (No clipping or transparent voids)
+// - Trackside Marshal Outposts, Sky Zeppelin Blimp, Hot Air Balloons & Alpine Peaks
+// - Expansive 2000m x 2000m Seamless Ground Surface
 // ============================================================
 
 'use client';
@@ -22,6 +26,7 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
   const flagsRef = useRef<THREE.Group>(null);
   const flashStrobeLightRef = useRef<THREE.PointLight>(null);
   const beaconLightRef = useRef<THREE.PointLight>(null);
+  const radarDomeRef = useRef<THREE.Mesh>(null);
 
   // Instanced Meshes Refs
   const barrierConcreteRef = useRef<THREE.InstancedMesh>(null);
@@ -32,6 +37,11 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
   const stadiumTierRef = useRef<THREE.InstancedMesh>(null);
   const stadiumSeatRef = useRef<THREE.InstancedMesh>(null);
   const stadiumRoofRef = useRef<THREE.InstancedMesh>(null);
+
+  // Perimeter Trees Instanced Meshes Refs
+  const treeTrunkRef = useRef<THREE.InstancedMesh>(null);
+  const treeFoliageLowerRef = useRef<THREE.InstancedMesh>(null);
+  const treeFoliageUpperRef = useRef<THREE.InstancedMesh>(null);
 
   // Math transform helpers
   const tempMatrix = useMemo(() => new THREE.Matrix4(), []);
@@ -140,7 +150,7 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
     return { tiers, roofs };
   }, []);
 
-  // 3. High-Mast Floodlight Tower Positions
+  // 3. High-Mast Floodlight Tower Positions (12 Towers along track)
   const floodlightTowers = useMemo(() => {
     const locs: { pos: THREE.Vector3; rotY: number }[] = [];
     [0.05, 0.22, 0.40, 0.58, 0.76, 0.92].forEach((tVal) => {
@@ -159,12 +169,72 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
     return locs;
   }, []);
 
+  // 4. Perimeter Alpine Trees Data (120 Trees distributed naturally around circuit)
+  const treeData = useMemo(() => {
+    const items: { pos: THREE.Vector3; scale: number; rotY: number }[] = [];
+    const count = 60;
+    for (let i = 0; i < count; i++) {
+      const t = (i + 0.02) / count;
+      const pt = getTrackPointAt(t);
+
+      // Left perimeter tree
+      const distL = 24.0 + (Math.sin(i * 3.7) * 0.5 + 0.5) * 12.0;
+      const scaleL = 0.85 + (Math.cos(i * 2.1) * 0.5 + 0.5) * 0.5;
+      items.push({
+        pos: new THREE.Vector3(pt.x - pt.normalX * distL, 0, pt.z - pt.normalZ * distL),
+        scale: scaleL,
+        rotY: i * 1.37,
+      });
+
+      // Right perimeter tree
+      const distR = 24.0 + (Math.cos(i * 4.3) * 0.5 + 0.5) * 12.0;
+      const scaleR = 0.85 + (Math.sin(i * 1.9) * 0.5 + 0.5) * 0.5;
+      items.push({
+        pos: new THREE.Vector3(pt.x + pt.normalX * distR, 0, pt.z + pt.normalZ * distR),
+        scale: scaleR,
+        rotY: i * 2.15,
+      });
+    }
+    return items;
+  }, []);
+
+  // 5. Track Bridges across key circuit sectors
+  const trackBridges = useMemo(() => {
+    const bridgeTValues = [0.38, 0.64, 0.86];
+    return bridgeTValues.map((tVal, idx) => {
+      const pt = getTrackPointAt(tVal);
+      return {
+        id: `bridge-${idx}`,
+        pos: new THREE.Vector3(pt.x, 0, pt.z),
+        rotY: pt.angle,
+        name: idx === 0 ? 'ASCARI SPONSOR GANTRIES' : idx === 1 ? 'SENNA CHICANE SPEED TRAP' : 'PARABOLICA VICTORY ARCH',
+        colorMat: idx === 0 ? PBR_MATERIALS.ledScreenBlue : idx === 1 ? PBR_MATERIALS.ledScreenYellow : PBR_MATERIALS.ledScreenRed,
+      };
+    });
+  }, []);
+
+  // 6. Corner Marshal Safety Posts
+  const marshalPosts = useMemo(() => {
+    const tValues = [0.12, 0.32, 0.52, 0.72];
+    return tValues.map((tVal, idx) => {
+      const pt = getTrackPointAt(tVal);
+      const isLeft = idx % 2 === 0;
+      const dist = 7.8;
+      const x = isLeft ? pt.x - pt.normalX * dist : pt.x + pt.normalX * dist;
+      const z = isLeft ? pt.z - pt.normalZ * dist : pt.z + pt.normalZ * dist;
+      return {
+        id: `marshal-${idx}`,
+        pos: new THREE.Vector3(x, 0, z),
+        rotY: pt.angle + (isLeft ? 0 : Math.PI),
+      };
+    });
+  }, []);
+
   // Initialize Instanced Meshes Matrices on Mount
   useEffect(() => {
-    // 1. Initialize Barrier Instanced Meshes (240 barriers)
+    // 1. Barriers
     if (barrierConcreteRef.current && barrierLedRef.current && barrierPostRef.current && barrierFenceRef.current) {
       barrierData.forEach((item, i) => {
-        // Concrete base
         tempPos.copy(item.pos);
         tempEuler.set(0, item.rotY, 0);
         tempRot.setFromEuler(tempEuler);
@@ -172,13 +242,11 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         tempMatrix.compose(tempPos, tempRot, tempScale);
         barrierConcreteRef.current!.setMatrixAt(i, tempMatrix);
 
-        // Catch Fence mesh above barrier
         tempPos.set(item.pos.x, item.pos.y + 0.8, item.pos.z);
         tempScale.set(1, 1, item.length / 4.0);
         tempMatrix.compose(tempPos, tempRot, tempScale);
         barrierFenceRef.current!.setMatrixAt(i, tempMatrix);
 
-        // LED screen panel
         const signOffset = item.isLeft ? 0.16 : -0.16;
         tempPos.set(
           item.pos.x + Math.cos(item.rotY) * signOffset,
@@ -192,7 +260,6 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         barrierLedRef.current!.setMatrixAt(i, tempMatrix);
         barrierLedRef.current!.setColorAt(i, item.color);
 
-        // Steel Posts
         tempPos.set(item.pos.x, item.pos.y + 0.45, item.pos.z);
         tempEuler.set(0, 0, 0);
         tempRot.setFromEuler(tempEuler);
@@ -208,10 +275,9 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
       barrierPostRef.current.instanceMatrix.needsUpdate = true;
     }
 
-    // 2. Initialize Stadium Grandstands Meshes
+    // 2. Stadium Grandstands
     if (stadiumTierRef.current && stadiumSeatRef.current && stadiumRoofRef.current) {
       stadiumData.tiers.forEach((tier, i) => {
-        // Concrete Tier Step
         tempPos.copy(tier.pos);
         tempEuler.set(0, tier.rotY, 0);
         tempRot.setFromEuler(tempEuler);
@@ -219,7 +285,6 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         tempMatrix.compose(tempPos, tempRot, tempScale);
         stadiumTierRef.current!.setMatrixAt(i, tempMatrix);
 
-        // Stadium Seats (Top surface of step)
         tempPos.set(tier.pos.x, tier.pos.y + 0.38, tier.pos.z);
         tempMatrix.compose(tempPos, tempRot, tempScale);
         stadiumSeatRef.current!.setMatrixAt(i, tempMatrix);
@@ -243,7 +308,34 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
       if (stadiumSeatRef.current.instanceColor) stadiumSeatRef.current.instanceColor.needsUpdate = true;
       stadiumRoofRef.current.instanceMatrix.needsUpdate = true;
     }
-  }, [barrierData, stadiumData, tempMatrix, tempPos, tempRot, tempScale, tempEuler]);
+
+    // 3. Perimeter Trees
+    if (treeTrunkRef.current && treeFoliageLowerRef.current && treeFoliageUpperRef.current) {
+      treeData.forEach((tree, i) => {
+        // Trunk
+        tempPos.set(tree.pos.x, 1.8 * tree.scale, tree.pos.z);
+        tempEuler.set(0, tree.rotY, 0);
+        tempRot.setFromEuler(tempEuler);
+        tempScale.set(tree.scale, tree.scale, tree.scale);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        treeTrunkRef.current!.setMatrixAt(i, tempMatrix);
+
+        // Lower Foliage Cone
+        tempPos.set(tree.pos.x, 4.2 * tree.scale, tree.pos.z);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        treeFoliageLowerRef.current!.setMatrixAt(i, tempMatrix);
+
+        // Upper Foliage Cone
+        tempPos.set(tree.pos.x, 6.8 * tree.scale, tree.pos.z);
+        tempMatrix.compose(tempPos, tempRot, tempScale);
+        treeFoliageUpperRef.current!.setMatrixAt(i, tempMatrix);
+      });
+
+      treeTrunkRef.current.instanceMatrix.needsUpdate = true;
+      treeFoliageLowerRef.current.instanceMatrix.needsUpdate = true;
+      treeFoliageUpperRef.current.instanceMatrix.needsUpdate = true;
+    }
+  }, [barrierData, stadiumData, treeData, tempMatrix, tempPos, tempRot, tempScale, tempEuler]);
 
   // Dynamic Scene Animations
   useFrame((state) => {
@@ -255,7 +347,12 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
       blimpRef.current.position.z = -350 + Math.cos(time * 0.04) * 80;
     }
 
-    // Waving team flags atop grandstands
+    // Radar dome revolution atop Timing Tower
+    if (radarDomeRef.current) {
+      radarDomeRef.current.rotation.y = time * 1.5;
+    }
+
+    // Waving team flags atop grandstands and paddock
     if (flagsRef.current) {
       const t = time * 3;
       flagsRef.current.children.forEach((flag, i) => {
@@ -285,6 +382,10 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
   const stadiumSeatGeom = useMemo(() => new THREE.BoxGeometry(0.9, 0.08, 17.2), []);
   const stadiumRoofGeom = useMemo(() => new THREE.BoxGeometry(7.5, 0.35, 18.0), []);
 
+  const treeTrunkGeom = useMemo(() => new THREE.CylinderGeometry(0.3, 0.45, 3.6, 6), []);
+  const treeFoliageLowerGeom = useMemo(() => new THREE.ConeGeometry(2.4, 4.5, 7), []);
+  const treeFoliageUpperGeom = useMemo(() => new THREE.ConeGeometry(1.7, 3.8, 7), []);
+
   return (
     <group>
       {/* ── 1. OPTIMIZED SUN & SKY LIGHTING ── */}
@@ -309,7 +410,7 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
       <pointLight ref={flashStrobeLightRef} position={[0, 4, 10]} color="#ffffff" distance={40} intensity={0} />
       <pointLight ref={beaconLightRef} position={[0, 6, 12]} color="#eab308" distance={25} intensity={1.5} />
 
-      {/* ── 2. EXPANSIVE 2000m x 2000m TERRAIN (No voids or transparency) ── */}
+      {/* ── 2. EXPANSIVE 2000m x 2000m TERRAIN ── */}
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.15, -400]} receiveShadow material={PBR_MATERIALS.grass}>
         <planeGeometry args={[2000, 2000]} />
       </mesh>
@@ -352,21 +453,35 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         castShadow
       />
 
-      {/* ── 5. INSTANCED AUDIENCE ENGINE (Spectators in Grandstands) ── */}
+      {/* ── 5. INSTANCED PERIMETER ALPINE FOREST (120 Trees) ── */}
+      <instancedMesh
+        ref={treeTrunkRef}
+        args={[treeTrunkGeom, PBR_MATERIALS.treeWood, treeData.length]}
+        castShadow
+      />
+      <instancedMesh
+        ref={treeFoliageLowerRef}
+        args={[treeFoliageLowerGeom, PBR_MATERIALS.foliageDarkGreen, treeData.length]}
+        castShadow
+      />
+      <instancedMesh
+        ref={treeFoliageUpperRef}
+        args={[treeFoliageUpperGeom, PBR_MATERIALS.foliageGreen, treeData.length]}
+        castShadow
+      />
+
+      {/* ── 6. INSTANCED AUDIENCE ENGINE (Spectators & Fans) ── */}
       <AudienceInstanced3D />
 
-      {/* ── 6. HIGH-MAST STADIUM FLOODLIGHT TOWERS (12 Towers along track) ── */}
+      {/* ── 7. HIGH-MAST STADIUM FLOODLIGHT TOWERS (12 Towers along track) ── */}
       {floodlightTowers.map((tower, tIdx) => (
         <group key={`floodlight-tower-${tIdx}`} position={[tower.pos.x, 0, tower.pos.z]} rotation={[0, tower.rotY, 0]}>
-          {/* Main Lattice Tower Mast */}
           <mesh position={[0, 9.0, 0]} castShadow material={PBR_MATERIALS.metalTruss}>
             <cylinderGeometry args={[0.35, 0.7, 18.0, 6]} />
           </mesh>
-          {/* Top Floodlight Frame Crosshead */}
           <mesh position={[0, 18.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
             <boxGeometry args={[4.2, 1.2, 0.8]} />
           </mesh>
-          {/* 6 Glowing Emissive Bulbs */}
           {[-1.6, -0.6, 0.6, 1.6].map((bx, bi) => (
             <mesh key={`bulb-${bi}`} position={[bx, 18.2, 0.42]} material={PBR_MATERIALS.floodlightBulb}>
               <circleGeometry args={[0.32, 12]} />
@@ -375,78 +490,240 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         </group>
       ))}
 
-      {/* ── 7. OPEN-FRONT TEAM PIT GARAGES & PIT LANE COMPLEX ── */}
-      {/* Left Blue Pit Garage Box (Houses Blue car at [-8.5, 0.25, 22]) */}
-      <group position={[-8.5, 0, 22]}>
-        {/* Back Wall */}
-        <mesh position={[0, 2.8, 5.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+      {/* ── 8. THREE-STORY VIP PADDOCK CLUB & HOSPITALITY BUILDING ── */}
+      <group position={[0, 0, 27.5]}>
+        {/* Main 3-Story Concrete Structure (44m wide x 13m tall x 12m deep) */}
+        <mesh position={[0, 6.5, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[44, 13, 12]} />
+        </mesh>
+        {/* Dark Architectural Facade Framing & Steel Beams */}
+        <mesh position={[0, 6.5, -6.05]} castShadow material={PBR_MATERIALS.paddockFacade}>
+          <boxGeometry args={[44.4, 13.2, 0.3]} />
+        </mesh>
+
+        {/* Ground Floor Entrance Foyer & Glass Turnstiles */}
+        <mesh position={[0, 2.0, -6.22]} material={PBR_MATERIALS.glassTinted}>
+          <boxGeometry args={[14, 3.8, 0.2]} />
+        </mesh>
+
+        {/* Second Floor VIP Lounge Panoramic Glass Ribbon Windows */}
+        <mesh position={[0, 6.5, -6.22]} material={PBR_MATERIALS.glassTinted}>
+          <boxGeometry args={[42, 3.2, 0.2]} />
+        </mesh>
+        {/* Cantilevered VIP Viewing Terrace Balcony & Glass Balustrade */}
+        <mesh position={[0, 4.9, -7.0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[42, 0.4, 2.2]} />
+        </mesh>
+        <mesh position={[0, 5.5, -8.0]} material={PBR_MATERIALS.glassTinted}>
+          <boxGeometry args={[41.8, 1.0, 0.1]} />
+        </mesh>
+
+        {/* Third Floor Race Control Suites Ribbon Windows */}
+        <mesh position={[0, 10.5, -6.22]} material={PBR_MATERIALS.glassTinted}>
+          <boxGeometry args={[42, 2.8, 0.2]} />
+        </mesh>
+
+        {/* Roof Header Display Sign */}
+        <mesh position={[0, 12.8, -6.15]} material={PBR_MATERIALS.ledScreenBlue}>
+          <boxGeometry args={[32, 1.2, 0.2]} />
+        </mesh>
+
+        {/* Rooftop Terrace Features: VIP Parasols, HVAC Chillers & Comms Dishes */}
+        {[-14, -6, 6, 14].map((px, pi) => (
+          <group key={`parasol-${pi}`} position={[px, 13.0, -1.5]}>
+            {/* Pole */}
+            <mesh position={[0, 1.3, 0]} material={PBR_MATERIALS.metalTruss}>
+              <cylinderGeometry args={[0.04, 0.04, 2.6, 6]} />
+            </mesh>
+            {/* Canopy */}
+            <mesh position={[0, 2.6, 0]} castShadow material={PBR_MATERIALS.sponsorWhite}>
+              <coneGeometry args={[1.6, 0.6, 8]} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Rooftop AC HVAC Chiller Units */}
+        {[-16, 16].map((ax, ai) => (
+          <mesh key={`chiller-${ai}`} position={[ax, 14.0, 2.5]} castShadow material={PBR_MATERIALS.darkWall}>
+            <boxGeometry args={[4.2, 2.0, 3.0]} />
+          </mesh>
+        ))}
+
+        {/* Rooftop Satellite Comms Dish */}
+        <mesh position={[0, 14.8, 2.5]} castShadow material={PBR_MATERIALS.metalTruss}>
+          <sphereGeometry args={[1.4, 12, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
+        </mesh>
+      </group>
+
+      {/* ── 9. OPEN-FRONT TEAM PIT GARAGES & TELEMETRY BAYS ── */}
+      {/* Left Blue Pit Garage Box (Houses Blue car at [-8.5, 0.25, 20]) */}
+      <group position={[-8.5, 0, 19.5]}>
+        <mesh position={[0, 2.8, 4.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
           <boxGeometry args={[7.2, 5.6, 0.5]} />
         </mesh>
-        {/* Left Side Wall */}
         <mesh position={[-3.4, 2.8, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
-          <boxGeometry args={[0.5, 5.6, 10.5]} />
+          <boxGeometry args={[0.5, 5.6, 8.5]} />
         </mesh>
-        {/* Floor */}
         <mesh position={[0, 0.04, 0]} receiveShadow material={PBR_MATERIALS.concrete}>
-          <boxGeometry args={[7.2, 0.08, 10.5]} />
+          <boxGeometry args={[7.2, 0.08, 8.5]} />
         </mesh>
-        {/* Roof with Team Blue Header */}
         <mesh position={[0, 5.6, 0]} castShadow material={PBR_MATERIALS.vehicleBodyBlue}>
-          <boxGeometry args={[7.2, 0.5, 10.8]} />
+          <boxGeometry args={[7.2, 0.5, 8.8]} />
         </mesh>
-        {/* Overhead Team Sponsor Header */}
-        <mesh position={[0, 4.8, -5.1]} material={PBR_MATERIALS.ledScreenBlue}>
+        <mesh position={[0, 4.8, -4.1]} material={PBR_MATERIALS.ledScreenBlue}>
           <planeGeometry args={[6.8, 1.2]} />
         </mesh>
-        {/* Floor Parking Box Lines */}
         <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} material={PBR_MATERIALS.roadLineWhite}>
           <planeGeometry args={[3.4, 6.0]} />
         </mesh>
-        {/* Tool chest & telemetry racks */}
-        <mesh position={[-2.6, 0.9, -1.5]} castShadow material={PBR_MATERIALS.darkWall}>
+        <mesh position={[-2.6, 0.9, -1.0]} castShadow material={PBR_MATERIALS.darkWall}>
           <boxGeometry args={[0.8, 1.8, 3.4]} />
         </mesh>
-        <mesh position={[-2.55, 2.0, -1.5]} rotation={[0, Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenBlue}>
+        <mesh position={[-2.55, 2.0, -1.0]} rotation={[0, Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenBlue}>
           <planeGeometry args={[3.2, 0.7]} />
         </mesh>
       </group>
 
-      {/* Right Red Pit Garage Box (Houses Red car at [8.5, 0.25, 22]) */}
-      <group position={[8.5, 0, 22]}>
-        {/* Back Wall */}
-        <mesh position={[0, 2.8, 5.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+      {/* Right Red Pit Garage Box (Houses Red car at [8.5, 0.25, 20]) */}
+      <group position={[8.5, 0, 19.5]}>
+        <mesh position={[0, 2.8, 4.2]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
           <boxGeometry args={[7.2, 5.6, 0.5]} />
         </mesh>
-        {/* Right Side Wall */}
         <mesh position={[3.4, 2.8, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
-          <boxGeometry args={[0.5, 5.6, 10.5]} />
+          <boxGeometry args={[0.5, 5.6, 8.5]} />
         </mesh>
-        {/* Floor */}
         <mesh position={[0, 0.04, 0]} receiveShadow material={PBR_MATERIALS.concrete}>
-          <boxGeometry args={[7.2, 0.08, 10.5]} />
+          <boxGeometry args={[7.2, 0.08, 8.5]} />
         </mesh>
-        {/* Roof with Team Red Header */}
         <mesh position={[0, 5.6, 0]} castShadow material={PBR_MATERIALS.vehicleBodyRed}>
-          <boxGeometry args={[7.2, 0.5, 10.8]} />
+          <boxGeometry args={[7.2, 0.5, 8.8]} />
         </mesh>
-        {/* Overhead Team Sponsor Header */}
-        <mesh position={[0, 4.8, -5.1]} material={PBR_MATERIALS.ledScreenRed}>
+        <mesh position={[0, 4.8, -4.1]} material={PBR_MATERIALS.ledScreenRed}>
           <planeGeometry args={[6.8, 1.2]} />
         </mesh>
-        {/* Floor Parking Box Lines */}
         <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]} material={PBR_MATERIALS.roadLineWhite}>
           <planeGeometry args={[3.4, 6.0]} />
         </mesh>
-        {/* Tool chest & telemetry racks */}
-        <mesh position={[2.6, 0.9, -1.5]} castShadow material={PBR_MATERIALS.darkWall}>
+        <mesh position={[2.6, 0.9, -1.0]} castShadow material={PBR_MATERIALS.darkWall}>
           <boxGeometry args={[0.8, 1.8, 3.4]} />
         </mesh>
-        <mesh position={[2.55, 2.0, -1.5]} rotation={[0, -Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenRed}>
+        <mesh position={[2.55, 2.0, -1.0]} rotation={[0, -Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenRed}>
           <planeGeometry args={[3.2, 0.7]} />
         </mesh>
       </group>
 
-      {/* ── 8. SKILLIZEE ZEPPELIN BLIMP & HOT AIR BALLOONS ── */}
+      {/* ── 10. PIT WALL TELEMETRY PERCHES & PIT BOARDS ── */}
+      {/* Left Pit Wall (x: -5.6, z: 12) */}
+      <group position={[-5.6, 0, 12]}>
+        <mesh position={[0, 0.5, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.5, 1.0, 14.0]} />
+        </mesh>
+        <mesh position={[0, 1.3, 0]} material={PBR_MATERIALS.fenceWire}>
+          <planeGeometry args={[14.0, 0.8]} />
+        </mesh>
+        {/* Engineer Telemetry Console Perch */}
+        <mesh position={[-0.8, 1.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[1.0, 1.4, 4.5]} />
+        </mesh>
+        {/* Glowing Multi-Monitor Array */}
+        <mesh position={[-0.35, 1.7, 0]} rotation={[0, Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenBlue}>
+          <planeGeometry args={[4.2, 0.6]} />
+        </mesh>
+      </group>
+
+      {/* Right Pit Wall (x: 5.6, z: 12) */}
+      <group position={[5.6, 0, 12]}>
+        <mesh position={[0, 0.5, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[0.5, 1.0, 14.0]} />
+        </mesh>
+        <mesh position={[0, 1.3, 0]} material={PBR_MATERIALS.fenceWire}>
+          <planeGeometry args={[14.0, 0.8]} />
+        </mesh>
+        {/* Engineer Telemetry Console Perch */}
+        <mesh position={[0.8, 1.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+          <boxGeometry args={[1.0, 1.4, 4.5]} />
+        </mesh>
+        {/* Glowing Multi-Monitor Array */}
+        <mesh position={[0.35, 1.7, 0]} rotation={[0, -Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenRed}>
+          <planeGeometry args={[4.2, 0.6]} />
+        </mesh>
+      </group>
+
+      {/* ── 11. GRAND PRIX RACE CONTROL & SECTOR TIMING TOWER ── */}
+      <group position={[14.5, 0, 4]}>
+        {/* Base Floor */}
+        <mesh position={[0, 2.5, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+          <boxGeometry args={[5.2, 5.0, 5.2]} />
+        </mesh>
+        {/* Middle Observation Glass Studio */}
+        <mesh position={[0, 7.0, 0]} castShadow material={PBR_MATERIALS.glassTinted}>
+          <cylinderGeometry args={[3.2, 2.8, 4.0, 12]} />
+        </mesh>
+        {/* Observation Floor Roof & Antenna Deck */}
+        <mesh position={[0, 9.2, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+          <cylinderGeometry args={[3.5, 3.5, 0.4, 12]} />
+        </mesh>
+        {/* Revolving Radar Dome */}
+        <mesh ref={radarDomeRef} position={[0, 10.4, 0]} castShadow material={PBR_MATERIALS.metalTruss}>
+          <sphereGeometry args={[0.9, 12, 12]} />
+        </mesh>
+        {/* Mast & Aviation Warning Beacon */}
+        <mesh position={[0, 12.0, 0]} material={PBR_MATERIALS.metalTruss}>
+          <cylinderGeometry args={[0.06, 0.06, 3.0, 6]} />
+        </mesh>
+        <mesh position={[0, 13.6, 0]} material={PBR_MATERIALS.curbRed}>
+          <sphereGeometry args={[0.2, 8, 8]} />
+        </mesh>
+        {/* Vertical Digital Sector Timing Screen */}
+        <mesh position={[-2.65, 5.0, 0]} rotation={[0, -Math.PI / 2, 0]} material={PBR_MATERIALS.ledScreenYellow}>
+          <planeGeometry args={[3.8, 6.5]} />
+        </mesh>
+      </group>
+
+      {/* ── 12. OVERHEAD GRAND PRIX SPONSOR GANTRIES & BRIDGES ── */}
+      {trackBridges.map((bridge) => (
+        <group key={bridge.id} position={[bridge.pos.x, 0, bridge.pos.z]} rotation={[0, bridge.rotY, 0]}>
+          {/* Left Support Column */}
+          <mesh position={[-6.8, 4.0, 0]} castShadow material={PBR_MATERIALS.metalTruss}>
+            <cylinderGeometry args={[0.4, 0.4, 8.0, 8]} />
+          </mesh>
+          {/* Right Support Column */}
+          <mesh position={[6.8, 4.0, 0]} castShadow material={PBR_MATERIALS.metalTruss}>
+            <cylinderGeometry args={[0.4, 0.4, 8.0, 8]} />
+          </mesh>
+          {/* Overhead Horizontal Truss Span */}
+          <mesh position={[0, 7.5, 0]} castShadow material={PBR_MATERIALS.darkWall}>
+            <boxGeometry args={[14.4, 1.2, 1.8]} />
+          </mesh>
+          {/* Front Illuminated Digital Sponsor Billboard */}
+          <mesh position={[0, 7.5, 0.95]} material={bridge.colorMat}>
+            <planeGeometry args={[12.8, 1.0]} />
+          </mesh>
+          {/* Back Illuminated Digital Sponsor Billboard */}
+          <mesh position={[0, 7.5, -0.95]} rotation={[0, Math.PI, 0]} material={bridge.colorMat}>
+            <planeGeometry args={[12.8, 1.0]} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* ── 13. TRACKSIDE MARSHAL SAFETY CABINS ── */}
+      {marshalPosts.map((post) => (
+        <group key={post.id} position={[post.pos.x, 0, post.pos.z]} rotation={[0, post.rotY, 0]}>
+          <mesh position={[0, 1.2, 0]} castShadow receiveShadow material={PBR_MATERIALS.concrete}>
+            <boxGeometry args={[2.2, 2.4, 2.2]} />
+          </mesh>
+          {/* Safety Orange Canopy */}
+          <mesh position={[0, 2.5, 0]} castShadow material={PBR_MATERIALS.workerVestOrange}>
+            <boxGeometry args={[2.6, 0.2, 2.6]} />
+          </mesh>
+          {/* Fire Extinguisher */}
+          <mesh position={[0.8, 0.6, 0.8]} material={PBR_MATERIALS.curbRed}>
+            <cylinderGeometry args={[0.12, 0.12, 0.6, 8]} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* ── 14. SKILLIZEE ZEPPELIN BLIMP & HOT AIR BALLOONS ── */}
       <group ref={blimpRef} position={[0, 65, -350]}>
         <mesh rotation={[0, 0, Math.PI / 2]} castShadow material={PBR_MATERIALS.concrete}>
           <capsuleGeometry args={[6.5, 22, 12, 16]} />
@@ -475,7 +752,7 @@ export const DaylightFacilityEnvironment3D: React.FC = () => {
         </group>
       ))}
 
-      {/* ── 9. DISTANT ALPINE MOUNTAIN RANGE ── */}
+      {/* ── 15. DISTANT ALPINE MOUNTAIN RANGE ── */}
       <group position={[0, 0, -880]}>
         {[-300, -180, -60, 60, 180, 300].map((x, i) => (
           <mesh key={`alp-peak-${i}`} position={[x, 60 + (i % 3) * 25, 0]} material={PBR_MATERIALS.asphaltRunoff}>

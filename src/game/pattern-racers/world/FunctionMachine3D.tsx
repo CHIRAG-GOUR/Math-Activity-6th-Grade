@@ -52,7 +52,7 @@ export const FunctionMachine3D: React.FC = () => {
   const outputValue = activeChallenge.expectedOutput ?? 13;
 
   return (
-    <group position={[7.8, 0, -38]} rotation={[0, -0.3, 0]}>
+    <group position={[6.4, 0, 1.2]} rotation={[0, -Math.PI / 4, 0]}>
       {/* ── 1. HEAVY STEEL BASE PLATFORM ── */}
       <mesh position={[0, 0.4, 0]} castShadow receiveShadow material={PBR_MATERIALS.darkWall}>
         <boxGeometry args={[5.2, 0.8, 4.4]} />

@@ -70,6 +70,14 @@ class MaterialLibrary {
   readonly workerSkin: THREE.MeshStandardMaterial;
   readonly workerBoots: THREE.MeshStandardMaterial;
 
+  // Architecture, Foliage & Building Materials
+  readonly foliageGreen: THREE.MeshStandardMaterial;
+  readonly foliageDarkGreen: THREE.MeshStandardMaterial;
+  readonly treeWood: THREE.MeshStandardMaterial;
+  readonly glassTinted: THREE.MeshStandardMaterial;
+  readonly paddockFacade: THREE.MeshStandardMaterial;
+  readonly sponsorWhite: THREE.MeshStandardMaterial;
+
   constructor() {
     // 1. Environment & Track
     this.asphalt = new THREE.MeshStandardMaterial({
@@ -142,6 +150,40 @@ class MaterialLibrary {
     });
     this.floodlightBulb = new THREE.MeshBasicMaterial({
       color: '#fffbeb',
+    });
+
+    // Architecture & Foliage
+    this.foliageGreen = new THREE.MeshStandardMaterial({
+      color: '#16a34a',
+      roughness: 0.8,
+      metalness: 0.05,
+    });
+    this.foliageDarkGreen = new THREE.MeshStandardMaterial({
+      color: '#15803d',
+      roughness: 0.85,
+      metalness: 0.05,
+    });
+    this.treeWood = new THREE.MeshStandardMaterial({
+      color: '#78350f',
+      roughness: 0.9,
+      metalness: 0.05,
+    });
+    this.glassTinted = new THREE.MeshStandardMaterial({
+      color: '#0284c7',
+      roughness: 0.1,
+      metalness: 0.9,
+      transparent: true,
+      opacity: 0.65,
+    });
+    this.paddockFacade = new THREE.MeshStandardMaterial({
+      color: '#1e293b',
+      roughness: 0.35,
+      metalness: 0.75,
+    });
+    this.sponsorWhite = new THREE.MeshStandardMaterial({
+      color: '#ffffff',
+      roughness: 0.25,
+      metalness: 0.2,
     });
 
     // 2. Stadium Seating

@@ -113,9 +113,11 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
             <button
               onPointerDown={() => startSteering('blue', 'left')}
               onPointerUp={() => stopSteering('blue')}
-              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex flex-col items-center justify-center gap-0.5 shadow-lg transition active:scale-95 cursor-pointer"
+              title="Steer Left (Key: A)"
             >
-              <ArrowLeft className="w-7 h-7" />
+              <ArrowLeft className="w-6 h-6" />
+              <span className="text-[9px] font-mono opacity-60">[A]</span>
             </button>
 
             <div className="flex flex-col gap-2">
@@ -124,27 +126,35 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
                 onPointerUp={() => releaseThrottle('blue')}
                 disabled={blueTeam.raceControls.isHeldByHeadStart}
                 className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 border border-emerald-300 text-white font-black flex flex-col items-center justify-center shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-40"
+                title="Gas / Accelerate (Key: W)"
               >
-                <ArrowUp className="w-5 h-5" />
-                <span className="text-[10px] uppercase">GAS</span>
+                <div className="flex items-center gap-1">
+                  <ArrowUp className="w-4 h-4" />
+                  <span className="text-[10px] uppercase font-black">GAS</span>
+                </div>
+                <span className="text-[8px] font-mono opacity-80">[W]</span>
               </button>
 
               <button
                 onPointerDown={() => pressBrake('blue')}
                 onPointerUp={() => releaseBrake('blue')}
-                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer"
+                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
+                title="Brake / Reverse (Key: S)"
               >
-                <ArrowDown className="w-4 h-4" />
+                <ArrowDown className="w-3.5 h-3.5" />
                 <span className="text-[9px] uppercase">BRAKE</span>
+                <span className="text-[8px] font-mono opacity-70">[S]</span>
               </button>
             </div>
 
             <button
               onPointerDown={() => startSteering('blue', 'right')}
               onPointerUp={() => stopSteering('blue')}
-              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+              className="h-16 rounded-2xl bg-blue-900/40 hover:bg-blue-800/60 active:bg-blue-600 border border-blue-500/50 text-white font-black flex flex-col items-center justify-center gap-0.5 shadow-lg transition active:scale-95 cursor-pointer"
+              title="Steer Right (Key: D)"
             >
-              <ArrowRight className="w-7 h-7" />
+              <ArrowRight className="w-6 h-6" />
+              <span className="text-[9px] font-mono opacity-60">[D]</span>
             </button>
           </div>
 
@@ -153,9 +163,11 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
             onClick={() => triggerNitro('blue')}
             disabled={blueTeam.raceControls.nitroCharges <= 0 || blueTeam.raceControls.nitroActive}
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-98 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(6,182,212,0.6)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+            title="Nitrous Boost (Key: Space or Shift)"
           >
             <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
             <span>NITROUS BOOST ({blueTeam.raceControls.nitroCharges} LEFT)</span>
+            <span className="px-1.5 py-0.5 rounded bg-black/40 text-[9px] font-mono tracking-normal">[SPACE]</span>
           </button>
         </div>
 
@@ -178,9 +190,11 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
             <button
               onPointerDown={() => startSteering('red', 'left')}
               onPointerUp={() => stopSteering('red')}
-              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex flex-col items-center justify-center gap-0.5 shadow-lg transition active:scale-95 cursor-pointer"
+              title="Steer Left (Key: ←)"
             >
-              <ArrowLeft className="w-7 h-7" />
+              <ArrowLeft className="w-6 h-6" />
+              <span className="text-[9px] font-mono opacity-60">[←]</span>
             </button>
 
             <div className="flex flex-col gap-2">
@@ -189,27 +203,35 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
                 onPointerUp={() => releaseThrottle('red')}
                 disabled={redTeam.raceControls.isHeldByHeadStart}
                 className="h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-400 border border-emerald-300 text-white font-black flex flex-col items-center justify-center shadow-lg transition active:scale-95 cursor-pointer disabled:opacity-40"
+                title="Gas / Accelerate (Key: ↑)"
               >
-                <ArrowUp className="w-5 h-5" />
-                <span className="text-[10px] uppercase">GAS</span>
+                <div className="flex items-center gap-1">
+                  <ArrowUp className="w-4 h-4" />
+                  <span className="text-[10px] uppercase font-black">GAS</span>
+                </div>
+                <span className="text-[8px] font-mono opacity-80">[↑]</span>
               </button>
 
               <button
                 onPointerDown={() => pressBrake('red')}
                 onPointerUp={() => releaseBrake('red')}
-                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-md transition active:scale-95 cursor-pointer"
+                className="h-10 rounded-2xl bg-red-900/50 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center gap-1 shadow-md transition active:scale-95 cursor-pointer"
+                title="Brake / Reverse (Key: ↓)"
               >
-                <ArrowDown className="w-4 h-4" />
+                <ArrowDown className="w-3.5 h-3.5" />
                 <span className="text-[9px] uppercase">BRAKE</span>
+                <span className="text-[8px] font-mono opacity-70">[↓]</span>
               </button>
             </div>
 
             <button
               onPointerDown={() => startSteering('red', 'right')}
               onPointerUp={() => stopSteering('red')}
-              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex items-center justify-center shadow-lg transition active:scale-95 cursor-pointer"
+              className="h-16 rounded-2xl bg-red-900/40 hover:bg-red-800/60 active:bg-red-600 border border-red-500/50 text-white font-black flex flex-col items-center justify-center gap-0.5 shadow-lg transition active:scale-95 cursor-pointer"
+              title="Steer Right (Key: →)"
             >
-              <ArrowRight className="w-7 h-7" />
+              <ArrowRight className="w-6 h-6" />
+              <span className="text-[9px] font-mono opacity-60">[→]</span>
             </button>
           </div>
 
@@ -218,9 +240,11 @@ export const NFSMostWantedRaceHUD: React.FC = () => {
             onClick={() => triggerNitro('red')}
             disabled={redTeam.raceControls.nitroCharges <= 0 || redTeam.raceControls.nitroActive}
             className="w-full py-3 rounded-2xl bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-400 hover:to-red-500 active:scale-98 text-white font-black text-xs uppercase tracking-widest shadow-[0_0_20px_rgba(239,68,68,0.6)] flex items-center justify-center gap-2 cursor-pointer disabled:opacity-40"
+            title="Nitrous Boost (Key: Enter or Numpad 0)"
           >
             <Flame className="w-4 h-4 text-amber-300 animate-bounce" />
             <span>NITROUS BOOST ({redTeam.raceControls.nitroCharges} LEFT)</span>
+            <span className="px-1.5 py-0.5 rounded bg-black/40 text-[9px] font-mono tracking-normal">[ENTER]</span>
           </button>
         </div>
       </div>
