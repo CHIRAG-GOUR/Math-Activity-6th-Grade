@@ -8,15 +8,18 @@ import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { usePatternStore } from '../store/patternStore';
 import { patternAudio } from '../engine/patternAudio';
-import { Trophy, Home, Volume2, VolumeX, Sparkles, Timer } from 'lucide-react';
+import { Home, Volume2, VolumeX, Flag } from 'lucide-react';
 
 export const PatternHeader: React.FC = () => {
   const router = useRouter();
   const currentRound = usePatternStore((s) => s.currentRound);
+  const questionIndex = usePatternStore((s) => s.questionIndex);
+  const totalQuestions = usePatternStore((s) => s.totalQuestions);
   const questionCountConfig = usePatternStore((s) => s.questionCountConfig);
   const setQuestionCount = usePatternStore((s) => s.setQuestionCount);
   const blueScore = usePatternStore((s) => s.blueTeam.score);
   const redScore = usePatternStore((s) => s.redTeam.score);
+  const phase = usePatternStore((s) => s.phase);
   const [isMuted, setIsMuted] = useState(patternAudio.getMuted());
 
   const handleToggleSound = () => {
@@ -29,10 +32,18 @@ export const PatternHeader: React.FC = () => {
     router.push('/');
   };
 
+  const stageLabels = [
+    'STAGE 1: 🔍 ENGINE DIAGNOSTICS & TELEMETRY',
+    'STAGE 2: 🔧 HYDRAULIC LIFT & TIRE CHANGE',
+    'STAGE 3: 🚀 FACTORY ROLLOUT & PIT EXIT',
+    'STAGE 4: 🏁 STARTING GRID STAGING',
+    'STAGE 5: 🏎️ LIVE GRAND PRIX RACE DUEL!',
+  ];
+
   return (
     <header className="w-full h-14 bg-white/95 backdrop-blur-md border-b-3 border-slate-900 px-3 sm:px-6 flex items-center justify-between shadow-sm z-30 select-none">
-      {/* ── Left: Title & Round Badge ── */}
-      <div className="flex items-center gap-3">
+      {/* ── Left: Title & Stage Mission ── */}
+      <div className="flex items-center gap-2.5">
         <button
           onClick={handleReturnToHub}
           className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 border-2 border-slate-900 shadow-[2px_2px_0px_#000000] active:scale-95 transition cursor-pointer flex items-center gap-1.5"
@@ -49,19 +60,20 @@ export const PatternHeader: React.FC = () => {
               PATTERN RACERS
             </h1>
             <span className="text-[10px] font-bold text-slate-500 hidden sm:inline">
-              Sequence & Function Grand Prix
+              Grand Prix Series
             </span>
           </div>
         </div>
 
-        {/* Round Badge */}
-        <div className="px-2.5 py-1 rounded-lg bg-amber-400 border-2 border-slate-900 text-slate-950 font-black text-xs shadow-[2px_2px_0px_#000000]">
-          ROUND {currentRound} / 5
+        {/* Dynamic Stage Pill */}
+        <div className="hidden md:flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-400 border-2 border-slate-900 text-slate-950 font-black text-xs shadow-[2px_2px_0px_#000000]">
+          <Flag className="w-3.5 h-3.5 fill-slate-950" />
+          <span>{stageLabels[Math.min(currentRound - 1, 4)]}</span>
         </div>
       </div>
 
       {/* ── Center: Team Live Scores ── */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         {/* Blue Team Score */}
         <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 border-2 border-blue-500 rounded-lg">
           <div className="w-2.5 h-2.5 rounded-full bg-blue-600 animate-pulse" />

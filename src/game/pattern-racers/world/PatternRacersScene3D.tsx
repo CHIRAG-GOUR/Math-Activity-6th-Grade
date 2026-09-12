@@ -1,9 +1,11 @@
 // ============================================================
 // PATTERN RACERS — Main 3D Scene & Dynamic Camera Rig
-// Daylight 3D Mathematical Grand Prix Facility:
-// - Elevated 3/4 Panoramic Camera with Smooth Round Framing
-// - Parallax Pointer Rig with Environmental Depth
-// - Real-time Vehicle Tracking During Grand Prix Race Simulation
+// 5-Stage Cinematic Grand Prix Facility:
+// - Stage 1: Garage Diagnostics & Telemetry
+// - Stage 2: Rapid Pit Stop Tire Change & Hydraulic Lift
+// - Stage 3: Factory Rollout onto Pit Lane
+// - Stage 4: Starting Grid Lineup & Stadium Perspective
+// - Stage 5: High-Speed Grand Prix Chase Camera
 // ============================================================
 
 'use client';
@@ -15,7 +17,6 @@ import { DaylightFacilityEnvironment3D } from './DaylightFacilityEnvironment3D';
 import { GrandPrixTrack3D } from './GrandPrixTrack3D';
 import { RaceVehicle3D } from './RaceVehicle3D';
 import { FunctionMachine3D } from './FunctionMachine3D';
-import { TrackBuilderMachine3D } from './TrackBuilderMachine3D';
 import { FacilityWorkers3D } from './FacilityWorkers3D';
 import { usePatternStore } from '../store/patternStore';
 
@@ -29,36 +30,37 @@ const CameraRig: React.FC = () => {
 
   useFrame((state, delta) => {
     const pointer = state.pointer;
-    const isRacing = phase === 'grand_prix_race';
+    const isRacing = phase === 'grand_prix_race' || currentRound === 5;
 
-    let targetCamPos = new THREE.Vector3(0, 9, 14);
+    let targetCamPos = new THREE.Vector3(0, 8, 14);
     let targetLook = new THREE.Vector3(0, 1.2, 0);
 
     if (isRacing) {
-      // Dynamic chase camera tracking both vehicles
+      // Dynamic chase camera tracking both vehicles racing down the stadium straight
       const avgZ = (blueVehicle.worldPosition[2] + redVehicle.worldPosition[2]) / 2;
-      targetCamPos = new THREE.Vector3(0, 6.5, avgZ + 11);
-      targetLook = new THREE.Vector3(0, 1.0, avgZ - 4);
+      const avgX = (blueVehicle.worldPosition[0] + redVehicle.worldPosition[0]) / 2;
+      targetCamPos = new THREE.Vector3(avgX * 0.4 + pointer.x * 0.5, 4.2 + pointer.y * 0.3, avgZ + 8.5);
+      targetLook = new THREE.Vector3(avgX * 0.3, 1.2, avgZ - 8);
     } else if (currentRound === 1) {
-      // Elevated start view
-      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 8.5 + pointer.y * 0.5, 13);
-      targetLook = new THREE.Vector3(0, 1.0, 3);
+      // Stage 1: Close inspection inside garage / pit bays
+      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 5.2 + pointer.y * 0.4, 9.5);
+      targetLook = new THREE.Vector3(0, 0.9, 4.5);
     } else if (currentRound === 2) {
-      // Framed toward Track Builder machine
-      targetCamPos = new THREE.Vector3(-1.5 + pointer.x * 0.8, 7.8 + pointer.y * 0.5, 9.5);
-      targetLook = new THREE.Vector3(-1.5, 1.2, -1);
-    } else if (currentRound === 3 || currentRound === 4) {
-      // Dolly into Function Machine
-      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 6.2 + pointer.y * 0.5, 4.2);
-      targetLook = new THREE.Vector3(0, 1.8, -6.5);
-    } else if (currentRound === 5) {
-      // Wide Championship Grid View
-      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 9.5 + pointer.y * 0.5, 8.5);
-      targetLook = new THREE.Vector3(0, 1.5, -12);
+      // Stage 2: Low tactical view of tire change and hydraulic lifts
+      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 4.0 + pointer.y * 0.4, 8.8);
+      targetLook = new THREE.Vector3(0, 0.8, 4.5);
+    } else if (currentRound === 3) {
+      // Stage 3: Factory rollout onto pit apron
+      targetCamPos = new THREE.Vector3(-2.5 + pointer.x * 0.8, 6.0 + pointer.y * 0.4, 11.5);
+      targetLook = new THREE.Vector3(0, 1.2, 4.0);
+    } else if (currentRound === 4) {
+      // Stage 4: Epic low-angle view from grid looking down the stadium straight towards finish line
+      targetCamPos = new THREE.Vector3(0 + pointer.x * 0.6, 3.8 + pointer.y * 0.3, 10.5);
+      targetLook = new THREE.Vector3(0, 2.0, -45);
     }
 
-    state.camera.position.lerp(targetCamPos, delta * 2.5);
-    targetLookAt.current.lerp(targetLook, delta * 3.0);
+    state.camera.position.lerp(targetCamPos, delta * 3.0);
+    targetLookAt.current.lerp(targetLook, delta * 3.5);
     state.camera.lookAt(targetLookAt.current);
   });
 
@@ -73,7 +75,7 @@ export const PatternRacersScene3D: React.FC = () => {
     <div className="w-full h-full relative select-none">
       <Canvas
         shadows
-        camera={{ position: [0, 9, 14], fov: 48, near: 0.1, far: 200 }}
+        camera={{ position: [0, 8, 14], fov: 48, near: 0.1, far: 250 }}
         gl={{
           antialias: true,
           powerPreference: 'high-performance',
@@ -82,7 +84,7 @@ export const PatternRacersScene3D: React.FC = () => {
         }}
       >
         <color attach="background" args={['#e0f2fe']} />
-        <fog attach="fog" args={['#e0f2fe', 35, 95]} />
+        <fog attach="fog" args={['#e0f2fe', 45, 120]} />
 
         {/* Dynamic Camera Rig */}
         <CameraRig />
@@ -91,10 +93,9 @@ export const PatternRacersScene3D: React.FC = () => {
         <DaylightFacilityEnvironment3D />
         <GrandPrixTrack3D />
         <FunctionMachine3D />
-        <TrackBuilderMachine3D />
         <FacilityWorkers3D />
 
-        {/* ── DUAL TEAM RACE VEHICLES ── */}
+        {/* ── DUAL TEAM FORMULA RACE VEHICLES ── */}
         <RaceVehicle3D
           teamId="blue"
           position={blueVehicle.worldPosition}
