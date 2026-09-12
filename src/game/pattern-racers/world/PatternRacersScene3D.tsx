@@ -36,11 +36,17 @@ const CameraRig: React.FC = () => {
     let targetLook = new THREE.Vector3(0, 1.2, 0);
 
     if (isRacing) {
-      // Dynamic chase camera tracking both vehicles racing down the stadium straight
+      // Dynamic chase camera tracking both vehicles along the curving track
       const avgZ = (blueVehicle.worldPosition[2] + redVehicle.worldPosition[2]) / 2;
       const avgX = (blueVehicle.worldPosition[0] + redVehicle.worldPosition[0]) / 2;
-      targetCamPos = new THREE.Vector3(avgX * 0.4 + pointer.x * 0.5, 4.2 + pointer.y * 0.3, avgZ + 8.5);
-      targetLook = new THREE.Vector3(avgX * 0.3, 1.2, avgZ - 8);
+      const isNitro = blueVehicle.boostActive || redVehicle.boostActive;
+
+      // Follow behind the cars based on road angle
+      const camDist = isNitro ? 10.5 : 8.8;
+      const camHeight = isNitro ? 3.6 : 4.4;
+
+      targetCamPos = new THREE.Vector3(avgX + pointer.x * 0.5, camHeight + pointer.y * 0.3, avgZ + camDist);
+      targetLook = new THREE.Vector3(avgX * 0.8, 1.3, avgZ - 12);
     } else if (currentRound === 1) {
       // Stage 1: Close inspection inside garage / pit bays
       targetCamPos = new THREE.Vector3(0 + pointer.x * 0.8, 5.2 + pointer.y * 0.4, 9.5);
@@ -59,8 +65,8 @@ const CameraRig: React.FC = () => {
       targetLook = new THREE.Vector3(0, 2.0, -45);
     }
 
-    state.camera.position.lerp(targetCamPos, delta * 3.0);
-    targetLookAt.current.lerp(targetLook, delta * 3.5);
+    state.camera.position.lerp(targetCamPos, delta * 3.5);
+    targetLookAt.current.lerp(targetLook, delta * 4.0);
     state.camera.lookAt(targetLookAt.current);
   });
 
@@ -99,6 +105,7 @@ export const PatternRacersScene3D: React.FC = () => {
         <RaceVehicle3D
           teamId="blue"
           position={blueVehicle.worldPosition}
+          rotationY={blueVehicle.rotationY}
           boostActive={blueVehicle.boostActive}
           isRacing={blueVehicle.isRacing}
           speed={blueVehicle.speed}
@@ -106,6 +113,7 @@ export const PatternRacersScene3D: React.FC = () => {
         <RaceVehicle3D
           teamId="red"
           position={redVehicle.worldPosition}
+          rotationY={redVehicle.rotationY}
           boostActive={redVehicle.boostActive}
           isRacing={redVehicle.isRacing}
           speed={redVehicle.speed}

@@ -234,17 +234,34 @@ export const RaceVehicle3D: React.FC<Props> = ({
         <meshBasicMaterial color="#ef4444" />
       </mesh>
 
-      {/* ── 8. EXHAUST & TURBO THRUST GLOW ── */}
-      <mesh position={[0, 0.18, 1.64]} rotation={[Math.PI / 2, 0, 0]}>
-        <cylinderGeometry args={[0.09, 0.09, 0.15, 12]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.6} metalness={0.9} />
-      </mesh>
+      {/* ── 8. EXHAUST & TURBO THRUST GLOW + NITROUS FLAMES ── */}
+      {[-0.2, 0.2].map((xExhaust, exIdx) => (
+        <group key={`exhaust-pipe-${exIdx}`} position={[xExhaust, 0.18, 1.64]}>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.08, 0.08, 0.15, 12]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.6} metalness={0.9} />
+          </mesh>
+
+          {/* Glowing Exhaust Flame Cones on Nitro Boost */}
+          {boostActive && (
+            <mesh position={[0, 0, 0.45]} rotation={[-Math.PI / 2, 0, 0]}>
+              <coneGeometry args={[0.16, 0.8, 12]} />
+              <meshBasicMaterial
+                color={isBlue ? '#38bdf8' : '#f97316'}
+                transparent
+                opacity={0.85}
+              />
+            </mesh>
+          )}
+        </group>
+      ))}
+
       <pointLight
         ref={exhaustGlowRef}
-        position={[0, 0.2, 1.9]}
-        color={boostActive ? '#38bdf8' : '#f97316'}
-        intensity={boostActive ? 2.8 : 0.4}
-        distance={3.5}
+        position={[0, 0.2, 2.2]}
+        color={boostActive ? (isBlue ? '#38bdf8' : '#f97316') : '#f59e0b'}
+        intensity={boostActive ? 4.5 : 0.4}
+        distance={4.5}
       />
 
       {/* ── 9. NUMBER EMBLEM BADGE & WAVING TEAM FLAG ── */}

@@ -43,15 +43,29 @@ const clearTimers = () => {
   }
 };
 
-const defaultRaceControls = (initialLane: 'left' | 'right'): LiveRaceControls => ({
+import { getTrackPointAt, TRACK_FINISH_PROGRESS, TRACK_TOTAL_LENGTH_METERS } from '../engine/trackPath';
+
+const defaultRaceControls = (
+  initialLane: 'left' | 'right',
+  hasAdvantage: boolean = false,
+  advantageDescription: string = ''
+): LiveRaceControls => ({
   throttle: 0,
+  steer: 0,
   speedKmh: 120,
   nitroRemaining: 100,
+  nitroCharges: hasAdvantage ? 3 : 1,
+  maxNitroCharges: hasAdvantage ? 3 : 1,
   nitroActive: false,
+  laneOffset: initialLane === 'left' ? -1.8 : 1.8,
   lane: initialLane === 'left' ? 'left' : 'right',
   distanceCovered: 0,
+  trackProgress: 0,
   rpm: 4500,
   gear: 3,
+  topSpeedMax: hasAdvantage ? 360 : 290,
+  hasAdvantage,
+  advantageDescription,
 });
 
 interface PatternState {
@@ -101,8 +115,12 @@ interface PatternState {
   // Live Stage 5 Racing Cockpit Actions
   pressThrottle: (teamId: TeamId) => void;
   releaseThrottle: (teamId: TeamId) => void;
+  pressBrake: (teamId: TeamId) => void;
+  releaseBrake: (teamId: TeamId) => void;
+  setSteerInput: (teamId: TeamId, steerVal: number) => void;
   triggerNitro: (teamId: TeamId) => void;
   switchLane: (teamId: TeamId, direction: 'left' | 'right') => void;
+  applyVirtualJoystick: (teamId: TeamId, joy: { x: number; y: number }) => void;
 
   submitAnswer: (teamId: TeamId) => void;
   handleTimerExpired: () => void;
@@ -320,8 +338,8 @@ export const usePatternStore = create<PatternState>((set, get) => ({
       const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
       const team = state[teamKey];
       const curControls = team.raceControls;
-      const newThrottle = Math.min(100, curControls.throttle + 25);
-      const newSpeed = 160 + newThrottle * 1.5;
+      const newThrottle = Math.min(100, curControls.throttle + 30);
+      const targetSpeed = Math.min(curControls.topSpeedMax, curControls.speedKmh + 22);
 
       return {
         [teamKey]: {
@@ -329,9 +347,9 @@ export const usePatternStore = create<PatternState>((set, get) => ({
           raceControls: {
             ...curControls,
             throttle: newThrottle,
-            speedKmh: Math.round(newSpeed),
-            rpm: 6000 + newThrottle * 55,
-            gear: Math.min(8, Math.floor(newSpeed / 40) + 1),
+            speedKmh: targetSpeed,
+            rpm: Math.min(12000, 4500 + newThrottle * 65),
+            gear: Math.min(8, Math.floor(targetSpeed / 42) + 1),
           },
         },
       };
@@ -347,8 +365,55 @@ export const usePatternStore = create<PatternState>((set, get) => ({
           ...team,
           raceControls: {
             ...team.raceControls,
-            throttle: Math.max(0, team.raceControls.throttle - 20),
-            speedKmh: Math.max(120, team.raceControls.speedKmh - 15),
+            throttle: Math.max(0, team.raceControls.throttle - 25),
+          },
+        },
+      };
+    });
+  },
+
+  pressBrake: (teamId) => {
+    patternAudio.playPneumaticDepressurize();
+    set((state) => {
+      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
+      const team = state[teamKey];
+      const curControls = team.raceControls;
+      const newSpeed = Math.max(50, curControls.speedKmh - 35);
+      return {
+        [teamKey]: {
+          ...team,
+          raceControls: {
+            ...curControls,
+            throttle: 0,
+            speedKmh: newSpeed,
+            rpm: Math.max(2500, curControls.rpm - 2000),
+            gear: Math.max(1, Math.floor(newSpeed / 45) + 1),
+          },
+        },
+      };
+    });
+  },
+
+  releaseBrake: (teamId) => {
+    // Return to neutral deceleration
+  },
+
+  setSteerInput: (teamId, steerVal) => {
+    set((state) => {
+      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
+      const team = state[teamKey];
+      const clampedSteer = Math.max(-1, Math.min(1, steerVal));
+      const newLaneOffset = Math.max(-3.5, Math.min(3.5, team.raceControls.laneOffset + clampedSteer * 0.45));
+      const lane = newLaneOffset < -1.2 ? 'left' : newLaneOffset > 1.2 ? 'right' : 'center';
+
+      return {
+        [teamKey]: {
+          ...team,
+          raceControls: {
+            ...team.raceControls,
+            steer: clampedSteer,
+            laneOffset: newLaneOffset,
+            lane,
           },
         },
       };
@@ -361,7 +426,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
       const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
       const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
       const team = state[teamKey];
-      if (team.raceControls.nitroRemaining <= 0) return state;
+      if (team.raceControls.nitroCharges <= 0 && team.raceControls.nitroRemaining <= 0) return state;
 
       return {
         [teamKey]: {
@@ -369,9 +434,8 @@ export const usePatternStore = create<PatternState>((set, get) => ({
           raceControls: {
             ...team.raceControls,
             nitroActive: true,
-            nitroRemaining: Math.max(0, team.raceControls.nitroRemaining - 35),
-            speedKmh: 340,
-            rpm: 11800,
+            speedKmh: team.raceControls.topSpeedMax,
+            rpm: 12200,
           },
         },
         [vehicleKey]: {
@@ -380,47 +444,66 @@ export const usePatternStore = create<PatternState>((set, get) => ({
         },
       };
     });
-
-    setTimeout(() => {
-      set((state) => {
-        const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-        const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
-        return {
-          [teamKey]: {
-            ...state[teamKey],
-            raceControls: { ...state[teamKey].raceControls, nitroActive: false },
-          },
-          [vehicleKey]: { ...state[vehicleKey], boostActive: false },
-        };
-      });
-    }, 1500);
   },
 
   switchLane: (teamId, direction) => {
     patternAudio.playDialClick();
     set((state) => {
       const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
-      const vehicleKey = teamId === 'blue' ? 'blueVehicle' : 'redVehicle';
       const team = state[teamKey];
-      const curLane = team.raceControls.lane;
-      let nextLane = curLane;
-
-      if (direction === 'left') {
-        nextLane = curLane === 'right' ? 'center' : 'left';
-      } else {
-        nextLane = curLane === 'left' ? 'center' : 'right';
-      }
-
-      const laneX = nextLane === 'left' ? -2.2 : nextLane === 'center' ? 0 : 2.2;
+      const delta = direction === 'left' ? -1.4 : 1.4;
+      const newOffset = Math.max(-3.5, Math.min(3.5, team.raceControls.laneOffset + delta));
+      const lane = newOffset < -1.2 ? 'left' : newOffset > 1.2 ? 'right' : 'center';
 
       return {
         [teamKey]: {
           ...team,
-          raceControls: { ...team.raceControls, lane: nextLane },
+          raceControls: {
+            ...team.raceControls,
+            laneOffset: newOffset,
+            lane,
+            steer: direction === 'left' ? -0.5 : 0.5,
+          },
         },
-        [vehicleKey]: {
-          ...state[vehicleKey],
-          worldPosition: [laneX, state[vehicleKey].worldPosition[1], state[vehicleKey].worldPosition[2]],
+      };
+    });
+  },
+
+  applyVirtualJoystick: (teamId, joy) => {
+    // joy.x in [-1, 1], joy.y in [-1, 1] (y > 0 = up / accelerate, y < 0 = down / brake)
+    set((state) => {
+      const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
+      const team = state[teamKey];
+      const cur = team.raceControls;
+
+      let newThrottle = cur.throttle;
+      let newSpeed = cur.speedKmh;
+
+      if (joy.y > 0.1) {
+        newThrottle = Math.min(100, Math.round(joy.y * 100));
+        newSpeed = Math.min(cur.topSpeedMax, cur.speedKmh + joy.y * 15);
+      } else if (joy.y < -0.2) {
+        newThrottle = 0;
+        newSpeed = Math.max(50, cur.speedKmh - Math.abs(joy.y) * 20);
+      }
+
+      const steerDelta = joy.x * 0.35;
+      const newOffset = Math.max(-3.5, Math.min(3.5, cur.laneOffset + steerDelta));
+      const lane = newOffset < -1.2 ? 'left' : newOffset > 1.2 ? 'right' : 'center';
+
+      return {
+        [teamKey]: {
+          ...team,
+          raceControls: {
+            ...cur,
+            throttle: newThrottle,
+            speedKmh: Math.round(newSpeed),
+            steer: joy.x,
+            laneOffset: newOffset,
+            lane,
+            rpm: Math.min(12000, 3500 + newThrottle * 70),
+            gear: Math.min(8, Math.floor(newSpeed / 42) + 1),
+          },
         },
       };
     });
@@ -786,12 +869,81 @@ export const usePatternStore = create<PatternState>((set, get) => ({
   // ── STAGE 5: LIVE INTERACTIVE GRAND PRIX RACING DUEL ──
   startLiveGrandPrixRace: () => {
     clearTimers();
+
+    const curBlueScore = get().blueTeam.score;
+    const curRedScore = get().redTeam.score;
+    const blueHasAdvantage = curBlueScore > curRedScore;
+    const redHasAdvantage = curRedScore > curBlueScore;
+    const isTiedScores = curBlueScore === curRedScore;
+
+    const blueStartProgress = blueHasAdvantage ? 0.025 : 0.0;
+    const redStartProgress = redHasAdvantage ? 0.025 : 0.0;
+
+    const bluePt = getTrackPointAt(blueStartProgress);
+    const redPt = getTrackPointAt(redStartProgress);
+
+    const blueControls = defaultRaceControls(
+      'left',
+      blueHasAdvantage,
+      blueHasAdvantage
+        ? 'POLE POSITION + 3X NITROUS CHARGES (MATH LEADER!)'
+        : isTiedScores
+        ? 'DEADLOCK GRID DUEL (2X NITROUS)'
+        : 'PURSUIT CONTENDER (1X NITROUS)'
+    );
+    const redControls = defaultRaceControls(
+      'right',
+      redHasAdvantage,
+      redHasAdvantage
+        ? 'POLE POSITION + 3X NITROUS CHARGES (MATH LEADER!)'
+        : isTiedScores
+        ? 'DEADLOCK GRID DUEL (2X NITROUS)'
+        : 'PURSUIT CONTENDER (1X NITROUS)'
+    );
+
+    if (isTiedScores) {
+      blueControls.nitroCharges = 2;
+      blueControls.maxNitroCharges = 2;
+      redControls.nitroCharges = 2;
+      redControls.maxNitroCharges = 2;
+    }
+
+    blueControls.trackProgress = blueStartProgress;
+    redControls.trackProgress = redStartProgress;
+
+    const initialBluePos: [number, number, number] = [
+      bluePt.x + blueControls.laneOffset * bluePt.normalX,
+      0.25,
+      bluePt.z + blueControls.laneOffset * bluePt.normalZ,
+    ];
+    const initialRedPos: [number, number, number] = [
+      redPt.x + redControls.laneOffset * redPt.normalX,
+      0.25,
+      redPt.z + redControls.laneOffset * redPt.normalZ,
+    ];
+
     set({
       phase: 'grand_prix_race',
       currentRound: 5,
       raceLights: [true, true, true, false, false], // 3 Red Lights
-      blueVehicle: { ...get().blueVehicle, worldPosition: [-2.2, 0.25, 3.5], isRacing: true, speed: 120 },
-      redVehicle: { ...get().redVehicle, worldPosition: [2.2, 0.25, 3.5], isRacing: true, speed: 120 },
+      blueTeam: { ...get().blueTeam, raceControls: blueControls },
+      redTeam: { ...get().redTeam, raceControls: redControls },
+      blueVehicle: {
+        ...get().blueVehicle,
+        worldPosition: initialBluePos,
+        rotationY: bluePt.angle,
+        isRacing: true,
+        speed: 120,
+        boostActive: false,
+      },
+      redVehicle: {
+        ...get().redVehicle,
+        worldPosition: initialRedPos,
+        rotationY: redPt.angle,
+        isRacing: true,
+        speed: 120,
+        boostActive: false,
+      },
     });
 
     patternAudio.playStartLightBeep(false);
@@ -807,49 +959,115 @@ export const usePatternStore = create<PatternState>((set, get) => ({
       patternAudio.playStartLightBeep(true);
       patternAudio.playEngineRev();
 
-      // High-Frequency Real-time Racing Physics Loop (50 FPS)
+      // High-Frequency Real-time Racing Physics Loop (40 FPS, 25ms tick)
       raceInterval = setInterval(() => {
         const state = get();
         if (state.phase !== 'grand_prix_race') return;
 
-        const blueSpeed = state.blueTeam.raceControls.speedKmh;
-        const redSpeed = state.redTeam.raceControls.speedKmh;
+        let bControls = { ...state.blueTeam.raceControls };
+        let rControls = { ...state.redTeam.raceControls };
 
-        const blueDeltaZ = (blueSpeed / 3600) * 45; // meters per tick
-        const redDeltaZ = (redSpeed / 3600) * 45;
+        // ── BLUE CAR SPEED & NITRO SIMULATION ──
+        if (bControls.nitroActive) {
+          bControls.nitroRemaining = Math.max(0, bControls.nitroRemaining - 0.7);
+          bControls.speedKmh = Math.min(bControls.topSpeedMax, bControls.speedKmh + 6);
+          if (bControls.nitroRemaining <= 0) {
+            if (bControls.nitroCharges > 1) {
+              bControls.nitroCharges -= 1;
+              bControls.nitroRemaining = 100;
+            } else {
+              bControls.nitroCharges = 0;
+              bControls.nitroActive = false;
+            }
+          }
+        } else if (bControls.throttle > 0) {
+          const accelRate = bControls.hasAdvantage ? 3.5 : 2.5;
+          bControls.speedKmh = Math.min(bControls.topSpeedMax, bControls.speedKmh + accelRate);
+        } else {
+          bControls.speedKmh = Math.max(110, bControls.speedKmh - 1.2);
+        }
 
-        const newBlueZ = state.blueVehicle.worldPosition[2] - blueDeltaZ;
-        const newRedZ = state.redVehicle.worldPosition[2] - redDeltaZ;
+        // ── RED CAR SPEED & NITRO SIMULATION ──
+        if (rControls.nitroActive) {
+          rControls.nitroRemaining = Math.max(0, rControls.nitroRemaining - 0.7);
+          rControls.speedKmh = Math.min(rControls.topSpeedMax, rControls.speedKmh + 6);
+          if (rControls.nitroRemaining <= 0) {
+            if (rControls.nitroCharges > 1) {
+              rControls.nitroCharges -= 1;
+              rControls.nitroRemaining = 100;
+            } else {
+              rControls.nitroCharges = 0;
+              rControls.nitroActive = false;
+            }
+          }
+        } else if (rControls.throttle > 0) {
+          const accelRate = rControls.hasAdvantage ? 3.5 : 2.5;
+          rControls.speedKmh = Math.min(rControls.topSpeedMax, rControls.speedKmh + accelRate);
+        } else {
+          rControls.speedKmh = Math.max(110, rControls.speedKmh - 1.2);
+        }
 
-        const newBlueDist = Math.min(500, Math.round((3.5 - newBlueZ) * 8.5));
-        const newRedDist = Math.min(500, Math.round((3.5 - newRedZ) * 8.5));
+        // Distance & Progress along Track Spline
+        const bMetersPerTick = (bControls.speedKmh * 1000 / 3600) * 0.025;
+        const rMetersPerTick = (rControls.speedKmh * 1000 / 3600) * 0.025;
 
-        set((s) => ({
+        const newBlueProgress = Math.min(1.0, bControls.trackProgress + bMetersPerTick / TRACK_TOTAL_LENGTH_METERS);
+        const newRedProgress = Math.min(1.0, rControls.trackProgress + rMetersPerTick / TRACK_TOTAL_LENGTH_METERS);
+
+        const newBlueDist = Math.min(TRACK_TOTAL_LENGTH_METERS, Math.round(newBlueProgress * TRACK_TOTAL_LENGTH_METERS));
+        const newRedDist = Math.min(TRACK_TOTAL_LENGTH_METERS, Math.round(newRedProgress * TRACK_TOTAL_LENGTH_METERS));
+
+        bControls.trackProgress = newBlueProgress;
+        bControls.distanceCovered = newBlueDist;
+        bControls.rpm = Math.min(12500, Math.round(2500 + (bControls.speedKmh / bControls.topSpeedMax) * 9000 + (bControls.nitroActive ? 1000 : 0)));
+        bControls.gear = Math.min(8, Math.max(1, Math.floor(bControls.speedKmh / 42) + 1));
+
+        rControls.trackProgress = newRedProgress;
+        rControls.distanceCovered = newRedDist;
+        rControls.rpm = Math.min(12500, Math.round(2500 + (rControls.speedKmh / rControls.topSpeedMax) * 9000 + (rControls.nitroActive ? 1000 : 0)));
+        rControls.gear = Math.min(8, Math.max(1, Math.floor(rControls.speedKmh / 42) + 1));
+
+        // World 3D Positions computed directly from Track Spline
+        const bPt = getTrackPointAt(newBlueProgress);
+        const rPt = getTrackPointAt(newRedProgress);
+
+        const bWorldPos: [number, number, number] = [
+          bPt.x + bControls.laneOffset * bPt.normalX,
+          bPt.y + 0.25,
+          bPt.z + bControls.laneOffset * bPt.normalZ,
+        ];
+        const rWorldPos: [number, number, number] = [
+          rPt.x + rControls.laneOffset * rPt.normalX,
+          rPt.y + 0.25,
+          rPt.z + rControls.laneOffset * rPt.normalZ,
+        ];
+
+        set({
+          blueTeam: { ...state.blueTeam, raceControls: bControls },
+          redTeam: { ...state.redTeam, raceControls: rControls },
           blueVehicle: {
-            ...s.blueVehicle,
-            worldPosition: [s.blueVehicle.worldPosition[0], s.blueVehicle.worldPosition[1], newBlueZ],
+            ...state.blueVehicle,
+            worldPosition: bWorldPos,
+            rotationY: bPt.angle + bControls.steer * 0.25,
+            speed: bControls.speedKmh,
             distanceTraveled: newBlueDist,
+            boostActive: bControls.nitroActive,
           },
           redVehicle: {
-            ...s.redVehicle,
-            worldPosition: [s.redVehicle.worldPosition[0], s.redVehicle.worldPosition[1], newRedZ],
+            ...state.redVehicle,
+            worldPosition: rWorldPos,
+            rotationY: rPt.angle + rControls.steer * 0.25,
+            speed: rControls.speedKmh,
             distanceTraveled: newRedDist,
+            boostActive: rControls.nitroActive,
           },
-          blueTeam: {
-            ...s.blueTeam,
-            raceControls: { ...s.blueTeam.raceControls, distanceCovered: newBlueDist },
-          },
-          redTeam: {
-            ...s.redTeam,
-            raceControls: { ...s.redTeam.raceControls, distanceCovered: newRedDist },
-          },
-        }));
+        });
 
-        // Check if either vehicle crosses the Checkered Finish Line (z <= -55)
-        if (newBlueZ <= -55 || newRedZ <= -55) {
+        // Check if either vehicle crosses the Checkered Finish Line (progress >= TRACK_FINISH_PROGRESS)
+        if (newBlueProgress >= TRACK_FINISH_PROGRESS || newRedProgress >= TRACK_FINISH_PROGRESS) {
           clearTimers();
           const winner: TeamId | 'tie' =
-            newBlueZ < newRedZ ? 'blue' : newRedZ < newBlueZ ? 'red' : 'tie';
+            newBlueProgress > newRedProgress ? 'blue' : newRedProgress > newBlueProgress ? 'red' : 'tie';
 
           patternAudio.playCorrect();
 
@@ -864,7 +1082,7 @@ export const usePatternStore = create<PatternState>((set, get) => ({
             }
           }, 1500);
         }
-      }, 30);
+      }, 25);
     }, 2000);
   },
 

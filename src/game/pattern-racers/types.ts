@@ -74,13 +74,21 @@ export interface SequenceChallenge {
 
 export interface LiveRaceControls {
   throttle: number;         // 0 to 100%
-  speedKmh: number;         // 0 to 350 km/h
-  nitroRemaining: number;   // 0 to 100%
+  steer: number;            // -1 (full left) to +1 (full right)
+  speedKmh: number;         // 0 to 360 km/h
+  nitroRemaining: number;   // 0 to 100% of current bottle
+  nitroCharges: number;     // Remaining bottles (e.g. 3 for math winners, 1 standard)
+  maxNitroCharges: number;  // Total bottles granted
   nitroActive: boolean;
+  laneOffset: number;       // Lateral position on track (-3.6 to +3.6 meters)
   lane: 'left' | 'center' | 'right';
-  distanceCovered: number;  // 0 to 600m
-  rpm: number;              // 2000 to 12000 RPM
+  distanceCovered: number;  // 0 to 750m
+  trackProgress: number;    // 0.0 to 1.0 along spline
+  rpm: number;              // 2000 to 12500 RPM
   gear: number;             // 1 to 8
+  topSpeedMax: number;      // 360 km/h (advantage) vs 290 km/h
+  hasAdvantage: boolean;
+  advantageDescription: string;
 }
 
 export interface TeamConsoleState {

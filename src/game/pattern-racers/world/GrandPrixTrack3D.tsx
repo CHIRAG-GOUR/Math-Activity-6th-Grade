@@ -1,11 +1,10 @@
 // ============================================================
-// PATTERN RACERS — Dynamic 3D Grand Prix Track & Stadium
-// Forza Horizon / Formula 1 Stadium Racetrack:
-// - Long Asphalt Straightaway stretching to distant Finish Line (z = -55)
-// - Massive Multi-Tier Spectator Grandstands with Cheering Animated Fans
-// - Distance Countdown Marker Boards (500m, 400m, 300m, 200m, 100m, 50m)
-// - Starting Gantry with 5 LED Lights + Giant Checkered Finish Arch
-// - Sponsor Arches, Tire Walls, FIA Curbs, and Skid Marks
+// PATTERN RACERS — Dynamic 3D Grand Prix Track & Curving Circuit
+// NFS: Most Wanted / Forza Horizon Style Circuit:
+// - Sweeping Right Banked Sweepers, Mountain S-Chicanes & Final Stadium Straight
+// - Thousands of Cheering Animated Spectators across Grandstands
+// - Dynamic FIA Kerbs, Guardrails, Distance Markers & Overhead Sponsor Arches
+// - Massive Checkered Finish Archway with Victory Confetti Cannons
 // ============================================================
 
 'use client';
@@ -14,13 +13,25 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { usePatternStore } from '../store/patternStore';
+import { getTrackPointAt } from '../engine/trackPath';
 
 export const GrandPrixTrack3D: React.FC = () => {
-  const currentRound = usePatternStore((s) => s.currentRound);
-  const raceLights = usePatternStore((s) => s.raceLights);
   const crowdsRef = useRef<THREE.Group>(null);
   const confettiRef = useRef<THREE.Group>(null);
   const raceWinner = usePatternStore((s) => s.raceWinner);
+  const raceLights = usePatternStore((s) => s.raceLights);
+
+  // Generate track segments along the parametric spline
+  const segments = useMemo(() => {
+    const count = 100;
+    const segs = [];
+    for (let i = 0; i <= count; i++) {
+      const t = i / count;
+      const pt = getTrackPointAt(t);
+      segs.push({ t, ...pt });
+    }
+    return segs;
+  }, []);
 
   // Animated cheering crowd simulation
   useFrame((state) => {
@@ -33,13 +44,12 @@ export const GrandPrixTrack3D: React.FC = () => {
 
     // Confetti burst on race winner
     if (confettiRef.current && raceWinner) {
-      const t = state.clock.getElapsedTime() * 3;
       confettiRef.current.children.forEach((particle, i) => {
-        particle.position.y -= 0.05;
+        particle.position.y -= 0.06;
         particle.rotation.x += 0.05;
         particle.rotation.y += 0.08;
         if (particle.position.y < 0) {
-          particle.position.y = 8 + (i % 5);
+          particle.position.y = 9 + (i % 6);
         }
       });
     }
@@ -47,7 +57,7 @@ export const GrandPrixTrack3D: React.FC = () => {
 
   // Material definitions
   const trackAsphaltMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.85, metalness: 0.15 }),
+    () => new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.85, metalness: 0.2 }),
     []
   );
   const curbRedMat = useMemo(
@@ -58,12 +68,12 @@ export const GrandPrixTrack3D: React.FC = () => {
     () => new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.6 }),
     []
   );
-  const grandstandMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.7, metalness: 0.3 }),
+  const guardrailMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#94a3b8', metalness: 0.9, roughness: 0.2 }),
     []
   );
-  const canopyMat = useMemo(
-    () => new THREE.MeshStandardMaterial({ color: '#0f172a', roughness: 0.4 }),
+  const grandstandMat = useMemo(
+    () => new THREE.MeshStandardMaterial({ color: '#334155', roughness: 0.7, metalness: 0.3 }),
     []
   );
   const trussMetalMat = useMemo(
@@ -73,193 +83,79 @@ export const GrandPrixTrack3D: React.FC = () => {
 
   return (
     <group>
-      {/* ── 1. MAIN GRAND PRIX RACETRACK ASPHALT STRIP (Z = 12 to -70) ── */}
-      <mesh position={[0, 0.02, -28]} receiveShadow material={trackAsphaltMat}>
-        <boxGeometry args={[9.2, 0.05, 84]} />
-      </mesh>
+      {/* ── 1. CONTINUOUS CURVING RACETRACK ROAD SEGMENTS ── */}
+      {segments.map((seg, i) => {
+        if (i >= segments.length - 1) return null;
+        const nextSeg = segments[i + 1];
+        const midX = (seg.x + nextSeg.x) / 2;
+        const midZ = (seg.z + nextSeg.z) / 2;
+        const dx = nextSeg.x - seg.x;
+        const dz = nextSeg.z - seg.z;
+        const segLen = Math.sqrt(dx * dx + dz * dz) + 0.1;
+        const segAngle = Math.atan2(dx, dz);
 
-      {/* Center Dashed White/Yellow Lane Markings */}
-      {Array.from({ length: 28 }).map((_, i) => (
-        <mesh
-          key={`lane-div-${i}`}
-          position={[0, 0.055, 10 - i * 3]}
-          rotation={[-Math.PI / 2, 0, 0]}
-        >
-          <planeGeometry args={[0.2, 1.8]} />
-          <meshBasicMaterial color="#fbbf24" />
-        </mesh>
-      ))}
-
-      {/* Left/Right Inner Lane Dividers for 3-Lane Track */}
-      {[-2.4, 2.4].map((xOffset, sideIdx) => (
-        <group key={`lane-side-${sideIdx}`}>
-          {Array.from({ length: 28 }).map((_, i) => (
-            <mesh
-              key={`side-div-${sideIdx}-${i}`}
-              position={[xOffset, 0.055, 10 - i * 3]}
-              rotation={[-Math.PI / 2, 0, 0]}
-            >
-              <planeGeometry args={[0.12, 1.4]} />
-              <meshBasicMaterial color="#ffffff" transparent opacity={0.6} />
+        return (
+          <group
+            key={`trk-seg-${i}`}
+            position={[midX, 0.02, midZ]}
+            rotation={[0, segAngle, seg.bankAngle]}
+          >
+            {/* Main 3-Lane Asphalt Surface */}
+            <mesh receiveShadow material={trackAsphaltMat}>
+              <boxGeometry args={[9.4, 0.05, segLen]} />
             </mesh>
-          ))}
-        </group>
-      ))}
 
-      {/* ── 2. FIA ALTERNATING RED & WHITE APEX CURBS ── */}
-      {[-4.8, 4.8].map((xPos, sideIdx) => (
-        <group key={`curb-track-${sideIdx}`} position={[xPos, 0.04, -28]}>
-          {Array.from({ length: 42 }).map((_, i) => (
-            <mesh
-              key={`trk-curb-${i}`}
-              position={[0, 0, -40 + i * 2]}
-              receiveShadow
-              material={i % 2 === 0 ? curbRedMat : curbWhiteMat}
-            >
-              <boxGeometry args={[0.6, 0.08, 1.95]} />
-            </mesh>
-          ))}
-        </group>
-      ))}
-
-      {/* ── 3. MASSIVE SPECTATOR GRANDSTANDS (LEFT & RIGHT) ── */}
-      {/* Left Grandstand Complex */}
-      <group position={[-10.5, 0, -28]}>
-        {/* Tiered Concrete Seating Bleachers */}
-        <mesh position={[0, 2.5, 0]} castShadow receiveShadow material={grandstandMat}>
-          <boxGeometry args={[8, 5, 80]} />
-        </mesh>
-        {/* Stadium Overhanging Roof Canopy */}
-        <mesh position={[2, 6.5, 0]} castShadow material={canopyMat}>
-          <boxGeometry args={[11, 0.4, 82]} />
-        </mesh>
-        {/* Support Steel Trusses */}
-        {[-30, -10, 10, 30].map((z, idx) => (
-          <mesh key={`l-truss-${idx}`} position={[5, 3.2, z]} castShadow material={trussMetalMat}>
-            <cylinderGeometry args={[0.15, 0.18, 6.5, 8]} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* Right Grandstand Complex */}
-      <group position={[10.5, 0, -28]}>
-        {/* Tiered Concrete Seating Bleachers */}
-        <mesh position={[0, 2.5, 0]} castShadow receiveShadow material={grandstandMat}>
-          <boxGeometry args={[8, 5, 80]} />
-        </mesh>
-        {/* Stadium Overhanging Roof Canopy */}
-        <mesh position={[-2, 6.5, 0]} castShadow material={canopyMat}>
-          <boxGeometry args={[11, 0.4, 82]} />
-        </mesh>
-        {/* Support Steel Trusses */}
-        {[-30, -10, 10, 30].map((z, idx) => (
-          <mesh key={`r-truss-${idx}`} position={[-5, 3.2, z]} castShadow material={trussMetalMat}>
-            <cylinderGeometry args={[0.15, 0.18, 6.5, 8]} />
-          </mesh>
-        ))}
-      </group>
-
-      {/* ── 4. THOUSANDS OF ANIMATED SPECTATORS (CHEERING CROWD) ── */}
-      <group ref={crowdsRef}>
-        {/* Left Side Audience */}
-        {Array.from({ length: 60 }).map((_, i) => {
-          const z = 10 - i * 1.3;
-          const tier = (i % 3) + 1;
-          const x = -8.5 - tier * 0.8;
-          const y = 1.2 + tier * 1.1;
-          const colors = ['#38bdf8', '#ef4444', '#eab308', '#22c55e', '#a855f7', '#f97316', '#ec4899'];
-          const spectatorColor = colors[i % colors.length];
-
-          return (
-            <group key={`fan-l-${i}`} position={[x, y, z]} userData={{ baseY: y }}>
-              {/* Fan Head / Torso Capsule */}
-              <mesh position={[0, 0.25, 0]} castShadow>
-                <sphereGeometry args={[0.22, 8, 8]} />
-                <meshStandardMaterial color={spectatorColor} roughness={0.6} />
+            {/* Center Dashed Yellow Line */}
+            {i % 2 === 0 && (
+              <mesh position={[0, 0.035, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.22, segLen * 0.6]} />
+                <meshBasicMaterial color="#fbbf24" />
               </mesh>
-              {/* Waving Team Flag */}
-              {i % 4 === 0 && (
-                <mesh position={[0.2, 0.5, 0]} rotation={[0, 0, 0.4]}>
-                  <boxGeometry args={[0.35, 0.25, 0.02]} />
-                  <meshStandardMaterial color={i % 2 === 0 ? '#2563eb' : '#dc2626'} />
-                </mesh>
-              )}
-            </group>
-          );
-        })}
+            )}
 
-        {/* Right Side Audience */}
-        {Array.from({ length: 60 }).map((_, i) => {
-          const z = 10 - i * 1.3;
-          const tier = (i % 3) + 1;
-          const x = 8.5 + tier * 0.8;
-          const y = 1.2 + tier * 1.1;
-          const colors = ['#ef4444', '#38bdf8', '#22c55e', '#eab308', '#ec4899', '#f97316', '#a855f7'];
-          const spectatorColor = colors[i % colors.length];
-
-          return (
-            <group key={`fan-r-${i}`} position={[x, y, z]} userData={{ baseY: y }}>
-              {/* Fan Head / Torso Capsule */}
-              <mesh position={[0, 0.25, 0]} castShadow>
-                <sphereGeometry args={[0.22, 8, 8]} />
-                <meshStandardMaterial color={spectatorColor} roughness={0.6} />
+            {/* Left & Right Red/White FIA Kerbs */}
+            {[-4.8, 4.8].map((xSide, sIdx) => (
+              <mesh
+                key={`curb-${i}-${sIdx}`}
+                position={[xSide, 0.04, 0]}
+                receiveShadow
+                material={i % 2 === 0 ? curbRedMat : curbWhiteMat}
+              >
+                <boxGeometry args={[0.55, 0.08, segLen]} />
               </mesh>
-              {/* Waving Team Flag */}
-              {i % 4 === 0 && (
-                <mesh position={[-0.2, 0.5, 0]} rotation={[0, 0, -0.4]}>
-                  <boxGeometry args={[0.35, 0.25, 0.02]} />
-                  <meshStandardMaterial color={i % 2 === 0 ? '#dc2626' : '#2563eb'} />
+            ))}
+
+            {/* Roadside Guardrail Barriers */}
+            {[-5.4, 5.4].map((xSide, sIdx) => (
+              <group key={`guard-${i}-${sIdx}`} position={[xSide, 0.45, 0]}>
+                <mesh castShadow material={guardrailMat}>
+                  <boxGeometry args={[0.15, 0.6, segLen]} />
                 </mesh>
-              )}
-            </group>
-          );
-        })}
-      </group>
+                {/* Neon Reflector Strip */}
+                <mesh position={[xSide > 0 ? -0.08 : 0.08, 0, 0]}>
+                  <planeGeometry args={[0.04, segLen]} />
+                  <meshBasicMaterial color={xSide > 0 ? '#f59e0b' : '#38bdf8'} />
+                </mesh>
+              </group>
+            ))}
+          </group>
+        );
+      })}
 
-      {/* ── 5. DISTANCE COUNTDOWN BOARDS (500m, 400m, 300m, 200m, 100m, 50m) ── */}
-      {[
-        { dist: '500M', z: 0 },
-        { dist: '400M', z: -12 },
-        { dist: '300M', z: -24 },
-        { dist: '200M', z: -36 },
-        { dist: '100M', z: -46 },
-        { dist: '50M', z: -51 },
-      ].map(({ dist, z }, idx) => (
-        <group key={`dist-board-${idx}`} position={[5.4, 0, z]}>
-          {/* Post */}
-          <mesh position={[0, 1.0, 0]} castShadow material={trussMetalMat}>
-            <cylinderGeometry args={[0.06, 0.06, 2.0, 8]} />
-          </mesh>
-          {/* Signboard */}
-          <mesh position={[0, 1.8, 0]} castShadow>
-            <boxGeometry args={[0.1, 0.7, 1.4]} />
-            <meshStandardMaterial color="#0f172a" roughness={0.3} />
-          </mesh>
-          {/* White High-Vis Text Plate */}
-          <mesh position={[-0.06, 1.8, 0]}>
-            <planeGeometry args={[0.6, 1.2]} />
-            <meshBasicMaterial color="#38bdf8" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* ── 6. STARTING LINE GANTRY ARCH (Z = 4) ── */}
+      {/* ── 2. STARTING GRID GANTRY ARCH (At z = 4) ── */}
       <group position={[0, 0, 4]}>
-        {/* Left Truss Pillar */}
         <mesh position={[-5.2, 2.6, 0]} castShadow material={trussMetalMat}>
           <cylinderGeometry args={[0.22, 0.28, 5.2, 8]} />
         </mesh>
-        {/* Right Truss Pillar */}
         <mesh position={[5.2, 2.6, 0]} castShadow material={trussMetalMat}>
           <cylinderGeometry args={[0.22, 0.28, 5.2, 8]} />
         </mesh>
-        {/* Overhead Beam */}
         <mesh position={[0, 5.0, 0]} castShadow>
           <boxGeometry args={[11.0, 0.5, 0.8]} />
           <meshStandardMaterial color="#0f172a" roughness={0.4} />
         </mesh>
 
-        {/* 5 Gantry Signal Lights (3 Red, 1 Yellow, 1 Green) */}
+        {/* 5 Gantry Signal Lights */}
         {[-2.0, -1.0, 0, 1.0, 2.0].map((x, lightIdx) => {
           const isLit = raceLights[lightIdx];
           const isGreen = lightIdx === 4;
@@ -283,102 +179,167 @@ export const GrandPrixTrack3D: React.FC = () => {
         })}
       </group>
 
-      {/* ── 7. MIDWAY GRAND PRIX SPONSOR ARCH (Z = -25) ── */}
-      <group position={[0, 0, -25]}>
-        <mesh position={[-5.2, 3.0, 0]} castShadow material={trussMetalMat}>
-          <boxGeometry args={[0.5, 6, 0.5]} />
-        </mesh>
-        <mesh position={[5.2, 3.0, 0]} castShadow material={trussMetalMat}>
-          <boxGeometry args={[0.5, 6, 0.5]} />
-        </mesh>
-        <mesh position={[0, 5.6, 0]} castShadow>
-          <boxGeometry args={[11.0, 1.2, 0.6]} />
-          <meshStandardMaterial color="#2563eb" roughness={0.3} />
-        </mesh>
-        {/* Glow Trim */}
-        <mesh position={[0, 5.6, 0.32]}>
-          <planeGeometry args={[10.2, 0.9]} />
-          <meshBasicMaterial color="#ffffff" />
-        </mesh>
-      </group>
-
-      {/* ── 8. GIANT CHECKERED FINISH LINE ARCHWAY (Z = -55) ── */}
-      <group position={[0, 0, -55]}>
-        {/* Left Massive Victory Pillar */}
-        <mesh position={[-5.4, 3.5, 0]} castShadow material={trussMetalMat}>
-          <boxGeometry args={[0.8, 7.0, 0.8]} />
-        </mesh>
-        {/* Right Massive Victory Pillar */}
-        <mesh position={[5.4, 3.5, 0]} castShadow material={trussMetalMat}>
-          <boxGeometry args={[0.8, 7.0, 0.8]} />
-        </mesh>
-        {/* Overhead Victory Arch Frame */}
-        <mesh position={[0, 6.2, 0]} castShadow>
-          <boxGeometry args={[11.6, 1.8, 1.0]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.3} />
-        </mesh>
-
-        {/* Checkered Finish Arch Face */}
-        <group position={[0, 6.2, 0.52]}>
-          {Array.from({ length: 14 }).map((_, col) =>
-            Array.from({ length: 3 }).map((__, row) => (
-              <mesh
-                key={`chk-arch-${col}-${row}`}
-                position={[-4.8 + col * 0.74, -0.6 + row * 0.6, 0]}
-              >
-                <planeGeometry args={[0.74, 0.6]} />
-                <meshBasicMaterial color={(col + row) % 2 === 0 ? '#ffffff' : '#000000'} />
-              </mesh>
-            ))
-          )}
-        </group>
-
-        {/* Checkered Finish Line on Asphalt Track */}
-        <group position={[0, 0.06, 0]}>
-          {Array.from({ length: 12 }).map((_, col) =>
-            Array.from({ length: 2 }).map((__, row) => (
-              <mesh
-                key={`chk-track-${col}-${row}`}
-                position={[-4.2 + col * 0.76, 0, -0.4 + row * 0.8]}
-                rotation={[-Math.PI / 2, 0, 0]}
-              >
-                <planeGeometry args={[0.76, 0.8]} />
-                <meshBasicMaterial color={(col + row) % 2 === 0 ? '#ffffff' : '#000000'} />
-              </mesh>
-            ))
-          )}
-        </group>
-
-        {/* Victory Flashing Beacons */}
-        {[-4.5, 0, 4.5].map((x, idx) => (
-          <pointLight
-            key={`finish-beacon-${idx}`}
-            position={[x, 7.5, 0.5]}
-            color="#fbbf24"
-            intensity={2.8}
-            distance={8}
-          />
-        ))}
-
-        {/* Confetti Cannons on Victory */}
-        {raceWinner && (
-          <group ref={confettiRef} position={[0, 6, 0]}>
-            {Array.from({ length: 80 }).map((_, i) => {
-              const colors = ['#f59e0b', '#3b82f6', '#ef4444', '#10b981', '#8b5cf6', '#ec4899'];
-              return (
-                <mesh
-                  key={`confetti-${i}`}
-                  position={[-4 + (i % 9), 1 + (i % 6), (i % 5) - 2]}
-                  rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}
-                >
-                  <planeGeometry args={[0.15, 0.15]} />
-                  <meshBasicMaterial color={colors[i % colors.length]} side={THREE.DoubleSide} />
-                </mesh>
-              );
-            })}
+      {/* ── 3. OVERHEAD SPONSOR BRIDGES ALONG TURNS ── */}
+      {[
+        { t: 0.25, title: 'NITROUS EXPRESS TUNNEL' },
+        { t: 0.55, title: 'CHICANE SPEEDWAY' },
+        { t: 0.80, title: 'FORZA GRAND PRIX FINALS' },
+      ].map(({ t, title }, idx) => {
+        const pt = getTrackPointAt(t);
+        return (
+          <group key={`bridge-${idx}`} position={[pt.x, 0, pt.z]} rotation={[0, pt.angle, 0]}>
+            {/* Left & Right Arch Pillars */}
+            <mesh position={[-5.4, 3.2, 0]} castShadow material={trussMetalMat}>
+              <boxGeometry args={[0.6, 6.4, 0.6]} />
+            </mesh>
+            <mesh position={[5.4, 3.2, 0]} castShadow material={trussMetalMat}>
+              <boxGeometry args={[0.6, 6.4, 0.6]} />
+            </mesh>
+            {/* Overhead Bridge Billboard */}
+            <mesh position={[0, 5.8, 0]} castShadow>
+              <boxGeometry args={[11.6, 1.4, 0.8]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.3} />
+            </mesh>
+            <mesh position={[0, 5.8, 0.42]}>
+              <planeGeometry args={[10.6, 1.0]} />
+              <meshBasicMaterial color="#2563eb" />
+            </mesh>
           </group>
-        )}
+        );
+      })}
+
+      {/* ── 4. STADIUM GRANDSTANDS & CHEERING FANS ── */}
+      <group ref={crowdsRef}>
+        {[0.05, 0.15, 0.3, 0.45, 0.65, 0.85, 0.95].map((t, bIdx) => {
+          const pt = getTrackPointAt(t);
+          const leftX = pt.x + pt.normalX * -10;
+          const leftZ = pt.z + pt.normalZ * -10;
+          const rightX = pt.x + pt.normalX * 10;
+          const rightZ = pt.z + pt.normalZ * 10;
+
+          return (
+            <group key={`crowd-sec-${bIdx}`}>
+              {/* Left Bleachers */}
+              <group position={[leftX, 0, leftZ]} rotation={[0, pt.angle, 0]}>
+                <mesh position={[0, 2.5, 0]} castShadow receiveShadow material={grandstandMat}>
+                  <boxGeometry args={[6, 5, 20]} />
+                </mesh>
+                {/* Fans */}
+                {Array.from({ length: 14 }).map((_, fi) => {
+                  const colors = ['#38bdf8', '#ef4444', '#eab308', '#22c55e', '#a855f7'];
+                  const color = colors[fi % colors.length];
+                  return (
+                    <mesh key={`fan-l-${bIdx}-${fi}`} position={[(fi % 2) * 1.5 - 1, 3.5 + (fi % 3) * 0.8, (fi - 7) * 1.2]}>
+                      <sphereGeometry args={[0.22, 8, 8]} />
+                      <meshStandardMaterial color={color} />
+                    </mesh>
+                  );
+                })}
+              </group>
+
+              {/* Right Bleachers */}
+              <group position={[rightX, 0, rightZ]} rotation={[0, pt.angle, 0]}>
+                <mesh position={[0, 2.5, 0]} castShadow receiveShadow material={grandstandMat}>
+                  <boxGeometry args={[6, 5, 20]} />
+                </mesh>
+                {/* Fans */}
+                {Array.from({ length: 14 }).map((_, fi) => {
+                  const colors = ['#ef4444', '#38bdf8', '#22c55e', '#eab308', '#ec4899'];
+                  const color = colors[fi % colors.length];
+                  return (
+                    <mesh key={`fan-r-${bIdx}-${fi}`} position={[(fi % 2) * -1.5 + 1, 3.5 + (fi % 3) * 0.8, (fi - 7) * 1.2]}>
+                      <sphereGeometry args={[0.22, 8, 8]} />
+                      <meshStandardMaterial color={color} />
+                    </mesh>
+                  );
+                })}
+              </group>
+            </group>
+          );
+        })}
       </group>
+
+      {/* ── 5. GIANT CHECKERED FINISH LINE ARCHWAY (At t = 0.95, z ≈ -195) ── */}
+      {(() => {
+        const finishPt = getTrackPointAt(0.95);
+        return (
+          <group position={[finishPt.x, 0, finishPt.z]} rotation={[0, finishPt.angle, 0]}>
+            {/* Left & Right Victory Pillars */}
+            <mesh position={[-5.6, 3.8, 0]} castShadow material={trussMetalMat}>
+              <boxGeometry args={[0.9, 7.6, 0.9]} />
+            </mesh>
+            <mesh position={[5.6, 3.8, 0]} castShadow material={trussMetalMat}>
+              <boxGeometry args={[0.9, 7.6, 0.9]} />
+            </mesh>
+            {/* Massive Overhead Checkered Frame */}
+            <mesh position={[0, 6.8, 0]} castShadow>
+              <boxGeometry args={[12.4, 2.0, 1.2]} />
+              <meshStandardMaterial color="#0f172a" roughness={0.3} />
+            </mesh>
+
+            {/* Checkered Finish Arch Face */}
+            <group position={[0, 6.8, 0.62]}>
+              {Array.from({ length: 16 }).map((_, col) =>
+                Array.from({ length: 3 }).map((__, row) => (
+                  <mesh
+                    key={`chk-fin-arch-${col}-${row}`}
+                    position={[-5.4 + col * 0.72, -0.6 + row * 0.6, 0]}
+                  >
+                    <planeGeometry args={[0.72, 0.6]} />
+                    <meshBasicMaterial color={(col + row) % 2 === 0 ? '#ffffff' : '#000000'} />
+                  </mesh>
+                ))
+              )}
+            </group>
+
+            {/* Checkered Finish Line on Asphalt Track */}
+            <group position={[0, 0.06, 0]}>
+              {Array.from({ length: 14 }).map((_, col) =>
+                Array.from({ length: 2 }).map((__, row) => (
+                  <mesh
+                    key={`chk-fin-trk-${col}-${row}`}
+                    position={[-4.5 + col * 0.7, 0, -0.4 + row * 0.8]}
+                    rotation={[-Math.PI / 2, 0, 0]}
+                  >
+                    <planeGeometry args={[0.7, 0.8]} />
+                    <meshBasicMaterial color={(col + row) % 2 === 0 ? '#ffffff' : '#000000'} />
+                  </mesh>
+                ))
+              )}
+            </group>
+
+            {/* Flashing Gold Victory Lights */}
+            {[-4.8, 0, 4.8].map((x, idx) => (
+              <pointLight
+                key={`fin-beacon-${idx}`}
+                position={[x, 8.2, 0.6]}
+                color="#fbbf24"
+                intensity={3.2}
+                distance={10}
+              />
+            ))}
+
+            {/* Confetti Cannons on Win */}
+            {raceWinner && (
+              <group ref={confettiRef} position={[0, 7, 0]}>
+                {Array.from({ length: 90 }).map((_, i) => {
+                  const colors = ['#f59e0b', '#3b82f6', '#ef4444', '#10b981', '#8b5cf6', '#ec4899'];
+                  return (
+                    <mesh
+                      key={`fin-confetti-${i}`}
+                      position={[-4.5 + (i % 10), 1 + (i % 6), (i % 5) - 2]}
+                      rotation={[Math.random() * Math.PI, Math.random() * Math.PI, 0]}
+                    >
+                      <planeGeometry args={[0.18, 0.18]} />
+                      <meshBasicMaterial color={colors[i % colors.length]} side={THREE.DoubleSide} />
+                    </mesh>
+                  );
+                })}
+              </group>
+            )}
+          </group>
+        );
+      })()}
     </group>
   );
 };
