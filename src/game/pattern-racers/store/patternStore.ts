@@ -20,8 +20,14 @@ import {
   VehicleFlowState,
 } from '../types';
 import { initialTeamPowerUps } from '@/types/powerUps';
-import { getTrackPointAt, TRACK_FINISH_PROGRESS } from '../engine/trackPath';
+import {
+  setInputFlag, clearInputs, requestBoost,
+  stageAtGarages, stageAtGrid, startRace,
+  startGarageToTyreBay, startTyreBayToGrid,
+  type HudSnapshot,
+} from '../engine/raceSim';
 import { PatternQuestion, getQuestionForRound } from '../engine/questionBank';
+import { patternAudio } from '../engine/patternAudio';
 
 // ── 1. DETERMINISTIC VEHICLE COORDINATE MILESTONES ──
 export const VEHICLE_COORDINATES = {
@@ -126,8 +132,13 @@ interface PatternRacersState {
 
   // Game Results & View
   raceWinner: TeamId | 'tie' | null;
-  activeCameraView: 1 | 2 | 3;
   splitViewMode: boolean;
+
+  // One-shot celebration. `champagneEventPlayed` latches for the whole session
+  // so the event cannot replay on a re-render, a camera change, or a second
+  // visit to the tyre bay.
+  champagneEventPlayed: boolean;
+  champagneActive: boolean;
   roughWorkOpen: boolean;
 
   // Dual Team Consoles
@@ -159,7 +170,9 @@ interface PatternRacersState {
   startSteering: (teamId: TeamId, direction: 'left' | 'right') => void;
   stopSteering: (teamId: TeamId) => void;
   triggerNitro: (teamId: TeamId) => void;
-  updateRacePhysics: (delta: number) => void;
+  /** Absorbs the sim's throttled 10 Hz snapshot. Never called per frame. */
+  syncRaceHud: (snap: HudSnapshot) => void;
+  completeChampagneEvent: () => void;
 
   // Power-Ups
   use5050: (teamId: TeamId) => void;
@@ -167,10 +180,56 @@ interface PatternRacersState {
   use2x: (teamId: TeamId) => void;
 
   // Utilities
-  setActiveCameraView: (view: 1 | 2 | 3) => void;
   setSplitViewMode: (split: boolean) => void;
   toggleRoughWork: () => void;
   resetGame: () => void;
+}
+
+
+/** Seconds the trailing car is physically restrained on its grid box. */
+const HEAD_START_SECONDS = 3.5;
+
+/**
+ * Clear a team's per-question answer state so the next round starts clean.
+ * Score, streak and power-ups deliberately carry over.
+ */
+function resetTeamForRound(team: TeamConsoleState): TeamConsoleState {
+  return {
+    ...team,
+    hasSubmitted: false,
+    isCorrect: null,
+    isLocked: false,
+    attemptsLeft: 2,
+    selectedOption: null,
+    selectedOptionValue: null,
+    lastFeedback: null,
+    activeMisconception: null,
+    eliminatedOptions: [],
+  };
+}
+
+/**
+ * Stamp the race advantage onto a team. The winning team gets an extra nitro
+ * charge; the losing team is the one HELD at the start. Note that nothing here
+ * touches a position -- the advantage is time, not geometry.
+ */
+function withAdvantage(
+  team: TeamConsoleState,
+  hasAdvantage: boolean,
+  isHeld: boolean
+): TeamConsoleState {
+  return {
+    ...team,
+    raceControls: {
+      ...team.raceControls,
+      hasAdvantage,
+      isHeldByHeadStart: isHeld,
+      nitroCharges: hasAdvantage ? 3 : 2,
+      advantageDescription: hasAdvantage
+        ? `${HEAD_START_SECONDS}s HEAD START + 3x NITRO BOOST`
+        : '',
+    },
+  };
 }
 
 export const usePatternStore = create<PatternRacersState>((set, get) => ({
@@ -230,7 +289,8 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
 
   workers: INITIAL_WORKERS,
   raceWinner: null,
-  activeCameraView: 1,
+  champagneEventPlayed: false,
+  champagneActive: false,
   splitViewMode: true,
   roughWorkOpen: false,
 
@@ -319,323 +379,184 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     const { currentRound, blueTeam, redTeam, questionIndex } = get();
     const nextQIdx = questionIndex + 1;
 
-    // ─────────────────────────────────────────────────────────────
-    // TRANSITION 1 -> 2: GARAGE DEPARTURE (Garage -> Pit Lane)
-    // ─────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------
+    // 1 -> 2: GARAGE DEPARTURE. Out of the bay, down the pit lane,
+    // into the tyre/service area.
+    //
+    // This is a CINEMATIC, but the sim drives it with the same
+    // throttle/brake/steer a player uses, so the cars follow the real
+    // pit road, face the way they travel, and still collide with
+    // things. The old wall-clock setInterval lerp is gone.
+    // ---------------------------------------------------------------
     if (currentRound === 1) {
       if (hasPhysicalMovement) {
-        set({
-          phase: 'phase_transition',
-          activeCameraView: 1,
-          blueVehicle: { ...get().blueVehicle, flowState: 'garage_to_pit', speed: 30, rpm: 4000 },
-          redVehicle: { ...get().redVehicle, flowState: 'garage_to_pit', speed: 30, rpm: 4000 },
-        });
+        set({ phase: 'phase_transition' });
 
-        const startTime = Date.now();
-        const durationMs = 3000;
+        let arrived = 0;
+        startGarageToTyreBay(() => {
+          arrived += 1;
+          if (arrived < 2) return;
 
-        const anim = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(1.0, elapsed / durationMs);
-          const ease = progress * progress * (3 - 2 * progress);
-
-          // Blue drives from [-8.5, 0.25, 22] -> [-4.5, 0.25, 14]
-          const bx = -8.5 + ease * 4.0;
-          const bz = 22 - ease * 8.0;
-
-          // Red drives from [8.5, 0.25, 22] -> [4.5, 0.25, 14]
-          const rx = 8.5 - ease * 4.0;
-          const rz = 22 - ease * 8.0;
-
-          set((s) => ({
-            blueVehicle: {
-              ...s.blueVehicle,
-              worldPosition: [bx, 0.25, bz],
-              speed: progress < 0.9 ? 25 : 0,
-            },
-            redVehicle: {
-              ...s.redVehicle,
-              worldPosition: [rx, 0.25, rz],
-              speed: progress < 0.9 ? 25 : 0,
-            },
-          }));
-
-          if (progress >= 1.0) {
-            clearInterval(anim);
-            set({
-              phase: 'round_active',
-              currentRound: 2,
-              questionIndex: nextQIdx,
-              currentQuestion: getQuestionForRound(2, nextQIdx),
-              activeCameraView: 2,
-              signalLights: [false, false, false], // [🔴 🔴 🔴]
-              blueVehicle: {
-                ...get().blueVehicle,
-                flowState: 'pit_inspection',
-                worldPosition: VEHICLE_COORDINATES.pitInspection.blue,
-                speed: 0,
-                rpm: 2800,
-              },
-              redVehicle: {
-                ...get().redVehicle,
-                flowState: 'pit_inspection',
-                worldPosition: VEHICLE_COORDINATES.pitInspection.red,
-                speed: 0,
-                rpm: 2800,
-              },
-              blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-              redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-            });
+          // ONE-SHOT CHAMPAGNE EVENT: first arrival at the tyre bay only.
+          if (!get().champagneEventPlayed) {
+            set({ champagneActive: true, champagneEventPlayed: true });
           }
-        }, 30);
+
+          set({
+            phase: 'round_active',
+            currentRound: 2,
+            questionIndex: nextQIdx,
+            currentQuestion: getQuestionForRound(2, nextQIdx),
+            signalLights: [false, false, false],
+            blueTeam: resetTeamForRound(get().blueTeam),
+            redTeam: resetTeamForRound(get().redTeam),
+          });
+        });
       } else {
-        // Both wrong: Move to Q2 without moving cars
         set({
-          phase: 'round_active',
           currentRound: 2,
           questionIndex: nextQIdx,
           currentQuestion: getQuestionForRound(2, nextQIdx),
-          activeCameraView: 1,
-          signalLights: [false, false, false],
-          blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-          redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+          blueTeam: resetTeamForRound(blueTeam),
+          redTeam: resetTeamForRound(redTeam),
         });
       }
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // TRANSITION 2 -> 3: PIT INSPECTION -> STARTING GRID
-    // ─────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------
+    // 2 -> 3: TYRE BAY -> PIT EXIT -> STARTING GRID
+    // ---------------------------------------------------------------
     if (currentRound === 2) {
       if (hasPhysicalMovement) {
-        set({
-          phase: 'phase_transition',
-          activeCameraView: 2,
-          blueVehicle: { ...get().blueVehicle, flowState: 'pit_to_grid', speed: 30, rpm: 4500 },
-          redVehicle: { ...get().redVehicle, flowState: 'pit_to_grid', speed: 30, rpm: 4500 },
+        set({ phase: 'phase_transition' });
+
+        let arrived = 0;
+        startTyreBayToGrid(() => {
+          arrived += 1;
+          if (arrived < 2) return;
+
+          // Lock both cars to their exact grid transforms. Rounds 3, 4 and 5
+          // re-assert this, so the cars cannot drift between questions.
+          stageAtGrid();
+          patternAudio.playStartLightBeep(true);
+
+          set({
+            phase: 'round_active',
+            currentRound: 3,
+            questionIndex: nextQIdx,
+            currentQuestion: getQuestionForRound(3, nextQIdx),
+            signalLights: [true, false, false],
+            blueTeam: resetTeamForRound(get().blueTeam),
+            redTeam: resetTeamForRound(get().redTeam),
+          });
         });
-
-        const startTime = Date.now();
-        const durationMs = 3000;
-
-        const anim = setInterval(() => {
-          const elapsed = Date.now() - startTime;
-          const progress = Math.min(1.0, elapsed / durationMs);
-          const ease = progress * progress * (3 - 2 * progress);
-
-          // Blue drives from [-4.5, 0.25, 14] -> [-2.0, 0.25, 6] (Grid Box 1)
-          const bx = -4.5 + ease * 2.5;
-          const bz = 14 - ease * 8.0;
-
-          // Red drives from [4.5, 0.25, 14] -> [2.0, 0.25, 6] (Grid Box 2)
-          const rx = 4.5 - ease * 2.5;
-          const rz = 14 - ease * 8.0;
-
-          set((s) => ({
-            blueVehicle: {
-              ...s.blueVehicle,
-              worldPosition: [bx, 0.25, bz],
-              speed: progress < 0.9 ? 25 : 0,
-            },
-            redVehicle: {
-              ...s.redVehicle,
-              worldPosition: [rx, 0.25, rz],
-              speed: progress < 0.9 ? 25 : 0,
-            },
-          }));
-
-          if (progress >= 1.0) {
-            clearInterval(anim);
-            set({
-              phase: 'round_active',
-              currentRound: 3,
-              questionIndex: nextQIdx,
-              currentQuestion: getQuestionForRound(3, nextQIdx),
-              activeCameraView: 2,
-              // 1st Green Signal turns ON: [🟢 🔴 🔴]
-              signalLights: [true, false, false],
-              blueVehicle: {
-                ...get().blueVehicle,
-                flowState: 'grid_rev_stage_1',
-                worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
-                speed: 0,
-                rpm: 4500,
-              },
-              redVehicle: {
-                ...get().redVehicle,
-                flowState: 'grid_rev_stage_1',
-                worldPosition: VEHICLE_COORDINATES.startingGrid.red,
-                speed: 0,
-                rpm: 4500,
-              },
-              blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-              redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-            });
-          }
-        }, 30);
       } else {
-        // Both wrong: Move to Q3, 1st light turns green, cars stay in place
+        stageAtGrid();
         set({
-          phase: 'round_active',
           currentRound: 3,
           questionIndex: nextQIdx,
           currentQuestion: getQuestionForRound(3, nextQIdx),
-          activeCameraView: 2,
           signalLights: [true, false, false],
-          blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-          redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+          blueTeam: resetTeamForRound(blueTeam),
+          redTeam: resetTeamForRound(redTeam),
         });
       }
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // TRANSITION 3 -> 4: GRID REVVING + 2ND GREEN SIGNAL
-    // ─────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------
+    // 3 -> 4: stationary on the grid, second lamp goes green.
+    // ---------------------------------------------------------------
     if (currentRound === 3) {
+      stageAtGrid();
+      patternAudio.playStartLightBeep(true);
       set({
         currentRound: 4,
         questionIndex: nextQIdx,
         currentQuestion: getQuestionForRound(4, nextQIdx),
-        activeCameraView: 2,
-        // 2nd Green Signal turns ON: [🟢 🟢 🔴]
         signalLights: [true, true, false],
-        blueVehicle: {
-          ...get().blueVehicle,
-          flowState: 'grid_rev_stage_2',
-          worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
-          rpm: 6500,
-        },
-        redVehicle: {
-          ...get().redVehicle,
-          flowState: 'grid_rev_stage_2',
-          worldPosition: VEHICLE_COORDINATES.startingGrid.red,
-          rpm: 6500,
-        },
-        blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-        redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        blueTeam: resetTeamForRound(blueTeam),
+        redTeam: resetTeamForRound(redTeam),
       });
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // TRANSITION 4 -> 5: FINAL LAUNCH CHALLENGE
-    // ─────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------
+    // 4 -> 5: final launch question. Still stationary.
+    // ---------------------------------------------------------------
     if (currentRound === 4) {
+      stageAtGrid();
       set({
         currentRound: 5,
         questionIndex: nextQIdx,
         currentQuestion: getQuestionForRound(5, nextQIdx),
-        activeCameraView: 2,
-        signalLights: [true, true, false], // Pre-countdown: [🟢 🟢 🔴]
-        blueVehicle: {
-          ...get().blueVehicle,
-          flowState: 'grid_countdown',
-          worldPosition: VEHICLE_COORDINATES.startingGrid.blue,
-          rpm: 8500,
-        },
-        redVehicle: {
-          ...get().redVehicle,
-          flowState: 'grid_countdown',
-          worldPosition: VEHICLE_COORDINATES.startingGrid.red,
-          rpm: 8500,
-        },
-        blueTeam: { ...get().blueTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
-        redTeam: { ...get().redTeam, isLocked: false, hasSubmitted: false, isCorrect: null, selectedOption: null, selectedOptionValue: null, lastFeedback: null },
+        signalLights: [true, true, false],
+        blueTeam: resetTeamForRound(blueTeam),
+        redTeam: resetTeamForRound(redTeam),
       });
       return;
     }
 
-    // ─────────────────────────────────────────────────────────────
-    // ROUND 5 COMPLETE: 3-2-1 COUNTDOWN & LIVE GRAND PRIX RACE LAUNCH
-    // ─────────────────────────────────────────────────────────────
+    // ---------------------------------------------------------------
+    // 5: LIGHTS OUT. 3 -> 2 -> 1 -> GO, then live driving.
+    // ---------------------------------------------------------------
     if (currentRound === 5) {
-      // 1. All 3 Signals Turn GREEN: [🟢 🟢 🟢]
+      stageAtGrid();
+
+      const blueWon = blueTeam.score > redTeam.score;
+      const redWon = redTeam.score > blueTeam.score;
+      // The better-performing team gets the advantage; the OTHER car is
+      // restrained. The advantage is purely TIME -- no car is ever moved
+      // forwards or backwards to create it.
+      const advantageTeam: TeamId | null = blueWon ? 'blue' : redWon ? 'red' : null;
+      const heldTeam: TeamId | null = blueWon ? 'red' : redWon ? 'blue' : null;
+
       set({
         phase: 'pre_race_countdown',
         signalLights: [true, true, true],
-        countdownValue: 3, // CONTROLS HUD APPEARS AT 3!
+        countdownValue: 3, // controls HUD appears here
+        headStartTeam: advantageTeam,
+        headStartSeconds: HEAD_START_SECONDS,
+        headStartRestraintActive: heldTeam !== null,
+        blueTeam: withAdvantage(get().blueTeam, blueWon, heldTeam === 'blue'),
+        redTeam: withAdvantage(get().redTeam, redWon, heldTeam === 'red'),
       });
 
-      // Calculate Advantage for Head Start (3.5 Seconds)
-      const bluePts = blueTeam.score;
-      const redPts = redTeam.score;
-      const blueWonAdvantage = bluePts > redPts;
-      const redWonAdvantage = redPts > bluePts;
+      patternAudio.playStartLightBeep(false);
 
-      const headStartWinner: TeamId | null = blueWonAdvantage ? 'blue' : redWonAdvantage ? 'red' : null;
-
-      set({
-        headStartTeam: headStartWinner,
-        headStartSeconds: 3.5,
-        headStartRestraintActive: headStartWinner !== null,
-        blueTeam: {
-          ...get().blueTeam,
-          raceControls: {
-            ...get().blueTeam.raceControls,
-            isHeldByHeadStart: headStartWinner === 'red',
-            hasAdvantage: blueWonAdvantage,
-            nitroCharges: blueWonAdvantage ? 3 : 1,
-            advantageDescription: blueWonAdvantage ? '3.5s HEAD START + 3x NITRO BOOST' : '',
-          },
-        },
-        redTeam: {
-          ...get().redTeam,
-          raceControls: {
-            ...get().redTeam.raceControls,
-            isHeldByHeadStart: headStartWinner === 'blue',
-            hasAdvantage: redWonAdvantage,
-            nitroCharges: redWonAdvantage ? 3 : 1,
-            advantageDescription: redWonAdvantage ? '3.5s HEAD START + 3x NITRO BOOST' : '',
-          },
-        },
-      });
-
-      // Countdown Step: 3 -> 2
       setTimeout(() => {
         set({ countdownValue: 2 });
-        // Countdown Step: 2 -> 1
+        patternAudio.playStartLightBeep(false);
+
         setTimeout(() => {
           set({ countdownValue: 1 });
-          // Countdown Step: 1 -> GO!
-          setTimeout(() => {
-            set({
-              countdownValue: 'GO',
-              phase: 'grand_prix_race',
-              activeCameraView: 3,
-              blueVehicle: {
-                ...get().blueVehicle,
-                flowState: 'racing',
-                isRacing: true,
-                speed: headStartWinner === 'red' ? 0 : 90,
-              },
-              redVehicle: {
-                ...get().redVehicle,
-                flowState: 'racing',
-                isRacing: true,
-                speed: headStartWinner === 'blue' ? 0 : 90,
-              },
-            });
+          patternAudio.playStartLightBeep(false);
 
-            // If head start is active, release trailing team after 3.5 seconds!
-            if (headStartWinner !== null) {
+          setTimeout(() => {
+            set({ countdownValue: 'GO', phase: 'grand_prix_race' });
+            patternAudio.playStartLightBeep(true);
+
+            // Hand the world to the player. From this instant the only thing
+            // that moves a car is player input through the vehicle model.
+            startRace(heldTeam, HEAD_START_SECONDS);
+
+            if (heldTeam) {
               setTimeout(() => {
-                set((s) => ({
+                set((st) => ({
                   headStartRestraintActive: false,
                   blueTeam: {
-                    ...s.blueTeam,
-                    raceControls: { ...s.blueTeam.raceControls, isHeldByHeadStart: false },
+                    ...st.blueTeam,
+                    raceControls: { ...st.blueTeam.raceControls, isHeldByHeadStart: false },
                   },
                   redTeam: {
-                    ...s.redTeam,
-                    raceControls: { ...s.redTeam.raceControls, isHeldByHeadStart: false },
+                    ...st.redTeam,
+                    raceControls: { ...st.redTeam.raceControls, isHeldByHeadStart: false },
                   },
                 }));
-              }, 3500);
+              }, HEAD_START_SECONDS * 1000);
             }
 
-            // Hide GO text after 1.2s
             setTimeout(() => set({ countdownValue: null }), 1200);
           }, 1000);
         }, 1000);
@@ -643,281 +564,87 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     }
   },
 
-  // ── LIVE RACE CONTROLS & PHYSICS ──
-  pressThrottle: (teamId) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      if (targetTeam.raceControls.isHeldByHeadStart) return {}; // Held by head start
+  // ---- LIVE RACE CONTROLS ----
+  // These only set input FLAGS. No action in this store ever writes a car's
+  // position, heading or speed -- engine/raceSim.ts is the sole authority.
 
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, throttle: 1.0 },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
-  },
-
-  releaseThrottle: (teamId) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, throttle: 0 },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
-  },
-
-  pressBrake: (teamId) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, throttle: -0.8 },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
-  },
-
-  releaseBrake: (teamId) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, throttle: 0 },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
-  },
+  pressThrottle: (teamId) => setInputFlag(teamId, 'accel', true),
+  releaseThrottle: (teamId) => setInputFlag(teamId, 'accel', false),
+  pressBrake: (teamId) => setInputFlag(teamId, 'brake', true),
+  releaseBrake: (teamId) => setInputFlag(teamId, 'brake', false),
 
   startSteering: (teamId, direction) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const steerVal = direction === 'left' ? -1.0 : 1.0;
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, steer: steerVal },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
+    // Set one direction and explicitly clear the other, so a held key cannot
+    // leave both pinned.
+    setInputFlag(teamId, 'left', direction === 'left');
+    setInputFlag(teamId, 'right', direction === 'right');
   },
-
   stopSteering: (teamId) => {
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const updated = {
-        ...targetTeam,
-        raceControls: { ...targetTeam.raceControls, steer: 0 },
-      };
-      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
-    });
+    setInputFlag(teamId, 'left', false);
+    setInputFlag(teamId, 'right', false);
   },
 
   triggerNitro: (teamId) => {
-    const state = get();
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    if (team.raceControls.nitroCharges <= 0 || team.raceControls.nitroActive) return;
+    requestBoost(teamId);
+    patternAudio.playPowerUp2x();
+  },
 
-    set((s) => {
-      const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-      const updated = {
-        ...targetTeam,
-        raceControls: {
-          ...targetTeam.raceControls,
-          nitroActive: true,
-          nitroCharges: targetTeam.raceControls.nitroCharges - 1,
+  // ---- HUD SYNC ----
+  // Called ten times a second from the sim, never per frame. This is what
+  // keeps 60 Hz driving from re-rendering the whole React tree.
+  syncRaceHud: (snap) => {
+    set((st) => {
+      const winner = snap.winner ?? st.raceWinner;
+      return {
+        raceWinner: winner,
+        blueVehicle: {
+          ...st.blueVehicle,
+          speed: snap.blue.speedKmh,
+          rpm: snap.blue.rpm,
+          boostActive: snap.blue.boostActive,
+          isRacing: st.phase === 'grand_prix_race',
+          finishedRace: snap.blue.finished,
+        },
+        redVehicle: {
+          ...st.redVehicle,
+          speed: snap.red.speedKmh,
+          rpm: snap.red.rpm,
+          boostActive: snap.red.boostActive,
+          isRacing: st.phase === 'grand_prix_race',
+          finishedRace: snap.red.finished,
+        },
+        blueTeam: {
+          ...st.blueTeam,
+          raceControls: {
+            ...st.blueTeam.raceControls,
+            speedKmh: snap.blue.speedKmh,
+            rpm: snap.blue.rpm,
+            gear: snap.blue.gear,
+            trackProgress: snap.blue.lapProgress,
+            nitroActive: snap.blue.boostActive,
+            nitroCharges: snap.blue.boostCharges,
+            isHeldByHeadStart: snap.blue.held,
+          },
+        },
+        redTeam: {
+          ...st.redTeam,
+          raceControls: {
+            ...st.redTeam.raceControls,
+            speedKmh: snap.red.speedKmh,
+            rpm: snap.red.rpm,
+            gear: snap.red.gear,
+            trackProgress: snap.red.lapProgress,
+            nitroActive: snap.red.boostActive,
+            nitroCharges: snap.red.boostCharges,
+            isHeldByHeadStart: snap.red.held,
+          },
         },
       };
-      return teamId === 'blue'
-        ? { blueTeam: updated, blueVehicle: { ...s.blueVehicle, boostActive: true } }
-        : { redTeam: updated, redVehicle: { ...s.redVehicle, boostActive: true } };
     });
-
-    setTimeout(() => {
-      set((s) => {
-        const targetTeam = teamId === 'blue' ? s.blueTeam : s.redTeam;
-        const updated = {
-          ...targetTeam,
-          raceControls: { ...targetTeam.raceControls, nitroActive: false },
-        };
-        return teamId === 'blue'
-          ? { blueTeam: updated, blueVehicle: { ...s.blueVehicle, boostActive: false } }
-          : { redTeam: updated, redVehicle: { ...s.redVehicle, boostActive: false } };
-      });
-    }, 2800);
   },
 
-  // ── UPDATE 60 FPS RACE KINEMATICS ──
-  updateRacePhysics: (delta) => {
-    const state = get();
-    if (state.phase !== 'grand_prix_race') return;
+  completeChampagneEvent: () => set({ champagneActive: false }),
 
-    // Constrain delta to prevent huge physics jumps on frame drop
-    const dt = Math.min(0.05, Math.max(0.001, delta));
-
-    let bProgress = state.blueTeam.raceControls.trackProgress;
-    let rProgress = state.redTeam.raceControls.trackProgress;
-    let bSpeed = state.blueTeam.raceControls.speedKmh;
-    let rSpeed = state.redTeam.raceControls.speedKmh;
-    let bLane = state.blueTeam.raceControls.laneOffset ?? -1.8;
-    let rLane = state.redTeam.raceControls.laneOffset ?? 1.8;
-
-    const bSteer = state.blueTeam.raceControls.steer || 0;
-    const rSteer = state.redTeam.raceControls.steer || 0;
-
-    // ── 1. BLUE VEHICLE ACCELERATION & STEERING ──
-    if (!state.blueTeam.raceControls.isHeldByHeadStart) {
-      // Base engine idle gives forward momentum, GAS roars up to 330, BRAKE slows down
-      let bAccel = 0;
-      if (state.blueTeam.raceControls.throttle > 0) {
-        bAccel = 150;
-      } else if (state.blueTeam.raceControls.throttle < 0) {
-        bAccel = -200;
-      } else {
-        // Natural idle rolling / wind drag
-        bAccel = bSpeed < 100 ? 50 : -25;
-      }
-
-      if (state.blueTeam.raceControls.nitroActive) {
-        bAccel += 240;
-      }
-
-      bSpeed = Math.max(20, Math.min(360, bSpeed + bAccel * dt));
-      bProgress += (bSpeed / 3600) * dt * 2.8;
-
-      // Steering lateral shift
-      bLane += bSteer * 5.2 * dt;
-    }
-
-    // ── 2. RED VEHICLE ACCELERATION & STEERING ──
-    if (!state.redTeam.raceControls.isHeldByHeadStart) {
-      let rAccel = 0;
-      if (state.redTeam.raceControls.throttle > 0) {
-        rAccel = 150;
-      } else if (state.redTeam.raceControls.throttle < 0) {
-        rAccel = -200;
-      } else {
-        rAccel = rSpeed < 100 ? 50 : -25;
-      }
-
-      if (state.redTeam.raceControls.nitroActive) {
-        rAccel += 240;
-      }
-
-      rSpeed = Math.max(20, Math.min(360, rSpeed + rAccel * dt));
-      rProgress += (rSpeed / 3600) * dt * 2.8;
-
-      // Steering lateral shift
-      rLane += rSteer * 5.2 * dt;
-    }
-
-    // ── 3. TRACK BARRIER BOUNDARY CLAMPING (Cannot pass buildings/fences) ──
-    const ROAD_BOUNDARY_LIMIT = 3.8; // +/- 3.8 meters track edge
-    if (bLane < -ROAD_BOUNDARY_LIMIT) {
-      bLane = -ROAD_BOUNDARY_LIMIT;
-      bSpeed = Math.max(20, bSpeed - 30 * dt); // Barrier scrape friction
-    } else if (bLane > ROAD_BOUNDARY_LIMIT) {
-      bLane = ROAD_BOUNDARY_LIMIT;
-      bSpeed = Math.max(20, bSpeed - 30 * dt);
-    }
-
-    if (rLane < -ROAD_BOUNDARY_LIMIT) {
-      rLane = -ROAD_BOUNDARY_LIMIT;
-      rSpeed = Math.max(20, rSpeed - 30 * dt);
-    } else if (rLane > ROAD_BOUNDARY_LIMIT) {
-      rLane = ROAD_BOUNDARY_LIMIT;
-      rSpeed = Math.max(20, rSpeed - 30 * dt);
-    }
-
-    // ── 4. CAR-TO-CAR PHYSICAL COLLISION REBOUND ──
-    const progressDiff = Math.abs(bProgress - rProgress);
-    const lateralDiff = Math.abs(bLane - rLane);
-    const COLLISION_LENGTH = 0.016; // ~12m spline proximity
-    const COLLISION_WIDTH = 1.75;   // ~1.75m lateral vehicle width
-
-    if (progressDiff < COLLISION_LENGTH && lateralDiff < COLLISION_WIDTH) {
-      // Elastic rebound impulse - push apart laterally
-      const pushForce = 3.8 * dt;
-      if (bLane < rLane) {
-        bLane = Math.max(-ROAD_BOUNDARY_LIMIT, bLane - pushForce);
-        rLane = Math.min(ROAD_BOUNDARY_LIMIT, rLane + pushForce);
-      } else {
-        bLane = Math.min(ROAD_BOUNDARY_LIMIT, bLane + pushForce);
-        rLane = Math.max(-ROAD_BOUNDARY_LIMIT, rLane - pushForce);
-      }
-
-      // Mutual collision impact deceleration
-      bSpeed = Math.max(25, bSpeed * 0.94 - 15 * dt);
-      rSpeed = Math.max(25, rSpeed * 0.94 - 15 * dt);
-    }
-
-    // ── 5. CALCULATE 3D SPLINE POSITION & ROTATION ──
-    const bPt = getTrackPointAt(Math.min(1.0, bProgress));
-    const rPt = getTrackPointAt(Math.min(1.0, rProgress));
-
-    const bPos: [number, number, number] = [
-      bPt.x + bPt.normalX * bLane,
-      0.25,
-      bPt.z + bPt.normalZ * bLane,
-    ];
-    const rPos: [number, number, number] = [
-      rPt.x + rPt.normalX * rLane,
-      0.25,
-      rPt.z + rPt.normalZ * rLane,
-    ];
-
-    // Check Finish Line
-    let winner = state.raceWinner;
-    if (!winner) {
-      if (bProgress >= TRACK_FINISH_PROGRESS && rProgress >= TRACK_FINISH_PROGRESS) {
-        winner = bProgress >= rProgress ? 'blue' : 'red';
-      } else if (bProgress >= TRACK_FINISH_PROGRESS) {
-        winner = 'blue';
-      } else if (rProgress >= TRACK_FINISH_PROGRESS) {
-        winner = 'red';
-      }
-    }
-
-    set((s) => ({
-      raceWinner: winner,
-      blueVehicle: {
-        ...s.blueVehicle,
-        worldPosition: bPos,
-        rotationY: bPt.angle + bSteer * 0.1,
-        speed: bSpeed,
-        finishedRace: bProgress >= TRACK_FINISH_PROGRESS,
-      },
-      redVehicle: {
-        ...s.redVehicle,
-        worldPosition: rPos,
-        rotationY: rPt.angle + rSteer * 0.1,
-        speed: rSpeed,
-        finishedRace: rProgress >= TRACK_FINISH_PROGRESS,
-      },
-      blueTeam: {
-        ...s.blueTeam,
-        raceControls: {
-          ...s.blueTeam.raceControls,
-          trackProgress: bProgress,
-          laneOffset: bLane,
-          speedKmh: Math.round(bSpeed),
-          rpm: Math.round(3200 + (bSpeed / 360) * 8800),
-        },
-      },
-      redTeam: {
-        ...s.redTeam,
-        raceControls: {
-          ...s.redTeam.raceControls,
-          trackProgress: rProgress,
-          laneOffset: rLane,
-          speedKmh: Math.round(rSpeed),
-          rpm: Math.round(3200 + (rSpeed / 360) * 8800),
-        },
-      },
-    }));
-  },
-
-  // Input Setters
   setSelectedStep: (teamId, step) =>
     set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, selectedStep: step } } : { redTeam: { ...s.redTeam, selectedStep: step } })),
   setBuilderStart: (teamId, val) =>
@@ -990,7 +717,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     });
   },
 
-  setActiveCameraView: (view) => set({ activeCameraView: view }),
   setSplitViewMode: (split) => set({ splitViewMode: split }),
   toggleRoughWork: () => set((s) => ({ roughWorkOpen: !s.roughWorkOpen })),
 
@@ -1005,7 +731,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
       headStartTeam: null,
       headStartRestraintActive: false,
       raceWinner: null,
-      activeCameraView: 1,
       blueVehicle: {
         teamId: 'blue',
         flowState: 'garage_idle',
