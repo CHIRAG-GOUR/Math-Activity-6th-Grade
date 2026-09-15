@@ -230,7 +230,7 @@ export const RAW_ARCADE_CABINET_DATA: Omit<ArcadeCabinetConfig, 'position' | 'ro
     grade: 'Grade 6',
     category: 'Logistics & Dispatch',
     status: 'active',
-    image: '/images/math-vault-card.jpg',
+    image: '/images/decimal-delivery-card.jpg',
     route: '/decimal-delivery',
     theme: {
       cabinetColor: '#4f46e5',
@@ -263,7 +263,7 @@ export const RAW_ARCADE_CABINET_DATA: Omit<ArcadeCabinetConfig, 'position' | 'ro
     grade: 'Grade 6',
     category: '3D Solar Engineering',
     status: 'active',
-    image: '/images/blueprint-blitz-card.jpg',
+    image: '/images/solar-forge-card.jpg',
     route: '/solar-forge',
     theme: {
       cabinetColor: '#d97706',

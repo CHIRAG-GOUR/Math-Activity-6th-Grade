@@ -226,6 +226,46 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'decimal-delivery') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#1e1b4b');
+      grad.addColorStop(0.5, '#4338ca');
+      grad.addColorStop(1, '#312e81');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#06b6d4';
+      ctx.lineWidth = 14;
+      ctx.strokeRect(100, 100, 824, 568);
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 54px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('DECIMAL DELIVERY', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'solar-forge') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#78350f');
+      grad.addColorStop(0.5, '#d97706');
+      grad.addColorStop(1, '#92400e');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE SOLAR FORGE', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
       grad.addColorStop(0, '#6b21a8');
