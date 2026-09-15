@@ -1,9 +1,11 @@
 // ============================================================
 // THE DECIMAL DELIVERY NETWORK — AUDIO
 //
-// Web Audio synthesis on a single master bus, matching the pattern used
-// elsewhere in the Arcade. Nothing here loads an external file, so there is no
-// asset that can 404 and silently kill the sound.
+// Web Audio on a single master bus, matching the pattern used elsewhere in
+// the Arcade. Two recordings are layered on top of the synthesised effects:
+//  - the looping background music
+//  - a looping forklift engine, faded in while any forklift is working
+// If either file fails to load, the synthesised sounds still play.
 //
 // Two things worth knowing:
 //  - A browser blocks all audio until a genuine user gesture, so `unlock()`
@@ -16,6 +18,32 @@
 
 import type { SimEvent } from './depotSim';
 
+const AUDIO_FILES = {
+  bgm: '/audio/Delivery BGM.mp3',
+  forklift: '/audio/Forklift Sound.mp3',
+} as const;
+
+const BGM_VOLUME = 0.4;
+/** Forklift loop level with one forklift working, and the ceiling with several. */
+const FORKLIFT_VOLUME = 0.42;
+const FORKLIFT_VOLUME_MAX = 0.65;
+
+/**
+ * Loop points that skip the silence MP3 encoders pad onto both ends of a file,
+ * so a short music loop repeats without an audible gap.
+ */
+function audibleRange(buf: AudioBuffer): { start: number; end: number } {
+  const threshold = 0.002;
+  const channels = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
+  const loud = (i: number) => channels.some((ch) => Math.abs(ch[i]) > threshold);
+  let first = 0;
+  while (first < buf.length && !loud(first)) first++;
+  let last = buf.length - 1;
+  while (last > first && !loud(last)) last--;
+  if (last <= first) return { start: 0, end: buf.duration };
+  return { start: first / buf.sampleRate, end: (last + 1) / buf.sampleRate };
+}
+
 class DepotAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -23,6 +51,13 @@ class DepotAudio {
   private muted = false;
   private lastAt = new Map<string, number>();
   private ambientNodes: AudioScheduledSourceNode[] = [];
+
+  private buffers: Partial<Record<keyof typeof AUDIO_FILES, AudioBuffer>> = {};
+  private loading: Promise<void> | null = null;
+  private bgmSource: AudioBufferSourceNode | null = null;
+  private forkliftSource: AudioBufferSourceNode | null = null;
+  private forkliftGain: GainNode | null = null;
+  private forkliftLevel = -1;
 
   private init() {
     if (typeof window === 'undefined') return;
@@ -55,6 +90,82 @@ class DepotAudio {
   unlock() {
     this.init();
     this.startAmbience();
+    void this.loadRecordings().then(() => {
+      this.startBgm();
+      this.startForkliftLoop();
+    });
+  }
+
+  // ── RECORDINGS ──
+
+  private loadRecordings(): Promise<void> {
+    if (!this.ctx) return Promise.resolve();
+    if (this.loading) return this.loading;
+    const ctx = this.ctx;
+    this.loading = Promise.all(
+      (Object.keys(AUDIO_FILES) as (keyof typeof AUDIO_FILES)[]).map(async (key) => {
+        try {
+          const res = await fetch(encodeURI(AUDIO_FILES[key]));
+          if (!res.ok) return;
+          const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+          // Ignore a decode that finishes after the context was shut down.
+          if (this.ctx === ctx) this.buffers[key] = buf;
+        } catch {
+          // Missing or undecodable file: the synthesised sounds carry on alone.
+        }
+      })
+    ).then(() => undefined);
+    return this.loading;
+  }
+
+  private loopSource(buf: AudioBuffer, out: AudioNode): AudioBufferSourceNode | null {
+    if (!this.ctx) return null;
+    const { start, end } = audibleRange(buf);
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    src.loop = true;
+    src.loopStart = start;
+    src.loopEnd = end;
+    src.connect(out);
+    src.start(this.ctx.currentTime, start);
+    return src;
+  }
+
+  private startBgm() {
+    const buf = this.buffers.bgm;
+    if (!this.ctx || !this.master || !buf || this.bgmSource) return;
+    const gain = this.ctx.createGain();
+    const t = this.ctx.currentTime;
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(BGM_VOLUME, t + 1.5);
+    gain.connect(this.master);
+    this.bgmSource = this.loopSource(buf, gain);
+  }
+
+  /** The engine loop runs continuously at zero volume and is faded by activity. */
+  private startForkliftLoop() {
+    const buf = this.buffers.forklift;
+    if (!this.ctx || !this.master || !buf || this.forkliftSource) return;
+    this.forkliftGain = this.ctx.createGain();
+    this.forkliftGain.gain.setValueAtTime(0, this.ctx.currentTime);
+    this.forkliftGain.connect(this.master);
+    this.forkliftSource = this.loopSource(buf, this.forkliftGain);
+    this.forkliftLevel = -1;
+  }
+
+  /**
+   * Called every frame with how many forklifts are out of their parking spot
+   * (driving, lifting, hauling or returning). Louder when several are busy.
+   */
+  setForkliftActivity(busy: number) {
+    if (!this.ctx || !this.forkliftGain) return;
+    const level = busy <= 0
+      ? 0
+      : Math.min(FORKLIFT_VOLUME_MAX, FORKLIFT_VOLUME + (busy - 1) * 0.08);
+    if (Math.abs(level - this.forkliftLevel) < 1e-3) return;
+    this.forkliftLevel = level;
+    // Quick to start up, a little slower to die away as the engine idles off.
+    this.forkliftGain.gain.setTargetAtTime(level, this.ctx.currentTime, level > 0 ? 0.15 : 0.45);
   }
 
   setMuted(muted: boolean) {
@@ -126,7 +237,7 @@ class DepotAudio {
 
     this.ambientGain = this.ctx.createGain();
     this.ambientGain.gain.setValueAtTime(0, t);
-    this.ambientGain.gain.linearRampToValueAtTime(0.055, t + 2.5);
+    this.ambientGain.gain.linearRampToValueAtTime(0.03, t + 2.5);
     this.ambientGain.connect(this.master);
 
     // Air handling.
@@ -160,6 +271,15 @@ class DepotAudio {
       try { n.stop(); } catch { /* already stopped */ }
     }
     this.ambientNodes = [];
+    for (const n of [this.bgmSource, this.forkliftSource]) {
+      try { n?.stop(); } catch { /* already stopped */ }
+    }
+    this.bgmSource = null;
+    this.forkliftSource = null;
+    this.forkliftGain = null;
+    this.forkliftLevel = -1;
+    this.buffers = {};
+    this.loading = null;
     if (this.ctx) void this.ctx.close();
     this.ctx = null;
     this.master = null;

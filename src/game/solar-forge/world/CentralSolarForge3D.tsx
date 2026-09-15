@@ -9,6 +9,7 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { SOLAR_MATERIALS } from './materials';
+import { CentralForgeHouse3D } from './CentralForgeHouse3D';
 
 interface CentralSolarForge3DProps {
   position?: [number, number, number];
@@ -32,7 +33,6 @@ export const CentralSolarForge3D: React.FC<CentralSolarForge3DProps> = ({
   const outerRingRef = useRef<THREE.Group>(null);
   const innerRingRef = useRef<THREE.Group>(null);
   const moltenCoreRef = useRef<THREE.Mesh>(null);
-  const steamTurbineRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
@@ -52,11 +52,6 @@ export const CentralSolarForge3D: React.FC<CentralSolarForge3DProps> = ({
     if (moltenCoreRef.current) {
       const pulse = 1.0 + Math.sin(t * 3.5) * (0.05 + (powerLevel / 100) * 0.1);
       moltenCoreRef.current.scale.setScalar(pulse);
-    }
-
-    // High-speed steam turbine fan
-    if (steamTurbineRef.current && (turbineRPM > 0 || isFullyOperational)) {
-      steamTurbineRef.current.rotation.z += delta * 18;
     }
   });
 
@@ -167,40 +162,7 @@ export const CentralSolarForge3D: React.FC<CentralSolarForge3DProps> = ({
           </mesh>
         </group>
 
-        {/* ── 5. STEAM TURBINE MANIFOLD (Base of Tower) ── */}
-        <group position={[0, -14.2, 0]}>
-          {/* Main Boiler Drum (White & Silver) */}
-          <mesh position={[0, 0, 0]} rotation={[0, 0, Math.PI / 2]} castShadow>
-            <cylinderGeometry args={[2.4, 2.4, 6.8, 20]} />
-            <primitive object={SOLAR_MATERIALS.solarWhiteCeramic} attach="material" />
-          </mesh>
-          {/* Stainless Steel Piping */}
-          <mesh position={[-2.5, 1.8, 0]} rotation={[0, 0, 0.4]}>
-            <cylinderGeometry args={[0.3, 0.3, 3.2, 12]} />
-            <primitive object={SOLAR_MATERIALS.chromePlate} attach="material" />
-          </mesh>
-          <mesh position={[2.5, 1.8, 0]} rotation={[0, 0, -0.4]}>
-            <cylinderGeometry args={[0.3, 0.3, 3.2, 12]} />
-            <primitive object={SOLAR_MATERIALS.chromePlate} attach="material" />
-          </mesh>
-
-          {/* Steam Fan Housing */}
-          <group ref={steamTurbineRef} position={[0, 0, 3.5]}>
-            <mesh>
-              <cylinderGeometry args={[1.3, 1.3, 0.22, 20]} />
-              <primitive object={SOLAR_MATERIALS.brushedAluminum} attach="material" />
-            </mesh>
-            {/* Golden Turbine Blades */}
-            {Array.from({ length: 8 }).map((_, i) => (
-              <mesh key={i} rotation={[0, 0, (i / 8) * Math.PI * 2]}>
-                <boxGeometry args={[0.16, 2.4, 0.05]} />
-                <primitive object={SOLAR_MATERIALS.brassGnomon} attach="material" />
-              </mesh>
-            ))}
-          </group>
-        </group>
-
-        {/* ── 6. DUAL TEAM CONDUIT TERMINALS ── */}
+        {/* ── 5. DUAL TEAM CONDUIT TERMINALS ── */}
         {/* Left (Blue Team) Terminal */}
         <group position={[-6.2, 0, 0]}>
           <mesh>
@@ -225,6 +187,10 @@ export const CentralSolarForge3D: React.FC<CentralSolarForge3DProps> = ({
           </mesh>
         </group>
       </group>
+
+      {/* ── 6. CENTRAL FORGE HOUSE & VIP CELEBRATION OBSERVATORY ── */}
+      {/* Sits on the foundation plaza below the center tower */}
+      <CentralForgeHouse3D position={[0, 1.0, 0]} />
     </group>
   );
 };

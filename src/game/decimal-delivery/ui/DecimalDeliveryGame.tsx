@@ -21,7 +21,7 @@ import { DepotOverlays } from './DepotOverlays';
 import { useDepotStore, PARCELS_PER_ROUND } from '../store/depotStore';
 import { ROUND_TITLES, ROUND_BRIEFS } from '../engine/questionEngine';
 import { depotAudio } from '../engine/depotAudio';
-import { drainEvents, focusParcel, laneSim } from '../engine/depotSim';
+import { drainEvents, focusParcel, laneSim, sim } from '../engine/depotSim';
 import { screenLayout, type ScreenLayout } from './stationWindows';
 import type { TeamId } from '../types';
 import { DevAutoplay } from './DevAutoplay';
@@ -32,6 +32,12 @@ const AudioBridge: React.FC = () => {
     let raf = 0;
     const pump = () => {
       for (const { event } of drainEvents()) depotAudio.onSimEvent(event);
+      let busy = 0;
+      for (const side of [sim.blue, sim.red]) {
+        if (side.forklifts.yard.task !== 'parked') busy++;
+        if (side.forklifts.dispatch.task !== 'parked') busy++;
+      }
+      depotAudio.setForkliftActivity(busy);
       raf = requestAnimationFrame(pump);
     };
     raf = requestAnimationFrame(pump);
