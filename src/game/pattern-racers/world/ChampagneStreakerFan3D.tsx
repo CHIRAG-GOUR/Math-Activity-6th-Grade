@@ -9,9 +9,12 @@
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
+import { usePatternStore } from '../store/patternStore';
+import { patternAudio } from '../engine/patternAudio';
+import { TYRE_BAY } from '../engine/worldLayout';
 
 export const ChampagneStreakerFan3D: React.FC = () => {
   const rootRef = useRef<THREE.Group>(null);
@@ -24,11 +27,33 @@ export const ChampagneStreakerFan3D: React.FC = () => {
   const bottleRef = useRef<THREE.Group>(null);
   const foamSprayRef = useRef<THREE.Group>(null);
 
-  useFrame((state) => {
-    if (!rootRef.current) return;
+  const completeChampagneEvent = usePatternStore((s) => s.completeChampagneEvent);
 
+  // Local elapsed clock, started on mount. The old version read
+  // clock.getElapsedTime() % 16, which meant the whole routine replayed every
+  // 16 seconds forever — through the intro, every question, the countdown and
+  // the race — and ran twice in split-screen because each canvas had its own
+  // clock. This runs exactly once and then unmounts itself.
+  const startedAt = useRef<number | null>(null);
+  const finished = useRef(false);
+
+  useEffect(() => {
+    patternAudio.playChampagnePop();
+  }, []);
+
+  useFrame((state) => {
+    if (!rootRef.current || finished.current) return;
+
+    if (startedAt.current === null) startedAt.current = state.clock.getElapsedTime();
     const time = state.clock.getElapsedTime();
-    const cycle = time % 16; // 16-second looping Easter egg drama
+    const cycle = time - startedAt.current;
+
+    // One pass only: after the routine ends, tell the store and stop.
+    if (cycle > 13.5) {
+      finished.current = true;
+      completeChampagneEvent();
+      return;
+    }
 
     // Reset defaults
     if (foamSprayRef.current) foamSprayRef.current.visible = false;
@@ -134,7 +159,14 @@ export const ChampagneStreakerFan3D: React.FC = () => {
   });
 
   return (
-    <group ref={rootRef} position={[-4.2, 0.45, 1.5]}>
+    <group
+      position={[TYRE_BAY.centre.x, 0, TYRE_BAY.centre.z]}
+      rotation={[0, TYRE_BAY.heading, 0]}
+    >
+      {/* The choreography below is authored in local coordinates; this wrapper
+          puts it on the pit apron beside the service bay rather than on the
+          racing line, where it used to sprint across in front of the cars. */}
+      <group ref={rootRef} position={[-4.2, 0.45, 1.5]}>
       {/* ── 1. TORSO & HAWAIIAN SHIRT ── */}
       <group ref={torsoRef} position={[0, 0.4, 0]}>
         <mesh castShadow>
@@ -266,6 +298,7 @@ export const ChampagneStreakerFan3D: React.FC = () => {
           <boxGeometry args={[0.09, 0.07, 0.18]} />
           <meshStandardMaterial color="#ffffff" roughness={0.3} />
         </mesh>
+      </group>
       </group>
     </group>
   );

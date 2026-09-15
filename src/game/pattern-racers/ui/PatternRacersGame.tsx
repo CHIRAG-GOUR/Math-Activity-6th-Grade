@@ -17,15 +17,16 @@ import { NFSMostWantedRaceHUD } from './NFSMostWantedRaceHUD';
 import { TopStartingSignalBar } from './TopStartingSignalBar';
 import { PerformanceMonitorOverlay } from './PerformanceMonitorOverlay';
 import { usePatternStore } from '../store/patternStore';
-import { Camera, Zap } from 'lucide-react';
+import { Zap } from 'lucide-react';
 import '../pattern-racers.css';
+import { setInputFlag, clearInputs, requestRespawn } from '../engine/raceSim';
+import type { TeamId } from '../types';
 
 export const PatternRacersGame: React.FC = () => {
   const phase = usePatternStore((s) => s.phase);
   const currentRound = usePatternStore((s) => s.currentRound);
-  const activeCameraView = usePatternStore((s) => s.activeCameraView);
-  const setActiveCameraView = usePatternStore((s) => s.setActiveCameraView);
 
+  const splitViewMode = usePatternStore((s) => s.splitViewMode);
   const blueScore = usePatternStore((s) => s.blueTeam.score);
   const redScore = usePatternStore((s) => s.redTeam.score);
 
@@ -50,42 +51,88 @@ export const PatternRacersGame: React.FC = () => {
   }, []);
 
   // Keyboard controls for live Stage 5 Grand Prix Race
+  // ---- KEYBOARD ----
+  //
+  // W/A/S/D and the arrow keys are BOTH live and both drive the player's car,
+  // so a student can use whichever they reach for. In two-player (split) mode
+  // they separate: WASD = blue, arrows = red.
+  //
+  // Notes on what this fixes:
+  //  - Throttle and steering are independent flags. Holding W can never
+  //    produce a heading change; only A/D/Left/Right can.
+  //  - Arrow keys and Space are preventDefault-ed, so the page no longer
+  //    scrolls underneath the race.
+  //  - Boost ignores auto-repeat, which previously re-fired nitro continuously
+  //    while the key was held.
   useEffect(() => {
-    if (!isRaceActive) return;
+    const controllable = phase === 'grand_prix_race';
+    if (!controllable) {
+      clearInputs();
+      return;
+    }
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Blue Team: W/A/S/D + Shift / Space
-      if (e.code === 'KeyW') pressThrottle('blue');
-      else if (e.code === 'KeyS') pressBrake('blue');
-      else if (e.code === 'KeyA') startSteering('blue', 'left');
-      else if (e.code === 'KeyD') startSteering('blue', 'right');
-      else if (e.code === 'Space' || e.code === 'ShiftLeft') triggerNitro('blue');
+    const BLOCKED = new Set([
+      'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space',
+    ]);
 
-      // Red Team: Arrow Keys + Enter / Numpad0
-      if (e.code === 'ArrowUp') pressThrottle('red');
-      else if (e.code === 'ArrowDown') pressBrake('red');
-      else if (e.code === 'ArrowLeft') startSteering('red', 'left');
-      else if (e.code === 'ArrowRight') startSteering('red', 'right');
-      else if (e.code === 'Enter' || e.code === 'Numpad0') triggerNitro('red');
+    // In split (two-player) mode the arrow keys belong to red. Otherwise both
+    // key sets control blue, the car the class is driving.
+    const arrowTeam: TeamId = splitViewMode ? 'red' : 'blue';
+
+    const apply = (code: string, down: boolean, repeat: boolean) => {
+      switch (code) {
+        case 'KeyW': setInputFlag('blue', 'accel', down); return true;
+        case 'KeyS': setInputFlag('blue', 'brake', down); return true;
+        case 'KeyA': setInputFlag('blue', 'left', down); return true;
+        case 'KeyD': setInputFlag('blue', 'right', down); return true;
+
+        case 'ArrowUp': setInputFlag(arrowTeam, 'accel', down); return true;
+        case 'ArrowDown': setInputFlag(arrowTeam, 'brake', down); return true;
+        case 'ArrowLeft': setInputFlag(arrowTeam, 'left', down); return true;
+        case 'ArrowRight': setInputFlag(arrowTeam, 'right', down); return true;
+
+        case 'Space':
+        case 'ShiftLeft':
+          if (down && !repeat) triggerNitro('blue');
+          return true;
+        case 'Enter':
+        case 'Numpad0':
+          if (down && !repeat) triggerNitro(arrowTeam);
+          return true;
+
+        case 'KeyR':
+          if (down && !repeat) {
+            requestRespawn('blue');
+            if (splitViewMode) requestRespawn('red');
+          }
+          return true;
+        default:
+          return false;
+      }
     };
 
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.code === 'KeyW') releaseThrottle('blue');
-      if (e.code === 'KeyS') releaseBrake('blue');
-      if (e.code === 'KeyA' || e.code === 'KeyD') stopSteering('blue');
-
-      if (e.code === 'ArrowUp') releaseThrottle('red');
-      if (e.code === 'ArrowDown') releaseBrake('red');
-      if (e.code === 'ArrowLeft' || e.code === 'ArrowRight') stopSteering('red');
+    const onDown = (e: KeyboardEvent) => {
+      if (BLOCKED.has(e.code)) e.preventDefault();
+      apply(e.code, true, e.repeat);
     };
+    const onUp = (e: KeyboardEvent) => {
+      if (BLOCKED.has(e.code)) e.preventDefault();
+      apply(e.code, false, false);
+    };
+    // Losing focus mid-corner must not leave a key stuck down.
+    const onBlur = () => clearInputs();
 
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
+    window.addEventListener('keydown', onDown);
+    window.addEventListener('keyup', onUp);
+    window.addEventListener('blur', onBlur);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
+      window.removeEventListener('keydown', onDown);
+      window.removeEventListener('keyup', onUp);
+      window.removeEventListener('blur', onBlur);
+      clearInputs();
     };
-  }, [isRaceActive, pressThrottle, releaseThrottle, pressBrake, releaseBrake, startSteering, stopSteering, triggerNitro]);
+  }, [phase, splitViewMode, triggerNitro]);
+
 
   const blueLeading = blueScore > redScore;
   const redLeading = redScore > blueScore;
@@ -117,25 +164,7 @@ export const PatternRacersGame: React.FC = () => {
           {/* ── BOTTOM FLOATING ACTION BAR ── */}
           {!isRaceActive && phase !== 'intro' && (
             <div className="absolute bottom-3 inset-x-4 z-20 pointer-events-none flex items-center justify-between">
-              {/* Bottom Left: Camera Selector [1] [2] [3] */}
-              <div className="pointer-events-auto flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-slate-950/90 backdrop-blur-md border-2 border-slate-800 text-white shadow-lg">
-                <Camera className="w-4 h-4 text-slate-300 mr-1" />
-                <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">CAMERA</span>
-                {([1, 2, 3] as const).map((camNum) => (
-                  <button
-                    key={`cam-btn-${camNum}`}
-                    onClick={() => setActiveCameraView(camNum)}
-                    className={`w-7 h-7 rounded-xl font-mono font-black text-xs transition cursor-pointer flex items-center justify-center ${
-                      activeCameraView === camNum
-                        ? 'bg-blue-600 text-white border-2 border-blue-400 shadow-sm'
-                        : 'bg-slate-800 text-slate-300 hover:bg-slate-700'
-                    }`}
-                    title={`Switch to Camera Angle ${camNum}`}
-                  >
-                    {camNum}
-                  </button>
-                ))}
-              </div>
+              <div className="w-0" />
 
               {/* Bottom Center: Information Pill */}
               <div className="flex items-center gap-2 px-5 py-2 rounded-2xl bg-slate-950/90 backdrop-blur-md border-2 border-slate-800 text-white shadow-xl max-w-lg text-center">

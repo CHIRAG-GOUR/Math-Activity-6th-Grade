@@ -12,41 +12,30 @@
 
 'use client';
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useLayoutEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { TeamId } from '../types';
-import { usePatternStore } from '../store/patternStore';
 import { PBR_MATERIALS } from './materials';
+import { carOf, registerVehicleObject } from '../engine/raceSim';
+
+/** Must match CAR_RIDE_HEIGHT in engine/raceSim.ts. */
+const RIDE_HEIGHT = 0.32;
 
 interface Props {
   teamId: TeamId;
-  position: [number, number, number];
-  rotationY?: number;
-  boostActive?: boolean;
-  isRacing?: boolean;
-  speed?: number;
 }
 
-export const RaceVehicle3D: React.FC<Props> = ({
-  teamId,
-  position,
-  rotationY = 0,
-  boostActive = false,
-  isRacing = false,
-  speed = 0,
-}) => {
-  const currentRound = usePatternStore((s) => s.currentRound);
-  const phase = usePatternStore((s) => s.phase);
-  const blueVehicle = usePatternStore((s) => s.blueVehicle);
-  const redVehicle = usePatternStore((s) => s.redVehicle);
-  const blueControls = usePatternStore((s) => s.blueTeam.raceControls);
-  const redControls = usePatternStore((s) => s.redTeam.raceControls);
-
+/**
+ * The car is a pure renderer. It reads the simulation body directly in
+ * useFrame and never subscribes to the store, so driving triggers no React
+ * re-renders at all. Its root Object3D is registered with the sim, which owns
+ * position and heading — there is exactly one writer.
+ */
+export const RaceVehicle3D: React.FC<Props> = ({ teamId }) => {
   const isBlue = teamId === 'blue';
-  const veh = isBlue ? blueVehicle : redVehicle;
-  const controls = isBlue ? blueControls : redControls;
-  const steerInput = controls.steer || 0;
+  const car = carOf(teamId);
+  const body = car.body;
 
   // Authentic Materials from Singleton Library
   const bodyMat = isBlue ? PBR_MATERIALS.vehicleBodyBlue : PBR_MATERIALS.vehicleBodyRed;
@@ -61,76 +50,71 @@ export const RaceVehicle3D: React.FC<Props> = ({
   const chassisRollRef = useRef<THREE.Group>(null);
   const nitroFlamesRef = useRef<THREE.Group>(null);
 
-  useFrame((state, delta) => {
-    // Engine RPM vibration intensity across Rounds 1-5
-    const rpm = veh.rpm || 2500;
-    const vibIntensity = (rpm / 12000) * 0.012;
-    const idleTime = state.clock.getElapsedTime() * 30;
-    const shake = Math.sin(idleTime) * vibIntensity;
+  // Hand the sim our root transform. From here on the sim writes position and
+  // rotation.y directly; this component only animates secondary motion.
+  useLayoutEffect(() => {
+    registerVehicleObject(teamId, groupRef.current);
+    return () => registerVehicleObject(teamId, null);
+  }, [teamId]);
 
+  useFrame((state, delta) => {
+    const dt = Math.min(0.05, delta);
+    const steerInput = body.steerAngle / 0.55; // normalised -1..1
+    const boostActive = body.boostRemaining > 0;
+    const held = body.holdRemaining > 0;
+
+    // Engine vibration, layered on top of the sim-owned Y.
+    const vib = (body.rpm / 12000) * 0.012;
     if (groupRef.current) {
-      groupRef.current.position.y = position[1] + shake;
-      groupRef.current.position.x = position[0];
-      groupRef.current.position.z = position[2];
-      groupRef.current.rotation.y = rotationY;
+      groupRef.current.position.y =
+        RIDE_HEIGHT + Math.sin(state.clock.getElapsedTime() * 30) * vib;
     }
 
-    // Dynamic Chassis Banking / Roll into turns (-8 deg to +8 deg)
+    // Chassis banks into the corner, proportional to actual steering.
     if (chassisRollRef.current) {
-      const targetRoll = -steerInput * 0.12;
+      const targetRoll = -steerInput * 0.1;
       chassisRollRef.current.rotation.z = THREE.MathUtils.lerp(
-        chassisRollRef.current.rotation.z,
-        targetRoll,
-        delta * 8
+        chassisRollRef.current.rotation.z, targetRoll, dt * 8
       );
     }
 
-    // Front Wheels Physical Steering Angle (Turns left / right)
-    const targetSteerAngle = -steerInput * 0.45;
+    // Front wheels show the real steering angle from the physics body.
+    const targetSteerAngle = -body.steerAngle * 0.85;
     if (frontLeftWheelRef.current) {
       frontLeftWheelRef.current.rotation.y = THREE.MathUtils.lerp(
-        frontLeftWheelRef.current.rotation.y,
-        targetSteerAngle,
-        delta * 12
+        frontLeftWheelRef.current.rotation.y, targetSteerAngle, dt * 12
       );
     }
     if (frontRightWheelRef.current) {
       frontRightWheelRef.current.rotation.y = THREE.MathUtils.lerp(
-        frontRightWheelRef.current.rotation.y,
-        targetSteerAngle,
-        delta * 12
+        frontRightWheelRef.current.rotation.y, targetSteerAngle, dt * 12
       );
     }
 
-    // Wheel Rotation from Forward Speed or Head Start Burnout
-    const rotSpeed =
-      controls.isHeldByHeadStart
-        ? 25 * delta // Burnout on the spot while restrained
-        : isRacing
-        ? Math.max(12, speed * delta * 0.25)
-        : speed > 0
-        ? speed * delta * 0.2
-        : 0;
+    // Wheel spin derived from real road speed. The old version clamped to a
+    // floor of 12 radians PER FRAME, so wheels strobed at ~115 rev/s no matter
+    // how fast the car was actually going.
+    const WHEEL_RADIUS = 0.34;
+    const spin = held ? 28 * dt : (body.speed / WHEEL_RADIUS) * dt;
 
-    if (frontLeftWheelRef.current?.children[0]) frontLeftWheelRef.current.children[0].rotation.x += rotSpeed;
-    if (frontRightWheelRef.current?.children[0]) frontRightWheelRef.current.children[0].rotation.x += rotSpeed;
+    if (frontLeftWheelRef.current?.children[0]) frontLeftWheelRef.current.children[0].rotation.x += spin;
+    if (frontRightWheelRef.current?.children[0]) frontRightWheelRef.current.children[0].rotation.x += spin;
     if (rearWheelsRef.current) {
-      rearWheelsRef.current.children.forEach((w) => {
-        w.rotation.x += rotSpeed;
-      });
+      rearWheelsRef.current.children.forEach((w) => { w.rotation.x += spin; });
     }
 
-    // Dynamic Nitrous Flame Oscillation & Scale
+    // Nitro flames only while boost is actually burning.
     if (nitroFlamesRef.current) {
+      nitroFlamesRef.current.visible = boostActive;
       if (boostActive) {
-        const flameScale = 1.0 + Math.sin(state.clock.getElapsedTime() * 35) * 0.35;
-        nitroFlamesRef.current.scale.set(flameScale, flameScale, flameScale * 1.5);
+        const f = 1.0 + Math.sin(state.clock.getElapsedTime() * 35) * 0.35;
+        nitroFlamesRef.current.scale.set(f, f, f * 1.5);
       }
     }
   });
 
   return (
-    <group ref={groupRef} position={position}>
+    <group ref={groupRef}>
       {/* ── CHASSIS ROLL GROUP (Banks on turns) ── */}
       <group ref={chassisRollRef}>
         {/* ── 1. MAIN MONOCOQUE BODY & NOSE CONE ── */}
@@ -269,17 +253,16 @@ export const RaceVehicle3D: React.FC<Props> = ({
             </mesh>
           ))}
 
-          {/* Dynamic Nitrous Exhaust Flame Mesh (Sparks & expands on Nitro) */}
-          {boostActive && (
-            <group ref={nitroFlamesRef} position={[0, 0, 0.18]}>
-              {[-0.16, 0.16].map((x, i) => (
-                <mesh key={`flame-${i}`} position={[x, 0, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
-                  <coneGeometry args={[0.12, 0.8, 8]} />
-                  <meshBasicMaterial color="#38bdf8" />
-                </mesh>
-              ))}
-            </group>
-          )}
+          {/* Nitro flames stay mounted and are toggled by `visible` in
+              useFrame, so boost never causes a React re-render mid-race. */}
+          <group ref={nitroFlamesRef} position={[0, 0, 0.18]} visible={false}>
+            {[-0.16, 0.16].map((x, i) => (
+              <mesh key={`flame-${i}`} position={[x, 0, 0.35]} rotation={[Math.PI / 2, 0, 0]}>
+                <coneGeometry args={[0.12, 0.8, 8]} />
+                <meshBasicMaterial color="#38bdf8" />
+              </mesh>
+            ))}
+          </group>
         </group>
 
         {/* ── 7. HIGH-INTENSITY LED HEADLIGHTS ── */}

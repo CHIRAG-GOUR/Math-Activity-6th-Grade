@@ -1,253 +1,275 @@
 // ============================================================
-// PATTERN RACERS — Main 3D Scene & Cinematic Camera Engine
-// Strict 5-Round Physical Camera Progression:
-// - Round 1: Wide shot of Garages & both cars inside
-// - Round 1->2 Transition: Camera glides with cars as they exit garage to pit lane
-// - Round 2: Focused view of Pit Service Area with mechanics inspecting tires
-// - Round 2->3 Transition: Camera glides with cars moving onto starting grid
-// - Round 3-4: Dramatic three-quarter grid view showing revving cars & starting lamps
-// - Round 5 & Countdown: Dynamic grid-to-track broadcast chase camera
+// PATTERN RACERS — MAIN 3D SCENE & CAMERA DIRECTOR
+//
+// One canvas, one scene, one simulation driver.
+//
+// The simulation is stepped here and ONLY here. It writes car transforms
+// straight into the registered Object3Ds, so driving causes zero React
+// re-renders; the HUD receives a throttled 10 Hz snapshot instead.
+//
+// Cameras are chosen automatically by game phase — the manual 1/2/3 view
+// buttons are gone. Every camera is collision-aware: if a building would come
+// between the camera and the car, the camera pulls in along its own boom
+// rather than clipping through the wall.
 // ============================================================
 
 'use client';
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { DaylightFacilityEnvironment3D } from './DaylightFacilityEnvironment3D';
-import { GrandPrixTrack3D } from './GrandPrixTrack3D';
-import { RaceVehicle3D } from './RaceVehicle3D';
-import { FunctionMachine3D } from './FunctionMachine3D';
-import { FacilityWorkers3D } from './FacilityWorkers3D';
-import { PerformanceCollector } from '../ui/PerformanceMonitorOverlay';
-import { usePatternStore } from '../store/patternStore';
 
-// ── 0. CENTRAL 60 FPS PHYSICS DRIVER ──
-const CentralPhysicsDriver: React.FC = () => {
-  const phase = usePatternStore((s) => s.phase);
-  const updateRacePhysics = usePatternStore((s) => s.updateRacePhysics);
+import { SkyEnvironment3D } from './SkyEnvironment3D';
+import { CircuitWorld3D } from './CircuitWorld3D';
+import { PitComplex3D } from './PitComplex3D';
+import { Grandstands3D } from './Grandstands3D';
+import { RaceVehicle3D } from './RaceVehicle3D';
+import { FacilityWorkers3D } from './FacilityWorkers3D';
+import { ChampagneStreakerFan3D } from './ChampagneStreakerFan3D';
+import { PerformanceCollector } from '../ui/PerformanceMonitorOverlay';
+
+import { usePatternStore } from '../store/patternStore';
+import {
+  sim, stepSimulation, setHudListener, setSimAudioSink, stageAtGarages,
+} from '../engine/raceSim';
+import { simAudioSink, patternAudio } from '../engine/patternAudio';
+import { GARAGE_SLOTS, TYRE_BAY_SLOTS, GRID_SLOTS } from '../engine/circuit';
+import { COLLIDER_GRID } from '../engine/worldLayout';
+import { segmentClearFraction, type Collider } from '../engine/collision';
+
+// ── SIMULATION DRIVER ───────────────────────────────────────────────────────
+// The single place the world advances. Runs in every phase, not just the race,
+// so cinematic transitions and idle staging all go through the same code path.
+
+const SimulationDriver: React.FC = () => {
+  const syncRaceHud = usePatternStore((s) => s.syncRaceHud);
+
+  useEffect(() => {
+    // Park both cars inside their garages before the first frame.
+    stageAtGarages();
+
+    // The sim pushes a snapshot ten times a second; the HUD re-renders on
+    // that, not on the 60 Hz physics tick.
+    setHudListener(syncRaceHud);
+    setSimAudioSink(simAudioSink);
+
+    return () => {
+      setHudListener(null);
+      setSimAudioSink(null);
+      patternAudio.stopAllEngines();
+    };
+  }, [syncRaceHud]);
 
   useFrame((_, delta) => {
-    if (phase === 'grand_prix_race') {
-      updateRacePhysics(delta);
-    }
+    stepSimulation(delta);
   });
 
   return null;
 };
 
-// ── 1. CINEMATIC CAMERA RIG (Follows the 5-Round Continuous Physical Journey) ──
-const CinematicCameraRig: React.FC = () => {
-  const currentRound = usePatternStore((s) => s.currentRound);
+// ── CAMERA DIRECTOR ─────────────────────────────────────────────────────────
+
+const camPos = new THREE.Vector3();
+const camLook = new THREE.Vector3();
+const desired = new THREE.Vector3();
+const lookTarget = new THREE.Vector3();
+const scratch: Collider[] = [];
+
+/** Frame-rate independent smoothing. `lerp(v, dt * k)` is not. */
+function damp3(current: THREE.Vector3, target: THREE.Vector3, rate: number, dt: number) {
+  const t = 1 - Math.exp(-rate * dt);
+  current.lerp(target, t);
+}
+
+interface Shot {
+  /** Boom offset behind the subject, metres. */
+  back: number;
+  height: number;
+  /** How far ahead of the subject to look. */
+  ahead: number;
+  /** Lateral offset, for three-quarter framing. */
+  side: number;
+  /** Position/look smoothing rates. */
+  posRate: number;
+  lookRate: number;
+}
+
+const SHOTS: Record<string, Shot> = {
+  // Round 1: three-quarter view into the garages.
+  garage: { back: 17, height: 7.0, ahead: 6, side: -9, posRate: 2.2, lookRate: 3.0 },
+  // Round 2: low and close on the tyre/service work.
+  pit: { back: 13, height: 4.4, ahead: 5, side: -7, posRate: 2.4, lookRate: 3.2 },
+  // Rounds 3-4: broadcast grid shot, looking down the start straight.
+  grid: { back: 15, height: 5.0, ahead: 22, side: -5, posRate: 2.0, lookRate: 2.8 },
+  // Round 5 / countdown: tighter, lower, more tension.
+  countdown: { back: 10.5, height: 3.1, ahead: 26, side: -2.5, posRate: 2.6, lookRate: 3.4 },
+  // Live race: classic chase cam.
+  chase: { back: 9.5, height: 3.8, ahead: 20, side: 0, posRate: 6.0, lookRate: 7.0 },
+  // After the flag.
+  victory: { back: 14, height: 6.0, ahead: 4, side: -11, posRate: 1.8, lookRate: 2.4 },
+};
+
+const CameraDirector: React.FC = () => {
   const phase = usePatternStore((s) => s.phase);
-  const blueVehicle = usePatternStore((s) => s.blueVehicle);
-  const redVehicle = usePatternStore((s) => s.redVehicle);
+  const currentRound = usePatternStore((s) => s.currentRound);
 
-  const targetLookAt = useRef(new THREE.Vector3(0, 1.2, 0));
+  const initialised = useRef(false);
 
-  useFrame((state, delta) => {
-    const pointer = state.pointer;
-    let targetCamPos = new THREE.Vector3(0, 5.2, 32);
-    let targetLook = new THREE.Vector3(0, 1.2, 20);
+  useFrame((state, rawDelta) => {
+    const dt = Math.min(0.05, rawDelta);
 
-    // ── ROUND 1: GARAGES (Wide shot showing both cars in garages) ──
-    if (currentRound === 1 && phase === 'round_active') {
-      targetCamPos = new THREE.Vector3(pointer.x * 1.5, 5.2 + pointer.y * 0.5, 32);
-      targetLook = new THREE.Vector3(0, 1.2, 20);
-    }
-    // ── ROUND 1->2 TRANSITION: CARS DRIVING TO PIT LANE ──
-    else if (currentRound === 1 && phase === 'phase_transition') {
-      const avgZ = (blueVehicle.worldPosition[2] + redVehicle.worldPosition[2]) / 2;
-      targetCamPos = new THREE.Vector3(0, 4.8, avgZ + 9);
-      targetLook = new THREE.Vector3(0, 1.2, avgZ - 6);
-    }
-    // ── ROUND 2: PIT INSPECTION & TYRE CHECK ──
-    else if (currentRound === 2 && phase === 'round_active') {
-      targetCamPos = new THREE.Vector3(pointer.x * 1.2, 4.2 + pointer.y * 0.4, 22);
-      targetLook = new THREE.Vector3(0, 1.2, 12);
-    }
-    // ── ROUND 2->3 TRANSITION: CARS DRIVING TO STARTING GRID ──
-    else if (currentRound === 2 && phase === 'phase_transition') {
-      const avgZ = (blueVehicle.worldPosition[2] + redVehicle.worldPosition[2]) / 2;
-      targetCamPos = new THREE.Vector3(0, 4.2, avgZ + 8);
-      targetLook = new THREE.Vector3(0, 1.2, avgZ - 5);
-    }
-    // ── ROUND 3 & 4: STARTING GRID REVVING & SIGNAL LIGHTS ──
-    else if ((currentRound === 3 || currentRound === 4) && phase === 'round_active') {
-      targetCamPos = new THREE.Vector3(pointer.x * 1.5, 3.8 + pointer.y * 0.4, 14);
-      targetLook = new THREE.Vector3(0, 1.2, 0);
-    }
-    // ── ROUND 5: FINAL LAUNCH CHALLENGE & 3-2-1 COUNTDOWN ──
-    else if (currentRound === 5 && (phase === 'round_active' || phase === 'pre_race_countdown')) {
-      targetCamPos = new THREE.Vector3(0, 3.8, 13.5);
-      targetLook = new THREE.Vector3(0, 1.2, 0);
-    }
-    // ── STAGE 5: LIVE GRAND PRIX RACE (Dynamic Chase Cam) ──
-    else if (phase === 'grand_prix_race') {
-      const avgZ = (blueVehicle.worldPosition[2] + redVehicle.worldPosition[2]) / 2;
-      const avgX = (blueVehicle.worldPosition[0] + redVehicle.worldPosition[0]) / 2;
-      const isNitro = blueVehicle.boostActive || redVehicle.boostActive;
+    // ── PICK THE SHOT AND THE SUBJECT ──
+    let shot: Shot;
+    let subjectX: number, subjectZ: number, subjectHeading: number;
+    let speedFrac = 0;
 
-      const camDist = isNitro ? 9.2 : 7.6;
-      const camHeight = isNitro ? 3.0 : 3.6;
-
-      targetCamPos = new THREE.Vector3(avgX + pointer.x * 0.5, camHeight + pointer.y * 0.3, avgZ + camDist);
-      targetLook = new THREE.Vector3(avgX * 0.7, 1.2, avgZ - 14);
+    if (phase === 'grand_prix_race') {
+      // Follow whichever car is further round the lap — the actual battle.
+      const leader = sim.blue.distance >= sim.red.distance ? sim.blue : sim.red;
+      shot = sim.winner ? SHOTS.victory : SHOTS.chase;
+      subjectX = leader.body.x;
+      subjectZ = leader.body.z;
+      subjectHeading = leader.body.heading;
+      speedFrac = Math.min(1, Math.abs(leader.body.speed) / 60);
+    } else if (phase === 'pre_race_countdown' || currentRound === 5) {
+      shot = SHOTS.countdown;
+      const mid = midpoint(GRID_SLOTS.blue, GRID_SLOTS.red);
+      subjectX = mid.x; subjectZ = mid.z; subjectHeading = GRID_SLOTS.blue.heading;
+    } else if (currentRound >= 3) {
+      shot = SHOTS.grid;
+      const mid = midpoint(GRID_SLOTS.blue, GRID_SLOTS.red);
+      subjectX = mid.x; subjectZ = mid.z; subjectHeading = GRID_SLOTS.blue.heading;
+    } else if (currentRound === 2) {
+      shot = SHOTS.pit;
+      // During the transition, track the cars; once parked, frame the bay.
+      const b = sim.blue.body, r = sim.red.body;
+      subjectX = (b.x + r.x) / 2; subjectZ = (b.z + r.z) / 2;
+      subjectHeading = TYRE_BAY_SLOTS.blue.heading;
+    } else {
+      shot = SHOTS.garage;
+      const b = sim.blue.body, r = sim.red.body;
+      subjectX = (b.x + r.x) / 2; subjectZ = (b.z + r.z) / 2;
+      subjectHeading = GARAGE_SLOTS.blue.heading;
     }
 
-    // Smooth camera lerp
-    state.camera.position.lerp(targetCamPos, delta * 3.5);
-    targetLookAt.current.lerp(targetLook, delta * 4.0);
-    state.camera.lookAt(targetLookAt.current);
-  });
+    // ── BUILD THE BOOM ──
+    const fx = -Math.sin(subjectHeading);
+    const fz = -Math.cos(subjectHeading);
+    const rx = Math.cos(subjectHeading);
+    const rz = -Math.sin(subjectHeading);
 
-  return null;
-};
+    // Pull back and rise slightly with speed, which reads as acceleration.
+    const back = shot.back + speedFrac * 3.0;
+    const height = shot.height + speedFrac * 0.5;
 
-// ── 2. DEDICATED TEAM CHASE CAMERA (For Split Viewport Mode) ──
-const DedicatedChaseCameraRig: React.FC<{ focusTeam: 'blue' | 'red' }> = ({ focusTeam }) => {
-  const blueVehicle = usePatternStore((s) => s.blueVehicle);
-  const redVehicle = usePatternStore((s) => s.redVehicle);
-  const targetLookAt = useRef(new THREE.Vector3(0, 1.2, 0));
-
-  useFrame((state, delta) => {
-    const veh = focusTeam === 'blue' ? blueVehicle : redVehicle;
-    const isNitro = veh.boostActive;
-
-    const targetPos = new THREE.Vector3(
-      veh.worldPosition[0],
-      isNitro ? 2.8 : 3.4,
-      veh.worldPosition[2] + (isNitro ? 8.5 : 7.0)
+    desired.set(
+      subjectX - fx * back + rx * shot.side,
+      height,
+      subjectZ - fz * back + rz * shot.side
     );
-    const targetLook = new THREE.Vector3(veh.worldPosition[0], 1.1, veh.worldPosition[2] - 16);
+    lookTarget.set(subjectX + fx * shot.ahead, 1.3, subjectZ + fz * shot.ahead);
 
-    state.camera.position.lerp(targetPos, delta * 5.5);
-    targetLookAt.current.lerp(targetLook, delta * 6.0);
-    state.camera.lookAt(targetLookAt.current);
+    // ── COLLISION-AWARE PULLBACK ──
+    // If something solid sits between the car and the camera, slide the camera
+    // in along the boom. This is what stops the camera entering buildings —
+    // and it is why nothing has to be made transparent to "fix" clipping.
+    const clear = segmentClearFraction(
+      subjectX, subjectZ, desired.x, desired.z, COLLIDER_GRID, 1.6, scratch
+    );
+    if (clear < 1) {
+      const minFrac = 0.28;
+      const f = Math.max(minFrac, clear);
+      desired.x = subjectX + (desired.x - subjectX) * f;
+      desired.z = subjectZ + (desired.z - subjectZ) * f;
+      desired.y = Math.max(2.4, desired.y * (0.6 + 0.4 * f));
+    }
+
+    // Never let the camera drop below the ground or inside the car.
+    desired.y = Math.max(desired.y, 1.9);
+
+    if (!initialised.current) {
+      camPos.copy(desired);
+      camLook.copy(lookTarget);
+      initialised.current = true;
+    }
+
+    damp3(camPos, desired, shot.posRate, dt);
+    damp3(camLook, lookTarget, shot.lookRate, dt);
+
+    state.camera.position.copy(camPos);
+    state.camera.lookAt(camLook);
+
+    // Subtle FOV kick under boost, so speed is felt as well as seen.
+    const cam = state.camera as THREE.PerspectiveCamera;
+    if (cam.isPerspectiveCamera) {
+      const boosting =
+        phase === 'grand_prix_race' &&
+        (sim.blue.body.boostRemaining > 0 || sim.red.body.boostRemaining > 0);
+      const targetFov = boosting ? 66 : 52 + speedFrac * 6;
+      cam.fov += (targetFov - cam.fov) * (1 - Math.exp(-4 * dt));
+      cam.updateProjectionMatrix();
+    }
   });
 
   return null;
 };
 
-// ── 3. WORLD CONTENT (Shared across viewports) ──
+function midpoint(a: { x: number; z: number }, b: { x: number; z: number }) {
+  return { x: (a.x + b.x) / 2, z: (a.z + b.z) / 2 };
+}
+
+// ── WORLD ───────────────────────────────────────────────────────────────────
+
 const WorldContent: React.FC = () => {
-  const blueVehicle = usePatternStore((s) => s.blueVehicle);
-  const redVehicle = usePatternStore((s) => s.redVehicle);
+  const champagneActive = usePatternStore((s) => s.champagneActive);
 
   return (
     <>
-      <DaylightFacilityEnvironment3D />
-      <GrandPrixTrack3D />
-      <FunctionMachine3D />
+      <SkyEnvironment3D />
+      <CircuitWorld3D />
+      <PitComplex3D />
+      <Grandstands3D />
       <FacilityWorkers3D />
 
-      {/* ── TWO HERO FORMULA RACE CARS (BLUE & RED) ── */}
-      <RaceVehicle3D
-        teamId="blue"
-        position={blueVehicle.worldPosition}
-        rotationY={blueVehicle.rotationY}
-        boostActive={blueVehicle.boostActive}
-        isRacing={blueVehicle.isRacing}
-        speed={blueVehicle.speed}
-      />
-      <RaceVehicle3D
-        teamId="red"
-        position={redVehicle.worldPosition}
-        rotationY={redVehicle.rotationY}
-        boostActive={redVehicle.boostActive}
-        isRacing={redVehicle.isRacing}
-        speed={redVehicle.speed}
-      />
+      <RaceVehicle3D teamId="blue" />
+      <RaceVehicle3D teamId="red" />
+
+      {/* One-shot celebration. Unmounted entirely once it has played, so it
+          cannot loop the way the old 16-second clock-modulo version did. */}
+      {champagneActive && <ChampagneStreakerFan3D />}
     </>
   );
 };
 
 export const PatternRacersScene3D: React.FC = () => {
-  const phase = usePatternStore((s) => s.phase);
-  const splitViewMode = usePatternStore((s) => s.splitViewMode);
+  const glSettings = useMemo(
+    () => ({
+      antialias: true,
+      powerPreference: 'high-performance' as const,
+      stencil: false,
+      depth: true,
+      // Opaque canvas. With alpha the page background showed through wherever
+      // the scene did not paint, which is what made the venue look ghostly.
+      alpha: false,
+      toneMapping: THREE.ACESFilmicToneMapping,
+      toneMappingExposure: 1.0,
+    }),
+    []
+  );
 
-  const isRaceActive = phase === 'grand_prix_race';
-
-  // If in Live Race Mode and Split View is active -> Side-by-Side Dual Viewport
-  if (isRaceActive && splitViewMode) {
-    return (
-      <div className="w-full h-full flex flex-row relative select-none overflow-hidden bg-slate-950">
-        {/* LEFT VIEWPORT: BLUE TEAM CHASE CAM */}
-        <div className="w-1/2 h-full relative border-r-2 border-cyan-400 shadow-[inset_-10px_0_20px_rgba(37,99,235,0.3)]">
-          <Canvas
-            shadows
-            dpr={[1, 1.5]}
-            camera={{ position: [-2.0, 3.8, 14], fov: 52, near: 0.1, far: 320 }}
-            gl={{
-              antialias: true,
-              powerPreference: 'high-performance',
-              stencil: false,
-              depth: true,
-              toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1.15,
-            }}
-          >
-            <CentralPhysicsDriver />
-            <DedicatedChaseCameraRig focusTeam="blue" />
-            <WorldContent />
-          </Canvas>
-
-          <div className="absolute top-16 left-4 z-20 pointer-events-none bg-blue-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-blue-400/60 text-[11px] font-black text-blue-200 uppercase tracking-widest shadow-md flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-ping" />
-            <span>BLUE VELOCITY #01</span>
-          </div>
-        </div>
-
-        {/* RIGHT VIEWPORT: RED TEAM CHASE CAM */}
-        <div className="w-1/2 h-full relative border-l-2 border-red-500 shadow-[inset_10px_0_20px_rgba(220,38,38,0.3)]">
-          <Canvas
-            shadows
-            dpr={[1, 1.5]}
-            camera={{ position: [2.0, 3.8, 14], fov: 52, near: 0.1, far: 320 }}
-            gl={{
-              antialias: true,
-              powerPreference: 'high-performance',
-              stencil: false,
-              depth: true,
-              toneMapping: THREE.ACESFilmicToneMapping,
-              toneMappingExposure: 1.15,
-            }}
-          >
-            <DedicatedChaseCameraRig focusTeam="red" />
-            <WorldContent />
-          </Canvas>
-
-          <div className="absolute top-16 right-4 z-20 pointer-events-none bg-red-950/80 backdrop-blur-md px-3 py-1 rounded-full border border-red-400/60 text-[11px] font-black text-red-200 uppercase tracking-widest shadow-md flex items-center gap-1.5">
-            <span>RED TURBO #02</span>
-            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping" />
-          </div>
-        </div>
-
-        {/* Center Split Screen Glowing Divider Line */}
-        <div className="absolute top-0 bottom-0 left-1/2 -translate-x-1/2 w-1 bg-gradient-to-b from-amber-400 via-white to-amber-400 shadow-[0_0_15px_#f59e0b] pointer-events-none z-20" />
-      </div>
-    );
-  }
-
-  // Single Wide Viewport (For Questions 1-5 & Fullscreen Camera)
   return (
     <div className="w-full h-full relative select-none">
       <Canvas
         shadows
-        dpr={[1, 1.5]}
-        camera={{ position: [0, 5.2, 32], fov: 48, near: 0.1, far: 320 }}
-        gl={{
-          antialias: true,
-          powerPreference: 'high-performance',
-          stencil: false,
-          depth: true,
-          toneMapping: THREE.ACESFilmicToneMapping,
-          toneMappingExposure: 1.15,
-        }}
+        dpr={[1, 1.75]}
+        // far was 320 while the circuit spans ~400 m — the far half of the
+        // venue was simply never drawn.
+        camera={{ position: [40, 12, 60], fov: 52, near: 0.5, far: 3000 }}
+        gl={glSettings}
       >
         <PerformanceCollector />
-        <CentralPhysicsDriver />
-        <CinematicCameraRig />
+        <SimulationDriver />
+        <CameraDirector />
         <WorldContent />
       </Canvas>
     </div>
