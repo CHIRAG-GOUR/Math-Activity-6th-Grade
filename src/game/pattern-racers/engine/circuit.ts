@@ -487,22 +487,58 @@ function trackSlot(s: number, lateral: number): Slot {
  * running down -Z that puts the further-down-lane bay on screen-left — which
  * is where the spec wants blue. Worth a visual confirmation once it renders.
  */
+export const GARAGE_STATIONS = {
+  blue: PIT_STATIONS.garages + 9,
+  red: PIT_STATIONS.garages - 9,
+} as const;
+
+/** Lateral offset of a car parked inside its bay. */
+export const GARAGE_CAR_LATERAL = 10.5;
+
+/**
+ * Anchor for the garage BUILDING. Its depth axis runs along the lane's right
+ * vector, so the door opening faces back onto the lane.
+ */
 export const GARAGE_SLOTS: Record<'blue' | 'red', Slot> = {
-  blue: pitSlot(PIT_STATIONS.garages + 9, 11.0),
-  red: pitSlot(PIT_STATIONS.garages - 9, 11.0),
+  blue: pitSlot(GARAGE_STATIONS.blue, GARAGE_CAR_LATERAL),
+  red: pitSlot(GARAGE_STATIONS.red, GARAGE_CAR_LATERAL),
+};
+
+/**
+ * Where each CAR actually sits inside its bay.
+ *
+ * Critically this is NOT the building's heading. The building's depth runs
+ * across the lane, so a car sharing that heading would be parked facing a side
+ * wall -- and because yaw is proportional to speed (a stationary car cannot
+ * pivot, by design), it could only drive straight into that wall. Rotating a
+ * quarter turn points the nose at the door opening, so "drive forward" is
+ * genuinely the way out.
+ */
+export const GARAGE_CAR_SLOTS: Record<'blue' | 'red', Slot> = {
+  blue: { ...GARAGE_SLOTS.blue, heading: GARAGE_SLOTS.blue.heading + Math.PI / 2 },
+  red: { ...GARAGE_SLOTS.red, heading: GARAGE_SLOTS.red.heading + Math.PI / 2 },
 };
 
 /** Where the cars park for the tyre/service inspection in Round 2. */
+export const TYRE_STATIONS = {
+  blue: PIT_STATIONS.tyreBay + 8,
+  red: PIT_STATIONS.tyreBay - 8,
+} as const;
+
 export const TYRE_BAY_SLOTS: Record<'blue' | 'red', Slot> = {
-  blue: pitSlot(PIT_STATIONS.tyreBay + 8, 3.4),
-  red: pitSlot(PIT_STATIONS.tyreBay - 8, 3.4),
+  blue: pitSlot(TYRE_STATIONS.blue, 3.4),
+  red: pitSlot(TYRE_STATIONS.red, 3.4),
 };
 
 /**
  * Starting grid — just past the pit exit merge, staggered like a real grid.
  * Cars roll out of the pit lane and onto their boxes in one short drive.
  */
-export const GRID_S = PIT_MERGE_S + 12;
+// 30 m of main straight between the pit exit merge and the grid. The cars
+// rejoin the circuit at its right-hand edge and have to cross to their grid
+// lanes; at 12 m there was simply not enough road to do it without the
+// steering saturating.
+export const GRID_S = PIT_MERGE_S + 30;
 export const GRID_SLOTS: Record<'blue' | 'red', Slot> = {
   blue: trackSlot(GRID_S, -3.0),
   red: trackSlot(GRID_S - 8, 3.0),
@@ -512,7 +548,7 @@ export const GRID_SLOTS: Record<'blue' | 'red', Slot> = {
  * Start/finish line, 25 m ahead of the grid and ~50 m before T1 — enough of a
  * launch run that the first corner arrives at roughly the grip limit.
  */
-export const START_FINISH_S = GRID_S + 25;
+export const START_FINISH_S = GRID_S + 18;
 export const RACE_LAP_DISTANCE = CIRCUIT.length;
 
 /** Respawn checkpoints roughly every 100 m, used by the stuck/off-track recovery. */

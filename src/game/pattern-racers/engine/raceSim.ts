@@ -20,7 +20,9 @@
 import * as THREE from 'three';
 import {
   CIRCUIT, PIT_LANE, TRACK, START_FINISH_S, RACE_LAP_DISTANCE,
-  GRID_SLOTS, GARAGE_SLOTS, TYRE_BAY_SLOTS, PIT_STATIONS, PIT, PIT_MERGE_S,
+  GRID_SLOTS, GARAGE_SLOTS, GARAGE_CAR_SLOTS, GARAGE_STATIONS,
+  TYRE_BAY_SLOTS, TYRE_STATIONS, GRID_S, PIT_STATIONS, PIT, PIT_MERGE_S,
+  GARAGE_CAR_LATERAL,
   CHECKPOINT_COUNT, checkpointS, wrapAngle, type Slot,
 } from './circuit';
 import { COLLIDER_GRID } from './worldLayout';
@@ -67,11 +69,16 @@ interface CinematicScript {
   cruiseSpeed: number;
   final: Slot;
   done: boolean;
+  /** Seconds this script has been running, for the watchdog below. */
+  elapsed: number;
+  /** Hard ceiling. If the drive somehow fails, the car is placed on its mark
+   *  anyway rather than leaving a class stuck watching it flounder. */
+  timeout: number;
   onArrive?: (team: TeamId) => void;
 }
 
 function createCar(team: TeamId): CarRuntime {
-  const slot = GARAGE_SLOTS[team];
+  const slot = GARAGE_CAR_SLOTS[team];
   const body = createBody(slot.x, slot.z, slot.heading);
   return {
     team,
@@ -242,16 +249,45 @@ function carHud(car: CarRuntime): CarHudState {
 // why the cars follow the actual pit road, face the direction they travel, and
 // still collide with things during transitions.
 
-const WAYPOINT_RADIUS = 5.5;
-const CINEMATIC_ARRIVE_DIST = 1.2;
+const WAYPOINT_RADIUS = 3.5;
+/** Cars drive down the right-hand half of the pit lane, clear of the pit wall. */
+const PIT_DRIVE_LATERAL = 2.8;
+/**
+ * Inside this radius the car stops steering and simply brakes onto its mark.
+ * It has to be generous: even at walking pace the minimum turning radius is
+ * around 5 m, so a car that tries to *drive* the last couple of metres just
+ * circles the spot forever.
+ */
+const CINEMATIC_ARRIVE_RADIUS = 3.2;
 
 function makeScript(
   waypoints: { x: number; z: number }[],
   final: Slot,
   cruiseSpeed: number,
+  timeout: number,
   onArrive?: (team: TeamId) => void
 ): CinematicScript {
-  return { waypoints, index: 0, cruiseSpeed, final, done: false, onArrive };
+  return {
+    waypoints, index: 0, cruiseSpeed, final,
+    done: false, elapsed: 0, timeout, onArrive,
+  };
+}
+
+/** Points along the pit lane, offset laterally, blending between two offsets. */
+function lanePath(
+  fromS: number, toS: number,
+  fromLat: number, toLat: number,
+  step = 8
+): { x: number; z: number }[] {
+  const out: { x: number; z: number }[] = [];
+  const span = toS - fromS;
+  const n = Math.max(1, Math.ceil(Math.abs(span) / step));
+  for (let i = 1; i <= n; i++) {
+    const t = i / n;
+    const w = PIT_LANE.toWorld(fromS + span * t, fromLat + (toLat - fromLat) * t);
+    out.push({ x: w.x, z: w.z });
+  }
+  return out;
 }
 
 /** Points down the pit lane between two stations, at the lane centre. */
@@ -267,48 +303,84 @@ function pitLaneWaypoints(fromS: number, toS: number, step = 12): { x: number; z
   return out;
 }
 
-/** Round 1 -> 2: out of the garage, down the pit lane, into the tyre bay. */
+/**
+ * Round 1 -> 2: out of the garage, down the pit lane, into the tyre bay.
+ *
+ * The exit is a quarter-turn, not a straight line. The car starts nose-on to
+ * the door (see GARAGE_CAR_SLOTS) and has to end up travelling along the lane,
+ * so the waypoints trace an arc:
+ *
+ *     lateral(t) = L * (1 - sin(t*PI/2))     starts moving purely sideways
+ *     s(t)       = s0 + R * (1 - cos(t*PI/2))  ends moving purely along-lane
+ *
+ * Driving this as a single far-away waypoint made the car cut the corner into
+ * a garage wall; driving it at cruise speed made the turn radius wider than
+ * the lane. Hence both the arc and the low exit speed.
+ */
 export function startGarageToTyreBay(onArrive?: (team: TeamId) => void) {
   for (const team of ['blue', 'red'] as const) {
     const car = carOf(team);
-    const garageS = PIT_STATIONS.garages + (team === 'blue' ? 9 : -9);
+    const garageS = GARAGE_STATIONS[team];
+    const bayS = TYRE_STATIONS[team];
 
-    // First point is directly ahead of the garage door, on the lane centre,
-    // so the car drives out through the opening rather than through a wall.
-    const exit = PIT_LANE.toWorld(garageS, 0);
-    const bayS = PIT_STATIONS.tyreBay + (team === 'blue' ? 8 : -8);
+    const waypoints: { x: number; z: number }[] = [];
 
-    const waypoints = [
-      { x: exit.x, z: exit.z },
-      ...pitLaneWaypoints(garageS + 10, bayS - 6),
-    ];
+    // Quarter-turn out of the bay onto the lane centreline.
+    const TURN_RUN = 16;
+    for (let i = 1; i <= 5; i++) {
+      const t = (i / 5) * (Math.PI / 2);
+      const lat = PIT_DRIVE_LATERAL + (GARAGE_CAR_LATERAL - PIT_DRIVE_LATERAL) * (1 - Math.sin(t));
+      const along = garageS + TURN_RUN * (1 - Math.cos(t));
+      const w = PIT_LANE.toWorld(along, lat);
+      waypoints.push({ x: w.x, z: w.z });
+    }
 
-    car.script = makeScript(waypoints, TYRE_BAY_SLOTS[team], 11, onArrive);
+    // Then straight down the lane to the service bay.
+    waypoints.push(...lanePath(garageS + TURN_RUN, bayS - 6, PIT_DRIVE_LATERAL, 3.4));
+
+    car.script = makeScript(waypoints, TYRE_BAY_SLOTS[team], 9, 26, onArrive);
   }
   sim.mode = 'cinematic';
   clearInputs();
 }
 
-/** Round 2 -> 3: out of the tyre bay, down the pit lane, out of the pit exit, onto the grid. */
+/**
+ * Round 2 -> 3: out of the tyre bay, down the pit lane, through the pit exit
+ * and onto the starting grid.
+ *
+ * The cars rejoin the circuit at its right-hand edge and have to cross to
+ * their grid lanes. The lateral offset is blended gradually across the ~30 m
+ * of main straight between the merge point and the grid, rather than demanded
+ * all at once, which previously saturated the steering.
+ */
 export function startTyreBayToGrid(onArrive?: (team: TeamId) => void) {
   for (const team of ['blue', 'red'] as const) {
     const car = carOf(team);
-    const bayS = PIT_STATIONS.tyreBay + (team === 'blue' ? 8 : -8);
+    const bayS = TYRE_STATIONS[team];
+    const gridS = team === 'blue' ? GRID_S : GRID_S - 8;
+    const gridLat = team === 'blue' ? -3.0 : 3.0;
 
-    const laneBack = PIT_LANE.toWorld(bayS, 0);
-    const waypoints: { x: number; z: number }[] = [{ x: laneBack.x, z: laneBack.z }];
+    const waypoints: { x: number; z: number }[] = [];
 
-    // Down the remaining pit lane and out through the exit slip road.
-    waypoints.push(...pitLaneWaypoints(bayS + 8, PIT_LANE.length, 14));
+    // Back onto the lane centreline, then out through the exit slip road.
+    waypoints.push(...lanePath(bayS, PIT_LANE.length - 4, 3.4, PIT_DRIVE_LATERAL, 10));
 
-    // Then along the main straight to the grid box.
-    const gridS = team === 'blue' ? PIT_MERGE_S + 12 : PIT_MERGE_S + 4;
-    for (let s = PIT_MERGE_S + 2; s <= gridS; s += 8) {
-      const w = CIRCUIT.toWorld(s, team === 'blue' ? -3.0 : 3.0);
+    // Along the main straight, easing from the track edge to the grid lane.
+    const mergeLat = TRACK.halfWidth - 1.5;
+    const runStart = PIT_MERGE_S + 2;
+    const steps = Math.max(2, Math.ceil((gridS - runStart) / 7));
+    for (let i = 1; i <= steps; i++) {
+      const t = i / steps;
+      // Ease-in-out so the crossing is smooth at both ends.
+      const e = t * t * (3 - 2 * t);
+      const w = CIRCUIT.toWorld(
+        runStart + (gridS - runStart) * t,
+        mergeLat + (gridLat - mergeLat) * e
+      );
       waypoints.push({ x: w.x, z: w.z });
     }
 
-    car.script = makeScript(waypoints, GRID_SLOTS[team], 13, onArrive);
+    car.script = makeScript(waypoints, GRID_SLOTS[team], 12, 30, onArrive);
   }
   sim.mode = 'cinematic';
   clearInputs();
@@ -319,11 +391,22 @@ export function startTyreBayToGrid(onArrive?: (team: TeamId) => void) {
  * produces, so it is impossible for it to bypass collision or the steering
  * model.
  */
-function driveScript(car: CarRuntime): VehicleInput {
+function driveScript(car: CarRuntime, dt: number): VehicleInput {
   const sc = car.script;
   if (!sc || sc.done) return NEUTRAL_INPUT;
 
   const b = car.body;
+  sc.elapsed += dt;
+
+  // Watchdog. A transition that cannot complete must never strand the class
+  // watching a car mill about, so past the deadline we place it on its mark.
+  if (sc.elapsed > sc.timeout) {
+    placeBody(b, sc.final.x, sc.final.z, sc.final.heading);
+    sc.done = true;
+    car.script = null;
+    sc.onArrive?.(car.team);
+    return NEUTRAL_INPUT;
+  }
 
   // Advance through waypoints that have been reached.
   while (sc.index < sc.waypoints.length) {
@@ -338,13 +421,33 @@ function driveScript(car: CarRuntime): VehicleInput {
   const dz = target.z - b.z;
   const distance = Math.hypot(dx, dz);
 
-  // Arrival: settle exactly onto the slot so the grid boxes are pixel-accurate
-  // and identical every round.
-  if (onFinalLeg && distance < CINEMATIC_ARRIVE_DIST && Math.abs(b.speed) < 2.5) {
-    placeBody(b, sc.final.x, sc.final.z, sc.final.heading);
-    sc.done = true;
-    car.script = null;
-    sc.onArrive?.(car.team);
+  // Arrival: brake to a halt inside the radius, then settle exactly onto the
+  // slot so the grid boxes are identical every single round.
+  if (onFinalLeg && distance < CINEMATIC_ARRIVE_RADIUS) {
+    // Brake, and at the same time draw the car gently onto its exact mark, so
+    // the final placement reads as a car settling into its box rather than
+    // teleporting the last couple of metres.
+    //
+    // Nudging the transform directly is legitimate here: in cinematic mode
+    // this controller IS the authority, and player input is not running.
+    const k = 1 - Math.exp(-3.5 * dt);
+    b.x += (sc.final.x - b.x) * k;
+    b.z += (sc.final.z - b.z) * k;
+    b.heading += wrapAngle(sc.final.heading - b.heading) * k;
+
+    if (Math.abs(b.speed) < 1.0 && distance < 0.35) {
+      placeBody(b, sc.final.x, sc.final.z, sc.final.heading);
+      sc.done = true;
+      car.script = null;
+      sc.onArrive?.(car.team);
+      return NEUTRAL_INPUT;
+    }
+
+    // Brake only while there is still speed to kill. Holding the brake past
+    // a standstill engages REVERSE (that is what the brake control does at
+    // rest), which would drive the car back off the mark it is settling onto.
+    if (Math.abs(b.speed) > 0.6) return { throttle: 0, brake: 1, steer: 0 };
+    b.speed = 0;
     return NEUTRAL_INPUT;
   }
 
@@ -355,13 +458,23 @@ function driveScript(car: CarRuntime): VehicleInput {
   // A right turn decreases heading, so a negative error wants steer = +1.
   const steer = Math.max(-1, Math.min(1, -error * 2.2));
 
-  // Ease off as the final slot approaches so the car stops on its mark.
-  const targetSpeed = onFinalLeg
-    ? Math.min(sc.cruiseSpeed, Math.max(1.5, distance * 0.9))
-    : sc.cruiseSpeed;
+  // Slow down for tight turns. The grip limiter caps yaw at A_LAT_MAX/speed,
+  // so at cruise the minimum radius is wider than the pit lane — trying to
+  // take the garage exit at speed just understeers into a wall. Scaling speed
+  // down with heading error keeps the achievable radius inside the road.
+  const turnEase = 1 - Math.min(1, Math.abs(error) / (Math.PI / 2)) * 0.78;
+
+  // Bleed speed off on the run-in so the car is already slow when it reaches
+  // the arrival radius above.
+  const approach = onFinalLeg ? Math.max(2.5, distance * 0.8) : Infinity;
+
+  const targetSpeed = Math.max(
+    2.0,
+    Math.min(sc.cruiseSpeed * turnEase, approach)
+  );
 
   const throttle = b.speed < targetSpeed ? 1 : 0;
-  const brake = b.speed > targetSpeed + 2 ? 1 : 0;
+  const brake = b.speed > targetSpeed + 1.5 ? 1 : 0;
 
   return { throttle, brake, steer };
 }
@@ -450,7 +563,9 @@ export function stageAtGarages() {
   clearInputs();
   for (const team of ['blue', 'red'] as const) {
     const car = carOf(team);
-    const slot = GARAGE_SLOTS[team];
+    // GARAGE_CAR_SLOTS, not GARAGE_SLOTS: the car must face the door opening,
+    // not share the building's heading (which points at a side wall).
+    const slot = GARAGE_CAR_SLOTS[team];
     placeBody(car.body, slot.x, slot.z, slot.heading);
     car.script = null;
     car.distance = 0;
@@ -529,7 +644,7 @@ export function stepSimulation(rawDt: number) {
     let input: VehicleInput;
     switch (sim.mode) {
       case 'cinematic':
-        input = driveScript(car);
+        input = driveScript(car, dt);
         break;
       case 'player': {
         if (car.finished) {

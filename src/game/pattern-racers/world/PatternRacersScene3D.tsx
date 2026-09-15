@@ -33,7 +33,7 @@ import {
   sim, stepSimulation, setHudListener, setSimAudioSink, stageAtGarages,
 } from '../engine/raceSim';
 import { simAudioSink, patternAudio } from '../engine/patternAudio';
-import { GARAGE_SLOTS, TYRE_BAY_SLOTS, GRID_SLOTS } from '../engine/circuit';
+import { TYRE_BAY_SLOTS, GRID_SLOTS } from '../engine/circuit';
 import { COLLIDER_GRID } from '../engine/worldLayout';
 import { segmentClearFraction, type Collider } from '../engine/collision';
 
@@ -141,7 +141,7 @@ const CameraDirector: React.FC = () => {
       subjectX = mid.x; subjectZ = mid.z; subjectHeading = GRID_SLOTS.blue.heading;
     } else if (currentRound === 2) {
       shot = SHOTS.pit;
-      // During the transition, track the cars; once parked, frame the bay.
+      // Track the cars through the transition, then settle on the service bay.
       const b = sim.blue.body, r = sim.red.body;
       subjectX = (b.x + r.x) / 2; subjectZ = (b.z + r.z) / 2;
       subjectHeading = TYRE_BAY_SLOTS.blue.heading;
@@ -149,7 +149,11 @@ const CameraDirector: React.FC = () => {
       shot = SHOTS.garage;
       const b = sim.blue.body, r = sim.red.body;
       subjectX = (b.x + r.x) / 2; subjectZ = (b.z + r.z) / 2;
-      subjectHeading = GARAGE_SLOTS.blue.heading;
+      // Frame along the cars' own heading, not the garage building's. The two
+      // differ by 90 degrees -- the bays face across the lane while the cars
+      // point out through the doors -- so using the building's heading put the
+      // camera beside the action instead of behind it.
+      subjectHeading = sim.blue.body.heading;
     }
 
     // ── BUILD THE BOOM ──
