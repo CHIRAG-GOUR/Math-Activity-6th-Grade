@@ -194,6 +194,9 @@ export interface SimAudioSink {
   onImpact(team: TeamId, force: number): void;
   onBoost(team: TeamId): void;
   onGearShift(team: TeamId, gear: number): void;
+  onBrake(team: TeamId, intensity: number): void;
+  onEngineStart(team: TeamId): void;
+  onGarageDoor(): void;
 }
 
 let audio: SimAudioSink | null = null;
@@ -342,6 +345,11 @@ export function startGarageToTyreBay(onArrive?: (team: TeamId) => void) {
   }
   sim.mode = 'cinematic';
   clearInputs();
+
+  // Shutters up, then both cars fire their engines a beat later.
+  audio?.onGarageDoor();
+  setTimeout(() => audio?.onEngineStart('blue'), 700);
+  setTimeout(() => audio?.onEngineStart('red'), 1100);
 }
 
 /**
@@ -629,6 +637,73 @@ export function endRaceControl() {
 
 const prevGear: Record<TeamId, number> = { blue: 1, red: 1 };
 const prevSlip: Record<TeamId, boolean> = { blue: false, red: false };
+const prevBraking: Record<TeamId, boolean> = { blue: false, red: false };
+
+/**
+ * Car-to-car contact.
+ *
+ * Both cars are modelled as a pair of circles down their spine, matching the
+ * static-collision body. On overlap they are pushed apart along the contact
+ * normal -- each taking half, so neither is privileged -- and both scrub speed
+ * in proportion to how head-on the hit was. A glancing door-to-door rub costs
+ * almost nothing; a proper rear-ending costs a lot.
+ *
+ * Position is only ever corrected, never authored: this cannot teleport a car
+ * or hand either side an advantage.
+ */
+const CAR_CONTACT_POINTS = [-1.2, 1.2];
+const CAR_CONTACT_RADIUS = 1.05;
+
+function resolveCarToCar() {
+  const a = sim.blue.body;
+  const b = sim.red.body;
+
+  const afx = -Math.sin(a.heading), afz = -Math.cos(a.heading);
+  const bfx = -Math.sin(b.heading), bfz = -Math.cos(b.heading);
+
+  let pushX = 0, pushZ = 0, depth = 0;
+
+  for (const oa of CAR_CONTACT_POINTS) {
+    for (const ob of CAR_CONTACT_POINTS) {
+      const ax = a.x + afx * oa, az = a.z + afz * oa;
+      const bx = b.x + bfx * ob, bz = b.z + bfz * ob;
+      const dx = ax - bx, dz = az - bz;
+      const d = Math.hypot(dx, dz);
+      const minD = CAR_CONTACT_RADIUS * 2;
+      if (d >= minD || d < 1e-6) continue;
+
+      const pen = minD - d;
+      if (pen > depth) {
+        depth = pen;
+        pushX = dx / d;
+        pushZ = dz / d;
+      }
+    }
+  }
+
+  if (depth <= 0) return;
+
+  // Split the correction evenly between the two cars.
+  const half = depth * 0.5;
+  a.x += pushX * half; a.z += pushZ * half;
+  b.x -= pushX * half; b.z -= pushZ * half;
+
+  // Closing speed along the contact normal decides how much it hurts.
+  const relVx = afx * a.speed - bfx * b.speed;
+  const relVz = afz * a.speed - bfz * b.speed;
+  const closing = -(relVx * pushX + relVz * pushZ);
+  if (closing <= 0) return;
+
+  const scrub = Math.min(0.35, closing / 45);
+  a.speed *= 1 - scrub;
+  b.speed *= 1 - scrub;
+
+  if (closing > 4) {
+    a.lastImpact = Math.max(a.lastImpact, closing);
+    b.lastImpact = Math.max(b.lastImpact, closing);
+    audio?.onImpact('blue', closing);
+  }
+}
 
 export function stepSimulation(rawDt: number) {
   // Clamp so an alt-tab or a long frame cannot teleport anything.
@@ -683,8 +758,18 @@ export function stepSimulation(rawDt: number) {
         prevGear[team] = b.gear;
       }
       if (b.lastImpact > 2.5) audio.onImpact(team, b.lastImpact);
+
+      // Brakes: only on the transition into braking, and only when there is
+      // real speed to shed -- otherwise every crawl would squeal.
+      const brakingNow = input.brake > 0 && Math.abs(b.speed) > 8;
+      if (brakingNow && !prevBraking[team]) {
+        audio.onBrake(team, Math.min(1, Math.abs(b.speed) / 45));
+      }
+      prevBraking[team] = brakingNow;
     }
   }
+
+  resolveCarToCar();
 
   // Cinematic completion: when neither car still has a script, hand control back.
   if (sim.mode === 'cinematic' && !sim.blue.script && !sim.red.script) {

@@ -107,6 +107,8 @@ class PatternAudioEngine {
   private master: GainNode | null = null;
   private engines = new Map<string, EngineVoice>();
   private lastImpactAt = 0;
+  private lastBrakeAt = 0;
+  private lastSquealAt = 0;
   private isMuted: boolean = false;
   private bgmGain: GainNode | null = null;
   private bgmInterval: NodeJS.Timeout | null = null;
@@ -489,6 +491,9 @@ class PatternAudioEngine {
     if (!this.ctx) return;
 
     const t = this.ctx.currentTime;
+    // A sustained slide fires this every frame otherwise.
+    if (t - this.lastSquealAt < 0.4) return;
+    this.lastSquealAt = t;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     const filter = this.ctx.createBiquadFilter();
@@ -679,6 +684,63 @@ class PatternAudioEngine {
     noise.stop(t + 1.1);
   }
 
+  /** Brake squeal + disc rumble, scaled by how hard the car is stopping. */
+  public playBrake(intensity = 1) {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+    const now = this.ctx.currentTime;
+    if (now - this.lastBrakeAt < 0.35) return;
+    this.lastBrakeAt = now;
+
+    const amp = 0.035 + 0.05 * Math.min(1, intensity);
+    const dur = 0.55;
+
+    const osc = this.ctx.createOscillator();
+    const filt = this.ctx.createBiquadFilter();
+    const gain = this.ctx.createGain();
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(1500, now);
+    osc.frequency.exponentialRampToValueAtTime(620, now + dur);
+    filt.type = 'bandpass';
+    filt.frequency.setValueAtTime(2400, now);
+    filt.Q.setValueAtTime(11, now);
+    gain.gain.setValueAtTime(0, now);
+    gain.gain.linearRampToValueAtTime(amp, now + 0.05);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    osc.connect(filt); filt.connect(gain); gain.connect(this.bus());
+    osc.start(now); osc.stop(now + dur);
+  }
+
+  /** Starter motor then catch -- played as a car fires up to leave the garage. */
+  public playEngineStart() {
+    if (this.isMuted) return;
+    this.initContext();
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+
+    const crank = this.ctx.createOscillator();
+    const cg = this.ctx.createGain();
+    crank.type = 'square';
+    crank.frequency.setValueAtTime(42, t);
+    crank.frequency.linearRampToValueAtTime(70, t + 0.7);
+    cg.gain.setValueAtTime(0.05, t);
+    cg.gain.exponentialRampToValueAtTime(0.001, t + 0.75);
+    crank.connect(cg); cg.connect(this.bus());
+    crank.start(t); crank.stop(t + 0.75);
+
+    const fire = this.ctx.createOscillator();
+    const fg = this.ctx.createGain();
+    fire.type = 'sawtooth';
+    fire.frequency.setValueAtTime(90, t + 0.7);
+    fire.frequency.exponentialRampToValueAtTime(320, t + 1.0);
+    fire.frequency.exponentialRampToValueAtTime(130, t + 1.6);
+    fg.gain.setValueAtTime(0.12, t + 0.7);
+    fg.gain.exponentialRampToValueAtTime(0.001, t + 1.7);
+    fire.connect(fg); fg.connect(this.bus());
+    fire.start(t + 0.7); fire.stop(t + 1.7);
+  }
+
   // ── 11. Grand Prix Background Music Loop ──
   public startBgm() {
     if (this.isBgmPlaying || typeof window === 'undefined') return;
@@ -762,5 +824,14 @@ export const simAudioSink = {
   },
   onGearShift() {
     patternAudio.playGearShift();
+  },
+  onBrake(_team: string, intensity: number) {
+    patternAudio.playBrake(intensity);
+  },
+  onEngineStart() {
+    patternAudio.playEngineStart();
+  },
+  onGarageDoor() {
+    patternAudio.playGarageDoor();
   },
 };

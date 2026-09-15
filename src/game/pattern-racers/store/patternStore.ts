@@ -26,7 +26,7 @@ import {
   startGarageToTyreBay, startTyreBayToGrid,
   type HudSnapshot,
 } from '../engine/raceSim';
-import { PatternQuestion, getQuestionForRound } from '../engine/questionBank';
+import { PatternQuestion, getQuestionForRound, rollSessionQuestions } from '../engine/questionBank';
 import { patternAudio } from '../engine/patternAudio';
 
 // ── 1. DETERMINISTIC VEHICLE COORDINATE MILESTONES ──
@@ -721,10 +721,23 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
   toggleRoughWork: () => set((s) => ({ roughWorkOpen: !s.roughWorkOpen })),
 
   resetGame: () => {
+    // A restart is a COMPLETE restart. Previously the round counter reset but
+    // the cars stayed wherever they had finished, so the next garage-departure
+    // cinematic started from the middle of the circuit and could never reach
+    // its mark. Now the physical world is rewound too: fresh questions, cars
+    // back inside their garages, and the whole garage -> pit -> grid journey
+    // replayed from the top.
+    rollSessionQuestions();
+    stageAtGarages();
+    clearInputs();
+    patternAudio.stopAllEngines();
+
     set({
-      phase: 'round_active',
+      phase: 'intro',
       currentRound: 1,
       questionIndex: 0,
+      champagneEventPlayed: false,
+      champagneActive: false,
       currentQuestion: getQuestionForRound(1, 0),
       signalLights: [false, false, false],
       countdownValue: null,

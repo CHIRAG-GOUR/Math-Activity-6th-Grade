@@ -104,6 +104,9 @@ const round1Questions: PatternQuestion[] = [
   { start: 0, step: 4 }, { start: 1, step: 2 }, { start: 3, step: 4 }, { start: 5, step: 3 },
   { start: 10, step: 5 }, { start: 40, step: -4 }, { start: 30, step: -3 }, { start: 25, step: 5 },
   { start: 60, step: -10 },
+  { start: 11, step: 11 }, { start: 13, step: 2 }, { start: 14, step: 7 }, { start: 16, step: 8 },
+  { start: 18, step: 9 }, { start: 21, step: 3 }, { start: 24, step: 6 }, { start: 45, step: -9 },
+  { start: 80, step: -8 }, { start: 90, step: -15 },
 ].map((cfg, i) => {
   const t1 = cfg.start;
   const t2 = t1 + cfg.step;
@@ -133,6 +136,9 @@ const round2Questions: PatternQuestion[] = [
   { start: 1, step: 5 }, { start: 12, step: 4 }, { start: 35, step: -5 }, { start: 7, step: 8 },
   { start: 100, step: -20 }, { start: 4, step: 2 }, { start: 9, step: 3 }, { start: 15, step: 10 },
   { start: 21, step: 7 }, { start: 30, step: -5 }, { start: 6, step: 4 }, { start: 18, step: -2 },
+  { start: 13, step: 6 }, { start: 22, step: 9 }, { start: 16, step: -4 }, { start: 11, step: 11 },
+  { start: 27, step: -3 }, { start: 19, step: 5 }, { start: 8, step: 12 }, { start: 45, step: -15 },
+  { start: 33, step: -6 }, { start: 17, step: 8 },
   { start: 50, step: 25 }, { start: 2, step: 9 }, { start: 11, step: 11 }, { start: 80, step: -10 },
   { start: 13, step: 6 },
 ].map((cfg, i) => {
@@ -172,6 +178,11 @@ const round3Questions: PatternQuestion[] = [
   { start: 25, step: 10, missingPos: 3 }, { start: 40, step: -5, missingPos: 4 }, { start: 18, step: 6, missingPos: 2 },
   { start: 5, step: 8, missingPos: 3 }, { start: 70, step: -10, missingPos: 3 }, { start: 16, step: 4, missingPos: 3 },
   { start: 33, step: 3, missingPos: 2 },
+  { start: 13, step: 6, missingPos: 3 }, { start: 22, step: 4, missingPos: 4 },
+  { start: 45, step: -9, missingPos: 2 }, { start: 17, step: 7, missingPos: 3 },
+  { start: 24, step: 8, missingPos: 4 }, { start: 60, step: -12, missingPos: 3 },
+  { start: 19, step: 5, missingPos: 2 }, { start: 28, step: -4, missingPos: 3 },
+  { start: 36, step: 6, missingPos: 4 }, { start: 21, step: 9, missingPos: 3 },
 ].map((cfg, i) => {
   const terms = [
     cfg.start,
@@ -212,6 +223,11 @@ const round4Questions: PatternQuestion[] = [
   { input: 18, rule: '÷ 3', ans: 6 }, { input: 5, rule: '× 5', ans: 25 }, { input: 9, rule: '× 2 + 2', ans: 20 },
   { input: 11, rule: '+ 9', ans: 20 }, { input: 8, rule: '× 3 + 4', ans: 28 }, { input: 30, rule: '÷ 5', ans: 6 },
   { input: 7, rule: '× 4 - 3', ans: 25 },
+  { input: 9, rule: '× 4', ans: 36 }, { input: 13, rule: '+ 8', ans: 21 },
+  { input: 24, rule: '÷ 6', ans: 4 }, { input: 6, rule: '× 5 + 2', ans: 32 },
+  { input: 11, rule: '× 3', ans: 33 }, { input: 16, rule: '- 9', ans: 7 },
+  { input: 8, rule: '× 6', ans: 48 }, { input: 35, rule: '÷ 7', ans: 5 },
+  { input: 12, rule: '× 2 + 7', ans: 31 }, { input: 5, rule: '× 8 - 6', ans: 34 },
 ].map((cfg, i) => {
   return createQuestion(
     `r4_q_${i + 1}`,
@@ -240,6 +256,11 @@ const round5Questions: PatternQuestion[] = [
   { input: 6, rule: '× 4 + 6', ans: 30 }, { input: 12, rule: '× 3 - 6', ans: 30 }, { input: 5, rule: '× 7 + 1', ans: 36 },
   { input: 9, rule: '× 4 - 6', ans: 30 }, { input: 8, rule: '× 5 + 2', ans: 42 }, { input: 10, rule: '× 4 - 8', ans: 32 },
   { input: 7, rule: '× 5 + 3', ans: 38 },
+  { input: 9, rule: '× 4 + 3', ans: 39 }, { input: 13, rule: '× 2 + 4', ans: 30 },
+  { input: 6, rule: '× 6 - 5', ans: 31 }, { input: 14, rule: '× 2 + 2', ans: 30 },
+  { input: 7, rule: '× 5 - 3', ans: 32 }, { input: 11, rule: '× 3 + 4', ans: 37 },
+  { input: 8, rule: '× 5 + 1', ans: 41 }, { input: 15, rule: '× 2 - 7', ans: 23 },
+  { input: 5, rule: '× 9 - 4', ans: 41 }, { input: 10, rule: '× 4 - 8', ans: 32 },
 ].map((cfg, i) => {
   return createQuestion(
     `r5_q_${i + 1}`,
@@ -265,8 +286,35 @@ export const ALL_PATTERN_QUESTIONS: PatternQuestion[] = [
   ...round5Questions,
 ];
 
-export function getQuestionForRound(roundNum: number, questionIndex: number = 0): PatternQuestion {
-  const filtered = ALL_PATTERN_QUESTIONS.filter((q) => q.roundCategory === roundNum);
-  if (filtered.length === 0) return ALL_PATTERN_QUESTIONS[0];
-  return filtered[questionIndex % filtered.length];
+// ── PER-SESSION QUESTION SELECTION ──
+//
+// The bank holds 175 questions, but a run only uses five -- one per round.
+// Previously round N always served question N of its pool, so every single
+// playthrough asked the identical five questions. Now each session draws a
+// fresh one per round, so a class can replay without repeating.
+//
+// Note this is the one place randomness is wanted. The race simulation itself
+// stays strictly deterministic; only which question is asked varies.
+
+const ROUND_POOLS: PatternQuestion[][] = [1, 2, 3, 4, 5].map((r) =>
+  ALL_PATTERN_QUESTIONS.filter((q) => q.roundCategory === r)
+);
+
+let sessionPicks: PatternQuestion[] | null = null;
+
+/** Draw a new set of five. Called on first use and on every game restart. */
+export function rollSessionQuestions(): PatternQuestion[] {
+  sessionPicks = ROUND_POOLS.map(
+    (pool) => pool[Math.floor(Math.random() * pool.length)] ?? ALL_PATTERN_QUESTIONS[0]
+  );
+  return sessionPicks;
+}
+
+export function getQuestionForRound(roundNum: number, _questionIndex: number = 0): PatternQuestion {
+  if (!sessionPicks) rollSessionQuestions();
+  return sessionPicks![roundNum - 1] ?? ALL_PATTERN_QUESTIONS[0];
+}
+
+export function totalQuestionCount(): number {
+  return ALL_PATTERN_QUESTIONS.length;
 }

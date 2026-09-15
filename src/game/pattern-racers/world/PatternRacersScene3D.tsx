@@ -16,13 +16,14 @@
 'use client';
 
 import React, { useRef, useMemo, useEffect } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 
 import { SkyEnvironment3D } from './SkyEnvironment3D';
 import { CircuitWorld3D } from './CircuitWorld3D';
 import { PitComplex3D } from './PitComplex3D';
 import { Grandstands3D } from './Grandstands3D';
+import { CrowdLife3D } from './CrowdLife3D';
 import { RaceVehicle3D } from './RaceVehicle3D';
 import { FacilityWorkers3D } from './FacilityWorkers3D';
 import { ChampagneStreakerFan3D } from './ChampagneStreakerFan3D';
@@ -33,7 +34,7 @@ import {
   sim, stepSimulation, setHudListener, setSimAudioSink, stageAtGarages,
 } from '../engine/raceSim';
 import { simAudioSink, patternAudio } from '../engine/patternAudio';
-import { TYRE_BAY_SLOTS, GRID_SLOTS } from '../engine/circuit';
+import { TYRE_BAY_SLOTS, GRID_SLOTS, CIRCUIT, GARAGE_CAR_SLOTS } from '../engine/circuit';
 import { COLLIDER_GRID } from '../engine/worldLayout';
 import { segmentClearFraction, type Collider } from '../engine/collision';
 
@@ -109,14 +110,112 @@ const SHOTS: Record<string, Shot> = {
   victory: { back: 14, height: 6.0, ahead: 4, side: -11, posRate: 1.8, lookRate: 2.4 },
 };
 
+/**
+ * Opening establishing sequence, played while the intro card is up.
+ *
+ * Without this the camera sat on the Round 1 garage boom, which points
+ * backwards out of a bay -- straight into the garage's own back wall. The
+ * collision pullback then jammed it against that wall, so the very first thing
+ * anyone saw was a flat grey rectangle.
+ *
+ * Three beats: a slow high orbit of the whole venue, a dolly down the main
+ * straight at grandstand height, then a low side pass across the garages so
+ * the two cars are introduced from the side.
+ */
+const INTRO_BEATS = { orbit: 7.5, straight: 6.5, cars: 6.0 };
+const INTRO_TOTAL = INTRO_BEATS.orbit + INTRO_BEATS.straight + INTRO_BEATS.cars;
+
+function introShot(t: number): { pos: THREE.Vector3; look: THREE.Vector3 } {
+  const b = CIRCUIT.bounds;
+  const cx = (b.minX + b.maxX) / 2;
+  const cz = (b.minZ + b.maxZ) / 2;
+  const radius = Math.max(b.maxX - b.minX, b.maxZ - b.minZ) * 0.72;
+
+  // Beat 1 -- high orbit of the venue.
+  if (t < INTRO_BEATS.orbit) {
+    const k = t / INTRO_BEATS.orbit;
+    const a = -0.6 + k * 0.85;
+    return {
+      pos: new THREE.Vector3(
+        cx + Math.cos(a) * radius,
+        190 - k * 55,
+        cz + Math.sin(a) * radius
+      ),
+      look: new THREE.Vector3(cx, 0, cz),
+    };
+  }
+
+  // Beat 2 -- dolly down the main straight, just outside the barrier.
+  const t2 = t - INTRO_BEATS.orbit;
+  if (t2 < INTRO_BEATS.straight) {
+    const k = t2 / INTRO_BEATS.straight;
+    const from = CIRCUIT.sampleAt(40);
+    const to = CIRCUIT.sampleAt(230);
+    const px = from.x + (to.x - from.x) * k;
+    const pz = from.z + (to.z - from.z) * k;
+    const f = CIRCUIT.sampleAt(40 + 190 * k);
+    return {
+      pos: new THREE.Vector3(px + f.rx * -26, 16 - k * 6, pz + f.rz * -26),
+      look: new THREE.Vector3(f.x, 2, f.z),
+    };
+  }
+
+  // Beat 3 -- low side pass across the garages, introducing the cars.
+  const t3 = t2 - INTRO_BEATS.straight;
+  const k = Math.min(1, t3 / INTRO_BEATS.cars);
+  const blue = GARAGE_CAR_SLOTS.blue;
+  const red = GARAGE_CAR_SLOTS.red;
+  const mx = (blue.x + red.x) / 2;
+  const mz = (blue.z + red.z) / 2;
+  // Slide along the bay frontage so both cars pass through frame.
+  const fx = -Math.sin(blue.heading);
+  const fz = -Math.cos(blue.heading);
+  const rx = Math.cos(blue.heading);
+  const rz = -Math.sin(blue.heading);
+  const slide = (k - 0.5) * 26;
+  return {
+    pos: new THREE.Vector3(mx - fx * 19 + rx * slide, 4.6, mz - fz * 19 + rz * slide),
+    look: new THREE.Vector3(mx + rx * slide * 0.35, 1.2, mz + rz * slide * 0.35),
+  };
+}
+
 const CameraDirector: React.FC = () => {
   const phase = usePatternStore((s) => s.phase);
   const currentRound = usePatternStore((s) => s.currentRound);
 
   const initialised = useRef(false);
+  const introTime = useRef(0);
+
+  // Replay the establishing sequence every time we return to the intro card,
+  // including after a restart.
+  useEffect(() => {
+    if (phase === 'intro') {
+      introTime.current = 0;
+      initialised.current = false;
+    }
+  }, [phase]);
 
   useFrame((state, rawDelta) => {
     const dt = Math.min(0.05, rawDelta);
+
+    // ── OPENING SEQUENCE ──
+    if (phase === 'intro') {
+      introTime.current += dt;
+      // Hold on the final framing rather than looping, so a class that reads
+      // the brief slowly is not left watching the camera fly around.
+      const t = Math.min(introTime.current, INTRO_TOTAL - 0.01);
+      const shotNow = introShot(t);
+      if (!initialised.current) {
+        camPos.copy(shotNow.pos);
+        camLook.copy(shotNow.look);
+        initialised.current = true;
+      }
+      damp3(camPos, shotNow.pos, 3.0, dt);
+      damp3(camLook, shotNow.look, 3.0, dt);
+      state.camera.position.copy(camPos);
+      state.camera.lookAt(camLook);
+      return;
+    }
 
     // ── PICK THE SHOT AND THE SUBJECT ──
     let shot: Shot;
@@ -233,6 +332,7 @@ const WorldContent: React.FC = () => {
       <CircuitWorld3D />
       <PitComplex3D />
       <Grandstands3D />
+      <CrowdLife3D />
       <FacilityWorkers3D />
 
       <RaceVehicle3D teamId="blue" />
@@ -245,7 +345,79 @@ const WorldContent: React.FC = () => {
   );
 };
 
+/**
+ * Two-up viewport rendering.
+ *
+ * The old split screen mounted a second <Canvas> with a second full copy of
+ * the world -- every grandstand, every barrier, twice a frame. This renders
+ * ONE scene twice through the scissor rectangle instead, so the world is built
+ * once and each half simply gets its own camera.
+ */
+const SplitViewportRenderer: React.FC<{ enabled: boolean }> = ({ enabled }) => {
+  const { gl, scene, size, camera } = useThree();
+
+  const cams = useMemo(() => {
+    const make = () => new THREE.PerspectiveCamera(56, 1, 0.5, 3000);
+    return { blue: make(), red: make() };
+  }, []);
+
+  // IMPORTANT: giving any useFrame a priority above 0 switches R3F out of its
+  // automatic render loop for the whole canvas. So once this component exists
+  // it owns rendering in BOTH modes -- when split view is off it simply draws
+  // the default camera itself. Returning early here would black the screen.
+  useFrame(() => {
+    if (!enabled) {
+      gl.setScissorTest(false);
+      gl.setViewport(0, 0, size.width, size.height);
+      gl.render(scene, camera);
+      return;
+    }
+
+    const w = Math.floor(size.width / 2);
+    const h = size.height;
+
+    gl.setScissorTest(true);
+    for (const [i, team] of (['blue', 'red'] as const).entries()) {
+      const car = team === 'blue' ? sim.blue : sim.red;
+      const cam = cams[team];
+      const b = car.body;
+
+      const fx = -Math.sin(b.heading);
+      const fz = -Math.cos(b.heading);
+      const speedFrac = Math.min(1, Math.abs(b.speed) / 60);
+      const back = 9.5 + speedFrac * 3;
+
+      cam.position.set(b.x - fx * back, 3.8 + speedFrac * 0.5, b.z - fz * back);
+      cam.lookAt(b.x + fx * 20, 1.3, b.z + fz * 20);
+      cam.aspect = w / h;
+      cam.fov = 56 + speedFrac * 6;
+      cam.updateProjectionMatrix();
+
+      gl.setViewport(i * w, 0, w, h);
+      gl.setScissor(i * w, 0, w, h);
+      gl.render(scene, cam);
+    }
+    gl.setScissorTest(false);
+    gl.setViewport(0, 0, size.width, size.height);
+  }, 1);
+
+  // Hand the frame back to the default renderer when split view turns off.
+  useEffect(() => {
+    if (!enabled) {
+      gl.setScissorTest(false);
+      gl.setViewport(0, 0, size.width, size.height);
+    }
+  }, [enabled, gl, size]);
+
+  return null;
+};
+
 export const PatternRacersScene3D: React.FC = () => {
+  const phase = usePatternStore((s) => s.phase);
+  const splitViewMode = usePatternStore((s) => s.splitViewMode);
+  // Two-up only makes sense while both cars are actually being driven.
+  const splitActive = splitViewMode && phase === 'grand_prix_race';
+
   const glSettings = useMemo(
     () => ({
       antialias: true,
@@ -265,6 +437,8 @@ export const PatternRacersScene3D: React.FC = () => {
     <div className="w-full h-full relative select-none">
       <Canvas
         shadows
+        // Split view drives its own render passes; suppress the default one.
+        frameloop="always"
         dpr={[1, 1.75]}
         // far was 320 while the circuit spans ~400 m — the far half of the
         // venue was simply never drawn.
@@ -274,8 +448,21 @@ export const PatternRacersScene3D: React.FC = () => {
         <PerformanceCollector />
         <SimulationDriver />
         <CameraDirector />
+        <SplitViewportRenderer enabled={splitActive} />
         <WorldContent />
       </Canvas>
+
+      {splitActive && (
+        <>
+          <div className="pointer-events-none absolute inset-y-0 left-1/2 w-1 -translate-x-1/2 bg-gradient-to-b from-amber-300 via-white to-amber-300 shadow-[0_0_14px_#f59e0b] z-20" />
+          <div className="pointer-events-none absolute top-3 left-4 z-20 rounded-full border border-blue-400/60 bg-blue-950/85 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-blue-100 shadow">
+            BLUE · W A S D
+          </div>
+          <div className="pointer-events-none absolute top-3 right-4 z-20 rounded-full border border-red-400/60 bg-red-950/85 px-3 py-1 text-[11px] font-black uppercase tracking-widest text-red-100 shadow">
+            RED · ARROW KEYS
+          </div>
+        </>
+      )}
     </div>
   );
 };

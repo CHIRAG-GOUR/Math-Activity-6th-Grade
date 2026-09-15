@@ -10,6 +10,7 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { usePatternStore } from '../store/patternStore';
+import { patternAudio } from '../engine/patternAudio';
 import { ChampionshipCertificateModal } from '@/components/shared/ChampionshipCertificateModal';
 import { Trophy, Play, RotateCcw, Home, Flag } from 'lucide-react';
 
@@ -52,12 +53,29 @@ export const PatternOverlays: React.FC = () => {
       <AnimatePresence>
         {/* ── 1. PRE-MATCH INTRO BRIEFING ── */}
         {phase === 'intro' && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/70 backdrop-blur-md select-none pointer-events-auto">
+          <div className="fixed inset-0 z-50 flex flex-col items-center justify-end gap-4 p-4 pb-10 select-none pointer-events-none bg-gradient-to-t from-slate-950/85 via-slate-950/25 to-slate-950/50">
+            {/* READY TO BEGIN title card. The venue fly-through plays behind
+                it -- the overlay used to be a solid blurred sheet, so the
+                whole opening read as a flat grey rectangle. */}
+            <motion.div
+              initial={{ y: -20, opacity: 0 }}
+              animate={{ y: 0, opacity: 1 }}
+              className="pointer-events-none mb-auto mt-10 text-center"
+            >
+              <div className="inline-block rounded-2xl border-4 border-slate-900 bg-amber-400 px-8 py-3 shadow-[6px_6px_0px_#000000]">
+                <span className="text-2xl sm:text-4xl font-black uppercase tracking-widest text-slate-950">
+                  READY TO BEGIN
+                </span>
+              </div>
+              <p className="mt-3 text-xs sm:text-sm font-black uppercase tracking-[0.3em] text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                Welcome to the Pattern Racers Circuit
+              </p>
+            </motion.div>
             <motion.div
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.9, opacity: 0 }}
-              className="w-full max-w-xl p-6 sm:p-8 bg-white border-4 border-slate-900 rounded-3xl shadow-[10px_10px_0px_#000000] text-slate-950 text-center flex flex-col gap-4"
+              className="pointer-events-auto w-full max-w-xl p-5 sm:p-6 bg-white border-4 border-slate-900 rounded-3xl shadow-[10px_10px_0px_#000000] text-slate-950 text-center flex flex-col gap-3"
             >
               {/* Header Badge */}
               <div className="inline-flex items-center justify-center gap-2 px-4 py-1.5 rounded-full bg-amber-400 border-2 border-slate-900 text-slate-950 font-black text-xs uppercase tracking-widest mx-auto shadow-[2px_2px_0px_#000000]">
@@ -84,7 +102,11 @@ export const PatternOverlays: React.FC = () => {
 
               {/* Launch Match Button */}
               <button
-                onClick={() => setGamePhase('round_active')}
+                onClick={() => {
+                  patternAudio.unlock();
+                  patternAudio.playEngineRev();
+                  setGamePhase('round_active');
+                }}
                 className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wider border-3 border-slate-900 shadow-[4px_4px_0px_#000000] flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"
               >
                 <Play className="w-5 h-5 fill-white" />
