@@ -311,41 +311,76 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
     if (team.isLocked) return;
 
-    // Check if an option was selected
     const selectedVal = team.selectedOptionValue !== null ? team.selectedOptionValue : team.selectedOption;
+    if (selectedVal === null) return; // nothing chosen yet
+
     const isCorrect = String(selectedVal) === String(q.correctAnswer);
-    const points = isCorrect ? (team.multiplierActive ? 200 : 100) : 0;
-    const feedback = isCorrect ? '✓ CORRECT! +100 PTS' : '✗ INCORRECT';
+
+    // ---- TWO ATTEMPTS ----
+    // A first wrong answer costs the attempt but does NOT lock the console:
+    // the team keeps the question, gets the misconception hint, and tries
+    // again. Only a correct answer or a second miss closes it out.
+    // (This was previously declared in state and shown in the UI as "2 TRIES"
+    // but never actually enforced -- the first submission locked immediately.)
+    if (!isCorrect && team.attemptsLeft > 1) {
+      patternAudio.playWrong();
+      set((s) => {
+        const cur = teamId === 'blue' ? s.blueTeam : s.redTeam;
+        const updated: TeamConsoleState = {
+          ...cur,
+          attemptsLeft: 1,
+          isCorrect: false,
+          hasSubmitted: false,
+          isLocked: false,
+          selectedOption: null,
+          selectedOptionValue: null,
+          lastFeedback: 'NOT QUITE — ONE MORE TRY',
+          activeMisconception: q.misconceptionTip,
+        };
+        return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
+      });
+      return;
+    }
+
+    // Final answer: correct, or the second miss.
+    // The 2x power-up doubles only a CORRECT result, and is consumed either way.
+    const basePoints = 100;
+    const points = isCorrect ? (team.multiplierActive ? basePoints * 2 : basePoints) : 0;
+    const feedback = isCorrect
+      ? (team.multiplierActive ? `✓ CORRECT! +${points} PTS (2x)` : `✓ CORRECT! +${points} PTS`)
+      : '✗ OUT OF TRIES';
+
+    if (isCorrect) patternAudio.playCorrect();
+    else patternAudio.playWrong();
 
     set((s) => {
-      const updatedTeam: TeamConsoleState = {
-        ...(teamId === 'blue' ? s.blueTeam : s.redTeam),
-        score: (teamId === 'blue' ? s.blueTeam.score : s.redTeam.score) + points,
+      const cur = teamId === 'blue' ? s.blueTeam : s.redTeam;
+      const updated: TeamConsoleState = {
+        ...cur,
+        score: cur.score + points,
+        streak: isCorrect ? cur.streak + 1 : 0,
+        attemptsLeft: 0,
         isCorrect,
         hasSubmitted: true,
         isLocked: true,
+        multiplierActive: false,
         lastFeedback: feedback,
         activeMisconception: isCorrect ? null : q.misconceptionTip,
       };
-
-      return teamId === 'blue' ? { blueTeam: updatedTeam } : { redTeam: updatedTeam };
+      return teamId === 'blue' ? { blueTeam: updated } : { redTeam: updated };
     });
 
     const nextState = get();
     const blueDone = nextState.blueTeam.hasSubmitted;
     const redDone = nextState.redTeam.hasSubmitted;
-    const anyCorrect = nextState.blueTeam.isCorrect || nextState.redTeam.isCorrect;
 
-    // If at least one team was correct -> advance with physical movement after 1.4s
-    if (anyCorrect) {
-      setTimeout(() => {
-        get().advanceRound(true);
-      }, 1400);
-    } else if (blueDone && redDone) {
-      // If BOTH are submitted and BOTH are wrong -> move onto next question but cars remain in same place!
-      setTimeout(() => {
-        get().advanceRound(false);
-      }, 1800);
+    // Advance only once BOTH teams have finished, so a fast team never cuts
+    // the other one off mid-question.
+    if (blueDone && redDone) {
+      // isCorrect is boolean | null, so coerce before handing it to a
+      // boolean parameter.
+      const anyCorrect = Boolean(nextState.blueTeam.isCorrect || nextState.redTeam.isCorrect);
+      setTimeout(() => { get().advanceRound(anyCorrect); }, anyCorrect ? 1400 : 1800);
     }
   },
 
