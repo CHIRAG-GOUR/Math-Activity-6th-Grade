@@ -9,6 +9,8 @@
 
 'use client';
 
+import { CarAudioKit, ENGINE_CUES } from './carAudio';
+
 
 /**
  * A sustained engine note for one car.
@@ -107,6 +109,7 @@ class PatternAudioEngine {
   private master: GainNode | null = null;
   private engines = new Map<string, EngineVoice>();
   private lastImpactAt = 0;
+  private kit: CarAudioKit | null = null;
   private lastBrakeAt = 0;
   private lastSquealAt = 0;
   private isMuted: boolean = false;
@@ -134,6 +137,12 @@ class PatternAudioEngine {
       this.master.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
       this.master.connect(comp);
     }
+    if (this.ctx && this.master && !this.kit) {
+      // Sampled layer (BGM + real engine recordings) hangs off the same bus,
+      // so mute and the compressor cover it too.
+      this.kit = new CarAudioKit(this.ctx, this.master);
+      this.kit.setMuted(this.isMuted);
+    }
   }
 
   /** Output node every sound must connect to. */
@@ -149,6 +158,7 @@ class PatternAudioEngine {
 
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    this.kit?.setMuted(muted);
     if (this.master && this.ctx) {
       this.master.gain.setTargetAtTime(muted ? 0 : 1, this.ctx.currentTime, 0.02);
     }
@@ -463,23 +473,42 @@ class PatternAudioEngine {
 
   // ---- SUSTAINED ENGINE VOICES ----
 
-  /** Drive one car's engine note. Safe to call every frame. */
-  public updateEngine(team: string, rpm: number, load: number) {
+  /**
+   * Drive one car's engine note from real road speed. Safe to call every frame.
+   *
+   * `speedFrac` (0..1 of top speed) sets playback rate, so accelerating pitches
+   * the recording up and braking drops it back; `load` sets level.
+   */
+  public updateEngine(team: string, speedFrac: number, load: number) {
     this.initContext();
-    if (!this.ctx) return;
-
-    let voice = this.engines.get(team);
-    if (!voice) {
-      voice = new EngineVoice(this.ctx, this.bus(), team === 'blue' ? -0.35 : 0.35);
-      voice.start();
-      this.engines.set(team, voice);
-    }
-    voice.update(rpm, Math.max(0, Math.min(1, load)), this.isMuted);
+    const t = team === 'blue' ? 'blue' : 'red';
+    this.kit?.updateEngine(t, Math.max(0, Math.min(1, speedFrac)), Math.max(0, Math.min(1, load)));
   }
+
+  /**
+   * Start a car's engine loop at the right point in its recording.
+   * `mode` picks the cue: the garage cue is the pulling-away section, the
+   * driving cue is the part that sits under hard acceleration.
+   */
+  public startCarEngine(team: string, mode: 'garage' | 'driving') {
+    this.initContext();
+    if (!this.kit) return;
+    if (team === 'blue') {
+      this.kit.startEngine('blue', mode === 'garage' ? ENGINE_CUES.blueGarage : ENGINE_CUES.blueDriving,
+        mode === 'garage' ? 0.5 : 0.25);
+    } else {
+      // Car 2 fades in rather than cutting in, as requested.
+      this.kit.startEngine('red', ENGINE_CUES.redDriving, 0.8);
+    }
+  }
+
+  public startRev() { this.initContext(); this.kit?.startRev(); }
+  public stopRev() { this.kit?.stopRev(); }
 
   public stopAllEngines() {
     this.engines.forEach((v) => v.stop());
     this.engines.clear();
+    this.kit?.stopAllEngines();
   }
 
   // ---- TYRE SQUEAL ----
@@ -604,7 +633,7 @@ class PatternAudioEngine {
     osc.stop(t + 0.6);
   }
 
-  /** Crowd roar, used for the champagne celebration and the chequered flag. */
+  /** Crowd roar, used for the chequered flag and big moments. */
   public playCrowdCheer(duration = 2.4) {
     if (this.isMuted) return;
     this.initContext();
@@ -634,26 +663,6 @@ class PatternAudioEngine {
     gain.connect(this.bus());
     noise.start(t);
     noise.stop(t + duration);
-  }
-
-  /** Cork pop for the one-shot champagne celebration. */
-  public playChampagnePop() {
-    if (this.isMuted) return;
-    this.initContext();
-    if (!this.ctx) return;
-    const t = this.ctx.currentTime;
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(900, t);
-    osc.frequency.exponentialRampToValueAtTime(180, t + 0.07);
-    gain.gain.setValueAtTime(0.3, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
-    osc.connect(gain);
-    gain.connect(this.bus());
-    osc.start(t);
-    osc.stop(t + 0.09);
-    this.playCrowdCheer(2.0);
   }
 
   /** Rolling garage shutter, for the Round 1 departure. */
@@ -742,59 +751,20 @@ class PatternAudioEngine {
   }
 
   // ── 11. Grand Prix Background Music Loop ──
+  /**
+   * Background music. This is now the Car Race BGM recording looping at a
+   * fixed 40%, held under the engines for the whole session; the old
+   * synthesized arpeggio it replaces is gone.
+   */
   public startBgm() {
-    if (this.isBgmPlaying || typeof window === 'undefined') return;
     this.initContext();
-    if (!this.ctx) return;
-
+    this.kit?.startBgm();
     this.isBgmPlaying = true;
-    const scale = [261.63, 293.66, 329.63, 392.0, 440.0, 523.25]; // C D E G A C
-    let step = 0;
-
-    this.bgmInterval = setInterval(() => {
-      if (!this.ctx || this.isMuted || !this.isBgmPlaying) return;
-      const t = this.ctx.currentTime;
-
-      // Bass groove
-      const bassOsc = this.ctx.createOscillator();
-      const bassGain = this.ctx.createGain();
-      bassOsc.type = 'triangle';
-      const root = step % 4 === 0 ? 130.81 : step % 4 === 2 ? 146.83 : 164.81;
-      bassOsc.frequency.setValueAtTime(root, t);
-
-      bassGain.gain.setValueAtTime(0.04, t);
-      bassGain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-
-      bassOsc.connect(bassGain);
-      bassGain.connect(this.bus());
-
-      bassOsc.start(t);
-      bassOsc.stop(t + 0.2);
-
-      // Melodic arpeggio
-      if (step % 2 === 0) {
-        const note = scale[(step / 2) % scale.length];
-        const melOsc = this.ctx.createOscillator();
-        const melGain = this.ctx.createGain();
-        melOsc.type = 'sine';
-        melOsc.frequency.setValueAtTime(note, t + 0.05);
-
-        melGain.gain.setValueAtTime(0.03, t + 0.05);
-        melGain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-
-        melOsc.connect(melGain);
-        melGain.connect(this.bus());
-
-        melOsc.start(t + 0.05);
-        melOsc.stop(t + 0.25);
-      }
-
-      step++;
-    }, 240);
   }
 
   public stopBgm() {
     this.isBgmPlaying = false;
+    this.kit?.stopBgm();
     if (this.bgmInterval) {
       clearInterval(this.bgmInterval);
       this.bgmInterval = null;
@@ -810,8 +780,8 @@ export const patternAudio = new PatternAudioEngine();
  * and keeps audio concerns out of the physics loop.
  */
 export const simAudioSink = {
-  onEngine(team: string, rpm: number, load: number) {
-    patternAudio.updateEngine(team, rpm, load);
+  onEngine(team: string, speedFrac: number, load: number) {
+    patternAudio.updateEngine(team, speedFrac, load);
   },
   onSlip(team: string, slipping: boolean) {
     if (slipping) patternAudio.playTyreSqueal(1);
@@ -828,8 +798,12 @@ export const simAudioSink = {
   onBrake(_team: string, intensity: number) {
     patternAudio.playBrake(intensity);
   },
-  onEngineStart() {
+  onEngineStart(team: string) {
     patternAudio.playEngineStart();
+    patternAudio.startCarEngine(team, 'garage');
+  },
+  onEngineDriving(team: string) {
+    patternAudio.startCarEngine(team, 'driving');
   },
   onGarageDoor() {
     patternAudio.playGarageDoor();

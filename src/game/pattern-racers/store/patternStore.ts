@@ -133,12 +133,6 @@ interface PatternRacersState {
   // Game Results & View
   raceWinner: TeamId | 'tie' | null;
   splitViewMode: boolean;
-
-  // One-shot celebration. `champagneEventPlayed` latches for the whole session
-  // so the event cannot replay on a re-render, a camera change, or a second
-  // visit to the tyre bay.
-  champagneEventPlayed: boolean;
-  champagneActive: boolean;
   roughWorkOpen: boolean;
 
   // Dual Team Consoles
@@ -172,7 +166,6 @@ interface PatternRacersState {
   triggerNitro: (teamId: TeamId) => void;
   /** Absorbs the sim's throttled 10 Hz snapshot. Never called per frame. */
   syncRaceHud: (snap: HudSnapshot) => void;
-  completeChampagneEvent: () => void;
 
   // Power-Ups
   use5050: (teamId: TeamId) => void;
@@ -289,8 +282,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
 
   workers: INITIAL_WORKERS,
   raceWinner: null,
-  champagneEventPlayed: false,
-  champagneActive: false,
   splitViewMode: true,
   roughWorkOpen: false,
 
@@ -397,11 +388,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
           arrived += 1;
           if (arrived < 2) return;
 
-          // ONE-SHOT CHAMPAGNE EVENT: first arrival at the tyre bay only.
-          if (!get().champagneEventPlayed) {
-            set({ champagneActive: true, champagneEventPlayed: true });
-          }
-
           set({
             phase: 'round_active',
             currentRound: 2,
@@ -440,6 +426,8 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
           // re-assert this, so the cars cannot drift between questions.
           stageAtGrid();
           patternAudio.playStartLightBeep(true);
+          // Cars are on their marks now: hold the revs under the question.
+          patternAudio.startRev();
 
           set({
             phase: 'round_active',
@@ -503,6 +491,8 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     // ---------------------------------------------------------------
     if (currentRound === 5) {
       stageAtGrid();
+      // Lights-out sequence takes over from the holding revs.
+      patternAudio.stopRev();
 
       const blueWon = blueTeam.score > redTeam.score;
       const redWon = redTeam.score > blueTeam.score;
@@ -643,8 +633,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
     });
   },
 
-  completeChampagneEvent: () => set({ champagneActive: false }),
-
   setSelectedStep: (teamId, step) =>
     set((s) => (teamId === 'blue' ? { blueTeam: { ...s.blueTeam, selectedStep: step } } : { redTeam: { ...s.redTeam, selectedStep: step } })),
   setBuilderStart: (teamId, val) =>
@@ -736,8 +724,6 @@ export const usePatternStore = create<PatternRacersState>((set, get) => ({
       phase: 'intro',
       currentRound: 1,
       questionIndex: 0,
-      champagneEventPlayed: false,
-      champagneActive: false,
       currentQuestion: getQuestionForRound(1, 0),
       signalLights: [false, false, false],
       countdownValue: null,

@@ -18,6 +18,8 @@ import * as THREE from 'three';
 import { TeamId } from '../types';
 import { PBR_MATERIALS } from './materials';
 import { carOf, registerVehicleObject } from '../engine/raceSim';
+import { usePatternStore } from '../store/patternStore';
+import { ExhaustFX3D } from './ExhaustFX3D';
 
 /** Must match CAR_RIDE_HEIGHT in engine/raceSim.ts. */
 const RIDE_HEIGHT = 0.32;
@@ -36,6 +38,17 @@ export const RaceVehicle3D: React.FC<Props> = ({ teamId }) => {
   const isBlue = teamId === 'blue';
   const car = carOf(teamId);
   const body = car.body;
+
+  // The grid-rev questions (rounds 3 and 4) and the countdown hold both cars
+  // stationary with the engines working, which is when the smoke and nitrous
+  // blasts belong.
+  const currentRound = usePatternStore((s) => s.currentRound);
+  const phase = usePatternStore((s) => s.phase);
+  // Rounds 3, 4 and 5 all hold the cars stationary on the grid with the
+  // engines working, which is the same window the rev loop plays over.
+  const revving =
+    (phase === 'round_active' && currentRound >= 3) || phase === 'pre_race_countdown';
+  const [boosting, setBoosting] = React.useState(false);
 
   // Authentic Materials from Singleton Library
   const bodyMat = isBlue ? PBR_MATERIALS.vehicleBodyBlue : PBR_MATERIALS.vehicleBodyRed;
@@ -59,6 +72,9 @@ export const RaceVehicle3D: React.FC<Props> = ({ teamId }) => {
 
   useFrame((state, delta) => {
     const dt = Math.min(0.05, delta);
+    // Mirror boost into React state only when it flips, not every frame.
+    const boostNow = body.boostRemaining > 0;
+    if (boostNow !== boosting) setBoosting(boostNow);
     const steerInput = body.steerAngle / 0.55; // normalised -1..1
     const boostActive = body.boostRemaining > 0;
     const held = body.holdRemaining > 0;
@@ -115,6 +131,7 @@ export const RaceVehicle3D: React.FC<Props> = ({ teamId }) => {
 
   return (
     <group ref={groupRef}>
+      <ExhaustFX3D teamId={isBlue ? 'blue' : 'red'} revving={revving} boosting={boosting} />
       {/* ── CHASSIS ROLL GROUP (Banks on turns) ── */}
       <group ref={chassisRollRef}>
         {/* ── 1. MAIN MONOCOQUE BODY & NOSE CONE ── */}

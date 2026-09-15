@@ -26,7 +26,6 @@ import { Grandstands3D } from './Grandstands3D';
 import { CrowdLife3D } from './CrowdLife3D';
 import { RaceVehicle3D } from './RaceVehicle3D';
 import { FacilityWorkers3D } from './FacilityWorkers3D';
-import { ChampagneStreakerFan3D } from './ChampagneStreakerFan3D';
 import { PerformanceCollector } from '../ui/PerformanceMonitorOverlay';
 
 import { usePatternStore } from '../store/patternStore';
@@ -324,7 +323,6 @@ function midpoint(a: { x: number; z: number }, b: { x: number; z: number }) {
 // ── WORLD ───────────────────────────────────────────────────────────────────
 
 const WorldContent: React.FC = () => {
-  const champagneActive = usePatternStore((s) => s.champagneActive);
 
   return (
     <>
@@ -338,9 +336,6 @@ const WorldContent: React.FC = () => {
       <RaceVehicle3D teamId="blue" />
       <RaceVehicle3D teamId="red" />
 
-      {/* One-shot celebration. Unmounted entirely once it has played, so it
-          cannot loop the way the old 16-second clock-modulo version did. */}
-      {champagneActive && <ChampagneStreakerFan3D />}
     </>
   );
 };

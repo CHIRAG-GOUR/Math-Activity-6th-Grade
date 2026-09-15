@@ -103,8 +103,9 @@ export const PatternOverlays: React.FC = () => {
               {/* Launch Match Button */}
               <button
                 onClick={() => {
+                  // Unlock audio on the gesture, then bring the soundtrack up.
                   patternAudio.unlock();
-                  patternAudio.playEngineRev();
+                  patternAudio.startBgm();
                   setGamePhase('round_active');
                 }}
                 className="w-full py-4 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black text-sm uppercase tracking-wider border-3 border-slate-900 shadow-[4px_4px_0px_#000000] flex items-center justify-center gap-2 active:scale-95 transition cursor-pointer"

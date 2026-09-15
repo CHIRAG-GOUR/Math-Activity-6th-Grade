@@ -189,13 +189,15 @@ export function requestBoost(team: TeamId) {
 // stays testable in isolation.
 
 export interface SimAudioSink {
-  onEngine(team: TeamId, rpm: number, load: number): void;
+  /** `speedFrac` is 0..1 of top speed; `load` is 0..1 engine effort. */
+  onEngine(team: TeamId, speedFrac: number, load: number): void;
   onSlip(team: TeamId, slipping: boolean): void;
   onImpact(team: TeamId, force: number): void;
   onBoost(team: TeamId): void;
   onGearShift(team: TeamId, gear: number): void;
   onBrake(team: TeamId, intensity: number): void;
   onEngineStart(team: TeamId): void;
+  onEngineDriving(team: TeamId): void;
   onGarageDoor(): void;
 }
 
@@ -346,7 +348,8 @@ export function startGarageToTyreBay(onArrive?: (team: TeamId) => void) {
   sim.mode = 'cinematic';
   clearInputs();
 
-  // Shutters up, then both cars fire their engines a beat later.
+  // Shutters up, then both cars fire their engines a beat later. Blue picks up
+  // its recording at the pulling-away cue; red fades in from the top.
   audio?.onGarageDoor();
   setTimeout(() => audio?.onEngineStart('blue'), 700);
   setTimeout(() => audio?.onEngineStart('red'), 1100);
@@ -612,6 +615,9 @@ export function stageAtGrid() {
 
 /** Lights out. `heldTeam` is restrained for `holdSeconds` — a TIME penalty. */
 export function startRace(heldTeam: TeamId | null, holdSeconds: number) {
+  // Both recordings jump to the section that sits under hard acceleration.
+  audio?.onEngineDriving('blue');
+  audio?.onEngineDriving('red');
   sim.mode = 'player';
   sim.racing = true;
   sim.raceTime = 0;
@@ -746,8 +752,11 @@ export function stepSimulation(rawDt: number) {
 
     // ── AUDIO ──
     if (audio) {
-      const load = input.throttle > 0 ? 1 : Math.abs(b.speed) / 60;
-      audio.onEngine(team, b.rpm, load);
+      // Sampled engines are driven by road speed, so the recording pitches up
+      // as the car accelerates and drops back under braking.
+      const speedFrac = Math.min(1, Math.abs(b.speed) / 60);
+      const load = input.throttle > 0 ? 1 : speedFrac * 0.6;
+      audio.onEngine(team, speedFrac, load);
 
       if (b.slipping !== prevSlip[team]) {
         audio.onSlip(team, b.slipping);
