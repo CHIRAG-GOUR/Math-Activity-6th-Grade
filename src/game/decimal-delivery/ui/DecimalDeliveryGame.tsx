@@ -105,7 +105,12 @@ export const DecimalDeliveryGame: React.FC = () => {
     return () => ro.disconnect();
   }, []);
 
-  useEffect(() => () => depotAudio.shutdown(), []);
+  useEffect(() => {
+    depotAudio.startBgm();
+    return () => {
+      depotAudio.shutdown();
+    };
+  }, []);
   useEffect(() => { depotAudio.setMuted(muted); }, [muted]);
 
   const showConsoles = phase !== 'intro';
