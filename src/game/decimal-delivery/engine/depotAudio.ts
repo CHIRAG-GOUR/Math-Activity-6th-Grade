@@ -178,6 +178,27 @@ class DepotAudio {
         if (this.allow(event, 0.5)) this.noise(0.18, 900, 220, 0.12);
         break;
 
+      case 'scale_settle':
+        // Belt slows, parcel settles onto the platform.
+        if (this.allow(event, 0.2)) this.noise(0.22, 700, 180, 0.09);
+        break;
+
+      case 'forklift_beep':
+        // Reversing beeper, two short pips.
+        if (this.allow(event, 0.8)) {
+          this.tone(1100, 1100, 0.12, 'square', 0.07);
+          this.tone(1100, 1100, 0.12, 'square', 0.07, 0.2);
+        }
+        break;
+
+      case 'reject_drop':
+        // Parcel lands in the discard bin. Dull, not harsh.
+        if (this.allow(event, 0.3)) {
+          this.noise(0.3, 450, 120, 0.13);
+          this.tone(180, 110, 0.25, 'sine', 0.1);
+        }
+        break;
+
       case 'scale_ok':
         // Rising two-note confirmation — the satisfying "accepted" cue.
         if (this.allow(event, 0.15)) {
@@ -202,11 +223,11 @@ class DepotAudio {
         if (this.allow(event, 0.25)) this.tone(1500, 2100, 0.1, 'square', 0.1);
         break;
 
-      case 'gate':
+      case 'divert':
         if (this.allow(event, 0.3)) this.noise(0.22, 700, 200, 0.1);
         break;
 
-      case 'worker_pickup':
+      case 'pickup':
         if (this.allow(event, 0.3)) this.noise(0.12, 600, 180, 0.08);
         break;
 

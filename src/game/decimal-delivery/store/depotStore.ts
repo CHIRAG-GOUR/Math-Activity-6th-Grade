@@ -1,48 +1,109 @@
 // ============================================================
 // THE DECIMAL DELIVERY NETWORK — GAME STATE
 //
-// Zustand, matching the rest of the Arcade. The defining constraint here is
-// that BLUE AND RED ARE COMPLETELY INDEPENDENT: separate orders, separate
-// keypad buffers, separate balances, separate phases. There is no shared
-// "current answer" anywhere, so one player submitting can never interrupt or
-// block the other mid-entry.
+// Zustand, matching the rest of the Arcade.
 //
-// Physical movement lives in engine/depotSim.ts and is stepped per frame; this
-// store only holds game state and is written at human speed.
+// FOUR INDEPENDENT LANES: Blue A, Blue B, Red A, Red B. Each lane has its own
+// ACTIVE order (the parcel on or heading for its scale) and a NEXT order
+// queued on the belt behind it (section 66). Keypad buffers, attempts and
+// status live per lane, so nothing one player does can interrupt the other —
+// or even their own second belt.
+//
+// Two attempts per order, like the railway game. A first miss keeps the parcel
+// on the scale for a retry; a second miss sends it down the reject chute.
+//
+// Money is only ever awarded when a parcel physically lands in the truck
+// (sections 69, 103). Orders that have left the scale are tracked by parcel id
+// in `inFlight`, so the reward always belongs to the exact box that arrived.
 // ============================================================
 
 'use client';
 
 import { create } from 'zustand';
-import type {
-  DeliveryOrder, GamePhase, MatchResult, RoundNumber, TeamId, TeamState,
-} from '../types';
+import type { DeliveryOrder, GamePhase, MatchResult, RoundNumber, TeamId } from '../types';
+import { LANES, type LaneId } from '../engine/depotLayout';
 import {
-  generateOrder, generateTieBreaker, answersMatch, roundTo, ROUND_TITLES,
+  generateOrder, generateTieBreaker, answersMatch, roundTo, formatValue, ROUND_TITLES,
 } from '../engine/questionEngine';
 import {
-  spawnParcel, acceptAnswer, rejectAnswer, resetSim, departTruck,
-  setParcelLoadedHandler,
+  spawnParcel, approveParcel, rejectParcel, refuseAnswer, resetSim,
+  departTruck, closeTruck, setDepotHandlers,
 } from '../engine/depotSim';
+import { type TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
 
-/** Orders each team must complete before the round advances. */
-const ORDERS_PER_ROUND = 3;
-/** Maximum digits a student can type, so the field can never overflow. */
+/** Parcels each team processes per round (2 per belt). */
+export const PARCELS_PER_ROUND = 4;
+export const ATTEMPTS_PER_ORDER = 2;
 const MAX_INPUT_LENGTH = 8;
+/** A truck counts as full at this many deliveries (5 rounds x 4 parcels). */
+export const TRUCK_CAPACITY = PARCELS_PER_ROUND * 5;
+
+export type LaneStatus = 'empty' | 'incoming' | 'ready';
+
+export interface LaneOrder {
+  order: DeliveryOrder;
+  parcelId: string;
+}
+
+export interface LaneState {
+  lane: LaneId;
+  /** Order whose parcel is on (or travelling to) this lane's scale. */
+  active: LaneOrder | null;
+  /** Order queued behind it on the belt. */
+  next: LaneOrder | null;
+  status: LaneStatus;
+  input: string;
+  attemptsLeft: number;
+  lastWrong: boolean;
+  hintShown: boolean;
+  doubleArmed: boolean;
+}
+
+interface InFlight {
+  order: DeliveryOrder;
+  lane: LaneId;
+  approved: boolean;
+  doubleArmed: boolean;
+}
+
+export interface TeamState {
+  id: TeamId;
+  name: string;
+  lanes: Record<LaneId, LaneState>;
+  inFlight: Record<string, InFlight>;
+  balance: number;
+  ordersCompleted: number;
+  ordersRejected: number;
+  loadedWeight: number;
+  truckLoad: number;
+  powerUps: TeamPowerUps;
+  spawnedThisRound: number;
+  resolvedThisRound: number;
+  /** Last completion, for the reward / order-lost toast. */
+  lastResult: { kind: 'delivered' | 'rejected'; amount: number; orderId: string; at: number } | null;
+}
+
+function makeLane(lane: LaneId): LaneState {
+  return {
+    lane, active: null, next: null, status: 'empty', input: '',
+    attemptsLeft: ATTEMPTS_PER_ORDER, lastWrong: false, hintShown: false, doubleArmed: false,
+  };
+}
 
 function makeTeam(id: TeamId, name: string): TeamState {
   return {
     id, name,
-    phase: 'idle',
-    currentOrder: null,
-    input: '',
-    lastWrong: false,
-    attempts: 0,
+    lanes: { A: makeLane('A'), B: makeLane('B') },
+    inFlight: {},
     balance: 0,
     ordersCompleted: 0,
-    truckLoad: 0,
+    ordersRejected: 0,
     loadedWeight: 0,
-    rewardFlash: null,
+    truckLoad: 0,
+    powerUps: initialTeamPowerUps(),
+    spawnedThisRound: 0,
+    resolvedThisRound: 0,
+    lastResult: null,
   };
 }
 
@@ -52,27 +113,53 @@ interface DepotState {
   blue: TeamState;
   red: TeamState;
   result: MatchResult | null;
-  /** Set during the tie-break so both consoles show the same express order. */
   tieBreakWinner: TeamId | null;
   muted: boolean;
 
-  // ── actions ──
   startGame: () => void;
   beginRound: (round: RoundNumber) => void;
-  requestOrder: (team: TeamId) => void;
+  topUpLane: (team: TeamId, lane: LaneId) => void;
 
-  pressKey: (team: TeamId, key: string) => void;
-  clearInput: (team: TeamId) => void;
-  backspace: (team: TeamId) => void;
-  submit: (team: TeamId) => void;
+  pressKey: (team: TeamId, lane: LaneId, key: string) => void;
+  clearInput: (team: TeamId, lane: LaneId) => void;
+  backspace: (team: TeamId, lane: LaneId) => void;
+  submit: (team: TeamId, lane: LaneId) => void;
 
-  /** Called by the simulation the moment a parcel is physically in the truck. */
-  completeLoad: (team: TeamId) => void;
+  useHint: (team: TeamId, lane: LaneId) => void;
+  useExtraTry: (team: TeamId, lane: LaneId) => void;
+  useDoublePay: (team: TeamId, lane: LaneId) => void;
+
+  stationReady: (team: TeamId, lane: LaneId, parcelId: string) => void;
+  parcelDelivered: (team: TeamId, parcelId: string) => void;
+  parcelDiscarded: (team: TeamId, parcelId: string) => void;
+  checkRoundProgress: () => void;
 
   finishMatch: () => void;
   runDispatch: () => void;
   toggleMute: () => void;
   resetGame: () => void;
+}
+
+const teamOf = (s: DepotState, team: TeamId) => (team === 'blue' ? s.blue : s.red);
+const put = (team: TeamId, t: TeamState): Partial<DepotState> => (team === 'blue' ? { blue: t } : { red: t });
+
+function patchLane(s: DepotState, team: TeamId, lane: LaneId, patch: Partial<LaneState>): Partial<DepotState> {
+  const t = teamOf(s, team);
+  return put(team, { ...t, lanes: { ...t.lanes, [lane]: { ...t.lanes[lane], ...patch } } });
+}
+
+/** Guards every round transition so a late timer from a previous game is ignored. */
+let generation = 0;
+
+function later(fn: () => void, ms: number) {
+  const g = generation;
+  setTimeout(() => { if (g === generation) fn(); }, ms);
+}
+
+function hashColor(code: string): number {
+  let h = 0;
+  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
+  return h % 6;
 }
 
 export const useDepotStore = create<DepotState>((set, get) => ({
@@ -85,182 +172,294 @@ export const useDepotStore = create<DepotState>((set, get) => ({
   muted: false,
 
   startGame: () => {
+    if (get().phase !== 'intro') return;
     set({ phase: 'round_intro', round: 1 });
-    // Short beat on the round card, then both depots open for business.
-    setTimeout(() => get().beginRound(1), 2600);
+    later(() => get().beginRound(1), 3000);
   },
 
   beginRound: (round) => {
-    set({ phase: 'operating', round });
-    // Both sides receive their first order of the round immediately and
-    // independently — neither waits on the other.
-    get().requestOrder('blue');
-    get().requestOrder('red');
+    set((s) => ({
+      phase: s.phase === 'tie_breaker' ? 'tie_breaker' : 'operating',
+      round,
+      blue: { ...s.blue, spawnedThisRound: 0, resolvedThisRound: 0 },
+      red: { ...s.red, spawnedThisRound: 0, resolvedThisRound: 0 },
+    }));
+    // Stagger the first parcels so the depot does not spawn four on one frame.
+    (['blue', 'red'] as TeamId[]).forEach((team, ti) => {
+      LANES.forEach((lane, li) => later(() => get().topUpLane(team, lane), 300 + ti * 350 + li * 1600));
+    });
   },
 
-  requestOrder: (team) => {
+  /**
+   * Keep a lane stocked: an active order, plus one queued behind it while the
+   * round quota allows. Called whenever a lane frees up.
+   */
+  topUpLane: (team, lane) => {
     const st = get();
-    if (st.phase !== 'operating' && st.phase !== 'tie_breaker') return;
+    const operating = st.phase === 'operating' || st.phase === 'tie_breaker';
+    if (!operating) return;
 
-    const teamState = team === 'blue' ? st.blue : st.red;
+    const t = teamOf(st, team);
+    const l = t.lanes[lane];
+    const quota = st.phase === 'tie_breaker' ? 1 : PARCELS_PER_ROUND;
+    const room = (l.active ? 0 : 1) + (l.next ? 0 : 1);
+    if (room === 0) return;
+    // Tie-break parcels only go on belt A.
+    if (st.phase === 'tie_breaker' && lane !== 'A') return;
+    if (t.spawnedThisRound >= quota) return;
+
     const order = st.phase === 'tie_breaker'
       ? generateTieBreaker()
-      : generateOrder(st.round, teamState.ordersCompleted % ORDERS_PER_ROUND);
+      : generateOrder(st.round, t.spawnedThisRound);
 
-    set((s) => ({
-      [team]: {
-        ...(team === 'blue' ? s.blue : s.red),
-        currentOrder: order,
-        input: '',
-        lastWrong: false,
-        attempts: 0,
-        phase: 'incoming',
+    const parcelId = spawnParcel({
+      team, lane,
+      shape: order.shape,
+      weightKg: order.weightKg,
+      colorIndex: hashColor(order.destination.code),
+      hideScale: order.hideScale,
+      label: {
+        orderId: order.id,
+        destination: order.destination.name,
+        rows: order.labelRows.slice(0, 3).map((r) => ({
+          label: r.label,
+          value: order.isMoney && /^[\d.]+$/.test(r.value) ? `₹${r.value}` : r.value,
+        })),
       },
-    } as unknown as Partial<DepotState>));
+    });
 
-    // The forklift physically brings the parcel in. The console only becomes
-    // live once it has actually landed on the scale.
-    spawnParcel(team, order.shape, order.weightKg, hashColor(order.destination.code));
-    setTimeout(() => {
-      set((s) => {
-        const t = team === 'blue' ? s.blue : s.red;
-        if (t.phase !== 'incoming') return {};
-        return { [team]: { ...t, phase: 'answering' } } as unknown as Partial<DepotState>;
+    const entry: LaneOrder = { order, parcelId };
+    set((s) => {
+      const cur = teamOf(s, team);
+      const cl = cur.lanes[lane];
+      const nextLane: LaneState = cl.active
+        ? { ...cl, next: entry }
+        : { ...cl, active: entry, status: 'incoming', input: '', attemptsLeft: ATTEMPTS_PER_ORDER,
+            lastWrong: false, hintShown: false, doubleArmed: false };
+      return put(team, {
+        ...cur,
+        spawnedThisRound: cur.spawnedThisRound + 1,
+        lanes: { ...cur.lanes, [lane]: nextLane },
       });
-    }, 2700);
+    });
+
+    // Fill the queue slot too, a little later, so the belt visibly has a
+    // parcel waiting behind the one being solved.
+    if (room === 2) later(() => get().topUpLane(team, lane), 5200);
   },
 
   // ── KEYPAD ────────────────────────────────────────────────────────────────
-  // Every guard here exists so rapid taps on a classroom touchscreen cannot
-  // produce malformed input like "..5" or a 20-digit number.
 
-  pressKey: (team, key) => {
-    set((s) => {
-      const t = team === 'blue' ? s.blue : s.red;
-      if (t.phase !== 'answering') return {};
-
-      let next = t.input;
-      if (key === '.') {
-        if (next.includes('.')) return {};        // only one decimal point
-        next = next === '' ? '0.' : next + '.';   // leading "." becomes "0."
-      } else {
-        if (next.replace('.', '').length >= MAX_INPUT_LENGTH) return {};
-        // Avoid "007" while still allowing "0.5".
-        if (next === '0') next = key;
-        else next = next + key;
-      }
-      return { [team]: { ...t, input: next, lastWrong: false } } as unknown as Partial<DepotState>;
-    });
-  },
-
-  clearInput: (team) => set((s) => {
-    const t = team === 'blue' ? s.blue : s.red;
-    if (t.phase !== 'answering') return {};
-    return { [team]: { ...t, input: '', lastWrong: false } } as unknown as Partial<DepotState>;
+  pressKey: (team, lane, key) => set((s) => {
+    const l = teamOf(s, team).lanes[lane];
+    if (l.status !== 'ready') return {};
+    let next = l.input;
+    if (key === '.') {
+      if (next.includes('.')) return {};
+      next = next === '' ? '0.' : next + '.';
+    } else {
+      if (!/^\d$/.test(key)) return {};
+      if (next.replace('.', '').length >= MAX_INPUT_LENGTH) return {};
+      next = next === '0' ? key : next + key;
+    }
+    return patchLane(s, team, lane, { input: next, lastWrong: false });
   }),
 
-  backspace: (team) => set((s) => {
-    const t = team === 'blue' ? s.blue : s.red;
-    if (t.phase !== 'answering') return {};
-    return { [team]: { ...t, input: t.input.slice(0, -1), lastWrong: false } } as unknown as Partial<DepotState>;
+  clearInput: (team, lane) => set((s) =>
+    teamOf(s, team).lanes[lane].status === 'ready'
+      ? patchLane(s, team, lane, { input: '', lastWrong: false }) : {}),
+
+  backspace: (team, lane) => set((s) => {
+    const l = teamOf(s, team).lanes[lane];
+    return l.status === 'ready' ? patchLane(s, team, lane, { input: l.input.slice(0, -1), lastWrong: false }) : {};
   }),
 
-  submit: (team) => {
+  submit: (team, lane) => {
     const st = get();
-    const t = team === 'blue' ? st.blue : st.red;
-    const order = t.currentOrder;
+    const t = teamOf(st, team);
+    const l = t.lanes[lane];
+    if (!l.active || l.status !== 'ready') return;
 
-    // Guards: nothing to submit, not this team's turn to answer, or the field
-    // holds something that is not a usable number ("", ".", "3.").
-    if (!order || t.phase !== 'answering') return;
-    const trimmed = t.input.endsWith('.') ? t.input.slice(0, -1) : t.input;
-    if (trimmed === '' || trimmed === '-') return;
+    // Guard malformed entries ("", ".", "3.") so a rapid tap can never crash.
+    const trimmed = l.input.endsWith('.') ? l.input.slice(0, -1) : l.input;
+    if (trimmed === '') return;
     const value = Number(trimmed);
     if (!Number.isFinite(value)) return;
 
-    if (answersMatch(value, order.correctAnswer, order.decimals)) {
-      // CORRECT — hand off to the physical chain. Money is NOT awarded here;
-      // it is awarded when the parcel actually reaches the truck, so the
-      // number on screen and the box in the world stay in step.
-      set((s) => {
-        const cur = team === 'blue' ? s.blue : s.red;
-        return { [team]: { ...cur, phase: 'processing', lastWrong: false } } as unknown as Partial<DepotState>;
-      });
-      acceptAnswer(team);
-    } else {
-      // INCORRECT — the machine simply refuses to run. No money lost, no round
-      // reset, and the student can correct the field and try again.
-      set((s) => {
-        const cur = team === 'blue' ? s.blue : s.red;
-        return {
-          [team]: { ...cur, lastWrong: true, attempts: cur.attempts + 1 },
-        } as unknown as Partial<DepotState>;
-      });
-      rejectAnswer(team);
+    const { order, parcelId } = l.active;
+    const correct = answersMatch(value, order.correctAnswer, order.decimals);
+
+    if (!correct && l.attemptsLeft > 1) {
+      // First miss: the machine refuses; the parcel stays on the scale.
+      set((s) => patchLane(s, team, lane, { attemptsLeft: l.attemptsLeft - 1, lastWrong: true, input: '' }));
+      refuseAnswer(team, lane);
+      return;
     }
-  },
 
-  // ── ORDER COMPLETION ──────────────────────────────────────────────────────
-
-  completeLoad: (team) => {
-    const st = get();
-    const t = team === 'blue' ? st.blue : st.red;
-    const order = t.currentOrder;
-    if (!order) return;
-
-    const reward = order.reward;
-    const completed = t.ordersCompleted + 1;
+    // Final outcome for this parcel: it leaves the scale either way.
+    const moved = correct ? approveParcel(team, lane) : rejectParcel(team, lane);
+    if (!moved) return;
 
     set((s) => {
-      const cur = team === 'blue' ? s.blue : s.red;
-      return {
-        [team]: {
-          ...cur,
-          phase: 'idle',
-          currentOrder: null,
-          input: '',
-          balance: roundTo(cur.balance + reward, 2),
-          ordersCompleted: completed,
-          loadedWeight: roundTo(cur.loadedWeight + order.weightKg, 2),
-          truckLoad: Math.min(1, completed / (ORDERS_PER_ROUND * 5)),
-          rewardFlash: { amount: reward, at: Date.now() },
+      const cur = teamOf(s, team);
+      const cl = cur.lanes[lane];
+      // Promote the queued order to active; its parcel is already on the belt.
+      const promoted: LaneState = {
+        ...makeLane(lane),
+        active: cl.next,
+        status: cl.next ? 'incoming' : 'empty',
+      };
+      return put(team, {
+        ...cur,
+        inFlight: {
+          ...cur.inFlight,
+          [parcelId]: { order, lane, approved: correct, doubleArmed: cl.doubleArmed },
         },
-      } as unknown as Partial<DepotState>;
+        powerUps: { ...cur.powerUps, active2x: false },
+        lanes: { ...cur.lanes, [lane]: promoted },
+      });
     });
 
-    // Tie-break: the first team to land a correct express parcel takes it.
+    // Restock behind the promoted parcel.
+    later(() => get().topUpLane(team, lane), 1400);
+  },
+
+  // ── POWER-UPS ─────────────────────────────────────────────────────────────
+  // One of each per team per match. The railway game's 50:50 removes wrong
+  // options, which means nothing when students type the answer, so the same
+  // three slots are adapted: HINT shows the working, +1 TRY adds an attempt,
+  // 2x PAY doubles the reward if that parcel is delivered.
+
+  useHint: (team, lane) => set((s) => {
+    const t = teamOf(s, team);
+    const l = t.lanes[lane];
+    if (!t.powerUps.fiftyFifty || l.status !== 'ready' || l.hintShown) return {};
+    return put(team, {
+      ...t,
+      powerUps: { ...t.powerUps, fiftyFifty: false },
+      lanes: { ...t.lanes, [lane]: { ...l, hintShown: true } },
+    });
+  }),
+
+  useExtraTry: (team, lane) => set((s) => {
+    const t = teamOf(s, team);
+    const l = t.lanes[lane];
+    if (!t.powerUps.timeFreeze || l.status !== 'ready') return {};
+    return put(team, {
+      ...t,
+      powerUps: { ...t.powerUps, timeFreeze: false },
+      lanes: { ...t.lanes, [lane]: { ...l, attemptsLeft: l.attemptsLeft + 1 } },
+    });
+  }),
+
+  useDoublePay: (team, lane) => set((s) => {
+    const t = teamOf(s, team);
+    const l = t.lanes[lane];
+    if (!t.powerUps.doublePoints || l.status !== 'ready' || l.doubleArmed) return {};
+    return put(team, {
+      ...t,
+      powerUps: { ...t.powerUps, doublePoints: false, active2x: true },
+      lanes: { ...t.lanes, [lane]: { ...l, doubleArmed: true } },
+    });
+  }),
+
+  // ── SIMULATION CALLBACKS ──────────────────────────────────────────────────
+
+  stationReady: (team, lane, parcelId) => set((s) => {
+    const l = teamOf(s, team).lanes[lane];
+    // Only go live for the order that owns this parcel.
+    if (!l.active || l.active.parcelId !== parcelId || l.status !== 'incoming') return {};
+    return patchLane(s, team, lane, { status: 'ready' });
+  }),
+
+  parcelDelivered: (team, parcelId) => {
+    const t = teamOf(get(), team);
+    const f = t.inFlight[parcelId];
+    if (!f) return;
+    const reward = roundTo(f.doubleArmed ? f.order.reward * 2 : f.order.reward, 2);
+
+    set((s) => {
+      const cur = teamOf(s, team);
+      const rest = { ...cur.inFlight };
+      delete rest[parcelId];
+      const done = cur.ordersCompleted + 1;
+      return put(team, {
+        ...cur,
+        inFlight: rest,
+        balance: roundTo(cur.balance + reward, 2),
+        ordersCompleted: done,
+        loadedWeight: roundTo(cur.loadedWeight + f.order.weightKg, 2),
+        truckLoad: Math.min(1, done / TRUCK_CAPACITY),
+        resolvedThisRound: cur.resolvedThisRound + 1,
+        lastResult: { kind: 'delivered', amount: reward, orderId: f.order.id, at: Date.now() },
+      });
+    });
+
+    if (get().phase === 'tie_breaker' && !get().tieBreakWinner) {
+      set({ tieBreakWinner: team });
+      later(() => get().runDispatch(), 1500);
+      return;
+    }
+    get().checkRoundProgress();
+  },
+
+  parcelDiscarded: (team, parcelId) => {
+    const t = teamOf(get(), team);
+    const f = t.inFlight[parcelId];
+    if (!f) return;
+
+    set((s) => {
+      const cur = teamOf(s, team);
+      const rest = { ...cur.inFlight };
+      delete rest[parcelId];
+      return put(team, {
+        ...cur,
+        inFlight: rest,
+        ordersRejected: cur.ordersRejected + 1,
+        resolvedThisRound: cur.resolvedThisRound + 1,
+        lastResult: { kind: 'rejected', amount: 0, orderId: f.order.id, at: Date.now() },
+      });
+    });
+    get().checkRoundProgress();
+  },
+
+  checkRoundProgress: () => {
+    const st = get();
+
     if (st.phase === 'tie_breaker') {
-      if (!get().tieBreakWinner) {
-        set({ tieBreakWinner: team });
-        setTimeout(() => get().runDispatch(), 1200);
+      // Both express parcels rejected: issue another pair rather than guess.
+      const bothDone = st.blue.resolvedThisRound >= 1 && st.red.resolvedThisRound >= 1;
+      if (bothDone && !st.tieBreakWinner) {
+        later(() => {
+          set((s) => ({
+            blue: { ...s.blue, spawnedThisRound: 0, resolvedThisRound: 0 },
+            red: { ...s.red, spawnedThisRound: 0, resolvedThisRound: 0 },
+          }));
+          get().topUpLane('blue', 'A');
+          get().topUpLane('red', 'A');
+        }, 1500);
       }
       return;
     }
+    if (st.phase !== 'operating') return;
 
-    // Advance the round only when BOTH teams have finished their quota, so
-    // neither side is cut off mid-order.
-    const after = get();
-    const blueDone = after.blue.ordersCompleted >= ORDERS_PER_ROUND * after.round;
-    const redDone = after.red.ordersCompleted >= ORDERS_PER_ROUND * after.round;
+    // A round ends only when every parcel of BOTH teams has physically come to
+    // rest, so nothing is ever cut off mid-carry.
+    const done = (t: TeamState) =>
+      t.spawnedThisRound >= PARCELS_PER_ROUND && t.resolvedThisRound >= PARCELS_PER_ROUND;
+    if (!done(st.blue) || !done(st.red)) return;
 
-    if (blueDone && redDone) {
-      if (after.round >= 5) {
-        setTimeout(() => get().finishMatch(), 1400);
-      } else {
-        const next = (after.round + 1) as RoundNumber;
-        set({ phase: 'round_complete' });
-        setTimeout(() => {
-          set({ phase: 'round_intro', round: next });
-          setTimeout(() => get().beginRound(next), 2400);
-        }, 1600);
-      }
+    if (st.round >= 5) {
+      set({ phase: 'round_complete' });
+      later(() => get().finishMatch(), 1800);
       return;
     }
-
-    // Otherwise this team simply takes its next order — independently.
-    setTimeout(() => {
-      if (get().phase === 'operating') get().requestOrder(team);
-    }, 900);
+    const next = (st.round + 1) as RoundNumber;
+    set({ phase: 'round_complete' });
+    later(() => {
+      set({ phase: 'round_intro', round: next });
+      later(() => get().beginRound(next), 2600);
+    }, 1800);
   },
 
   // ── ENDGAME ───────────────────────────────────────────────────────────────
@@ -271,27 +470,25 @@ export const useDepotStore = create<DepotState>((set, get) => ({
     const r = roundTo(red.balance, 2);
 
     if (Math.abs(b - r) < 0.005) {
-      // Genuine tie: settle it with one express order rather than picking a
-      // winner arbitrarily.
-      set({ phase: 'tie_breaker', tieBreakWinner: null });
-      get().requestOrder('blue');
-      get().requestOrder('red');
+      // Exact tie: settle it with an express order, never an arbitrary pick.
+      set((s) => ({
+        phase: 'tie_breaker',
+        tieBreakWinner: null,
+        blue: { ...s.blue, spawnedThisRound: 0, resolvedThisRound: 0 },
+        red: { ...s.red, spawnedThisRound: 0, resolvedThisRound: 0 },
+      }));
+      get().topUpLane('blue', 'A');
+      get().topUpLane('red', 'A');
       return;
     }
 
-    set({
-      phase: 'final_results',
-      result: { winner: b > r ? 'blue' : 'red', blueBalance: b, redBalance: r },
-    });
-    setTimeout(() => get().runDispatch(), 4200);
+    set({ phase: 'final_results', result: { winner: b > r ? 'blue' : 'red', blueBalance: b, redBalance: r } });
+    later(() => get().runDispatch(), 5000);
   },
 
   runDispatch: () => {
     const st = get();
-    const winner: TeamId =
-      st.tieBreakWinner ??
-      (st.result?.winner === 'red' ? 'red' : 'blue');
-
+    const winner: TeamId = st.tieBreakWinner ?? (st.result?.winner === 'red' ? 'red' : 'blue');
     set({
       phase: 'dispatch_showdown',
       result: st.result ?? {
@@ -300,16 +497,17 @@ export const useDepotStore = create<DepotState>((set, get) => ({
         redBalance: roundTo(st.red.balance, 2),
       },
     });
-
-    // The winning truck physically drives out. The loser stays in its bay.
-    departTruck(winner);
-    setTimeout(() => set({ phase: 'game_complete' }), 11000);
+    // Tarp over the load, then the winner pulls out. The loser stays in its bay.
+    closeTruck(winner);
+    later(() => departTruck(winner), 1600);
+    later(() => set({ phase: 'game_complete' }), 14000);
   },
 
   toggleMute: () => set((s) => ({ muted: !s.muted })),
 
   resetGame: () => {
-    // Full restart: no stale parcels, worker tasks, truck positions or money.
+    // Invalidate every pending timer from the previous game, then rebuild.
+    generation++;
     resetSim();
     set({
       phase: 'intro',
@@ -322,17 +520,14 @@ export const useDepotStore = create<DepotState>((set, get) => ({
   },
 }));
 
-/** Stable colour index per destination so lanes read consistently. */
-function hashColor(code: string): number {
-  let h = 0;
-  for (let i = 0; i < code.length; i++) h = (h * 31 + code.charCodeAt(i)) >>> 0;
-  return h % 6;
-}
+export { ROUND_TITLES, formatValue };
 
-export { ORDERS_PER_ROUND, ROUND_TITLES };
+// ── SIMULATION BRIDGE ───────────────────────────────────────────────────────
+// The simulation decides WHEN an order completes: the instant its parcel comes
+// to rest in the truck or the reject pile.
 
-// The simulation awards the order at the instant the parcel lands in the
-// truck. Wired once at module load.
-setParcelLoadedHandler((team) => {
-  useDepotStore.getState().completeLoad(team);
+setDepotHandlers({
+  onStationReady: (team, lane, parcelId) => useDepotStore.getState().stationReady(team, lane, parcelId),
+  onDelivered: (team, _lane, parcelId) => useDepotStore.getState().parcelDelivered(team, parcelId),
+  onDiscarded: (team, _lane, parcelId) => useDepotStore.getState().parcelDiscarded(team, parcelId),
 });

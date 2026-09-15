@@ -14,17 +14,20 @@
 
 import React from 'react';
 import type { TeamId } from '../types';
+import type { LaneId } from '../engine/depotLayout';
 import { useDepotStore } from '../store/depotStore';
 
 interface Props {
   team: TeamId;
+  /** Which of this team's two conveyor lanes this pad drives. */
+  lane: LaneId;
   /** Disabled while the parcel is still arriving or already processing. */
   live: boolean;
 }
 
 const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9'];
 
-export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
+export const DepotKeypad: React.FC<Props> = ({ team, lane, live }) => {
   const pressKey = useDepotStore((s) => s.pressKey);
   const clearInput = useDepotStore((s) => s.clearInput);
   const backspace = useDepotStore((s) => s.backspace);
@@ -46,7 +49,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
             key={k}
             type="button"
             disabled={!live}
-            onPointerDown={(e) => { e.preventDefault(); pressKey(team, k); }}
+            onPointerDown={(e) => { e.preventDefault(); pressKey(team, lane, k); }}
             className={keyClass}
           >
             {k}
@@ -57,7 +60,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
         <button
           type="button"
           disabled={!live}
-          onPointerDown={(e) => { e.preventDefault(); clearInput(team); }}
+          onPointerDown={(e) => { e.preventDefault(); clearInput(team, lane); }}
           className={
             'select-none touch-none flex items-center justify-center rounded-2xl border-2 ' +
             'border-slate-400 bg-slate-200 text-slate-700 font-black text-base xl:text-lg ' +
@@ -70,7 +73,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
         <button
           type="button"
           disabled={!live}
-          onPointerDown={(e) => { e.preventDefault(); pressKey(team, '0'); }}
+          onPointerDown={(e) => { e.preventDefault(); pressKey(team, lane, '0'); }}
           className={keyClass}
         >
           0
@@ -81,7 +84,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
         <button
           type="button"
           disabled={!live}
-          onPointerDown={(e) => { e.preventDefault(); pressKey(team, '.'); }}
+          onPointerDown={(e) => { e.preventDefault(); pressKey(team, lane, '.'); }}
           className={
             'select-none touch-none flex items-end justify-center rounded-2xl border-2 pb-2 ' +
             `border-amber-400 bg-amber-300 text-slate-900 font-black text-4xl xl:text-5xl ` +
@@ -97,7 +100,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
         <button
           type="button"
           disabled={!live}
-          onPointerDown={(e) => { e.preventDefault(); backspace(team); }}
+          onPointerDown={(e) => { e.preventDefault(); backspace(team, lane); }}
           className={
             'select-none touch-none col-span-1 flex items-center justify-center rounded-2xl ' +
             'border-2 border-slate-400 bg-slate-200 text-slate-700 font-black text-2xl ' +
@@ -113,7 +116,7 @@ export const DepotKeypad: React.FC<Props> = ({ team, live }) => {
         <button
           type="button"
           disabled={!live}
-          onPointerDown={(e) => { e.preventDefault(); submit(team); }}
+          onPointerDown={(e) => { e.preventDefault(); submit(team, lane); }}
           className={
             'select-none touch-none col-span-2 flex items-center justify-center rounded-2xl ' +
             'border-b-4 font-black text-lg xl:text-xl tracking-wide h-14 xl:h-16 ' +

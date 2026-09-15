@@ -143,7 +143,7 @@ function nextOrderId(): string {
 
 type Gen = (difficulty: Difficulty) => Omit<
   DeliveryOrder,
-  'id' | 'round' | 'difficulty' | 'reward' | 'shape' | 'destination' | 'weightKg'
+  'id' | 'round' | 'difficulty' | 'reward' | 'shape' | 'destination' | 'weightKg' | 'hideScale'
 >;
 
 /** ROUND 1 — weighing dock: read and add decimal weights. */
@@ -528,6 +528,35 @@ function isValidOrder(o: DeliveryOrder): boolean {
   return true;
 }
 
+// ── PHYSICAL WEIGHT ─────────────────────────────────────────────────────────
+// A parcel's weight decides who moves it in the world: one worker, two workers
+// or the forklift. So the bank must produce a genuine mix of all three.
+
+type GenOutput = ReturnType<Gen>;
+
+/**
+ * True when the answer the student must find IS the parcel's weight. The scale
+ * cannot show that number while the question is live, or it gives the answer
+ * away — so these orders keep the display blank until the answer is accepted.
+ */
+function answerIsWeight(o: GenOutput): boolean {
+  return o.unit === 'kg' && (
+    o.kind === 'weight_total' || o.kind === 'quantity_multiply' || o.kind === 'multi_step'
+  );
+}
+
+function physicalWeight(o: GenOutput): number {
+  // Where the answer is the load's real weight, the parcel weighs exactly that,
+  // so the scale confirms the student's figure once it is accepted.
+  if (answerIsWeight(o)) return roundTo(Math.max(0.5, o.correctAnswer), 2);
+
+  // Otherwise pick a handling class: mostly light and medium, some heavy.
+  const r = rnd();
+  if (r < 0.45) return roundTo(0.8 + rnd() * 4.0, 2);   // light  < 5 kg
+  if (r < 0.8) return roundTo(5.5 + rnd() * 9.0, 2);    // medium 5-15 kg
+  return roundTo(16 + rnd() * 22, 2);                    // heavy  > 15 kg
+}
+
 // ── PUBLIC API ──────────────────────────────────────────────────────────────
 
 /**
@@ -551,7 +580,8 @@ export function generateOrder(round: RoundNumber, ordersDone: number): DeliveryO
       reward: rewardFor(round, difficulty),
       shape: pick(SHAPES),
       destination,
-      weightKg: roundTo(0.4 + rnd() * 6, 2),
+      weightKg: physicalWeight(base),
+      hideScale: answerIsWeight(base),
     };
     if (isValidOrder(order)) return order;
   }
@@ -578,7 +608,8 @@ export function generateOrder(round: RoundNumber, ordersDone: number): DeliveryO
     reward: rewardFor(round, difficulty),
     shape: 'small_box',
     destination: DESTINATIONS[0],
-    weightKg: 2.5,
+    weightKg: roundTo((aU + bU) / 100, 2),
+    hideScale: true,
   };
 }
 

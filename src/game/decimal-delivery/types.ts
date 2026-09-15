@@ -22,14 +22,6 @@ export type GamePhase =
   | 'dispatch_showdown'  // winning truck physically leaves
   | 'game_complete';
 
-/** Per-team station state. Each team owns its own copy. */
-export type TeamPhase =
-  | 'idle'          // waiting for an order to arrive
-  | 'incoming'      // forklift/worker delivering the package
-  | 'answering'     // package on the machine, keypad live
-  | 'processing'    // correct answer accepted, machine running
-  | 'loading';      // worker carrying package to the truck
-
 /** What kind of decimal work an order demands. */
 export type QuestionKind =
   | 'decimal_add'
@@ -100,54 +92,18 @@ export interface DeliveryOrder {
   reward: number;
   shape: PackageShape;
   destination: Destination;
-  /** Parcel weight in kg, used by the scale and truck load. */
+  /** Parcel weight in kg. Decides handling: 1 worker, 2 workers or forklift. */
   weightKg: number;
+  /**
+   * When the answer IS the parcel's weight, the scale must stay blank while
+   * the question is live — otherwise it would display the answer.
+   */
+  hideScale: boolean;
 }
 
-/** A parcel physically present in the world. */
-export interface LiveParcel {
-  id: string;
-  team: TeamId;
-  shape: PackageShape;
-  /** Progress 0..1 along the current leg of its journey. */
-  progress: number;
-  stage: ParcelStage;
-  weightKg: number;
-  /** Tint, derived from destination so lanes read consistently. */
-  colorIndex: number;
-}
-
-export type ParcelStage =
-  | 'arriving'      // forklift bringing it in
-  | 'on_scale'      // sitting on the weighing platform
-  | 'conveyor'      // travelling the belt after a correct answer
-  | 'scanner'
-  | 'to_truck'      // worker carrying it
-  | 'loaded';
-
-/** Independent per-team state. Nothing here is shared between the two. */
-export interface TeamState {
-  id: TeamId;
-  name: string;
-  phase: TeamPhase;
-
-  currentOrder: DeliveryOrder | null;
-  /** Raw keypad text, e.g. "4.5" — kept as a string so a trailing "." works. */
-  input: string;
-  /** Set briefly after a wrong submission, for the red indicator. */
-  lastWrong: boolean;
-  attempts: number;
-
-  balance: number;
-  ordersCompleted: number;
-  /** 0..1 how full the truck looks. */
-  truckLoad: number;
-  /** Total kg loaded, shown on the dispatch terminal. */
-  loadedWeight: number;
-
-  /** Set when a reward animation should play. */
-  rewardFlash: { amount: number; at: number } | null;
-}
+// Live parcel, lane and team runtime types live next to the code that owns
+// them: engine/depotSim.ts (physical parcels, carriers, lanes) and
+// store/depotStore.ts (per-lane orders, attempts, balances).
 
 export interface MatchResult {
   winner: TeamId | 'tie';
