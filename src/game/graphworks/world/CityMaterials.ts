@@ -204,4 +204,10 @@ export const CITY_MAT = {
     emissive: '#d97706',
     emissiveIntensity: 0.8,
   }),
+  hazardStripe: new THREE.MeshStandardMaterial({
+    color: '#eab308',
+    emissive: '#ca8a04',
+    emissiveIntensity: 0.35,
+    roughness: 0.5,
+  }),
 };

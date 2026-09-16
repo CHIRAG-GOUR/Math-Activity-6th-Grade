@@ -14,6 +14,7 @@ import { useGraphworksStore } from '../store/graphworksStore';
 export function CityDistricts3D() {
   const blueCity = useGraphworksStore((s) => s.blueCity);
   const redCity = useGraphworksStore((s) => s.redCity);
+  const cityStage = useGraphworksStore((s) => s.cityStage);
 
   // References for live physical animations
   const turbineRef = useRef<THREE.Group>(null);
@@ -117,10 +118,11 @@ export function CityDistricts3D() {
         0.8 + Math.cos(t * 10) * 0.5 * (redPowerRef.current / 50);
     }
 
-    // ── 5. PARK CIVIC FOUNTAIN JET HEIGHT ──
+    // ── 5. PARK CIVIC FOUNTAIN JET HEIGHT (UNLOCKS AT QUESTION 3) ──
     if (parkFountainRef.current) {
+      const isParkActive = cityStage >= 3;
       parkFountainRef.current.children.forEach((jet, i) => {
-        const h = fountainHeightRef.current;
+        const h = isParkActive ? fountainHeightRef.current : 0.02;
         jet.scale.set(1, (0.3 + Math.sin(t * 4 + i * 1.5) * 0.15) * (h / 0.8), 1);
         jet.position.y = (h / 2) * 0.6;
       });

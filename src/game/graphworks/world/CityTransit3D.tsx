@@ -104,6 +104,7 @@ export function CityTransit3D() {
   const redTrainRef = useRef<THREE.Group>(null);
   const trafficGroupRef = useRef<THREE.Group>(null);
 
+  const cityStage = useGraphworksStore((s) => s.cityStage);
   const blueCity = useGraphworksStore((s) => s.blueCity);
   const redCity = useGraphworksStore((s) => s.redCity);
   const blueMission = useGraphworksStore((s) => s.blue.currentMission);
@@ -304,14 +305,36 @@ export function CityTransit3D() {
         ))}
       </group>
 
-      {/* ── 2. DYNAMIC VEHICLES ON HIGHWAY ── */}
-      <group ref={trafficGroupRef}>
-        {vehicles.map((v) => (
-          <group key={v.id} position={[v.x, 0, v.z]} rotation={[0, v.rotY, 0]}>
-            <VehicleModel color={v.color} type={v.type} brakeLightsOn={v.isBraking} />
-          </group>
-        ))}
-      </group>
+      {/* ── 2. DYNAMIC VEHICLES ON HIGHWAY (UNLOCKS AT QUESTION 4) ── */}
+      {cityStage < 4 ? (
+        <group>
+          {/* Construction Road Hazard Barricades & Orange Drums */}
+          {[-24, -12, 0, 12, 24].map((bx) => (
+            <group key={bx} position={[bx, 0, 5.5]}>
+              <mesh position={[-1.2, 0.35, -0.9]}>
+                <cylinderGeometry args={[0.22, 0.22, 0.7, 12]} />
+                <meshStandardMaterial color="#f97316" roughness={0.5} />
+              </mesh>
+              <mesh position={[1.2, 0.35, 0.9]}>
+                <cylinderGeometry args={[0.22, 0.22, 0.7, 12]} />
+                <meshStandardMaterial color="#f97316" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.25, 0]}>
+                <boxGeometry args={[2.0, 0.15, 0.1]} />
+                <primitive object={CITY_MAT.hazardStripe} attach="material" />
+              </mesh>
+            </group>
+          ))}
+        </group>
+      ) : (
+        <group ref={trafficGroupRef}>
+          {vehicles.map((v) => (
+            <group key={v.id} position={[v.x, 0, v.z]} rotation={[0, v.rotY, 0]}>
+              <VehicleModel color={v.color} type={v.type} brakeLightsOn={v.isBraking} />
+            </group>
+          ))}
+        </group>
+      )}
 
       {/* ── 3. DUAL HIGH-SPEED BULLET TRAINS (INDEPENDENT BLUE & RED) ── */}
       {/* Blue Train on South Rail (Track 1) */}

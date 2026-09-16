@@ -23,11 +23,37 @@ function CityCameraDirector() {
   const currentPos = useRef(new THREE.Vector3(0, 15.5, 25.5));
   const currentTarget = useRef(new THREE.Vector3(0, 3.2, 0.5));
   const activeDistrict = useGraphworksStore((s) => s.cityEventState?.activeDistrict ?? 'city');
+  const gamePhase = useGraphworksStore((s) => s.gamePhase);
 
   useFrame((state, delta) => {
     // Normalized mouse coordinates (-1 to +1)
     const mx = state.pointer.x;
     const my = state.pointer.y;
+
+    if (gamePhase === 'victory') {
+      // ── GRAND PANORAMIC VICTORY ELEVATION & PULLBACK ──
+      // Pull back to frame the entire living city, the assembled celebrating citizens,
+      // and the radiant 3D sky proclamation hovering above the completed Data Tower!
+      const targetX = mx * 2.5;
+      const targetY = 22.0 + my * 1.5;
+      const targetZ = 34.0 - my * 1.5;
+
+      const lookX = -mx * 1.0;
+      const lookY = 6.5 + my * 0.5;
+      const lookZ = 0.0;
+
+      currentPos.current.x = THREE.MathUtils.damp(currentPos.current.x, targetX, 1.8, delta);
+      currentPos.current.y = THREE.MathUtils.damp(currentPos.current.y, targetY, 1.8, delta);
+      currentPos.current.z = THREE.MathUtils.damp(currentPos.current.z, targetZ, 1.8, delta);
+
+      currentTarget.current.x = THREE.MathUtils.damp(currentTarget.current.x, lookX, 1.8, delta);
+      currentTarget.current.y = THREE.MathUtils.damp(currentTarget.current.y, lookY, 1.8, delta);
+      currentTarget.current.z = THREE.MathUtils.damp(currentTarget.current.z, lookZ, 1.8, delta);
+
+      state.camera.position.copy(currentPos.current);
+      state.camera.lookAt(currentTarget.current);
+      return;
+    }
 
     // Subtle district focus offsets (gentle bounded framing, never loses sight of Graph Studios)
     let distOffX = 0;

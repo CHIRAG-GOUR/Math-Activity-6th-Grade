@@ -82,6 +82,9 @@ export interface TeamState {
   currentMission: MissionQuestion | null;
   missionIndex: number;
   completedMissions: number;
+  correctAnswers: number;
+  cityProgress: number; // 0, 20, 40, 60, 80, 100
+  completedSystems: string[];
 
   // Graph editor state
   graphType: GraphType;
@@ -247,7 +250,9 @@ export interface GraphworksStore {
   timer: number;              // seconds remaining
   isTimerRunning: boolean;
 
-  // 5-Question City Event System
+  // 5-Question City Event System & Physical Evolution
+  cityStage: number;          // 0: unbuilt, 1: weather, 2: market, 3: park/citizens, 4: transit, 5: complete
+  winningBlueprint: Team | 'tie' | null;
   cityEventState: CityEventState;
   clearEventToast: () => void;
 
@@ -342,6 +347,9 @@ const createDefaultTeam = (team: Team): TeamState => ({
   currentMission: null,
   missionIndex: 0,
   completedMissions: 0,
+  correctAnswers: 0,
+  cityProgress: 0,
+  completedSystems: [],
   graphType: 'line',
   plottedPoints: [],
   plottedBars: [],
@@ -443,7 +451,9 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   timer: 300,
   isTimerRunning: false,
 
-  // 5-Question City Event System
+  // 5-Question City Event System & Physical Evolution
+  cityStage: 0,
+  winningBlueprint: null,
   cityEventState: createDefaultCityEventState(1),
   clearEventToast: () => set((s) => ({
     cityEventState: { ...s.cityEventState, completionToast: null },
@@ -493,6 +503,8 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       gamePhase: 'playing',
       currentRound: 1,
       roundPhase: 'build',
+      cityStage: 0,
+      winningBlueprint: null,
       timer: 300,
       isTimerRunning: true,
       cityEventState: createDefaultCityEventState(1),
@@ -629,29 +641,43 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
         soundManager.playCorrect(true);
 
-        const currentEv = get().cityEventState.currentEvent;
-        const eventPhaseNum = getEventPhaseForQuestion(currentRoundNum);
         const questionsAnsweredCount = newHistory.length;
 
-        // Match concludes when 5 questions are answered on either side!
+        // Advance physical cityStage based on the milestone question answered!
+        const nextCityStage = Math.max(get().cityStage, currentRoundNum);
+        const teamCorrect = get()[winningTeam].correctAnswers + 1;
+        const teamProgress = Math.min(100, teamCorrect * 20);
+
+        // Match concludes when 5 questions are answered!
         const isMatchComplete =
-          eventPhaseNum >= 5 ||
+          currentRoundNum >= 5 ||
           questionsAnsweredCount >= 5 ||
           (newWins.blue + newWins.red >= 5) ||
           (get().blue.completedMissions + (winningTeam === 'blue' ? 1 : 0) >= 5) ||
           (get().red.completedMissions + (winningTeam === 'red' ? 1 : 0) >= 5);
 
+        // Determine winning blueprint
+        const finalWinner: Team | 'tie' =
+          newWins.blue > newWins.red
+            ? 'blue'
+            : newWins.red > newWins.blue
+            ? 'red'
+            : get().blue.totalScore >= get().red.totalScore
+            ? 'blue'
+            : 'red';
+
         const banner: RoundWinBannerData = {
           visible: true,
           team: winningTeam,
-          title: `⚡ ${winningTeam.toUpperCase()} TEAM ANSWERED FIRST!`,
+          title: `⚡ ${winningTeam.toUpperCase()} DESIGNED SYSTEM ${currentRoundNum}!`,
           subtitle: isMatchComplete
-            ? `🏆 5 QUESTIONS COMPLETE! CALCULATING CHAMPIONSHIP RESULTS...`
-            : `QUESTION ${eventPhaseNum} OF 5 WON (+100 PTS) · NEXT QUESTION LOADING...`,
+            ? `🏆 5 QUESTIONS COMPLETE! ${finalWinner.toUpperCase()}'S GRAPH BECOMES THE CITY BLUEPRINT!`
+            : `QUESTION ${currentRoundNum} OF 5 WON (+100 PTS) · PHYSICAL CITY EVOLVING...`,
           round: currentRoundNum,
         };
 
         set((s) => ({
+          cityStage: nextCityStage,
           roundWinner: winningTeam,
           roundWins: newWins,
           roundWinnersHistory: newHistory,
@@ -659,12 +685,14 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
           roundTransitionPending: true,
           cityEventState: {
             ...s.cityEventState,
-            eventPhase: eventPhaseNum,
-            eventProgress: (eventPhaseNum / 5) * 100,
-            completionToast: eventPhaseNum >= 5 ? currentEv.completionMessage : s.cityEventState.completionToast,
+            eventPhase: currentRoundNum,
+            eventProgress: (currentRoundNum / 5) * 100,
+            completionToast: isMatchComplete ? 'THE CITY IS NOW COMPLETE!' : s.cityEventState.completionToast,
           },
           [winningTeam]: {
             ...s[winningTeam],
+            correctAnswers: teamCorrect,
+            cityProgress: teamProgress,
             totalScore: s[winningTeam].totalScore + 100 + validation.accuracy,
             completedMissions: s[winningTeam].completedMissions + 1,
             cityLevel: Math.min(5, s[winningTeam].cityLevel + 1),
@@ -677,10 +705,9 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
         // Transition timer: after 5 questions answered, the result comes out immediately!
         setTimeout(() => {
           const sNow = get();
-          const currentPhaseNow = getEventPhaseForQuestion(sNow.currentRound);
           const isDone =
             isMatchComplete ||
-            currentPhaseNow >= 5 ||
+            sNow.currentRound >= 5 ||
             sNow.roundWinnersHistory.length >= 5 ||
             (sNow.roundWins.blue + sNow.roundWins.red >= 5) ||
             sNow.blue.completedMissions >= 5 ||
@@ -691,30 +718,46 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
               gamePhase: 'victory',
               roundBanner: null,
               roundTransitionPending: false,
+              cityStage: 5,
+              winningBlueprint: finalWinner,
             });
           } else {
             get().advanceRound();
           }
-        }, 2600);
+        }, 2400);
       } else {
         // Second team to finish correctly
         soundManager.playClick();
         const updatedMissions = get()[team].completedMissions + 1;
+        const updatedCorrect = get()[team].correctAnswers + 1;
         set((s) => ({
           [team]: {
             ...s[team],
+            correctAnswers: updatedCorrect,
+            cityProgress: Math.min(100, updatedCorrect * 20),
             totalScore: s[team].totalScore + Math.round(validation.accuracy * 0.5),
             completedMissions: updatedMissions,
           },
         }));
 
         // Check if 5 questions answered by this team
-        if (updatedMissions >= 5) {
+        if (updatedMissions >= 5 || updatedCorrect >= 5) {
           setTimeout(() => {
+            const sNow = get();
+            const win: Team | 'tie' =
+              sNow.roundWins.blue > sNow.roundWins.red
+                ? 'blue'
+                : sNow.roundWins.red > sNow.roundWins.blue
+                ? 'red'
+                : sNow.blue.totalScore >= sNow.red.totalScore
+                ? 'blue'
+                : 'red';
             set({
               gamePhase: 'victory',
               roundBanner: null,
               roundTransitionPending: false,
+              cityStage: 5,
+              winningBlueprint: win,
             });
           }, 1500);
         }
@@ -820,18 +863,32 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
   advanceRound: () => {
     const s = get();
-    const currentPhase = getEventPhaseForQuestion(s.currentRound);
     const questionsAnswered = s.roundWinnersHistory.length;
 
     // Conclude match and declare victory when 5 questions are completed on either side!
     if (
-      currentPhase >= 5 ||
+      s.currentRound >= 5 ||
       questionsAnswered >= 5 ||
       (s.roundWins.blue + s.roundWins.red >= 5) ||
       s.blue.completedMissions >= 5 ||
       s.red.completedMissions >= 5
     ) {
-      set({ gamePhase: 'victory', roundBanner: null, roundTransitionPending: false });
+      const winner: Team | 'tie' =
+        s.roundWins.blue > s.roundWins.red
+          ? 'blue'
+          : s.roundWins.red > s.roundWins.blue
+          ? 'red'
+          : s.blue.totalScore >= s.red.totalScore
+          ? 'blue'
+          : 'red';
+
+      set({
+        gamePhase: 'victory',
+        roundBanner: null,
+        roundTransitionPending: false,
+        cityStage: 5,
+        winningBlueprint: winner,
+      });
       return;
     }
 
@@ -1179,7 +1236,6 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   },
 
   restartGame: () => {
-    const currentEventIdx = get().cityEventState.eventIndex;
-    get().startEvent(currentEventIdx);
+    get().startGame();
   },
 }));

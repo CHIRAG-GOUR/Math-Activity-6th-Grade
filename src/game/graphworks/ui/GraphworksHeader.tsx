@@ -1,22 +1,30 @@
 // ============================================================
 // GRAPHWORKS — TOP SCOREBOARD & ARCADE HUD
 // Sleek floating glassmorphism HUD with live dual-team telemetry,
-// digital match countdown clock, and integrated round progress.
+// digital match countdown clock, and integrated 5-milestone city tracker.
 // ============================================================
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import { useGraphworksStore } from '../store/graphworksStore';
-import { soundManager } from '@/utils/audio';
+
+const MILESTONE_DESCRIPTIONS = [
+  'Milestone 1: Sunrise Temperature (Sky & Weather Transition)',
+  'Milestone 2: City Market Stalls (Market Hall Construction)',
+  'Milestone 3: Botanical Park Visitors (Fountain & Citizens Arrive)',
+  'Milestone 4: Boulevard Traffic (Vehicles, Lamps & Signals)',
+  'Milestone 5: Clean Energy Grid (Data Tower Superstructure & Grid)',
+];
 
 export function GraphworksHeader() {
   const blue = useGraphworksStore((s) => s.blue);
   const red = useGraphworksStore((s) => s.red);
   const currentRound = useGraphworksStore((s) => s.currentRound);
-  const gamePhase = useGraphworksStore((s) => s.gamePhase);
+  const cityStage = useGraphworksStore((s) => s.cityStage);
   const timer = useGraphworksStore((s) => s.timer);
   const isTimerRunning = useGraphworksStore((s) => s.isTimerRunning);
-  const advanceRound = useGraphworksStore((s) => s.advanceRound);
+  const roundWins = useGraphworksStore((s) => s.roundWins);
+  const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
 
   const [displayTimer, setDisplayTimer] = useState(timer);
 
@@ -41,10 +49,6 @@ export function GraphworksHeader() {
   const minutes = Math.floor(displayTimer / 60);
   const seconds = displayTimer % 60;
 
-  const roundWins = useGraphworksStore((s) => s.roundWins);
-  const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
-  const cityEventState = useGraphworksStore((s) => s.cityEventState);
-
   return (
     <header className="w-full px-4 py-1.5 flex items-center justify-between bg-slate-900/90 backdrop-blur-md border-b border-white/15 text-white select-none shadow-xl z-20">
       {/* ── LEFT: GAME LOGO & TAGLINE ── */}
@@ -64,7 +68,7 @@ export function GraphworksHeader() {
               </span>
             </div>
             <span className="text-[9.5px] text-slate-300 font-medium tracking-wide">
-              50 City Data Tasks · 10 Progressive City Events · First to plot wins!
+              5-Question Mathematical City Simulation · Winner Designs The City
             </span>
           </div>
         </div>
@@ -85,6 +89,10 @@ export function GraphworksHeader() {
               <span className="font-black text-white font-mono">{blue.graphAccuracy}%</span>
             </div>
             <div>
+              <span className="text-slate-400 block text-[8px] uppercase font-bold">City</span>
+              <span className="font-black text-cyan-300 font-mono">{blue.cityProgress}%</span>
+            </div>
+            <div>
               <span className="text-slate-400 block text-[8px] uppercase font-bold">Score</span>
               <span className="font-black text-yellow-400 font-mono">{blue.totalScore}</span>
             </div>
@@ -92,7 +100,7 @@ export function GraphworksHeader() {
         </div>
       </div>
 
-      {/* ── CENTER: 5-QUESTION CITY EVENT HUD & FIRST-TO-ANSWER SCOREBOARD ── */}
+      {/* ── CENTER: 5-QUESTION CITY EVENT HUD & SPEED RACE SCOREBOARD ── */}
       <div className="flex flex-col items-center gap-1 max-w-xl">
         {/* Top Mini Pill: Match Timer & Wins Scoreboard */}
         <div className="flex items-center gap-2 bg-black/60 border border-white/15 rounded-full px-3 py-0.5 shadow-inner">
@@ -103,7 +111,7 @@ export function GraphworksHeader() {
               {roundWins.blue}
             </span>
           </div>
-          <span className="text-yellow-400 font-black text-[9px] tracking-widest px-0.5">WINS</span>
+          <span className="text-yellow-400 font-black text-[9px] tracking-widest px-0.5">VS</span>
           <div className="flex items-center gap-1">
             <span className="font-mono font-black text-[11px] text-white bg-red-900/80 px-1.5 py-0.1 rounded border border-red-500/40">
               {roundWins.red}
@@ -117,28 +125,26 @@ export function GraphworksHeader() {
           </span>
         </div>
 
-        {/* Compact 5-Phase City Event Tracker */}
+        {/* 5-Milestone City Progression Tracker */}
         <div className="flex items-center gap-2 bg-slate-950/75 border border-cyan-500/40 rounded-full px-3 py-0.5 shadow-md">
           <span className="text-[10px] font-black tracking-wider text-cyan-300 uppercase">
-            EVENT {cityEventState.eventIndex + 1}/10: {cityEventState.currentEvent.title}
+            STAGE {cityStage}/5 · {cityStage * 20}% BUILT
           </span>
 
           <div className="h-3 w-px bg-white/20" />
 
-          {/* 5 Event Phase Dots */}
+          {/* 5 Milestone Dots */}
           <div className="flex items-center gap-1">
-            {[1, 2, 3, 4, 5].map((phaseNum) => {
-              const currentPhase = cityEventState.eventPhase;
-              const isPast = currentPhase > phaseNum;
-              const isCurrent = currentPhase === phaseNum;
-              const qNum = (cityEventState.eventIndex * 5) + phaseNum;
-              const qWinner = roundWinnersHistory[phaseNum - 1];
+            {[1, 2, 3, 4, 5].map((qNum) => {
+              const isPast = currentRound > qNum;
+              const isCurrent = currentRound === qNum;
+              const qWinner = roundWinnersHistory[qNum - 1];
 
               return (
                 <div
-                  key={phaseNum}
-                  title={`Question ${qNum}: Phase ${phaseNum} ${qWinner ? `(${qWinner.toUpperCase()} won)` : ''}`}
-                  className={`flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[8.5px] font-black transition-all ${
+                  key={qNum}
+                  title={`Question ${qNum}: ${MILESTONE_DESCRIPTIONS[qNum - 1]} ${qWinner ? `(${qWinner.toUpperCase()} won)` : ''}`}
+                  className={`flex items-center gap-1 px-2 py-0.2 rounded-full text-[8.5px] font-black transition-all ${
                     qWinner === 'blue'
                       ? 'bg-blue-600 text-white border border-blue-300 shadow-xs'
                       : qWinner === 'red'
@@ -151,24 +157,18 @@ export function GraphworksHeader() {
                   }`}
                 >
                   <span>{qWinner === 'blue' ? '🔵' : qWinner === 'red' ? '🔴' : isPast ? '✓' : isCurrent ? '⚡' : '○'}</span>
-                  <span>Q{phaseNum}</span>
+                  <span>Q{qNum}</span>
                 </div>
               );
             })}
           </div>
         </div>
 
-        {/* Phase subtitle / completion toast */}
+        {/* Active Milestone Title */}
         <div className="text-center min-h-[14px]">
-          {cityEventState.completionToast ? (
-            <span className="text-[10px] font-black text-emerald-300 tracking-wide bg-emerald-950/90 border border-emerald-400/60 px-2.5 py-0.5 rounded-full animate-bounce inline-block shadow-md">
-              🎉 {cityEventState.completionToast}! NEXT EVENT COMMENCING...
-            </span>
-          ) : (
-            <span className="text-[9.5px] text-cyan-200/90 font-medium tracking-wide">
-              {cityEventState.phaseDescription}
-            </span>
-          )}
+          <span className="text-[9.5px] text-cyan-200/90 font-medium tracking-wide">
+            {MILESTONE_DESCRIPTIONS[currentRound - 1] ?? 'Building City Infrastructure...'}
+          </span>
         </div>
       </div>
 
@@ -183,7 +183,7 @@ export function GraphworksHeader() {
             </div>
             <div>
               <span className="text-slate-400 block text-[8.5px] uppercase font-bold">City</span>
-              <span className="font-black text-rose-300 font-mono">Lv.{red.cityLevel}</span>
+              <span className="font-black text-rose-300 font-mono">{red.cityProgress}%</span>
             </div>
             <div>
               <span className="text-slate-400 block text-[8.5px] uppercase font-bold">Score</span>

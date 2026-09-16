@@ -161,6 +161,9 @@ interface StylizedHumanRigProps {
   isSitting?: boolean;
   isWaitingTraffic?: boolean;
   customStyle?: Partial<CharacterStyle>;
+  isCelebrating?: boolean;
+  celebrationStyle?: 'clap' | 'wave' | 'cheer';
+  celebrationVariant?: number;
 }
 
 export function StylizedHumanRig({
@@ -171,6 +174,9 @@ export function StylizedHumanRig({
   isSitting = false,
   isWaitingTraffic = false,
   customStyle,
+  isCelebrating = false,
+  celebrationStyle = 'clap',
+  celebrationVariant = 0,
 }: StylizedHumanRigProps) {
   const style = useMemo(() => ({ ...ARCHETYPE_STYLES[role], ...customStyle }), [role, customStyle]);
 
@@ -191,6 +197,77 @@ export function StylizedHumanRig({
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
+
+    if (isCelebrating) {
+      // ── JOYOUS CITIZEN CELEBRATION (WINNING BLUEPRINT FORMED) ──
+      const cheerFreq = 4.5 + (celebrationVariant % 3) * 0.8;
+      const cheerBounce = Math.abs(Math.sin(t * cheerFreq + celebrationVariant)) * 0.09;
+      if (pelvisRef.current) {
+        pelvisRef.current.position.y = 0.72 + cheerBounce;
+        pelvisRef.current.rotation.y = Math.sin(t * 2.5 + celebrationVariant) * 0.1;
+        pelvisRef.current.rotation.z = Math.cos(t * cheerFreq) * 0.03;
+      }
+      if (torsoRef.current) {
+        torsoRef.current.rotation.y = Math.sin(t * 3.0) * 0.06;
+        torsoRef.current.rotation.x = -0.05;
+      }
+      // Joyous spring in legs
+      if (leftHipRef.current) leftHipRef.current.rotation.x = Math.sin(t * cheerFreq) * 0.12;
+      if (rightHipRef.current) rightHipRef.current.rotation.x = -Math.sin(t * cheerFreq) * 0.12;
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x = Math.max(0, Math.sin(t * cheerFreq) * 0.2);
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x = Math.max(0, -Math.sin(t * cheerFreq) * 0.2);
+      if (leftFootRef.current) leftFootRef.current.rotation.x = 0;
+      if (rightFootRef.current) rightFootRef.current.rotation.x = 0;
+
+      if (celebrationStyle === 'wave') {
+        // High enthusiastic waving towards the winning team
+        if (rightShoulderRef.current) {
+          rightShoulderRef.current.rotation.x = -2.6; // Arm straight up
+          rightShoulderRef.current.rotation.z = -0.4 + Math.sin(t * 6.5 + celebrationVariant) * 0.45; // Waving side to side
+        }
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = 0.4;
+        if (leftShoulderRef.current) {
+          leftShoulderRef.current.rotation.x = -0.4;
+          leftShoulderRef.current.rotation.z = 0.25;
+        }
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = 0.5;
+      } else if (celebrationStyle === 'cheer') {
+        // Both arms raised high in triumphant victory pump
+        const pump = Math.sin(t * 5.0 + celebrationVariant) * 0.25;
+        if (leftShoulderRef.current) {
+          leftShoulderRef.current.rotation.x = -2.7 + pump * 0.2;
+          leftShoulderRef.current.rotation.z = 0.35;
+        }
+        if (rightShoulderRef.current) {
+          rightShoulderRef.current.rotation.x = -2.7 + pump * 0.2;
+          rightShoulderRef.current.rotation.z = -0.35;
+        }
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = 0.35 + pump * 0.3;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = 0.35 + pump * 0.3;
+      } else {
+        // Enthusiastic clapping in front of chest
+        const clapAngle = Math.sin(t * 9.5) * 0.3;
+        if (leftShoulderRef.current) {
+          leftShoulderRef.current.rotation.x = -1.1;
+          leftShoulderRef.current.rotation.y = 0.55 + clapAngle;
+          leftShoulderRef.current.rotation.z = 0.25;
+        }
+        if (rightShoulderRef.current) {
+          rightShoulderRef.current.rotation.x = -1.1;
+          rightShoulderRef.current.rotation.y = -0.55 - clapAngle;
+          rightShoulderRef.current.rotation.z = -0.25;
+        }
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = 1.35;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = 1.35;
+      }
+
+      if (headRef.current) {
+        // Head tilted slightly upwards toward the Sky Proclamation and winning studio
+        headRef.current.rotation.x = -0.22 + Math.sin(t * 3.5) * 0.08;
+        headRef.current.rotation.y = Math.sin(t * 2.0 + celebrationVariant) * 0.2;
+      }
+      return;
+    }
 
     if (isSitting) {
       // ── SITTING POSE ON PARK BENCH ──
@@ -757,12 +834,49 @@ export function CityPedestrians3D() {
     },
   ], []);
 
+  const gamePhase = useGraphworksStore((s) => s.gamePhase);
+  const cityStage = useGraphworksStore((s) => s.cityStage);
+  const winningBlueprint = useGraphworksStore((s) => s.winningBlueprint);
+  const isVictory = gamePhase === 'victory';
+
   const agentsRef = useRef<(THREE.Group | null)[]>([]);
 
   useFrame((state, delta) => {
     pedestrians.forEach((ped, idx) => {
       const group = agentsRef.current[idx];
       if (!group) return;
+
+      // ── CELEBRATION ASSEMBLY IN CIVIC PLAZA ──
+      if (isVictory) {
+        // Assemble in a semicircle around Data Tower base facing the winner
+        const angle = (idx / pedestrians.length) * Math.PI * 2;
+        const radius = 3.6 + (idx % 2) * 0.4;
+        const targetX = Math.cos(angle) * radius;
+        const targetZ = Math.sin(angle) * radius;
+
+        ped.pos.x = THREE.MathUtils.damp(ped.pos.x, targetX, 2.5, delta);
+        ped.pos.z = THREE.MathUtils.damp(ped.pos.z, targetZ, 2.5, delta);
+        ped.pos.y = 0.03;
+
+        // Face towards winning studio
+        let faceTargetX = 0;
+        let faceTargetZ = 12;
+        if (winningBlueprint === 'blue') {
+          faceTargetX = -15; // Face left toward Blue studio
+          faceTargetZ = 8;
+        } else if (winningBlueprint === 'red') {
+          faceTargetX = 15; // Face right toward Red studio
+          faceTargetZ = 8;
+        }
+        const dirToWinner = new THREE.Vector2(faceTargetX - ped.pos.x, faceTargetZ - ped.pos.z).normalize();
+        const targetYaw = Math.atan2(dirToWinner.x, dirToWinner.y);
+        ped.yaw = THREE.MathUtils.damp(ped.yaw, targetYaw, 4.0, delta);
+        ped.isWalking = false;
+
+        group.position.copy(ped.pos);
+        group.rotation.y = ped.yaw;
+        return;
+      }
 
       const targetArr = ped.route[ped.currentWp];
       const targetVec = new THREE.Vector3(targetArr[0], targetArr[1], targetArr[2]);
@@ -887,54 +1001,66 @@ export function CityPedestrians3D() {
     });
   });
 
-  const blueVisitors = useGraphworksStore((s) => s.blueCity.park.visitorCount);
-  const redVisitors = useGraphworksStore((s) => s.redCity.park.visitorCount);
-  const activeVisitors = Math.max(blueVisitors, redVisitors);
-
-  // Dynamic crowd density scaled by plotted park visitors
-  const allowedWalkers = activeVisitors <= 10 ? 4 : activeVisitors <= 20 ? 6 : pedestrians.length;
-  const allowedSitters = activeVisitors <= 10 ? 1 : activeVisitors <= 20 ? 2 : benchSitters.length;
-
   return (
     <group>
       {/* ── 1. ACTIVE PATH-NAVIGATING CITIZENS ── */}
-      {pedestrians.map((ped, idx) => (
-        <group
-          key={ped.id}
-          ref={(el) => {
-            agentsRef.current[idx] = el;
-          }}
-          position={ped.pos}
-          rotation={[0, ped.yaw, 0]}
-          visible={idx < allowedWalkers}
-        >
-          <StylizedHumanRig
-            role={ped.role}
-            isWalking={ped.isWalking}
-            walkPhase={ped.walkPhase}
-            walkSpeed={ped.speed}
-            isWaitingTraffic={ped.state === 'WAITING_TRAFFIC'}
-          />
-        </group>
-      ))}
+      {pedestrians.map((ped, idx) => {
+        // Stage 0-2: Only 2 construction workers patrol the site
+        // Stage 3+: Citizens enter the city
+        // Victory: All citizens assemble and celebrate
+        const isVisible = isVictory || (cityStage >= 3) || (idx < 2);
+        const celebrationStyle: 'clap' | 'wave' | 'cheer' =
+          idx % 3 === 0 ? 'clap' : idx % 3 === 1 ? 'wave' : 'cheer';
+
+        return (
+          <group
+            key={ped.id}
+            ref={(el) => {
+              agentsRef.current[idx] = el;
+            }}
+            position={ped.pos}
+            rotation={[0, ped.yaw, 0]}
+            visible={isVisible}
+          >
+            <StylizedHumanRig
+              role={ped.role}
+              isWalking={isVictory ? false : ped.isWalking}
+              walkPhase={ped.walkPhase}
+              walkSpeed={ped.speed}
+              isWaitingTraffic={ped.state === 'WAITING_TRAFFIC'}
+              isCelebrating={isVictory}
+              celebrationStyle={celebrationStyle}
+              celebrationVariant={idx}
+            />
+          </group>
+        );
+      })}
 
       {/* ── 2. SEATED PARK BENCH CITIZENS ── */}
-      {benchSitters.map((sitter, idx) => (
-        <group
-          key={sitter.id}
-          position={sitter.pos}
-          rotation={[0, sitter.rotY, 0]}
-          visible={idx < allowedSitters}
-        >
-          <StylizedHumanRig
-            role={sitter.role}
-            isWalking={false}
-            walkPhase={0}
-            walkSpeed={0}
-            isSitting={true}
-          />
-        </group>
-      ))}
+      {benchSitters.map((sitter, idx) => {
+        // Bench sitters appear from Stage 3 onwards
+        const isSitterVisible = isVictory || (cityStage >= 3);
+
+        return (
+          <group
+            key={sitter.id}
+            position={sitter.pos}
+            rotation={[0, sitter.rotY, 0]}
+            visible={isSitterVisible}
+          >
+            <StylizedHumanRig
+              role={sitter.role}
+              isWalking={false}
+              walkPhase={0}
+              walkSpeed={0}
+              isSitting={!isVictory}
+              isCelebrating={isVictory}
+              celebrationStyle="cheer"
+              celebrationVariant={idx + 5}
+            />
+          </group>
+        );
+      })}
     </group>
   );
 }

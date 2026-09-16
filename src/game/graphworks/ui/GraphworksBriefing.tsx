@@ -1,12 +1,20 @@
 // ============================================================
-// GRAPHWORKS — BRIEFING & VICTORY SCREENS
-// 5-Question Competitive Race: Whoever answers first wins!
+// GRAPHWORKS — BRIEFING & 3D VICTORY RESULTS CARD
+// 5-Question Mathematical City Building Simulation
+// The winning team's graph becomes the physical blueprint for the city!
 // ============================================================
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useGraphworksStore } from '../store/graphworksStore';
-import { FIFTY_EVENT_QUESTIONS } from '../data/questions';
+
+const FIVE_MILESTONES = [
+  { num: 1, type: 'LINE GRAPH', name: 'Sunrise Temperature', icon: '☀️', unlock: 'Stage 1: Sky & Weather' },
+  { num: 2, type: 'BAR GRAPH', name: 'City Market Stalls', icon: '🏪', unlock: 'Stage 2: Market Hall' },
+  { num: 3, type: 'PICTOGRAPH', name: 'Botanical Park Visitors', icon: '🌸', unlock: 'Stage 3: Fountain & Citizens' },
+  { num: 4, type: 'BAR GRAPH', name: 'Boulevard Traffic Flow', icon: '🚗', unlock: 'Stage 4: Vehicles & Signals' },
+  { num: 5, type: 'CIRCLE GRAPH', name: 'Clean Energy Grid Mix', icon: '⚡', unlock: 'Stage 5: Data Tower & Grid' },
+];
 
 export function GraphworksBriefing() {
   const gamePhase = useGraphworksStore((s) => s.gamePhase);
@@ -14,107 +22,118 @@ export function GraphworksBriefing() {
 
   if (gamePhase !== 'briefing') return null;
 
-  const questionsList = [
-    { num: 1, type: 'CIRCLE GRAPH', name: 'Clean Energy Grid Mix', icon: '⚡' },
-    { num: 2, type: 'BAR GRAPH', name: 'Weekly Rainfall Distribution', icon: '🌧️' },
-    { num: 3, type: 'LINE GRAPH', name: 'Metro Train Journey & Station Stop', icon: '🚆' },
-    { num: 4, type: 'PICTOGRAPH', name: 'Eco-Bike Commuters (1 🚲 = 5)', icon: '🚲' },
-    { num: 5, type: 'CHAMPIONSHIP', name: 'Reservoir Emergency Surge', icon: '💧' },
-  ];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ background: 'radial-gradient(ellipse at center, #1A237E 0%, #0D1B3E 100%)' }}>
-      {/* Stars background */}
-      <div className="absolute inset-0 overflow-hidden">
-        {Array.from({ length: 40 }, (_, i) => (
-          <div key={i} className="absolute rounded-full bg-white/30 animate-pulse"
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 select-none"
+      style={{ background: 'radial-gradient(ellipse at center, #1A237E 0%, #0D1B3E 100%)' }}
+    >
+      {/* Dynamic Starfield Background */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        {Array.from({ length: 45 }, (_, i) => (
+          <div
+            key={i}
+            className="absolute rounded-full bg-cyan-200/40 animate-pulse"
             style={{
-              width: 2 + Math.random() * 3,
-              height: 2 + Math.random() * 3,
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              animationDuration: `${2 + Math.random() * 3}s`,
-            }} />
+              width: 2 + (i % 3) * 1.5,
+              height: 2 + (i % 3) * 1.5,
+              left: `${(i * 17) % 100}%`,
+              top: `${(i * 23) % 100}%`,
+              animationDelay: `${(i % 5) * 0.7}s`,
+              animationDuration: `${2 + (i % 4)}s`,
+            }}
+          />
         ))}
       </div>
 
-      <div className="relative z-10 max-w-3xl mx-auto text-center px-6 py-4">
-        {/* Machine badge */}
-        <div className="inline-block mb-3">
+      <div className="relative z-10 max-w-3xl mx-auto text-center px-6 py-5 bg-slate-950/80 rounded-3xl border border-white/20 shadow-2xl backdrop-blur-md">
+        {/* Machine Badge */}
+        <div className="inline-block mb-2.5">
           <div className="bg-yellow-400/20 border border-yellow-400/40 rounded-full px-4 py-1">
             <span className="text-yellow-300 text-xs font-black tracking-[0.25em]">
-              ARCADE GAME MACHINE 10 · GRADE 6 MATHEMATICS
+              ARCADE MACHINE 10 · GRADE 6 MATHEMATICS
             </span>
           </div>
         </div>
 
         {/* Title */}
-        <h1 className="text-4xl md:text-5xl font-black text-white mb-1 tracking-tight leading-none">
+        <h1 className="text-4xl md:text-5xl font-black text-white mb-1 tracking-tight leading-none font-game">
           GRAPHWORKS
         </h1>
-        <p className="text-lg md:text-xl font-black text-cyan-400 mb-2 tracking-widest">
-          5-QUESTION FIRST-TO-ANSWER SPEED RACE
+        <p className="text-base md:text-lg font-black text-cyan-400 mb-2 tracking-widest">
+          5-QUESTION MATHEMATICAL CITY-BUILDING SIMULATION
         </p>
 
-        {/* Tagline */}
-        <p className="text-sm md:text-base text-white/80 mb-5 font-medium">
-          Both teams race on the same graph challenge. <span className="text-yellow-400 font-black">Whoever answers first wins the round!</span>
+        {/* Core Game Hook */}
+        <p className="text-xs md:text-sm text-white/85 mb-4 max-w-xl mx-auto leading-relaxed">
+          The city begins almost empty. As each team plots graphs accurately,{' '}
+          <span className="text-cyan-300 font-bold">weather transitions</span>,{' '}
+          <span className="text-emerald-300 font-bold">markets build</span>,{' '}
+          <span className="text-amber-300 font-bold">citizens arrive</span>, and{' '}
+          <span className="text-purple-300 font-bold">traffic powers on</span>.
+          At the end of 5 questions,{' '}
+          <span className="text-yellow-300 font-black">the winning team&apos;s graph becomes the city&apos;s permanent blueprint!</span>
         </p>
 
-        {/* 5 Questions breakdown */}
-        <div className="bg-white/5 rounded-2xl border border-white/15 p-4 mb-5 shadow-xl backdrop-blur-xs">
-          <div className="flex items-center justify-between mb-3 px-1">
-            <span className="text-xs font-black text-yellow-300 uppercase tracking-wider">
-              5 MATCH QUESTIONS (6TH GRADE SYLLABUS)
+        {/* 5 Canonical Milestones Breakdown */}
+        <div className="bg-white/5 rounded-2xl border border-white/15 p-3.5 mb-4 shadow-xl backdrop-blur-xs">
+          <div className="flex items-center justify-between mb-2 px-1">
+            <span className="text-[11px] font-black text-yellow-300 uppercase tracking-wider">
+              5 CITY DEVELOPMENT MILESTONES
             </span>
-            <span className="text-[11px] font-bold text-slate-400">
-              Best of 5 Rounds
+            <span className="text-[10px] font-bold text-slate-400">
+              5 Questions Total · First to Plot Correctly Wins
             </span>
           </div>
           <div className="grid grid-cols-5 gap-2">
-            {questionsList.map((q) => (
-              <div key={q.num} className="bg-black/40 rounded-xl border border-white/10 p-2.5 flex flex-col items-center text-center">
+            {FIVE_MILESTONES.map((q) => (
+              <div
+                key={q.num}
+                className="bg-black/50 rounded-xl border border-white/10 p-2 flex flex-col items-center text-center transition-transform hover:scale-105"
+              >
                 <span className="text-xl mb-1">{q.icon}</span>
                 <span className="text-[9px] font-black text-yellow-400 uppercase tracking-wide">
                   Q{q.num}: {q.type}
                 </span>
-                <span className="text-[9.5px] text-white/80 font-medium leading-tight mt-1 line-clamp-2">
+                <span className="text-[9.5px] text-white font-semibold leading-tight mt-0.5">
                   {q.name}
+                </span>
+                <span className="text-[8px] text-cyan-300/80 font-medium mt-1 leading-tight">
+                  {q.unlock}
                 </span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Core Rules Callout */}
-        <div className="bg-gradient-to-r from-blue-950/60 via-purple-950/60 to-red-950/60 rounded-xl border border-white/15 p-3 mb-5 flex items-center justify-center gap-3">
-          <span className="text-xl">⚡</span>
-          <p className="text-xs text-white/90 font-semibold leading-relaxed">
-            Touch, drag, or use <span className="text-yellow-300 font-bold">±1, ±5, ±10</span> buttons to plot. The first team with <span className="text-emerald-400 font-bold">80%+ accuracy</span> to click <span className="text-cyan-300 font-black">CHECK GRAPH</span> instantly wins that round!
-          </p>
+        {/* Competitive Setup: Blue vs Red */}
+        <div className="flex justify-center items-center gap-6 mb-5">
+          <div className="flex items-center gap-2.5 bg-blue-950/70 border border-blue-500/50 rounded-xl px-4 py-2 shadow-lg">
+            <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-pulse shadow-md shadow-blue-500" />
+            <div className="text-left">
+              <span className="text-blue-300 font-black text-xs block">BLUE STUDIO</span>
+              <span className="text-[10px] text-slate-300 font-medium">Plays from LEFT</span>
+            </div>
+          </div>
+
+          <div className="px-3 py-1 bg-yellow-400/20 border border-yellow-400/40 rounded-full">
+            <span className="text-yellow-400 font-black text-xs">SIMULTANEOUS RACE</span>
+          </div>
+
+          <div className="flex items-center gap-2.5 bg-red-950/70 border border-red-500/50 rounded-xl px-4 py-2 shadow-lg">
+            <div className="text-right">
+              <span className="text-red-300 font-black text-xs block">RED STUDIO</span>
+              <span className="text-[10px] text-slate-300 font-medium">Plays from RIGHT</span>
+            </div>
+            <div className="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse shadow-md shadow-red-500" />
+          </div>
         </div>
 
-        {/* Teams */}
-        <div className="flex justify-center items-center gap-6 mb-6">
-          <div className="flex items-center gap-2 bg-blue-500/20 border border-blue-400/40 rounded-xl px-4 py-2">
-            <div className="w-3.5 h-3.5 rounded-full bg-blue-500 animate-pulse" />
-            <span className="text-blue-300 font-black text-sm">BLUE TEAM — LEFT CONSOLE</span>
-          </div>
-          <span className="text-yellow-400 text-xl font-black">VS</span>
-          <div className="flex items-center gap-2 bg-red-500/20 border border-red-400/40 rounded-xl px-4 py-2">
-            <span className="text-red-300 font-black text-sm">RED TEAM — RIGHT CONSOLE</span>
-            <div className="w-3.5 h-3.5 rounded-full bg-red-500 animate-pulse" />
-          </div>
-        </div>
-
-        {/* Start button */}
+        {/* Start Match Button */}
         <button
           onClick={startGame}
-          className="px-12 py-3.5 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black text-lg tracking-wider shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+          className="px-12 py-3 bg-gradient-to-r from-yellow-400 via-amber-400 to-yellow-500 rounded-xl text-slate-950 font-black text-base tracking-wider shadow-lg shadow-yellow-500/40 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
         >
-          ▶ START 5-QUESTION MATCH
+          ▶ COMMENCE CITY SIMULATION
         </button>
       </div>
     </div>
@@ -122,8 +141,9 @@ export function GraphworksBriefing() {
 }
 
 // ============================================================
-// GRAPHWORKS — VICTORY CINEMATIC
-// End-game celebration with winning team display
+// GRAPHWORKS — ELEGANT FLOATING 3D VICTORY RESULTS CARD
+// Does NOT block the 3D world! The living city, sky proclamation,
+// moving traffic, and celebrating citizens remain fully visible!
 // ============================================================
 
 export function GraphworksVictory() {
@@ -132,95 +152,129 @@ export function GraphworksVictory() {
   const red = useGraphworksStore((s) => s.red);
   const roundWins = useGraphworksStore((s) => s.roundWins);
   const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
+  const winningBlueprint = useGraphworksStore((s) => s.winningBlueprint);
   const restartGame = useGraphworksStore((s) => s.restartGame);
-  const startEvent = useGraphworksStore((s) => s.startEvent);
-  const cityEventState = useGraphworksStore((s) => s.cityEventState);
+
+  const [minimized, setMinimized] = useState(false);
 
   if (gamePhase !== 'victory') return null;
 
   const blueWins = roundWins.blue;
   const redWins = roundWins.red;
-  const winner = blueWins > redWins ? 'blue' : redWins > blueWins ? 'red' : (blue.totalScore > red.totalScore ? 'blue' : red.totalScore > blue.totalScore ? 'red' : 'tie');
-  const winnerColor = winner === 'blue' ? '#38BDF8' : winner === 'red' ? '#F87171' : '#FFC107';
-  const winnerName = winner === 'blue' ? 'BLUE TEAM' : winner === 'red' ? 'RED TEAM' : 'TIE MATCH';
+  const winner = winningBlueprint ?? (blueWins > redWins ? 'blue' : redWins > blueWins ? 'red' : 'tie');
+  const winnerColor = winner === 'blue' ? '#38BDF8' : winner === 'red' ? '#F87171' : '#FBBF24';
+  const winnerTitle =
+    winner === 'blue'
+      ? '★ BLUE CITY FORMED ★'
+      : winner === 'red'
+      ? '★ RED CITY FORMED ★'
+      : '★ JOINT METROPOLIS FORMED ★';
 
-  const eventIndex = cityEventState?.eventIndex ?? 0;
-  const currentEvent = cityEventState?.currentEvent;
-  const eventQuestions = FIFTY_EVENT_QUESTIONS.slice(eventIndex * 5, eventIndex * 5 + 5);
+  // Minimized floating banner
+  if (minimized) {
+    return (
+      <div className="fixed top-14 left-1/2 -translate-x-1/2 z-30 pointer-events-auto">
+        <button
+          onClick={() => setMinimized(false)}
+          className="px-5 py-2 rounded-full bg-slate-900/90 border border-white/25 shadow-2xl backdrop-blur-md flex items-center gap-2.5 text-xs font-black text-white hover:bg-slate-800 transition-all cursor-pointer"
+        >
+          <span className="text-base">🏆</span>
+          <span style={{ color: winnerColor }} className="tracking-wide">
+            {winnerTitle} ({blueWins} — {redWins})
+          </span>
+          <span className="text-[10px] text-cyan-300 font-semibold bg-cyan-950/80 px-2 py-0.5 rounded-full border border-cyan-500/30">
+            Show Scorecard ↗
+          </span>
+        </button>
+      </div>
+    );
+  }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: `radial-gradient(ellipse at center, ${winnerColor}30 0%, #080E21 100%)` }}>
-      {/* Celebration particles */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {Array.from({ length: 50 }, (_, i) => (
-          <div key={i} className="absolute rounded-full animate-bounce"
-            style={{
-              width: 4 + Math.random() * 8,
-              height: 4 + Math.random() * 8,
-              background: i % 3 === 0 ? '#FFC107' : i % 3 === 1 ? winnerColor : '#FFFFFF',
-              left: `${Math.random() * 100}%`,
-              top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 2}s`,
-              animationDuration: `${1 + Math.random() * 2}s`,
-              opacity: 0.5 + Math.random() * 0.5,
-            }} />
-        ))}
-      </div>
-
-      <div className="relative z-10 max-w-2xl w-full text-center px-6 py-6 bg-slate-900/90 border border-white/15 rounded-3xl shadow-2xl backdrop-blur-md">
-        {/* Trophy */}
-        <div className="text-6xl mb-2 animate-bounce" style={{ animationDuration: '2s' }}>
-          🏆
+    <div className="fixed top-12 left-1/2 -translate-x-1/2 z-30 max-w-xl w-[92vw] pointer-events-auto select-none">
+      <div className="bg-slate-950/85 border border-white/20 rounded-2xl p-4 shadow-2xl backdrop-blur-md text-center text-white">
+        {/* Top Header Badge */}
+        <div className="flex items-center justify-between mb-1.5 px-2">
+          <div className="flex items-center gap-1.5">
+            <span className="text-xs">🏆</span>
+            <span className="text-[10px] font-black text-yellow-400 tracking-widest uppercase">
+              CITY BLUEPRINT COMPLETE · 100% BUILT
+            </span>
+          </div>
+          <button
+            onClick={() => setMinimized(true)}
+            title="Minimize to inspect 3D city"
+            className="text-[10px] font-black text-slate-400 hover:text-white px-2 py-0.5 rounded bg-white/10 hover:bg-white/20 transition-all cursor-pointer"
+          >
+            👁️ Inspect City
+          </button>
         </div>
 
-        {/* Winner */}
-        <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
-          DATA CITY CHAMPIONSHIP
-        </h1>
-        <div className="text-3xl md:text-4xl font-black mb-1 tracking-wider" style={{ color: winnerColor }}>
-          {winnerName} WINS!
-        </div>
-        <p className="text-xs text-cyan-300 font-bold mb-4 uppercase tracking-widest">
-          {currentEvent ? `✨ ${currentEvent.title} COMPLETED` : '5-QUESTION MATCH COMPLETED'}
+        {/* Winner Proclamation Headline */}
+        <h2 className="text-xl md:text-2xl font-black tracking-wider mb-1 font-game" style={{ color: winnerColor }}>
+          {winnerTitle}
+        </h2>
+
+        {/* Narrative Description */}
+        <p className="text-[11px] text-slate-300 font-medium mb-3 max-w-md mx-auto leading-relaxed">
+          {winner === 'blue'
+            ? "Blue Team's mathematical graphs have formed the permanent architectural blueprint! Citizens assemble in the central plaza celebrating their architects!"
+            : winner === 'red'
+            ? "Red Team's mathematical graphs have formed the permanent architectural blueprint! Citizens assemble in the central plaza celebrating their architects!"
+            : 'Both teams contributed equally to the completed city blueprint! Citizens assemble in the central plaza to celebrate both studios!'}
         </p>
 
-        {/* Round Scores Pill */}
-        <div className="flex justify-center items-center gap-6 mb-5">
-          <div className={`px-5 py-3 rounded-2xl border-2 flex flex-col items-center ${winner === 'blue' ? 'border-sky-400 bg-sky-500/20' : 'border-white/10 bg-white/5'}`}>
-            <span className="text-sky-300 font-black text-xs uppercase">BLUE TEAM</span>
-            <span className="text-3xl font-mono font-black text-white">{blueWins} WINS</span>
-            <span className="text-[10px] text-slate-300 mt-1">{blue.totalScore} pts · {blue.graphAccuracy}% accuracy</span>
+        {/* Score Comparison Pill */}
+        <div className="flex items-center justify-center gap-4 mb-3">
+          <div
+            className={`px-4 py-1.5 rounded-xl border flex items-center gap-2 ${
+              winner === 'blue'
+                ? 'bg-blue-950/80 border-blue-400 shadow-sm shadow-blue-500/30'
+                : 'bg-black/40 border-white/10'
+            }`}
+          >
+            <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-blue-300 font-black text-xs">BLUE</span>
+            <span className="text-base font-black font-mono text-white">{blueWins}</span>
+            <span className="text-[9px] text-slate-400">({blue.totalScore} pts)</span>
           </div>
-          <div className="text-slate-500 font-black text-lg">VS</div>
-          <div className={`px-5 py-3 rounded-2xl border-2 flex flex-col items-center ${winner === 'red' ? 'border-rose-400 bg-rose-500/20' : 'border-white/10 bg-white/5'}`}>
-            <span className="text-rose-300 font-black text-xs uppercase">RED TEAM</span>
-            <span className="text-3xl font-mono font-black text-white">{redWins} WINS</span>
-            <span className="text-[10px] text-slate-300 mt-1">{red.totalScore} pts · {red.graphAccuracy}% accuracy</span>
+
+          <span className="text-yellow-400 font-black text-xs tracking-widest">—</span>
+
+          <div
+            className={`px-4 py-1.5 rounded-xl border flex items-center gap-2 ${
+              winner === 'red'
+                ? 'bg-red-950/80 border-red-400 shadow-sm shadow-red-500/30'
+                : 'bg-black/40 border-white/10'
+            }`}
+          >
+            <span className="text-[9px] text-slate-400">({red.totalScore} pts)</span>
+            <span className="text-base font-black font-mono text-white">{redWins}</span>
+            <span className="text-red-300 font-black text-xs">RED</span>
+            <span className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
           </div>
         </div>
 
-        {/* Round-by-Round Breakdown */}
-        <div className="bg-black/50 rounded-2xl border border-white/10 p-3.5 mb-6 text-left">
-          <h3 className="text-[11px] font-black text-yellow-300 uppercase tracking-wider mb-2.5 text-center">
-            5 QUESTIONS MATCH BREAKDOWN
-          </h3>
-          <div className="space-y-1.5">
-            {eventQuestions.map((q, i) => {
-              const rWinner = roundWinnersHistory[i];
+        {/* 5-Question Milestone Results Grid */}
+        <div className="bg-black/50 rounded-xl border border-white/10 p-2.5 mb-3">
+          <div className="grid grid-cols-5 gap-1.5">
+            {FIVE_MILESTONES.map((m, i) => {
+              const qWinner = roundWinnersHistory[i];
               return (
-                <div key={i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-white/5 border border-white/5">
-                  <span className="text-slate-300 font-semibold truncate max-w-[340px]">
-                    Q{i + 1}: {q.title}
-                  </span>
-                  <span className={`font-black px-2 py-0.5 rounded text-[10.5px] ${
-                    rWinner === 'blue'
-                      ? 'bg-blue-600 text-white'
-                      : rWinner === 'red'
-                      ? 'bg-red-600 text-white'
-                      : 'bg-white/10 text-slate-400'
-                  }`}>
-                    {rWinner === 'blue' ? '🔵 BLUE FIRST' : rWinner === 'red' ? '🔴 RED FIRST' : 'DRAW'}
+                <div
+                  key={m.num}
+                  className={`flex flex-col items-center p-1.5 rounded-lg border text-center ${
+                    qWinner === 'blue'
+                      ? 'bg-blue-950/60 border-blue-500/40 text-blue-300'
+                      : qWinner === 'red'
+                      ? 'bg-red-950/60 border-red-500/40 text-red-300'
+                      : 'bg-white/5 border-white/10 text-slate-300'
+                  }`}
+                >
+                  <span className="text-xs">{m.icon}</span>
+                  <span className="text-[8.5px] font-black mt-0.5">Q{m.num}</span>
+                  <span className="text-[7.5px] font-bold uppercase truncate max-w-[70px]">
+                    {qWinner === 'blue' ? '🔵 Blue' : qWinner === 'red' ? '🔴 Red' : 'Tie'}
                   </span>
                 </div>
               );
@@ -228,25 +282,22 @@ export function GraphworksVictory() {
           </div>
         </div>
 
-        {/* Buttons */}
-        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-          {eventIndex < 9 && (
-            <button
-              onClick={() => startEvent(eventIndex + 1)}
-              className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl text-white font-black text-sm tracking-wider shadow-lg shadow-cyan-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-            >
-              ▶ NEXT CITY EVENT ({eventIndex + 2}/10)
-            </button>
-          )}
+        {/* Play Again Rematch Action */}
+        <div className="flex items-center justify-center gap-3">
           <button
             onClick={restartGame}
-            className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black text-sm tracking-wider shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            className="px-6 py-2 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black text-xs tracking-wider shadow-md hover:brightness-110 active:scale-95 transition-all cursor-pointer"
           >
-            🔄 PLAY AGAIN (REMATCH)
+            🔄 PLAY REMATCH (NEW CITY)
+          </button>
+          <button
+            onClick={() => setMinimized(true)}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-white font-black text-xs tracking-wider border border-white/15 transition-all cursor-pointer"
+          >
+            👁️ INSPECT CITY
           </button>
         </div>
       </div>
     </div>
   );
 }
-
