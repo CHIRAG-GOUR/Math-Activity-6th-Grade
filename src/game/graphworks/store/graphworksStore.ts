@@ -1,0 +1,639 @@
+// ============================================================
+// GRAPHWORKS — THE DATA CITY: Zustand Game State Store
+// Manages two-team state, graph data, city simulation,
+// scoring, rounds, and mission progression.
+// ============================================================
+
+import { create } from 'zustand';
+
+// ── GRAPH DATA TYPES ──
+export type GraphType = 'line' | 'bar' | 'pictograph' | 'coordinate';
+export type RoundPhase = 'read' | 'complete' | 'build' | 'interpret' | 'create';
+export type GamePhase = 'briefing' | 'playing' | 'checking' | 'running' | 'feedback' | 'victory';
+export type CityDistrict = 'weather' | 'traffic' | 'water' | 'power' | 'train' | 'park';
+export type Team = 'blue' | 'red';
+
+export interface DataPoint {
+  label: string;
+  value: number;
+}
+
+export interface GraphAxis {
+  title: string;
+  min: number;
+  max: number;
+  step: number;
+  labels: string[];
+}
+
+export interface PlottedPoint {
+  x: number;  // pixel or index position
+  y: number;  // value
+  label: string;
+  connected: boolean;
+}
+
+export interface PlottedBar {
+  label: string;
+  height: number; // value
+}
+
+export interface GraphValidation {
+  isCorrect: boolean;
+  accuracy: number;        // 0–100
+  feedback: string[];
+  pointsCorrect: number;
+  pointsTotal: number;
+  axisCorrect: boolean;
+  scaleCorrect: boolean;
+  labelsCorrect: boolean;
+}
+
+export interface MissionQuestion {
+  id: string;
+  round: number;
+  phase: RoundPhase;
+  district: CityDistrict;
+  graphType: GraphType;
+  title: string;
+  instruction: string;
+  dataTable: DataPoint[];
+  xAxis: GraphAxis;
+  yAxis: GraphAxis;
+  expectedValues: number[];
+  unit: string;
+  interpretationQ?: string;
+  interpretationA?: string;
+  createConditions?: string[];
+  partialGraphData?: number[];    // for 'complete' phase (pre-filled values, -1 = missing)
+  difficulty: number;  // 1–5
+}
+
+export interface TeamState {
+  team: Team;
+  currentMission: MissionQuestion | null;
+  missionIndex: number;
+  completedMissions: number;
+
+  // Graph editor state
+  graphType: GraphType;
+  plottedPoints: PlottedPoint[];
+  plottedBars: PlottedBar[];
+  selectedTool: 'select' | 'addPoint' | 'movePoint' | 'addBar' | 'connect' | 'erase' | 'label';
+
+  // Validation
+  lastValidation: GraphValidation | null;
+  showFeedback: boolean;
+
+  // Interpretation answer
+  interpretationAnswer: string;
+
+  // Scoring
+  graphAccuracy: number;
+  interpretationScore: number;
+  creationScore: number;
+  cityEfficiency: number;
+  totalScore: number;
+  speedBonus: number;
+
+  // City progression
+  activatedDistricts: CityDistrict[];
+  cityLevel: number;  // 0–5
+}
+
+export interface CityWeatherState {
+  temperature: number;
+  rainfall: number;
+  windSpeed: number;
+  cloudCover: number;    // 0–1
+  isRaining: boolean;
+  sunIntensity: number;  // 0–1
+}
+
+export interface CityTrafficState {
+  vehicleCount: number;
+  pedestrianCount: number;
+  congestionLevel: number; // 0–1
+}
+
+export interface CityWaterState {
+  reservoirLevel: number;  // 0–100
+  pumpActive: boolean;
+  flowRate: number;
+}
+
+export interface CityPowerState {
+  generationMW: number;
+  consumptionMW: number;
+  turbineRPM: number;
+  gridActive: boolean;
+}
+
+export interface CityTrainState {
+  trainPosition: number;  // 0–1 along track
+  speed: number;
+  atStation: boolean;
+  passengerCount: number;
+}
+
+export interface CityParkState {
+  visitorCount: number;
+  fountainActive: boolean;
+  activityLevel: number;  // 0–1
+}
+
+export interface CityState {
+  weather: CityWeatherState;
+  traffic: CityTrafficState;
+  water: CityWaterState;
+  power: CityPowerState;
+  train: CityTrainState;
+  park: CityParkState;
+}
+
+export interface GraphworksStore {
+  // Game phase
+  gamePhase: GamePhase;
+  currentRound: number;       // 1–5
+  roundPhase: RoundPhase;
+  timer: number;              // seconds remaining
+  isTimerRunning: boolean;
+
+  // Teams
+  blue: TeamState;
+  red: TeamState;
+
+  // City
+  blueCity: CityState;
+  redCity: CityState;
+
+  // City animation
+  isRunningGraph: boolean;
+  runningTeam: Team | null;
+  graphRunProgress: number;   // 0–1
+
+  // Actions
+  startGame: () => void;
+  setMission: (team: Team, mission: MissionQuestion) => void;
+  setTool: (team: Team, tool: TeamState['selectedTool']) => void;
+  addPlottedPoint: (team: Team, point: PlottedPoint) => void;
+  updatePlottedPoint: (team: Team, index: number, point: Partial<PlottedPoint>) => void;
+  removePlottedPoint: (team: Team, index: number) => void;
+  setPlottedBars: (team: Team, bars: PlottedBar[]) => void;
+  updateBarHeight: (team: Team, index: number, height: number) => void;
+  clearGraph: (team: Team) => void;
+  checkGraph: (team: Team) => void;
+  runGraph: (team: Team) => void;
+  setInterpretationAnswer: (team: Team, answer: string) => void;
+  submitInterpretation: (team: Team) => void;
+  advanceRound: () => void;
+  setGraphRunProgress: (progress: number) => void;
+  updateCityFromGraph: (team: Team, values: number[], district: CityDistrict) => void;
+  setGamePhase: (phase: GamePhase) => void;
+  setShowFeedback: (team: Team, show: boolean) => void;
+  restartGame: () => void;
+}
+
+// ── DEFAULT STATES ──
+const defaultWeather: CityWeatherState = {
+  temperature: 15, rainfall: 0, windSpeed: 5, cloudCover: 0.3,
+  isRaining: false, sunIntensity: 0.7,
+};
+
+const defaultTraffic: CityTrafficState = {
+  vehicleCount: 10, pedestrianCount: 20, congestionLevel: 0.2,
+};
+
+const defaultWater: CityWaterState = {
+  reservoirLevel: 50, pumpActive: false, flowRate: 0,
+};
+
+const defaultPower: CityPowerState = {
+  generationMW: 30, consumptionMW: 20, turbineRPM: 0, gridActive: false,
+};
+
+const defaultTrain: CityTrainState = {
+  trainPosition: 0, speed: 0, atStation: true, passengerCount: 0,
+};
+
+const defaultPark: CityParkState = {
+  visitorCount: 10, fountainActive: false, activityLevel: 0.3,
+};
+
+const defaultCity: CityState = {
+  weather: { ...defaultWeather },
+  traffic: { ...defaultTraffic },
+  water: { ...defaultWater },
+  power: { ...defaultPower },
+  train: { ...defaultTrain },
+  park: { ...defaultPark },
+};
+
+const createDefaultTeam = (team: Team): TeamState => ({
+  team,
+  currentMission: null,
+  missionIndex: 0,
+  completedMissions: 0,
+  graphType: 'line',
+  plottedPoints: [],
+  plottedBars: [],
+  selectedTool: 'addPoint',
+  lastValidation: null,
+  showFeedback: false,
+  interpretationAnswer: '',
+  graphAccuracy: 0,
+  interpretationScore: 0,
+  creationScore: 0,
+  cityEfficiency: 0,
+  totalScore: 0,
+  speedBonus: 0,
+  activatedDistricts: [],
+  cityLevel: 0,
+});
+
+// ── GRAPH VALIDATION ENGINE ──
+function validateGraph(team: TeamState): GraphValidation {
+  const mission = team.currentMission;
+  if (!mission) {
+    return {
+      isCorrect: false, accuracy: 0, feedback: ['No mission loaded.'],
+      pointsCorrect: 0, pointsTotal: 0, axisCorrect: false,
+      scaleCorrect: false, labelsCorrect: false,
+    };
+  }
+
+  const expected = mission.expectedValues;
+  const feedback: string[] = [];
+  let pointsCorrect = 0;
+  const pointsTotal = expected.length;
+
+  if (mission.graphType === 'bar') {
+    const bars = team.plottedBars;
+    if (bars.length !== expected.length) {
+      feedback.push(`Expected ${expected.length} bars, but you have ${bars.length}.`);
+    }
+    bars.forEach((bar, i) => {
+      if (i < expected.length) {
+        const diff = Math.abs(bar.height - expected[i]);
+        const tolerance = Math.max(expected[i] * 0.1, 2);
+        if (diff <= tolerance) {
+          pointsCorrect++;
+        } else {
+          feedback.push(`Bar "${bar.label}": expected ${expected[i]}${mission.unit}, got ${Math.round(bar.height)}${mission.unit}.`);
+        }
+      }
+    });
+  } else {
+    // line / coordinate
+    const points = team.plottedPoints;
+    if (points.length < expected.length) {
+      feedback.push(`Expected ${expected.length} points, but you plotted ${points.length}.`);
+    }
+    points.forEach((pt, i) => {
+      if (i < expected.length) {
+        const diff = Math.abs(pt.y - expected[i]);
+        const tolerance = Math.max(expected[i] * 0.1, 2);
+        if (diff <= tolerance) {
+          pointsCorrect++;
+        } else {
+          feedback.push(`Point at "${pt.label}": expected ${expected[i]}${mission.unit}, your value is ${Math.round(pt.y)}${mission.unit}.`);
+        }
+      }
+    });
+  }
+
+  const accuracy = pointsTotal > 0 ? Math.round((pointsCorrect / pointsTotal) * 100) : 0;
+  const isCorrect = accuracy >= 80;
+
+  if (accuracy === 100) {
+    feedback.unshift('🎉 Perfect graph! All data values are correct.');
+  } else if (accuracy >= 80) {
+    feedback.unshift('✅ Good work! Most values are accurate.');
+  } else if (accuracy >= 50) {
+    feedback.unshift('📊 Partial credit — review the highlighted values.');
+  } else {
+    feedback.unshift('📝 Keep trying — check your data table carefully.');
+  }
+
+  return {
+    isCorrect,
+    accuracy,
+    feedback,
+    pointsCorrect,
+    pointsTotal,
+    axisCorrect: true,
+    scaleCorrect: true,
+    labelsCorrect: true,
+  };
+}
+
+// ── STORE ──
+export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
+  gamePhase: 'briefing',
+  currentRound: 1,
+  roundPhase: 'read',
+  timer: 300,
+  isTimerRunning: false,
+
+  blue: createDefaultTeam('blue'),
+  red: createDefaultTeam('red'),
+
+  blueCity: { ...defaultCity },
+  redCity: { ...defaultCity },
+
+  isRunningGraph: false,
+  runningTeam: null,
+  graphRunProgress: 0,
+
+  startGame: () => set({
+    gamePhase: 'playing',
+    currentRound: 1,
+    roundPhase: 'read',
+    isTimerRunning: true,
+    blue: createDefaultTeam('blue'),
+    red: createDefaultTeam('red'),
+    blueCity: { ...defaultCity },
+    redCity: { ...defaultCity },
+  }),
+
+  setMission: (team, mission) => set((s) => ({
+    [team]: {
+      ...s[team],
+      currentMission: mission,
+      graphType: mission.graphType,
+      plottedPoints: [],
+      plottedBars: mission.graphType === 'bar'
+        ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+        : [],
+      lastValidation: null,
+      showFeedback: false,
+      interpretationAnswer: '',
+    },
+  })),
+
+  setTool: (team, tool) => set((s) => ({
+    [team]: { ...s[team], selectedTool: tool },
+  })),
+
+  addPlottedPoint: (team, point) => set((s) => ({
+    [team]: {
+      ...s[team],
+      plottedPoints: [...s[team].plottedPoints, point],
+    },
+  })),
+
+  updatePlottedPoint: (team, index, updates) => set((s) => {
+    const pts = [...s[team].plottedPoints];
+    if (pts[index]) pts[index] = { ...pts[index], ...updates };
+    return { [team]: { ...s[team], plottedPoints: pts } };
+  }),
+
+  removePlottedPoint: (team, index) => set((s) => ({
+    [team]: {
+      ...s[team],
+      plottedPoints: s[team].plottedPoints.filter((_, i) => i !== index),
+    },
+  })),
+
+  setPlottedBars: (team, bars) => set((s) => ({
+    [team]: { ...s[team], plottedBars: bars },
+  })),
+
+  updateBarHeight: (team, index, height) => set((s) => {
+    const bars = [...s[team].plottedBars];
+    if (bars[index]) bars[index] = { ...bars[index], height };
+    return { [team]: { ...s[team], plottedBars: bars } };
+  }),
+
+  clearGraph: (team) => set((s) => ({
+    [team]: {
+      ...s[team],
+      plottedPoints: [],
+      plottedBars: s[team].currentMission?.graphType === 'bar'
+        ? (s[team].currentMission?.dataTable.map((d) => ({ label: d.label, height: 0 })) ?? [])
+        : [],
+      lastValidation: null,
+      showFeedback: false,
+    },
+  })),
+
+  checkGraph: (team) => {
+    const state = get();
+    const teamState = state[team];
+    const validation = validateGraph(teamState);
+
+    set((s) => ({
+      [team]: {
+        ...s[team],
+        lastValidation: validation,
+        showFeedback: true,
+        graphAccuracy: Math.max(s[team].graphAccuracy, validation.accuracy),
+      },
+      gamePhase: 'checking',
+    }));
+
+    // Auto-run if accuracy >= 60%
+    if (validation.accuracy >= 60) {
+      setTimeout(() => {
+        get().runGraph(team);
+      }, 1500);
+    }
+  },
+
+  runGraph: (team) => {
+    const state = get();
+    const teamState = state[team];
+    const mission = teamState.currentMission;
+    if (!mission) return;
+
+    set({
+      isRunningGraph: true,
+      runningTeam: team,
+      graphRunProgress: 0,
+      gamePhase: 'running',
+    });
+
+    // Extract values from the plotted graph
+    const values = mission.graphType === 'bar'
+      ? teamState.plottedBars.map((b) => b.height)
+      : teamState.plottedPoints.map((p) => p.y);
+
+    // Animate graph run over 3 seconds
+    const duration = 3000;
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const currentIndex = Math.floor(progress * values.length);
+
+      // Update city based on current progress
+      if (currentIndex < values.length) {
+        get().updateCityFromGraph(team, values.slice(0, currentIndex + 1), mission.district);
+      }
+
+      set({ graphRunProgress: progress });
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        // Graph run complete
+        const accuracy = teamState.lastValidation?.accuracy ?? 0;
+        const scoreGain = Math.round(accuracy * 0.8 + (accuracy >= 90 ? 20 : 0));
+
+        set((s) => ({
+          isRunningGraph: false,
+          runningTeam: null,
+          gamePhase: 'feedback',
+          [team]: {
+            ...s[team],
+            completedMissions: s[team].completedMissions + 1,
+            totalScore: s[team].totalScore + scoreGain,
+            cityLevel: Math.min(5, s[team].cityLevel + (accuracy >= 80 ? 1 : 0)),
+            cityEfficiency: Math.min(100, s[team].cityEfficiency + Math.round(accuracy * 0.2)),
+            activatedDistricts: accuracy >= 60 && !s[team].activatedDistricts.includes(mission.district)
+              ? [...s[team].activatedDistricts, mission.district]
+              : s[team].activatedDistricts,
+          },
+        }));
+      }
+    };
+    requestAnimationFrame(animate);
+  },
+
+  setInterpretationAnswer: (team, answer) => set((s) => ({
+    [team]: { ...s[team], interpretationAnswer: answer },
+  })),
+
+  submitInterpretation: (team) => set((s) => {
+    const teamState = s[team];
+    const mission = teamState.currentMission;
+    if (!mission?.interpretationA) return {};
+
+    const correct = teamState.interpretationAnswer.trim().toLowerCase() === mission.interpretationA.toLowerCase();
+    const scoreGain = correct ? 15 : 5;
+
+    return {
+      [team]: {
+        ...teamState,
+        interpretationScore: teamState.interpretationScore + scoreGain,
+        totalScore: teamState.totalScore + scoreGain,
+        showFeedback: true,
+        lastValidation: {
+          ...(teamState.lastValidation ?? {
+            isCorrect: false, accuracy: 0, feedback: [], pointsCorrect: 0,
+            pointsTotal: 0, axisCorrect: true, scaleCorrect: true, labelsCorrect: true,
+          }),
+          feedback: [
+            correct
+              ? `✅ Correct! "${mission.interpretationA}" is right.`
+              : `📝 The answer is "${mission.interpretationA}". Good effort!`,
+          ],
+        },
+      },
+    };
+  }),
+
+  advanceRound: () => set((s) => {
+    const phases: RoundPhase[] = ['read', 'complete', 'build', 'interpret', 'create'];
+    const nextRound = s.currentRound + 1;
+
+    if (nextRound > 5) {
+      return { gamePhase: 'victory' };
+    }
+
+    return {
+      currentRound: nextRound,
+      roundPhase: phases[nextRound - 1] ?? 'build',
+      gamePhase: 'playing',
+    };
+  }),
+
+  setGraphRunProgress: (progress) => set({ graphRunProgress: progress }),
+
+  updateCityFromGraph: (team, values, district) => {
+    const cityKey = team === 'blue' ? 'blueCity' : 'redCity';
+    const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0;
+    const latest = values.length > 0 ? values[values.length - 1] : 0;
+
+    set((s) => {
+      const city = { ...s[cityKey] };
+
+      switch (district) {
+        case 'weather':
+          city.weather = {
+            ...city.weather,
+            temperature: latest,
+            sunIntensity: Math.min(1, latest / 35),
+            cloudCover: latest < 15 ? 0.7 : latest < 25 ? 0.3 : 0.1,
+            isRaining: latest < 12,
+            windSpeed: 5 + Math.abs(latest - 20) * 0.5,
+          };
+          break;
+        case 'traffic':
+          city.traffic = {
+            ...city.traffic,
+            vehicleCount: Math.round(latest),
+            congestionLevel: Math.min(1, latest / 100),
+            pedestrianCount: Math.round(latest * 0.6),
+          };
+          break;
+        case 'water':
+          city.water = {
+            ...city.water,
+            reservoirLevel: Math.min(100, latest),
+            pumpActive: latest > 30,
+            flowRate: latest * 0.8,
+          };
+          break;
+        case 'power':
+          city.power = {
+            ...city.power,
+            generationMW: latest,
+            turbineRPM: latest * 12,
+            gridActive: latest > 20,
+          };
+          break;
+        case 'train':
+          city.train = {
+            ...city.train,
+            speed: latest,
+            trainPosition: Math.min(1, avg / 80),
+            atStation: latest < 5,
+            passengerCount: Math.round(latest * 2),
+          };
+          break;
+        case 'park':
+          city.park = {
+            ...city.park,
+            visitorCount: Math.round(latest),
+            activityLevel: Math.min(1, latest / 80),
+            fountainActive: latest > 30,
+          };
+          break;
+      }
+
+      return { [cityKey]: city };
+    });
+  },
+
+  setGamePhase: (phase) => set({ gamePhase: phase }),
+
+  setShowFeedback: (team, show) => set((s) => ({
+    [team]: { ...s[team], showFeedback: show },
+  })),
+
+  restartGame: () => set({
+    gamePhase: 'briefing',
+    currentRound: 1,
+    roundPhase: 'read',
+    timer: 300,
+    isTimerRunning: false,
+    blue: createDefaultTeam('blue'),
+    red: createDefaultTeam('red'),
+    blueCity: { ...defaultCity },
+    redCity: { ...defaultCity },
+    isRunningGraph: false,
+    runningTeam: null,
+    graphRunProgress: 0,
+  }),
+}));
