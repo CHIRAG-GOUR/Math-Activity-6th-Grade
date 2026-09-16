@@ -1,6 +1,10 @@
 // ============================================================
 // THE DECIMAL DELIVERY NETWORK — AUDIO ENGINE
-// - Delivery BGM: Seamless loop of /audio/Delivery BGM.mp3 while game is selected
+// - Delivery BGM: Seamless loop of /audio/Delivery BGM.mp3 while game is selected.
+//   The file carries no gapless (Xing/LAME) metadata, so a plain <audio loop>
+//   gaps audibly every 8 s. It is decoded once and looped through Web Audio
+//   with trimmed loop points and a short crossfade instead; if that fails for
+//   any reason it falls back to the plain looping element.
 // - Forklift Sound: Plays /audio/Forklift Sound.mp3 strictly when forklift is working
 //   and stops immediately when parked/idle, with no other forklift sounds.
 // - Clean shutdown when navigating away or unmounting.
@@ -10,8 +14,37 @@
 
 import type { SimEvent } from './depotSim';
 
+/** Overlap between one music loop and the next, in seconds. */
+const BGM_CROSSFADE = 0.25;
+
+/**
+ * Loop points that skip the silence an MP3 encoder pads onto both ends of a
+ * file, so the music repeats without a gap.
+ */
+function audibleRange(buf: AudioBuffer): { start: number; end: number } {
+  const threshold = 0.002;
+  const channels = Array.from({ length: buf.numberOfChannels }, (_, c) => buf.getChannelData(c));
+  const loud = (i: number) => channels.some((ch) => Math.abs(ch[i]) > threshold);
+  let first = 0;
+  while (first < buf.length && !loud(first)) first++;
+  let last = buf.length - 1;
+  while (last > first && !loud(last)) last--;
+  if (last <= first) return { start: 0, end: buf.duration };
+  return { start: first / buf.sampleRate, end: (last + 1) / buf.sampleRate };
+}
+
 class DepotAudio {
   private bgmAudio: HTMLAudioElement | null = null;
+  private bgmBuffer: AudioBuffer | null = null;
+  private bgmGain: GainNode | null = null;
+  private bgmSources: AudioBufferSourceNode[] = [];
+  private bgmTimer: ReturnType<typeof setInterval> | null = null;
+  private bgmNextAt = 0;
+  private bgmLoop = { start: 0, end: 0 };
+  private bgmDecoding: Promise<void> | null = null;
+  private forkliftTap: MediaElementAudioSourceNode | null = null;
+  private forkliftGain: GainNode | null = null;
+  private forkliftStopTimer: ReturnType<typeof setTimeout> | null = null;
   private forkliftAudio: HTMLAudioElement | null = null;
   private isBgmPlaying = false;
   private isForkliftPlaying = false;
@@ -45,14 +78,84 @@ class DepotAudio {
    */
   public startBgm() {
     if (typeof window === 'undefined') return;
+    this.isBgmPlaying = true;
 
+    this.initContext();
+    if (this.ctx) {
+      void this.startBgmSeamless();
+      return;
+    }
+    this.startBgmElement();
+  }
+
+  /** Crossfaded Web Audio loop, so there is no gap where the recording restarts. */
+  private async startBgmSeamless() {
+    const ctx = this.ctx;
+    if (!ctx || this.bgmGain) return;
+
+    if (!this.bgmBuffer) {
+      if (!this.bgmDecoding) {
+        this.bgmDecoding = (async () => {
+          try {
+            const res = await fetch(encodeURI('/audio/Delivery BGM.mp3'));
+            if (!res.ok) return;
+            const buf = await ctx.decodeAudioData(await res.arrayBuffer());
+            if (this.ctx === ctx) this.bgmBuffer = buf;
+          } catch {
+            // Leave bgmBuffer null: the element fallback below takes over.
+          }
+        })();
+      }
+      await this.bgmDecoding;
+    }
+
+    // Shut down, stopped or already restarted while the file was decoding.
+    if (this.ctx !== ctx || !this.isBgmPlaying || this.bgmGain) return;
+    if (!this.bgmBuffer) { this.startBgmElement(); return; }
+
+    this.bgmLoop = audibleRange(this.bgmBuffer);
+    this.bgmGain = ctx.createGain();
+    this.bgmGain.gain.setValueAtTime(this.muted ? 0 : this.bgmVolume, ctx.currentTime);
+    this.bgmGain.connect(ctx.destination);
+    this.bgmNextAt = ctx.currentTime + 0.05;
+    this.pumpBgm();
+    this.bgmTimer = setInterval(() => this.pumpBgm(), 1000);
+  }
+
+  /** Schedule any loop iterations that begin within the next couple of seconds. */
+  private pumpBgm() {
+    const ctx = this.ctx;
+    if (!ctx || !this.bgmBuffer || !this.bgmGain || !this.isBgmPlaying) return;
+
+    const body = this.bgmLoop.end - this.bgmLoop.start;
+    const fade = Math.min(BGM_CROSSFADE, body * 0.25);
+    const period = body - fade;
+
+    while (this.bgmNextAt < ctx.currentTime + 2) {
+      const at = Math.max(this.bgmNextAt, ctx.currentTime);
+      const src = ctx.createBufferSource();
+      src.buffer = this.bgmBuffer;
+      const g = ctx.createGain();
+      g.gain.setValueAtTime(0, at);
+      g.gain.linearRampToValueAtTime(1, at + fade);
+      g.gain.setValueAtTime(1, at + period);
+      g.gain.linearRampToValueAtTime(0, at + period + fade);
+      src.connect(g);
+      g.connect(this.bgmGain);
+      src.start(at, this.bgmLoop.start, body);
+      src.onended = () => { this.bgmSources = this.bgmSources.filter((x) => x !== src); };
+      this.bgmSources.push(src);
+      this.bgmNextAt = at + period;
+    }
+  }
+
+  private startBgmElement() {
     if (!this.bgmAudio) {
       this.bgmAudio = new Audio('/audio/Delivery BGM.mp3');
       this.bgmAudio.loop = true;
     }
 
     this.bgmAudio.volume = this.muted ? 0 : this.bgmVolume;
-    this.isBgmPlaying = true;
 
     const playPromise = this.bgmAudio.play();
     if (playPromise !== undefined) {
@@ -77,6 +180,13 @@ class DepotAudio {
    */
   public stopBgm() {
     this.isBgmPlaying = false;
+    if (this.bgmTimer !== null) { clearInterval(this.bgmTimer); this.bgmTimer = null; }
+    for (const src of this.bgmSources) {
+      try { src.onended = null; src.stop(); } catch { /* already stopped */ }
+    }
+    this.bgmSources = [];
+    try { this.bgmGain?.disconnect(); } catch { /* already gone */ }
+    this.bgmGain = null;
     if (this.bgmAudio) {
       try {
         this.bgmAudio.pause();
@@ -101,6 +211,9 @@ class DepotAudio {
    */
   public setForkliftActivity(busy: number) {
     if (typeof window === 'undefined') return;
+    // Before the player opens the depot there is no audio to make, so do not
+    // build a context or fetch the engine recording yet.
+    if (!this.unlocked) return;
 
     const isWorking = busy > 0;
 
@@ -109,10 +222,36 @@ class DepotAudio {
       this.forkliftAudio.loop = true;
     }
 
+    // Route through the context so the engine can be faded rather than cut,
+    // which clicks. Falls back to the element's own volume.
+    this.initContext();
+    if (this.ctx && !this.forkliftTap) {
+      try {
+        this.forkliftTap = this.ctx.createMediaElementSource(this.forkliftAudio);
+        this.forkliftGain = this.ctx.createGain();
+        this.forkliftGain.gain.setValueAtTime(0, this.ctx.currentTime);
+        this.forkliftTap.connect(this.forkliftGain);
+        this.forkliftGain.connect(this.ctx.destination);
+        this.forkliftAudio.volume = 1;
+      } catch {
+        this.forkliftTap = null;
+        this.forkliftGain = null;
+      }
+    }
+
     if (isWorking) {
+      if (this.forkliftStopTimer !== null) {
+        clearTimeout(this.forkliftStopTimer);
+        this.forkliftStopTimer = null;
+      }
+      if (this.forkliftGain && this.ctx) {
+        this.forkliftGain.gain.setTargetAtTime(
+          this.muted ? 0 : this.forkliftVolume, this.ctx.currentTime, 0.05
+        );
+      }
       if (!this.isForkliftPlaying) {
         this.isForkliftPlaying = true;
-        this.forkliftAudio.volume = this.muted ? 0 : this.forkliftVolume;
+        if (!this.forkliftGain) this.forkliftAudio.volume = this.muted ? 0 : this.forkliftVolume;
         this.forkliftAudio.play().catch(() => {
           // Autoplay protection: wait for first interaction if needed
           const retryOnInteraction = () => {
@@ -125,23 +264,34 @@ class DepotAudio {
           window.addEventListener('pointerdown', retryOnInteraction, { once: true });
         });
       }
-    } else {
-      if (this.isForkliftPlaying) {
-        this.isForkliftPlaying = false;
-        try {
-          this.forkliftAudio.pause();
-          this.forkliftAudio.currentTime = 0;
-        } catch {}
+    } else if (this.isForkliftPlaying) {
+      this.isForkliftPlaying = false;
+      const el = this.forkliftAudio;
+      if (this.forkliftGain && this.ctx) {
+        // Die away over a moment, then stop the element. The engine picks up
+        // where it left off next time instead of restarting its first note.
+        this.forkliftGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.06);
+        this.forkliftStopTimer = setTimeout(() => {
+          this.forkliftStopTimer = null;
+          if (!this.isForkliftPlaying) { try { el.pause(); } catch { /* gone */ } }
+        }, 260);
+      } else {
+        try { el.pause(); el.currentTime = 0; } catch { /* gone */ }
       }
     }
   }
 
   public setMuted(muted: boolean) {
     this.muted = muted;
-    if (this.bgmAudio) {
+    if (this.bgmGain && this.ctx) {
+      this.bgmGain.gain.setTargetAtTime(muted ? 0 : this.bgmVolume, this.ctx.currentTime, 0.03);
+    } else if (this.bgmAudio) {
       this.bgmAudio.volume = muted ? 0 : this.bgmVolume;
     }
-    if (this.forkliftAudio) {
+    if (this.forkliftGain && this.ctx) {
+      const level = muted || !this.isForkliftPlaying ? 0 : this.forkliftVolume;
+      this.forkliftGain.gain.setTargetAtTime(level, this.ctx.currentTime, 0.03);
+    } else if (this.forkliftAudio) {
       this.forkliftAudio.volume = muted ? 0 : this.forkliftVolume;
     }
   }
@@ -222,6 +372,10 @@ class DepotAudio {
    */
   public shutdown() {
     this.stopBgm();
+    if (this.forkliftStopTimer !== null) {
+      clearTimeout(this.forkliftStopTimer);
+      this.forkliftStopTimer = null;
+    }
     if (this.forkliftAudio) {
       try {
         this.forkliftAudio.pause();
@@ -229,6 +383,14 @@ class DepotAudio {
       } catch {}
       this.isForkliftPlaying = false;
     }
+    // An element tapped by a closed context stays silent for ever, so drop the
+    // elements and the decoded music too: unlock() builds them again.
+    this.forkliftTap = null;
+    this.forkliftGain = null;
+    this.forkliftAudio = null;
+    this.bgmAudio = null;
+    this.bgmBuffer = null;
+    this.bgmDecoding = null;
     if (this.ctx) {
       try {
         void this.ctx.close();

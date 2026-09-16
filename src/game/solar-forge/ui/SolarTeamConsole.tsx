@@ -52,6 +52,13 @@ export const SolarTeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
   const missionNumber = String(teamState.currentQuestionIndex + 1).padStart(2, '0');
   const totalMissions = String(teamState.questions.length).padStart(2, '0');
 
+  const isPartyActive = useSolarForgeStore((s) => s.isPartyActive);
+  const gamePhase = useSolarForgeStore((s) => s.gamePhase);
+
+  if (isPartyActive || gamePhase === 'cinematic_activation' || gamePhase === 'victory') {
+    return null;
+  }
+
   const isRotating = teamState.isRotatingMirror;
   const isAligned = teamState.lastFeedback === 'beam_aligned' || teamState.lastFeedback === 'power_up';
 

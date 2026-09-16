@@ -143,6 +143,8 @@ interface SolarForgeStore {
   sun: SunState;
   sundial: SundialState;
   questionsPerTeam: number;
+  isPartyActive: boolean;
+  partyWinner: 'blue' | 'red';
 
   // Game Controls
   startForgeChallenge: () => void;
@@ -152,6 +154,8 @@ interface SolarForgeStore {
   completeConstruction: (team: TeamId) => void;
   submitAnswer: (team: TeamId) => void;
   advanceQuestion: (team: TeamId) => void;
+  triggerParty: (forcedWinner?: 'blue' | 'red') => void;
+  stopParty: () => void;
   restartChallenge: () => void;
 }
 
@@ -178,6 +182,8 @@ export const useSolarForgeStore = create<SolarForgeStore>((set, get) => ({
     isCalibrated: true,
   },
   questionsPerTeam: 5,
+  isPartyActive: false,
+  partyWinner: 'blue',
 
   startForgeChallenge: () => {
     set({ gamePhase: 'forging' });
@@ -345,14 +351,14 @@ export const useSolarForgeStore = create<SolarForgeStore>((set, get) => ({
     const nextIdx = teamState.currentQuestionIndex + 1;
 
     if (nextIdx >= teamState.questions.length) {
-      const otherTeam: TeamId = team === 'blue' ? 'red' : 'blue';
-      const otherState = get()[otherTeam];
-      const otherDone = otherState.currentQuestionIndex >= otherState.questions.length - 1;
-
-      if (otherDone || get().solarForge.powerLevel >= 90) {
-        solarAudio.playSolarForgeIgnition();
-        set({ gamePhase: 'cinematic_activation' });
-      }
+      const winner = get().blue.energyMegawatts >= get().red.energyMegawatts ? 'blue' : 'red';
+      solarAudio.playSolarForgeIgnition();
+      solarAudio.playPartyCheer();
+      set({
+        gamePhase: 'cinematic_activation',
+        isPartyActive: true,
+        partyWinner: winner,
+      });
       return;
     }
 
@@ -395,9 +401,27 @@ export const useSolarForgeStore = create<SolarForgeStore>((set, get) => ({
     }));
   },
 
+  triggerParty: (forcedWinner?: 'blue' | 'red') => {
+    const defaultWinner = get().blue.energyMegawatts >= get().red.energyMegawatts ? 'blue' : 'red';
+    const chosenWinner = forcedWinner || defaultWinner;
+    solarAudio.playSolarForgeIgnition();
+    solarAudio.playPartyCheer();
+    set({
+      isPartyActive: true,
+      partyWinner: chosenWinner,
+      gamePhase: 'cinematic_activation',
+    });
+  },
+
+  stopParty: () => {
+    set({ isPartyActive: false });
+  },
+
   restartChallenge: () => {
     set({
       gamePhase: 'briefing',
+      isPartyActive: false,
+      partyWinner: 'blue',
       blue: createInitialTeamState('blue'),
       red: createInitialTeamState('red'),
       solarForge: {

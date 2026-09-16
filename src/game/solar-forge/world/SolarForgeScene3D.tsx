@@ -24,22 +24,24 @@ import { CamelCaravan3D } from './CamelCaravan3D';
 // Cinematic World Camera Director with Responsive Mouse Parallax
 const SolarForgeCameraDirector: React.FC<{
   isCinematic: boolean;
+  isPartyActive: boolean;
   blueActive: boolean;
   redActive: boolean;
-}> = ({ isCinematic, blueActive, redActive }) => {
+}> = ({ isCinematic, isPartyActive, blueActive, redActive }) => {
   const currentPos = useRef(new THREE.Vector3(0, 15, 30));
   const currentTarget = useRef(new THREE.Vector3(0, 7.5, -14));
 
   useFrame((state, delta) => {
+    const t = state.clock.getElapsedTime();
     // ── MOUSE PARALLAX RESPONSE (Normalized -1 to +1) ──
     const mouseX = state.pointer.x; // Left -1 to Right +1
     const mouseY = state.pointer.y; // Bottom -1 to Top +1
 
     // Camera shifts smoothly with mouse movement
-    const parallaxX = mouseX * 7.5;  // Lateral pan
-    const parallaxY = mouseY * 3.5;  // Vertical pitch
-    const lookOffsetX = -mouseX * 2.8;
-    const lookOffsetY = -mouseY * 1.5;
+    const parallaxX = mouseX * (isPartyActive ? 2.0 : 7.5);
+    const parallaxY = mouseY * (isPartyActive ? 1.2 : 3.5);
+    const lookOffsetX = -mouseX * (isPartyActive ? 1.5 : 2.8);
+    const lookOffsetY = -mouseY * (isPartyActive ? 0.8 : 1.5);
 
     let targetX = 0;
     let targetY = 15;
@@ -47,12 +49,21 @@ const SolarForgeCameraDirector: React.FC<{
     let lookY = 7.5;
     let lookZ = -14;
 
-    if (isCinematic) {
+    if (isPartyActive) {
+      // ── CLOSE-UP VIP CELEBRATION PARTY CAM DIRECTLY ON CENTRAL FORGE HOUSE ──
+      // Central Forge House is at [0, 1.0, -35].
+      // Position camera ~14m away at eye-level with dynamic sweeping arc so players see all dancers & lights!
+      targetX = Math.sin(t * 0.45) * 3.8;
+      targetY = 4.2 + Math.sin(t * 0.3) * 0.5;
+      targetZ = -18.5 + Math.cos(t * 0.35) * 2.0;
+      lookY = 3.2;
+      lookZ = -34.5;
+    } else if (isCinematic) {
       // Grand cinematic pull-back showing the entire valley & blazing Forge
       targetX = 0;
-      targetY = 26;
-      targetZ = 48;
-      lookY = 14;
+      targetY = 24;
+      targetZ = 44;
+      lookY = 12;
       lookZ = -25;
     } else if (blueActive && !redActive) {
       targetX = -8;
@@ -68,7 +79,7 @@ const SolarForgeCameraDirector: React.FC<{
       lookZ = -12;
     }
 
-    const dampSpeed = 3.2;
+    const dampSpeed = isPartyActive ? 2.8 : 3.2;
     currentPos.current.x = THREE.MathUtils.damp(currentPos.current.x, targetX + parallaxX, dampSpeed, delta);
     currentPos.current.y = THREE.MathUtils.damp(currentPos.current.y, targetY + parallaxY, dampSpeed, delta);
     currentPos.current.z = THREE.MathUtils.damp(currentPos.current.z, targetZ, dampSpeed, delta);
@@ -91,6 +102,7 @@ export const SolarForgeScene3D: React.FC = () => {
   const sun = useSolarForgeStore((s) => s.sun);
   const sundial = useSolarForgeStore((s) => s.sundial);
   const phase = useSolarForgeStore((s) => s.gamePhase);
+  const isPartyActive = useSolarForgeStore((s) => s.isPartyActive);
 
   const isCinematic = phase === 'cinematic_activation' || phase === 'victory';
   const isBlueRotating = blue.isRotatingMirror || blue.lastFeedback === 'beam_aligned';
@@ -107,6 +119,7 @@ export const SolarForgeScene3D: React.FC = () => {
         {/* ── CINEMATIC CAMERA ── */}
         <SolarForgeCameraDirector
           isCinematic={isCinematic}
+          isPartyActive={isPartyActive}
           blueActive={isBlueRotating}
           redActive={isRedRotating}
         />

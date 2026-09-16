@@ -95,6 +95,7 @@ export const SolarForgeHeader: React.FC = () => {
           <span className="text-red-600">{red.energyMegawatts} MW</span>
         </div>
 
+
         {/* BGM 30% & Sound Toggle */}
         <button
           onClick={toggleSound}
