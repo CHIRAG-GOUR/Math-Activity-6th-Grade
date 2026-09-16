@@ -31,8 +31,10 @@ export function GraphworksHeader() {
   const minutes = Math.floor(displayTimer / 60);
   const seconds = displayTimer % 60;
 
-  const roundNames = ['READ', 'COMPLETE', 'BUILD', 'INTERPRET', 'CREATE'];
-  const roundName = roundNames[currentRound - 1] ?? 'BUILD';
+  const roundWins = useGraphworksStore((s) => s.roundWins);
+  const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
+
+  const roundTitles = ['Q1: CIRCLE', 'Q2: BAR', 'Q3: LINE', 'Q4: PICTO', 'Q5: FINAL'];
 
   return (
     <header className="w-full px-4 py-2 flex items-center justify-between bg-slate-900/85 backdrop-blur-md border-b border-white/15 text-white select-none shadow-xl">
@@ -53,7 +55,7 @@ export function GraphworksHeader() {
               </span>
             </div>
             <span className="text-[10px] text-slate-300 font-medium tracking-wide">
-              Build graphs. Power your city.
+              5 Questions · Whoever answers first wins!
             </span>
           </div>
         </div>
@@ -63,6 +65,9 @@ export function GraphworksHeader() {
           <div className="flex items-center gap-1.5">
             <span className="w-2.5 h-2.5 rounded-full bg-blue-500 animate-pulse shadow-xs shadow-blue-400" />
             <span className="font-black text-xs text-blue-400 tracking-wider">BLUE</span>
+            <span className="text-[10px] font-black px-1.5 py-0.2 bg-blue-600 text-white rounded-full">
+              {roundWins.blue} WINS
+            </span>
           </div>
           <div className="h-4 w-px bg-white/15" />
           <div className="flex items-center gap-2.5 text-[10px]">
@@ -82,52 +87,59 @@ export function GraphworksHeader() {
         </div>
       </div>
 
-      {/* ── CENTER: MATCH TELEMETRY & ROUND PILLS ── */}
+      {/* ── CENTER: FIRST-TO-ANSWER SCOREBOARD & 5 ROUND BADGES ── */}
       <div className="flex flex-col items-center gap-1">
-        {/* Match Timer & VS Capsule */}
-        <div className="flex items-center gap-2 bg-black/40 border border-white/20 rounded-full px-4 py-0.5 shadow-inner">
-          <span className="text-blue-400 font-black text-xs">BLUE</span>
-          <span className="text-yellow-400 font-black text-[10px] tracking-wider px-1">VS</span>
-          <span className="text-red-400 font-black text-xs">RED</span>
-          <div className="h-3 w-px bg-white/20 mx-0.5" />
-          <span className="font-mono font-black text-xs text-white tracking-widest tabular-nums">
-            {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
+        {/* Match Timer & First-to-Answer Scoreboard Capsule */}
+        <div className="flex items-center gap-2.5 bg-black/50 border border-white/20 rounded-full px-4 py-0.5 shadow-inner">
+          <div className="flex items-center gap-1.5">
+            <span className="w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
+            <span className="text-blue-400 font-black text-xs">BLUE</span>
+            <span className="font-mono font-black text-xs text-white bg-blue-900/80 px-1.5 py-0.2 rounded border border-blue-500/40">
+              {roundWins.blue}
+            </span>
+          </div>
+          <span className="text-yellow-400 font-black text-[10px] tracking-widest px-0.5">WINS</span>
+          <div className="flex items-center gap-1.5">
+            <span className="font-mono font-black text-xs text-white bg-red-900/80 px-1.5 py-0.2 rounded border border-red-500/40">
+              {roundWins.red}
+            </span>
+            <span className="text-red-400 font-black text-xs">RED</span>
+            <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+          </div>
+          <div className="h-3.5 w-px bg-white/20 mx-0.5" />
+          <span className="font-mono font-black text-xs text-amber-300 tracking-widest tabular-nums">
+            ⏱️ {String(minutes).padStart(2, '0')}:{String(seconds).padStart(2, '0')}
           </span>
         </div>
 
-        {/* Sleek Integrated Round Progress Pills */}
+        {/* Sleek Integrated 5 Questions Progress Pills */}
         <div className="flex items-center gap-1">
-          {roundNames.map((name, i) => {
+          <span className="text-[8.5px] font-black uppercase text-amber-300 mr-1 tracking-wider hidden lg:inline">
+            FIRST TO ANSWER WINS:
+          </span>
+          {roundTitles.map((title, i) => {
             const roundNum = i + 1;
-            const isCompleted = currentRound > roundNum;
+            const winner = roundWinnersHistory[i];
             const isCurrent = currentRound === roundNum;
+
             return (
               <div
-                key={name}
-                className={`flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[9px] font-bold transition-all ${
-                  isCurrent
-                    ? 'bg-cyan-500 text-slate-950 ring-1 ring-cyan-300 font-black'
-                    : isCompleted
-                    ? 'bg-emerald-950/80 text-emerald-400 border border-emerald-500/40'
-                    : 'bg-white/5 text-slate-400 border border-white/10'
+                key={title}
+                className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black transition-all ${
+                  winner === 'blue'
+                    ? 'bg-blue-600 text-white shadow-xs shadow-blue-500/50 border border-blue-300'
+                    : winner === 'red'
+                    ? 'bg-red-600 text-white shadow-xs shadow-red-500/50 border border-red-300'
+                    : isCurrent
+                    ? 'bg-yellow-400 text-slate-950 ring-2 ring-yellow-300 animate-pulse'
+                    : 'bg-white/10 text-slate-400 border border-white/10'
                 }`}
               >
-                <span>{isCompleted ? '✓' : roundNum}</span>
-                <span className="hidden sm:inline">{name}</span>
+                <span>{winner === 'blue' ? '🔵' : winner === 'red' ? '🔴' : isCurrent ? '⚡' : '⚪'}</span>
+                <span>{title}</span>
               </div>
             );
           })}
-          {gamePhase === 'feedback' && currentRound < 5 && (
-            <button
-              onClick={() => {
-                soundManager.playClick();
-                advanceRound();
-              }}
-              className="ml-1.5 px-2 py-0.2 rounded-full text-[9px] font-black bg-yellow-400 text-slate-950 hover:bg-yellow-300 transition-all cursor-pointer shadow-xs"
-            >
-              Next Round ▸
-            </button>
-          )}
         </div>
       </div>
 

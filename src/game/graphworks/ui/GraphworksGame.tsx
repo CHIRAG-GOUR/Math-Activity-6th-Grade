@@ -12,83 +12,105 @@ import { GraphStudio } from './GraphStudio';
 import { GraphworksHeader } from './GraphworksHeader';
 import { GraphworksBriefing, GraphworksVictory } from './GraphworksBriefing';
 import { useGraphworksStore } from '../store/graphworksStore';
-import { getMissionForTeam, generateFinalChallenge } from '../data/questions';
-import type { CityDistrict } from '../store/graphworksStore';
+import { getCompetitiveQuestion } from '../data/questions';
 
 // ── MISSION FLOW CONTROLLER ──
+// Synchronizes both teams with identical 5-round competitive questions
 function MissionController() {
   const gamePhase = useGraphworksStore((s) => s.gamePhase);
   const currentRound = useGraphworksStore((s) => s.currentRound);
   const blue = useGraphworksStore((s) => s.blue);
   const red = useGraphworksStore((s) => s.red);
   const setMission = useGraphworksStore((s) => s.setMission);
-  const advanceRound = useGraphworksStore((s) => s.advanceRound);
-  const setGamePhase = useGraphworksStore((s) => s.setGamePhase);
 
-  // Districts to cycle through
-  const districtOrder: CityDistrict[] = ['weather', 'traffic', 'water', 'power', 'train', 'park'];
-
-  // Assign missions when round starts or mission completes
-  const assignMissions = useCallback(() => {
+  useEffect(() => {
     if (gamePhase !== 'playing') return;
 
-    // Blue gets one district, Red gets another
-    const blueDistrict = districtOrder[(currentRound - 1) % districtOrder.length];
-    const redDistrict = districtOrder[(currentRound) % districtOrder.length];
-
     if (!blue.currentMission) {
-      const mission = getMissionForTeam(currentRound, blueDistrict);
+      const mission = getCompetitiveQuestion(currentRound);
       setMission('blue', mission);
     }
     if (!red.currentMission) {
-      const mission = getMissionForTeam(currentRound, redDistrict);
+      const mission = getCompetitiveQuestion(currentRound);
       setMission('red', mission);
     }
   }, [gamePhase, currentRound, blue.currentMission, red.currentMission, setMission]);
 
-  useEffect(() => {
-    assignMissions();
-  }, [assignMissions]);
-
-  // When feedback is dismissed, check if we should advance
-  useEffect(() => {
-    if (gamePhase !== 'feedback') return;
-
-    const bothDone = blue.completedMissions > 0 && red.completedMissions > 0 &&
-      blue.completedMissions === red.completedMissions;
-
-    if (bothDone) {
-      const timeout = setTimeout(() => {
-        advanceRound();
-        // Clear missions for next round
-        setMission('blue', getMissionForTeam(
-          Math.min(currentRound + 1, 5),
-          districtOrder[(currentRound) % districtOrder.length]
-        ));
-        setMission('red', getMissionForTeam(
-          Math.min(currentRound + 1, 5),
-          districtOrder[(currentRound + 1) % districtOrder.length]
-        ));
-      }, 2000);
-      return () => clearTimeout(timeout);
-    }
-  }, [gamePhase, blue.completedMissions, red.completedMissions]);
-
-  // Auto-assign new mission after completing one
-  useEffect(() => {
-    if (gamePhase === 'feedback' || gamePhase === 'playing') {
-      if (!blue.currentMission && blue.completedMissions < 5) {
-        const d = districtOrder[(blue.completedMissions) % districtOrder.length];
-        setMission('blue', getMissionForTeam(currentRound, d));
-      }
-      if (!red.currentMission && red.completedMissions < 5) {
-        const d = districtOrder[(red.completedMissions + 1) % districtOrder.length];
-        setMission('red', getMissionForTeam(currentRound, d));
-      }
-    }
-  }, [gamePhase, blue.currentMission, red.currentMission, blue.completedMissions, red.completedMissions]);
-
   return null;
+}
+
+// ── ARCADE FIRST-TO-ANSWER ROUND WINNER BANNER ──
+function RoundWinBanner() {
+  const roundBanner = useGraphworksStore((s) => s.roundBanner);
+  const roundWins = useGraphworksStore((s) => s.roundWins);
+
+  if (!roundBanner || !roundBanner.visible) return null;
+
+  const isBlue = roundBanner.team === 'blue';
+  const teamColor = isBlue ? '#38BDF8' : '#F87171';
+  const teamBorder = isBlue ? 'border-sky-400 shadow-sky-500/50' : 'border-rose-400 shadow-rose-500/50';
+  const teamGlow = isBlue ? 'bg-sky-500/20' : 'bg-rose-500/20';
+
+  return (
+    <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
+      {/* Dark overlay backdrop with subtle blur */}
+      <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-xs animate-in fade-in duration-200" />
+
+      {/* Floating arcade victory card */}
+      <div
+        className={`relative z-10 max-w-md w-full bg-slate-900/95 border-2 ${teamBorder} rounded-3xl p-6 text-center text-white shadow-2xl animate-in zoom-in-90 duration-200`}
+      >
+        {/* Floating trophy badge */}
+        <div className="mx-auto -mt-12 w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/50 border-2 border-white animate-bounce">
+          🏆
+        </div>
+
+        {/* First to answer badge */}
+        <div className="mt-3 inline-flex items-center gap-1.5 px-3.5 py-1 rounded-full bg-yellow-400/20 border border-yellow-400/50 text-yellow-300 text-xs font-black tracking-widest uppercase">
+          <span>⚡ FIRST TO ANSWER CORRECTLY! ⚡</span>
+        </div>
+
+        <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight" style={{ color: teamColor }}>
+          {roundBanner.title}
+        </h2>
+
+        <p className="mt-1 text-xs md:text-sm font-semibold text-slate-300">
+          {roundBanner.subtitle}
+        </p>
+
+        {/* Live Match Round Scoreboard */}
+        <div className="mt-4 py-2.5 px-5 rounded-2xl bg-black/60 border border-white/15 flex items-center justify-around">
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black tracking-wider text-sky-400 uppercase">BLUE TEAM</span>
+            <span className="text-2xl font-mono font-black text-white">{roundWins.blue} WINS</span>
+          </div>
+          <div className="text-slate-500 font-black text-sm px-2">VS</div>
+          <div className="flex flex-col items-center">
+            <span className="text-[10px] font-black tracking-wider text-rose-400 uppercase">RED TEAM</span>
+            <span className="text-2xl font-mono font-black text-white">{roundWins.red} WINS</span>
+          </div>
+        </div>
+
+        {/* Animated countdown / transition bar */}
+        <div className="mt-4">
+          <div className="w-full h-2 bg-white/10 rounded-full overflow-hidden">
+            <div
+              className="h-full rounded-full transition-all duration-[2600ms] ease-linear"
+              style={{
+                width: '100%',
+                background: isBlue
+                  ? 'linear-gradient(90deg, #38BDF8, #60A5FA)'
+                  : 'linear-gradient(90deg, #F87171, #FB7185)',
+              }}
+            />
+          </div>
+          <span className="block mt-1.5 text-[9.5px] font-bold text-slate-400 tracking-wider uppercase">
+            {roundBanner.round >= 5 ? 'Calculating Championship Results...' : `Loading Question ${roundBanner.round + 1} of 5...`}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
 }
 
 
@@ -158,6 +180,9 @@ export function GraphworksGame() {
 
       {/* ── VICTORY CINEMATIC ── */}
       <GraphworksVictory />
+
+      {/* ── ARCADE FIRST-TO-ANSWER ROUND WINNER BANNER ── */}
+      <RoundWinBanner />
 
       {/* ── TOP SCOREBOARD & CONTROLS HEADER ── */}
       <div className="relative z-20 pointer-events-auto">

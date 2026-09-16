@@ -807,6 +807,9 @@ export function GraphStudio({ team }: { team: Team }) {
   const completedMissions = teamState.completedMissions;
   const totalScore = teamState.totalScore;
   const graphAccuracy = teamState.graphAccuracy;
+  const roundWins = useGraphworksStore((s) => s.roundWins);
+  const roundWinner = useGraphworksStore((s) => s.roundWinner);
+  const roundTransitionPending = useGraphworksStore((s) => s.roundTransitionPending);
   const checkGraph = useGraphworksStore((s) => s.checkGraph);
   const setTool = useGraphworksStore((s) => s.setTool);
   const clearGraph = useGraphworksStore((s) => s.clearGraph);
@@ -871,9 +874,9 @@ export function GraphStudio({ team }: { team: Team }) {
           <span className="font-black text-xs tracking-wider uppercase">{teamName} STUDIO</span>
         </div>
         <div className="flex items-center gap-2 text-[10px]">
-          <span className="font-bold opacity-90">R{currentMission.round} · M{completedMissions + 1}</span>
+          <span className="font-bold opacity-90">ROUND {currentMission.round}/5</span>
           <span className="font-black bg-white/20 px-1.5 py-0.2 rounded font-mono">
-            {graphAccuracy > 0 ? `${graphAccuracy}%` : `${totalScore}pts`}
+            ⭐ {roundWins[team]} {roundWins[team] === 1 ? 'WIN' : 'WINS'}
           </span>
         </div>
       </div>
@@ -934,22 +937,32 @@ export function GraphStudio({ team }: { team: Team }) {
           onReset={() => clearGraph(team)}
         />
 
-        {/* Check Graph Action Button */}
-        <button
-          type="button"
-          onClick={() => {
-            soundManager.playClick();
-            checkGraph(team);
-          }}
-          className={`w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider shadow-md hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-            isBlue
-              ? 'bg-gradient-to-r from-blue-600 to-sky-600 shadow-blue-500/25'
-              : 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/25'
-          }`}
-        >
-          <span>CHECK GRAPH</span>
-          <span>✓</span>
-        </button>
+        {/* Check Graph Action Button or Round Claimed Status */}
+        {roundWinner && roundWinner !== team && roundTransitionPending ? (
+          <div className="w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-slate-700/90 flex items-center justify-center gap-1.5 opacity-90 border border-slate-600">
+            <span>⚡ ROUND CLAIMED BY {roundWinner.toUpperCase()}!</span>
+          </div>
+        ) : roundWinner === team && roundTransitionPending ? (
+          <div className="w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-emerald-600 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/30 animate-pulse">
+            <span>🎉 ROUND {currentMission.round} WON! (+100 PTS)</span>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => {
+              soundManager.playClick();
+              checkGraph(team);
+            }}
+            className={`w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider shadow-md hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+              isBlue
+                ? 'bg-gradient-to-r from-blue-600 to-sky-600 shadow-blue-500/25'
+                : 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/25'
+            }`}
+          >
+            <span>CHECK GRAPH</span>
+            <span>✓</span>
+          </button>
+        )}
       </div>
     </div>
   );

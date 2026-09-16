@@ -5,6 +5,8 @@
 // ============================================================
 
 import { create } from 'zustand';
+import { getCompetitiveQuestion } from '../data/questions';
+import { soundManager } from '@/utils/audio';
 
 // ── GRAPH DATA TYPES ──
 export type GraphType = 'line' | 'bar' | 'pictograph' | 'coordinate' | 'pie';
@@ -174,6 +176,14 @@ export interface ActiveDataPulse {
   timestamp: number;
 }
 
+export interface RoundWinBannerData {
+  visible: boolean;
+  team: Team | 'tie';
+  title: string;
+  subtitle: string;
+  round: number;
+}
+
 export interface GraphworksStore {
   // Game phase
   gamePhase: GamePhase;
@@ -195,6 +205,13 @@ export interface GraphworksStore {
   redTelemetry: CityLiveTelemetry | null;
   activePulses: ActiveDataPulse[];
 
+  // 5-Question First-to-Answer Race State
+  roundWins: { blue: number; red: number };
+  roundWinner: Team | 'tie' | null;
+  roundWinnersHistory: Array<Team | 'tie'>;
+  roundBanner: RoundWinBannerData | null;
+  roundTransitionPending: boolean;
+
   // City animation
   isRunningGraph: boolean;
   runningTeam: Team | null;
@@ -215,6 +232,7 @@ export interface GraphworksStore {
   setInterpretationAnswer: (team: Team, answer: string) => void;
   submitInterpretation: (team: Team) => void;
   advanceRound: () => void;
+  setRoundBanner: (banner: RoundWinBannerData | null) => void;
   setGraphRunProgress: (progress: number) => void;
   updateCityFromGraph: (team: Team, values: number[], district: CityDistrict) => void;
   syncCityFromCurrentGraph: (team: Team, activeIndex?: number) => void;
@@ -365,6 +383,13 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   timer: 300,
   isTimerRunning: false,
 
+  // 5-Question First-to-Answer Race State
+  roundWins: { blue: 0, red: 0 },
+  roundWinner: null,
+  roundWinnersHistory: [],
+  roundBanner: null,
+  roundTransitionPending: false,
+
   blue: createDefaultTeam('blue'),
   red: createDefaultTeam('red'),
 
@@ -379,19 +404,47 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   runningTeam: null,
   graphRunProgress: 0,
 
-  startGame: () => set({
-    gamePhase: 'playing',
-    currentRound: 1,
-    roundPhase: 'read',
-    isTimerRunning: true,
-    blue: createDefaultTeam('blue'),
-    red: createDefaultTeam('red'),
-    blueCity: { ...defaultCity },
-    redCity: { ...defaultCity },
-    blueTelemetry: null,
-    redTelemetry: null,
-    activePulses: [],
-  }),
+  setRoundBanner: (banner) => set({ roundBanner: banner }),
+
+  startGame: () => {
+    const q1 = getCompetitiveQuestion(1);
+    const blueInitial = createDefaultTeam('blue');
+    const redInitial = createDefaultTeam('red');
+
+    blueInitial.currentMission = q1;
+    blueInitial.graphType = q1.graphType;
+    blueInitial.plottedBars = (q1.graphType === 'bar' || q1.graphType === 'pie' || q1.graphType === 'pictograph')
+      ? q1.dataTable.map((d) => ({ label: d.label, height: 0 }))
+      : [];
+
+    redInitial.currentMission = q1;
+    redInitial.graphType = q1.graphType;
+    redInitial.plottedBars = (q1.graphType === 'bar' || q1.graphType === 'pie' || q1.graphType === 'pictograph')
+      ? q1.dataTable.map((d) => ({ label: d.label, height: 0 }))
+      : [];
+
+    set({
+      gamePhase: 'playing',
+      currentRound: 1,
+      roundPhase: 'build',
+      timer: 300,
+      isTimerRunning: true,
+      roundWins: { blue: 0, red: 0 },
+      roundWinner: null,
+      roundWinnersHistory: [],
+      roundBanner: null,
+      roundTransitionPending: false,
+      blue: blueInitial,
+      red: redInitial,
+      blueCity: { ...defaultCity },
+      redCity: { ...defaultCity },
+      blueTelemetry: null,
+      redTelemetry: null,
+      activePulses: [],
+    });
+    get().syncCityFromCurrentGraph('blue', 0);
+    get().syncCityFromCurrentGraph('red', 0);
+  },
 
   setMission: (team, mission) => {
     set((s) => ({
@@ -477,6 +530,11 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
   checkGraph: (team) => {
     const state = get();
+    // If a round winner was already declared and transition is in flight, prevent duplicate triggers
+    if (state.roundWinner && state.roundWinner !== team && state.roundTransitionPending) {
+      return;
+    }
+
     const teamState = state[team];
     const validation = validateGraph(teamState);
 
@@ -490,11 +548,74 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       gamePhase: 'checking',
     }));
 
-    // Auto-run if accuracy >= 60%
-    if (validation.accuracy >= 60) {
-      setTimeout(() => {
-        get().runGraph(team);
-      }, 1500);
+    // If accuracy >= 80%: SUCCESS!
+    if (validation.accuracy >= 80) {
+      // Check if this team is the FIRST to answer!
+      if (!get().roundWinner) {
+        const winningTeam = team;
+        const currentRoundNum = get().currentRound;
+        const newWins = {
+          ...get().roundWins,
+          [winningTeam]: get().roundWins[winningTeam] + 1,
+        };
+        const newHistory = [...get().roundWinnersHistory, winningTeam];
+
+        soundManager.playCorrect(true);
+
+        const banner: RoundWinBannerData = {
+          visible: true,
+          team: winningTeam,
+          title: `⚡ ${winningTeam.toUpperCase()} TEAM ANSWERED FIRST!`,
+          subtitle: `ROUND ${currentRoundNum} OF 5 WON (+100 PTS) · ${
+            currentRoundNum >= 5 ? 'CHAMPIONSHIP CONCLUDED!' : `ROUND ${currentRoundNum + 1} LOADING...`
+          }`,
+          round: currentRoundNum,
+        };
+
+        set((s) => ({
+          roundWinner: winningTeam,
+          roundWins: newWins,
+          roundWinnersHistory: newHistory,
+          roundBanner: banner,
+          roundTransitionPending: true,
+          [winningTeam]: {
+            ...s[winningTeam],
+            totalScore: s[winningTeam].totalScore + 100 + validation.accuracy,
+            completedMissions: s[winningTeam].completedMissions + 1,
+            cityLevel: Math.min(5, s[winningTeam].cityLevel + 1),
+          },
+        }));
+
+        // Trigger dynamic city simulation run for winning team
+        get().runGraph(winningTeam);
+
+        // Transition timer to advance to next question or declare victory
+        setTimeout(() => {
+          const sNow = get();
+          if (sNow.currentRound >= 5) {
+            set({
+              gamePhase: 'victory',
+              roundBanner: null,
+              roundTransitionPending: false,
+            });
+          } else {
+            get().advanceRound();
+          }
+        }, 2800);
+      } else {
+        // Second team to finish correctly
+        soundManager.playClick();
+        set((s) => ({
+          [team]: {
+            ...s[team],
+            totalScore: s[team].totalScore + Math.round(validation.accuracy * 0.5),
+            completedMissions: s[team].completedMissions + 1,
+          },
+        }));
+      }
+    } else {
+      // Inaccurate (<80%)
+      soundManager.playKeypadBeep();
     }
   },
 
@@ -591,20 +712,51 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     };
   }),
 
-  advanceRound: () => set((s) => {
-    const phases: RoundPhase[] = ['read', 'complete', 'build', 'interpret', 'create'];
+  advanceRound: () => {
+    const s = get();
     const nextRound = s.currentRound + 1;
 
     if (nextRound > 5) {
-      return { gamePhase: 'victory' };
+      set({ gamePhase: 'victory', roundBanner: null, roundTransitionPending: false });
+      return;
     }
 
-    return {
+    const nextMission = getCompetitiveQuestion(nextRound);
+
+    set({
       currentRound: nextRound,
-      roundPhase: phases[nextRound - 1] ?? 'build',
+      roundPhase: 'build',
+      roundWinner: null,
+      roundBanner: null,
+      roundTransitionPending: false,
       gamePhase: 'playing',
-    };
-  }),
+      blue: {
+        ...s.blue,
+        currentMission: nextMission,
+        graphType: nextMission.graphType,
+        plottedPoints: [],
+        plottedBars: (nextMission.graphType === 'bar' || nextMission.graphType === 'pie' || nextMission.graphType === 'pictograph')
+          ? nextMission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+          : [],
+        lastValidation: null,
+        showFeedback: false,
+      },
+      red: {
+        ...s.red,
+        currentMission: nextMission,
+        graphType: nextMission.graphType,
+        plottedPoints: [],
+        plottedBars: (nextMission.graphType === 'bar' || nextMission.graphType === 'pie' || nextMission.graphType === 'pictograph')
+          ? nextMission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+          : [],
+        lastValidation: null,
+        showFeedback: false,
+      },
+    });
+
+    get().syncCityFromCurrentGraph('blue', 0);
+    get().syncCityFromCurrentGraph('red', 0);
+  },
 
   setGraphRunProgress: (progress) => set({ graphRunProgress: progress }),
 
@@ -855,9 +1007,14 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   restartGame: () => set({
     gamePhase: 'briefing',
     currentRound: 1,
-    roundPhase: 'read',
+    roundPhase: 'build',
     timer: 300,
     isTimerRunning: false,
+    roundWins: { blue: 0, red: 0 },
+    roundWinner: null,
+    roundWinnersHistory: [],
+    roundBanner: null,
+    roundTransitionPending: false,
     blue: createDefaultTeam('blue'),
     red: createDefaultTeam('red'),
     blueCity: { ...defaultCity },

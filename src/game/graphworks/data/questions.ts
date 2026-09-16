@@ -1215,3 +1215,202 @@ export function generateFinalChallenge(): MissionQuestion {
     difficulty: 5,
   };
 }
+
+// ── 5 COMPETITIVE FIRST-TO-ANSWER MATCH QUESTIONS ──
+// Exactly 5 questions across all core Grade 6 graph representations:
+// 1. Circle Graph (Pie Chart) - Clean Energy Grid Mix
+// 2. Bar Graph - Weekly Rainfall Distribution
+// 3. Line Graph - Metro Bullet Train Distance (with Station Stop!)
+// 4. Pictograph - Morning Eco-Bike Commuters (with Key: 1 🚲 = 5 Cyclists)
+// 5. Final Championship - Emergency Reservoir Surge Distribution
+
+export const FIVE_COMPETITIVE_QUESTIONS: MissionQuestion[] = [
+  // QUESTION 1 (ROUND 1): CIRCLE GRAPH / PIE CHART
+  {
+    id: 'COMP-Q1-PIE',
+    round: 1,
+    phase: 'build',
+    district: 'power',
+    graphType: 'pie',
+    title: 'ROUND 1: Clean Energy Grid Mix',
+    instruction: 'Construct the Circle Graph for clean power generation: Solar 35%, Wind 25%, Hydro 20%, Biomass 20% (Total: 100%). First team to check wins!',
+    dataTable: [
+      { label: 'Solar', value: 35 },
+      { label: 'Wind', value: 25 },
+      { label: 'Hydro', value: 20 },
+      { label: 'Biomass', value: 20 },
+    ],
+    xAxis: {
+      title: 'Power Source',
+      min: 0,
+      max: 3,
+      step: 1,
+      labels: ['Solar', 'Wind', 'Hydro', 'Biomass'],
+    },
+    yAxis: {
+      title: 'Share (%)',
+      min: 0,
+      max: 100,
+      step: 5,
+      labels: ['0%', '20%', '40%', '60%', '80%', '100%'],
+    },
+    expectedValues: [35, 25, 20, 20],
+    unit: '%',
+    difficulty: 1,
+  },
+
+  // QUESTION 2 (ROUND 2): BAR GRAPH
+  {
+    id: 'COMP-Q2-BAR',
+    round: 2,
+    phase: 'build',
+    district: 'weather',
+    graphType: 'bar',
+    title: 'ROUND 2: Weekly Rainfall Distribution',
+    instruction: 'Build the Bar Graph for the city meteorological gauge: Mon 15mm, Tue 30mm, Wed 45mm, Thu 20mm, Fri 35mm. First team to check wins!',
+    dataTable: [
+      { label: 'Mon', value: 15 },
+      { label: 'Tue', value: 30 },
+      { label: 'Wed', value: 45 },
+      { label: 'Thu', value: 20 },
+      { label: 'Fri', value: 35 },
+    ],
+    xAxis: {
+      title: 'Weekday',
+      min: 0,
+      max: 4,
+      step: 1,
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+    },
+    yAxis: {
+      title: 'Rainfall (mm)',
+      min: 0,
+      max: 50,
+      step: 5,
+      labels: ['0', '10', '20', '30', '40', '50'],
+    },
+    expectedValues: [15, 30, 45, 20, 35],
+    unit: 'mm',
+    difficulty: 2,
+  },
+
+  // QUESTION 3 (ROUND 3): LINE GRAPH (Rate of Change & Station Stop)
+  {
+    id: 'COMP-Q3-LINE',
+    round: 3,
+    phase: 'build',
+    district: 'train',
+    graphType: 'line',
+    title: 'ROUND 3: Bullet Train Express Journey',
+    instruction: 'Plot train distance over time: 0m at 0min, 25m at 2min, 50m at 4min, 50m at 6min (Train stops at station!), 80m at 8min, 100m at 10min. First team to check wins!',
+    dataTable: [
+      { label: '0 min', value: 0 },
+      { label: '2 min', value: 25 },
+      { label: '4 min', value: 50 },
+      { label: '6 min', value: 50 },
+      { label: '8 min', value: 80 },
+      { label: '10 min', value: 100 },
+    ],
+    xAxis: {
+      title: 'Journey Time',
+      min: 0,
+      max: 5,
+      step: 1,
+      labels: ['0 min', '2 min', '4 min', '6 min', '8 min', '10 min'],
+    },
+    yAxis: {
+      title: 'Distance (m)',
+      min: 0,
+      max: 100,
+      step: 10,
+      labels: ['0', '20', '40', '60', '80', '100'],
+    },
+    expectedValues: [0, 25, 50, 50, 80, 100],
+    unit: 'm',
+    difficulty: 3,
+  },
+
+  // QUESTION 4 (ROUND 4): PICTOGRAPH (Picture Graph with Key)
+  {
+    id: 'COMP-Q4-PICTOGRAPH',
+    round: 4,
+    phase: 'build',
+    district: 'traffic',
+    graphType: 'pictograph',
+    title: 'ROUND 4: Eco-Bike Commuters',
+    instruction: 'Plot morning cyclist counts across key arteries (Key: 1 🚲 = 5 Cyclists): North Ave 20, East Blvd 35, Central Way 50, South Lane 25. First team to check wins!',
+    dataTable: [
+      { label: 'North Ave', value: 20 },
+      { label: 'East Blvd', value: 35 },
+      { label: 'Central Way', value: 50 },
+      { label: 'South Lane', value: 25 },
+    ],
+    xAxis: {
+      title: 'Corridor',
+      min: 0,
+      max: 3,
+      step: 1,
+      labels: ['North Ave', 'East Blvd', 'Central Way', 'South Lane'],
+    },
+    yAxis: {
+      title: 'Cyclists',
+      min: 0,
+      max: 60,
+      step: 5,
+      labels: ['0', '15', '30', '45', '60'],
+    },
+    expectedValues: [20, 35, 50, 25],
+    unit: 'bikes',
+    difficulty: 4,
+  },
+
+  // QUESTION 5 (ROUND 5): FINAL CHAMPIONSHIP CHALLENGE
+  {
+    id: 'COMP-Q5-FINAL',
+    round: 5,
+    phase: 'build',
+    district: 'water',
+    graphType: 'line',
+    title: 'ROUND 5: Reservoir Emergency Surge',
+    instruction: 'CHAMPIONSHIP ROUND: Heatwave surge! Plot reservoir pump hourly output: 12 PM 30kL, 1 PM 50kL, 2 PM 75kL, 3 PM 95kL, 4 PM 80kL, 5 PM 60kL. First team to check wins the championship!',
+    dataTable: [
+      { label: '12 PM', value: 30 },
+      { label: '1 PM', value: 50 },
+      { label: '2 PM', value: 75 },
+      { label: '3 PM', value: 95 },
+      { label: '4 PM', value: 80 },
+      { label: '5 PM', value: 60 },
+    ],
+    xAxis: {
+      title: 'Peak Hour',
+      min: 0,
+      max: 5,
+      step: 1,
+      labels: ['12 PM', '1 PM', '2 PM', '3 PM', '4 PM', '5 PM'],
+    },
+    yAxis: {
+      title: 'Flow Rate (kL)',
+      min: 0,
+      max: 100,
+      step: 10,
+      labels: ['0', '20', '40', '60', '80', '100'],
+    },
+    expectedValues: [30, 50, 75, 95, 80, 60],
+    unit: 'kL',
+    difficulty: 5,
+  },
+];
+
+export function getCompetitiveQuestion(round: number): MissionQuestion {
+  const clampedIndex = Math.max(0, Math.min(round - 1, FIVE_COMPETITIVE_QUESTIONS.length - 1));
+  const base = FIVE_COMPETITIVE_QUESTIONS[clampedIndex];
+  // Return a cloned object so mutation doesn't bleed
+  return {
+    ...base,
+    id: `${base.id}-${Date.now()}`,
+    dataTable: base.dataTable.map((d) => ({ ...d })),
+    xAxis: { ...base.xAxis, labels: [...base.xAxis.labels] },
+    yAxis: { ...base.yAxis, labels: [...base.yAxis.labels] },
+    expectedValues: [...base.expectedValues],
+  };
+}
