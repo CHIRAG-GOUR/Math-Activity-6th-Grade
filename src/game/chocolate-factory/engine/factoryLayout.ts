@@ -34,6 +34,14 @@ export interface SideLayout {
   operatorHome: Vec3;
   inspectorHome: Vec3;
   loaderHome: Vec3;
+  /** Where a sack of cocoa is tipped into the measuring tank. */
+  tipPoint: Vec3;
+  /** Where the two ingredient handlers wait between trips. */
+  handlerHome: Vec3[];
+  /** Where the packer stands at the boxing machine. */
+  packerHome: Vec3;
+  /** Where the finished pallet of boxes waits for the forklift. */
+  palletOut: Vec3;
   orderBoard: Vec3;
   signPos: Vec3;
 }
@@ -56,6 +64,10 @@ const BLUE: SideLayout = {
   operatorHome: v(-24.5, 0, -7.5),
   inspectorHome: v(-24.5, 0, 21.5),
   loaderHome: v(-10.5, 0, 28),
+  tipPoint: v(-19.5, 0, -15.6),
+  handlerHome: [v(-25.5, 0, -18), v(-23, 0, -20.5)],
+  packerHome: v(-23.5, 0, 26.5),
+  palletOut: v(-14.5, 0, 29.5),
   orderBoard: v(-25.5, 0, -1),
   signPos: v(-19.5, 9, -29),
 };
@@ -79,6 +91,10 @@ function mirror(s: SideLayout): SideLayout {
     operatorHome: mx(s.operatorHome),
     inspectorHome: mx(s.inspectorHome),
     loaderHome: mx(s.loaderHome),
+    tipPoint: mx(s.tipPoint),
+    handlerHome: s.handlerHome.map(mx),
+    packerHome: mx(s.packerHome),
+    palletOut: mx(s.palletOut),
     orderBoard: mx(s.orderBoard),
     signPos: mx(s.signPos),
   };
@@ -158,6 +174,31 @@ export function forkliftIngredientRoute(team: TeamId): Vec3[] {
 export function forkliftReturnRoute(team: TeamId, from: Vec3): Vec3[] {
   const s = sideOf(team);
   return [from, v(from.x, 0, s.forkliftHome.z - 2), s.forkliftHome];
+}
+
+/** Ingredient handler: pallet stack -> tip point at the tank -> back. */
+export function handlerToTank(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  return [from, v(s.palletStack.x + sign * 3, 0, s.tipPoint.z - 2.5), s.tipPoint];
+}
+export function handlerToPallet(team: TeamId, from: Vec3, index: number): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  return [from, v(s.palletStack.x + sign * 3, 0, s.tipPoint.z - 2.5), s.handlerHome[index % 2]];
+}
+
+/** Forklift: packaging pallet of boxes -> alongside the truck bed -> back. */
+export function forkliftPalletRoute(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  return [from, v(s.palletOut.x + sign * 3.5, 0, s.palletOut.z - 3), s.palletOut];
+}
+export function forkliftToTruck(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  const stand = v(s.truckHome.x + sign * 3.2, 0, s.truckHome.z + 0.6);
+  return [from, v(s.palletOut.x + sign * 3.5, 0, s.palletOut.z + 1.5), stand];
 }
 
 /** Loader worker: packaging exit -> beside the truck bed -> back. */

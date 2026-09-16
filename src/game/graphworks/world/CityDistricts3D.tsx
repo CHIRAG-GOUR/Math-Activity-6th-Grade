@@ -178,25 +178,42 @@ export function CityDistricts3D() {
         <group position={[-3.2, 1.2, 1.5]}>
           {/* Mast Tower */}
           <mesh position={[0, 3.2, 0]} castShadow>
-            <cylinderGeometry args={[0.12, 0.25, 6.4, 8]} />
-            <meshStandardMaterial color="#f8fafc" metalness={0.5} />
+            <cylinderGeometry args={[0.12, 0.26, 6.4, 12]} />
+            <meshStandardMaterial color="#f8fafc" metalness={0.6} roughness={0.3} />
           </mesh>
-          {/* Nacelle Housing */}
-          <mesh position={[0, 6.4, 0.2]}>
-            <boxGeometry args={[0.4, 0.4, 0.9]} />
-            <meshStandardMaterial color="#f8fafc" />
+
+          {/* Nacelle Housing (Generator Box Atop Mast) */}
+          <mesh position={[0, 6.4, -0.1]} castShadow>
+            <boxGeometry args={[0.42, 0.44, 0.95]} />
+            <meshStandardMaterial color="#e2e8f0" metalness={0.5} roughness={0.4} />
           </mesh>
-          {/* 3 Rotor Blades */}
-          <group ref={turbineRef} position={[0, 6.4, 0.7]}>
+          {/* Generator Heat Sink / Aerodynamic Tail Fin */}
+          <mesh position={[0, 6.65, -0.52]}>
+            <boxGeometry args={[0.04, 0.35, 0.45]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.7} />
+          </mesh>
+
+          {/* 3-Blade Rotating Rotor Assembly (Center at [0, 6.4, 0.42]) */}
+          <group ref={turbineRef} position={[0, 6.4, 0.4]}>
+            {/* Aerodynamic Nose Cone Hub */}
+            <mesh position={[0, 0, 0.1]} rotation={[Math.PI / 2, 0, 0]} castShadow>
+              <coneGeometry args={[0.22, 0.32, 16]} />
+              <meshStandardMaterial color="#cbd5e1" metalness={0.7} roughness={0.25} />
+            </mesh>
+            {/* 3 Radiating Airfoil Blades */}
             {[0, 1, 2].map((bladeIdx) => (
-              <mesh
-                key={bladeIdx}
-                rotation={[0, 0, (bladeIdx * Math.PI * 2) / 3]}
-                position={[0, 1.2, 0]}
-              >
-                <boxGeometry args={[0.18, 2.4, 0.04]} />
-                <meshStandardMaterial color="#ffffff" />
-              </mesh>
+              <group key={bladeIdx} rotation={[0, 0, (bladeIdx * Math.PI * 2) / 3]}>
+                {/* Main Airfoil Blade */}
+                <mesh position={[0, 1.15, 0]} castShadow>
+                  <boxGeometry args={[0.14, 2.3, 0.03]} />
+                  <meshStandardMaterial color="#ffffff" roughness={0.25} />
+                </mesh>
+                {/* Red High-Visibility Aerodynamic Tip */}
+                <mesh position={[0, 2.22, 0]}>
+                  <boxGeometry args={[0.15, 0.16, 0.035]} />
+                  <meshStandardMaterial color="#ef4444" roughness={0.4} />
+                </mesh>
+              </group>
             ))}
           </group>
         </group>

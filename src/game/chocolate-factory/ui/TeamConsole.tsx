@@ -2,73 +2,81 @@
 // THE CHOCOLATE FACTORY — TEAM CONTROL CONSOLE
 //
 // A PERMANENT operator station: Blue bottom-left, Red bottom-right. It never
-// disappears, never goes full screen and never waits for the other team. The
-// question area changes; the console itself stays exactly where it is from
-// the first mission to the final result.
+// disappears, never goes full screen and never waits for the other team.
 //
-// Live production values (line stage, quality, satisfaction) are polled from
-// the simulation a few times a second rather than pushed through React every
-// frame, so a running factory never re-renders the panel at 60 Hz.
+// The console shows the five-step production chain for the current customer
+// order, with the step the team is on picked out. Each question sets the
+// QUANTITY for that step, so the panel always says what the answer will do
+// to the factory before it is applied.
+//
+// Live machine values are polled a few times a second rather than pushed
+// through React every frame, so a running factory never re-renders the panel
+// at 60 Hz.
 // ============================================================
 
 'use client';
 
 import React, { useEffect, useState } from 'react';
 import type { TeamId } from '../types';
-import { sim, type LineStage, type LogisticsStage } from '../engine/factorySim';
-import { useFactoryStore, TOTAL_MISSIONS } from '../store/factoryStore';
+import { sim, STEPS, type Logistics, type StepId } from '../engine/factorySim';
+import { useFactoryStore, TOTAL_CYCLES } from '../store/factoryStore';
 
-const STAGE_LABEL: Record<LineStage, string> = {
-  idle: 'LINE READY',
-  filling: 'TANK FILLING',
-  mixing: 'MIXING BATCH',
-  molding: 'FILLING MOLDS',
-  cooling: 'COOLING TUNNEL',
-  cutting: 'CUTTING BARS',
-  quality_check: 'QUALITY CHECK',
-  packaging: 'PACKAGING',
+const STEP_SHORT: Record<StepId, string> = {
+  ingredients: 'COCOA',
+  mixing: 'MIX',
+  molding: 'MOLD',
+  cooling: 'COOL & CUT',
+  packaging: 'BOX',
 };
 
-const LOGISTICS_LABEL: Record<LogisticsStage, string> = {
+const STEP_ICON: Record<StepId, string> = {
+  ingredients: '🫘',
+  mixing: '🌀',
+  molding: '🧊',
+  cooling: '❄️',
+  packaging: '📦',
+};
+
+const LOGISTICS_LABEL: Record<Logistics, string> = {
   idle: '',
-  loading: 'LOADING TRUCK',
-  outbound: 'OUT FOR DELIVERY',
-  unloading: 'AT THE CUSTOMER',
-  returning: 'TRUCK RETURNING',
+  fork_to_pallet: 'FORKLIFT COLLECTING PALLET',
+  fork_lift: 'LIFTING THE PALLET',
+  fork_to_truck: 'CARRYING BOXES TO THE TRUCK',
+  fork_unload: 'LOADING THE TRUCK',
+  fork_return: 'FORKLIFT RETURNING',
+  truck_out: 'TRUCK OUT FOR DELIVERY',
+  at_customer: 'DELIVERING TO THE CUSTOMER',
+  truck_back: 'TRUCK RETURNING',
 };
-
-const STAGE_PIPS: { key: LineStage; short: string }[] = [
-  { key: 'filling', short: 'TANK' },
-  { key: 'mixing', short: 'MIX' },
-  { key: 'molding', short: 'MOLD' },
-  { key: 'cooling', short: 'COOL' },
-  { key: 'cutting', short: 'CUT' },
-  { key: 'quality_check', short: 'QC' },
-  { key: 'packaging', short: 'PACK' },
-];
 
 interface Live {
-  line: LineStage;
-  logistics: LogisticsStage;
+  stepIndex: number;
+  running: boolean;
+  logistics: Logistics;
   quality: number;
   satisfaction: number;
   orders: number;
-  deliveries: number;
-  tankFill: number;
+  cocoa: number;
+  molds: number;
+  bars: number;
   boxes: number;
+  inTruck: number;
 }
 
 function readLive(team: TeamId): Live {
   const s = sim[team];
   return {
-    line: s.line,
+    stepIndex: s.stepIndex,
+    running: s.phase === 'running',
     logistics: s.logistics,
     quality: s.quality,
     satisfaction: s.customerSatisfaction,
     orders: s.ordersCompleted,
-    deliveries: s.deliveries,
-    tankFill: s.tankFill,
-    boxes: s.boxesInTruck,
+    cocoa: s.tankFill,
+    molds: s.moldCount,
+    bars: s.barCount,
+    boxes: s.boxCount,
+    inTruck: s.boxesInTruck,
   };
 }
 
@@ -82,83 +90,111 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
 
   const [live, setLive] = useState<Live>(() => readLive(team));
   useEffect(() => {
-    const id = setInterval(() => setLive(readLive(team)), 130);
+    const id = setInterval(() => setLive(readLive(team)), 120);
     return () => clearInterval(id);
   }, [team]);
-
-  const accent = isBlue ? 'blue' : 'red';
-  const headerBg = isBlue ? 'bg-blue-600' : 'bg-red-600';
-  const ringSel = isBlue ? 'ring-blue-500 bg-blue-50 border-blue-500' : 'ring-red-500 bg-red-50 border-red-500';
-  const actionBg = isBlue
-    ? 'bg-blue-600 hover:bg-blue-500 border-blue-800'
-    : 'bg-red-600 hover:bg-red-500 border-red-800';
 
   const finished = phase === 'final_results';
   const isChampion = finished && winner === team;
   const isTie = finished && winner === 'tie';
-
   const canAnswer = (t.status === 'answering' || t.status === 'retry') && !finished;
   const order = t.order;
-  const missionNo = Math.min(TOTAL_MISSIONS, t.missionIndex + 1);
+
+  const tint = isBlue
+    ? { head: 'from-blue-600 to-blue-700', ring: 'ring-blue-500 border-blue-500 bg-blue-50', btn: 'from-blue-600 to-blue-700 border-blue-900', chip: 'bg-blue-600', text: 'text-blue-700', soft: 'bg-blue-50 border-blue-200' }
+    : { head: 'from-red-600 to-red-700', ring: 'ring-red-500 border-red-500 bg-red-50', btn: 'from-red-600 to-red-700 border-red-900', chip: 'bg-red-600', text: 'text-red-700', soft: 'bg-red-50 border-red-200' };
 
   const statusLine = finished
-    ? (isChampion ? 'FACTORY CHAMPIONS' : isTie ? 'CHALLENGE COMPLETE — TIED' : 'CHALLENGE COMPLETE')
-    : live.line !== 'idle'
-      ? STAGE_LABEL[live.line]
-      : LOGISTICS_LABEL[live.logistics] || (t.status === 'complete' ? 'ALL MISSIONS COMPLETE' : 'AWAITING YOUR FRACTION');
+    ? (isChampion ? '🏆 FACTORY CHAMPIONS' : isTie ? 'CHALLENGE COMPLETE — TIED' : 'CHALLENGE COMPLETE')
+    : LOGISTICS_LABEL[live.logistics]
+      || (live.running ? `${t.stepLabel} — RUNNING` : t.status === 'complete' ? 'ALL ORDERS COMPLETE' : 'AWAITING YOUR FRACTION');
 
   return (
     <div
       className={
-        'pointer-events-auto select-none w-full rounded-2xl border-4 bg-white/95 backdrop-blur-sm shadow-2xl overflow-hidden ' +
-        (isBlue ? 'border-blue-600' : 'border-red-600')
+        'pointer-events-auto select-none w-full rounded-2xl border-[3px] shadow-[0_10px_40px_rgba(15,23,42,0.35)] overflow-hidden ' +
+        'bg-gradient-to-b from-white to-slate-50 ' + (isBlue ? 'border-blue-600' : 'border-red-600')
       }
     >
       {/* ── HEADER ── */}
-      <div className={`${headerBg} px-3 py-2 flex items-center gap-2 text-white`}>
+      <div className={`bg-gradient-to-r ${tint.head} px-3 py-2 flex items-center gap-2 text-white`}>
         <div className="min-w-0 flex-1">
-          <div className="text-[13px] xl:text-sm font-black uppercase tracking-wide leading-none truncate">
+          <div className="text-[13px] xl:text-[15px] font-black uppercase tracking-wide leading-none truncate">
             {isBlue ? 'BLUE CHOCOLATE WORKS' : 'RED CHOCOLATE WORKS'}
           </div>
-          <div className="text-[10px] font-bold uppercase tracking-widest opacity-90 mt-0.5">
-            MISSION {missionNo} / {TOTAL_MISSIONS} · ROUND {t.round}
+          <div className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-90 mt-0.5">
+            ORDER {Math.min(TOTAL_CYCLES, t.cycle + 1)} OF {TOTAL_CYCLES} · ROUND {t.round}
           </div>
         </div>
-        <div className="shrink-0 rounded-lg bg-white/20 px-2 py-1 text-[10px] font-black uppercase tracking-wider">
+        <div className="shrink-0 rounded-lg bg-white/20 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-right leading-tight max-w-[46%]">
           {statusLine}
         </div>
       </div>
 
-      {/* ── ORDER + QUESTION ── */}
-      <div className="px-3 pt-2 pb-1">
+      {/* ── FIVE-STEP CHAIN ── */}
+      <div className="px-2.5 pt-2 flex items-center gap-1">
+        {STEPS.map((id, i) => {
+          const done = i < live.stepIndex;
+          const active = i === live.stepIndex;
+          return (
+            <React.Fragment key={id}>
+              <div
+                className={
+                  'flex-1 rounded-lg border text-center py-1 transition ' +
+                  (active
+                    ? `${tint.chip} border-transparent text-white shadow`
+                    : done
+                      ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                      : 'bg-slate-100 border-slate-200 text-slate-400')
+                }
+              >
+                <div className="text-[11px] leading-none">{done ? '✓' : STEP_ICON[id]}</div>
+                <div className="text-[7px] xl:text-[8px] font-black uppercase tracking-wide mt-0.5">{STEP_SHORT[id]}</div>
+              </div>
+              {i < STEPS.length - 1 && <div className={'w-1.5 h-[2px] ' + (done ? 'bg-emerald-400' : 'bg-slate-200')} />}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── ORDER + STEP + QUESTION ── */}
+      <div className="px-3 pt-2">
         {order ? (
           <>
             <div className="flex items-baseline justify-between gap-2">
-              <div className={`text-[10px] font-black uppercase tracking-widest text-${accent}-700 truncate`}>
+              <div className={`text-[10px] font-black uppercase tracking-widest ${tint.text} truncate`}>
                 {order.customerName}
               </div>
               <div className="text-[10px] font-bold text-slate-500 shrink-0">
                 {order.units} {order.productName}
               </div>
             </div>
-            <p className="mt-1 text-[12px] xl:text-[13px] font-bold text-slate-800 leading-snug min-h-[2.4rem]">
+
+            <div className={`mt-1.5 rounded-lg border px-2 py-1.5 ${tint.soft}`}>
+              <div className="text-[10px] font-black uppercase tracking-wider text-slate-700">
+                STEP {t.step + 1} · {t.stepLabel}
+              </div>
+              <div className="text-[9px] font-bold text-slate-500 leading-tight">{t.stepAction}</div>
+            </div>
+
+            <p className="mt-2 text-[12px] xl:text-[13px] font-bold text-slate-800 leading-snug min-h-[2.5rem]">
               {order.question.prompt}
             </p>
           </>
         ) : (
-          <p className="text-[12px] font-bold text-slate-500 leading-snug min-h-[3.2rem] flex items-center">
+          <p className="text-[12px] font-bold text-slate-500 leading-snug min-h-[4rem] flex items-center">
             {finished
               ? (isChampion
-                ? 'Your factory ran the best production line of the shift.'
-                : 'Production finished — the shift is complete.')
-              : 'All missions complete. Finishing the last deliveries…'}
+                ? 'Your factory ran the best production line of the shift — the victory truck is rolling out.'
+                : 'Production finished. The shift is complete.')
+              : 'All five orders complete. Finishing the last delivery…'}
           </p>
         )}
       </div>
 
-      {/* ── ANSWER OPTIONS ── */}
+      {/* ── ANSWERS ── */}
       {order && !finished && (
-        <div className="px-3 grid grid-cols-2 gap-2">
+        <div className="px-3 pt-1.5 grid grid-cols-2 gap-2">
           {order.question.options.map((opt, i) => {
             const chosen = t.selected === i;
             return (
@@ -169,9 +205,9 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
                 className={
                   'h-12 xl:h-14 rounded-xl border-2 text-lg xl:text-xl font-black tabular-nums transition active:scale-95 ' +
                   (chosen
-                    ? `ring-4 ${ringSel} text-slate-900`
+                    ? `ring-4 ${tint.ring} text-slate-900 shadow-inner`
                     : canAnswer
-                      ? 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-slate-100'
+                      ? 'bg-white border-slate-300 text-slate-800 shadow-sm hover:bg-slate-50'
                       : 'bg-slate-100 border-slate-200 text-slate-400')
                 }
               >
@@ -186,10 +222,10 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
       {t.feedback && (
         <div
           className={
-            'mx-3 mt-2 rounded-lg px-2 py-1.5 text-[10px] font-black uppercase tracking-wide leading-tight ' +
+            'mx-3 mt-2 rounded-lg px-2 py-1.5 text-[10px] font-black uppercase tracking-wide leading-tight border-2 ' +
             (t.lastCorrect === false
-              ? 'bg-amber-100 text-amber-800 border-2 border-amber-300'
-              : 'bg-emerald-100 text-emerald-800 border-2 border-emerald-300')
+              ? 'bg-amber-50 text-amber-800 border-amber-300'
+              : 'bg-emerald-50 text-emerald-800 border-emerald-300')
           }
         >
           {t.feedback}
@@ -202,55 +238,50 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
           onPointerDown={() => canAnswer && applyAnswer(team)}
           disabled={!canAnswer || t.selected === null}
           className={
-            'w-full h-12 xl:h-14 rounded-xl border-b-4 text-white text-sm xl:text-base font-black uppercase tracking-wider transition active:scale-95 active:border-b-2 ' +
-            (canAnswer && t.selected !== null ? actionBg : 'bg-slate-300 border-slate-400 cursor-not-allowed')
+            'w-full h-12 xl:h-14 rounded-xl border-b-4 text-white text-sm xl:text-base font-black uppercase tracking-wider transition active:scale-95 active:border-b-2 bg-gradient-to-b ' +
+            (canAnswer && t.selected !== null ? tint.btn : 'from-slate-300 to-slate-400 border-slate-500 cursor-not-allowed')
           }
         >
           {finished
             ? (isChampion ? '🏆 FACTORY CHAMPIONS' : 'CHALLENGE COMPLETE')
-            : t.status === 'producing'
-              ? 'PRODUCTION RUNNING…'
-              : t.status === 'complete'
-                ? 'FINISHING DELIVERIES…'
-                : t.status === 'retry'
-                  ? 'APPLY CORRECTED FRACTION →'
-                  : 'APPLY FRACTION →'}
+            : t.status === 'working'
+              ? 'LINE RUNNING…'
+              : t.status === 'delivering'
+                ? 'LOADING & DELIVERING…'
+                : t.status === 'complete'
+                  ? 'FINISHING DELIVERY…'
+                  : t.status === 'retry'
+                    ? 'APPLY CORRECTED FRACTION →'
+                    : 'APPLY FRACTION →'}
         </button>
       </div>
 
-      {/* ── LIVE PRODUCTION STRIP ── */}
-      <div className="px-3 pt-2 flex items-center gap-1">
-        {STAGE_PIPS.map((p) => {
-          const active = live.line === p.key;
-          return (
-            <div
-              key={p.key}
-              className={
-                'flex-1 rounded text-center text-[8px] xl:text-[9px] font-black uppercase py-1 border ' +
-                (active
-                  ? isBlue
-                    ? 'bg-blue-600 text-white border-blue-700'
-                    : 'bg-red-600 text-white border-red-700'
-                  : 'bg-slate-100 text-slate-400 border-slate-200')
-              }
-            >
-              {p.short}
-            </div>
-          );
-        })}
+      {/* ── WHAT THE FACTORY IS HOLDING RIGHT NOW ── */}
+      <div className="px-3 pt-2 grid grid-cols-4 gap-1.5 text-center">
+        {[
+          ['COCOA', `${Math.round(live.cocoa * 100)}%`],
+          ['MOLDS', `${live.molds}`],
+          ['BARS', `${live.bars}`],
+          ['BOXES', `${live.boxes}`],
+        ].map(([label, value]) => (
+          <div key={label} className="rounded-lg bg-white border border-slate-200 py-1 shadow-sm">
+            <div className="text-[7px] font-black uppercase tracking-widest text-slate-400">{label}</div>
+            <div className="text-[13px] xl:text-sm font-black tabular-nums text-slate-800 leading-none mt-0.5">{value}</div>
+          </div>
+        ))}
       </div>
 
-      {/* ── METRICS ── */}
-      <div className="px-3 py-2 grid grid-cols-4 gap-1.5 text-center">
+      {/* ── RESULTS ── */}
+      <div className="px-3 py-2 mt-1.5 grid grid-cols-4 gap-1.5 text-center bg-slate-100/70 border-t border-slate-200">
         {[
-          ['ORDERS', `${live.orders}`],
+          ['DELIVERED', `${live.orders}`],
           ['QUALITY', `${live.quality}%`],
-          ['DELIVERED', `${live.deliveries}`],
           ['CUSTOMER', `${live.satisfaction}%`],
+          ['IN TRUCK', `${live.inTruck}`],
         ].map(([label, value]) => (
-          <div key={label} className="rounded-lg bg-slate-50 border border-slate-200 py-1">
-            <div className="text-[8px] font-black uppercase tracking-widest text-slate-500">{label}</div>
-            <div className="text-sm xl:text-base font-black tabular-nums text-slate-800 leading-none mt-0.5">{value}</div>
+          <div key={label}>
+            <div className="text-[7px] font-black uppercase tracking-widest text-slate-500">{label}</div>
+            <div className={`text-[13px] xl:text-sm font-black tabular-nums ${tint.text} leading-none mt-0.5`}>{value}</div>
           </div>
         ))}
       </div>

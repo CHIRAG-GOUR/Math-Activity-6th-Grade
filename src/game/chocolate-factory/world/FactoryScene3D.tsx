@@ -17,7 +17,7 @@ import React, { useRef } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { TeamId } from '../types';
-import { sim, stepSim } from '../engine/factorySim';
+import { runningStep, sim, stepSim } from '../engine/factorySim';
 import { sideOf } from '../engine/factoryLayout';
 import {
   CentralAtrium3D, CentralProcessing3D, CustomerRow3D, Ground3D, IngredientPallets3D,
@@ -28,7 +28,7 @@ import {
   MoldingMachine3D, PackagingMachine3D, QualityStation3D,
 } from './Machines3D';
 import { DeliveryTruck3D, Forklift3D } from './Vehicles3D';
-import { FactoryOperator3D, LoaderWorker3D, QualityInspector3D, WarehouseWorker3D } from './Humans3D';
+import { IngredientHandler3D, MixerOperator3D, PackingWorker3D, QualityInspector3D } from './Humans3D';
 
 // ── FIXED-STEP SIMULATION DRIVER ────────────────────────────────────────
 
@@ -60,18 +60,17 @@ const BASE_LOOK = new THREE.Vector3(0, 5, -7);
 function activeFocus(team: TeamId): THREE.Vector3 | null {
   const s = sim[team];
   const side = sideOf(team);
-  switch (s.line) {
-    case 'filling': return new THREE.Vector3(side.measuringTank.x, 3, side.measuringTank.z);
+  switch (runningStep(team)) {
+    case 'ingredients': return new THREE.Vector3(side.measuringTank.x, 3, side.measuringTank.z);
     case 'mixing': return new THREE.Vector3(side.mixer.x, 3, side.mixer.z);
     case 'molding': return new THREE.Vector3(side.moldingMachine.x, 2, side.moldingMachine.z);
-    case 'cooling': return new THREE.Vector3(side.coolingEntry.x, 2, (side.coolingEntry.z + side.coolingExit.z) / 2);
-    case 'cutting': return new THREE.Vector3(side.cutter.x, 2, side.cutter.z);
-    case 'quality_check': return new THREE.Vector3(side.qcStation.x, 2, side.qcStation.z);
+    case 'cooling': return new THREE.Vector3(side.cutter.x, 2, (side.coolingEntry.z + side.cutter.z) / 2);
     case 'packaging': return new THREE.Vector3(side.packagingMachine.x, 2, side.packagingMachine.z);
     default:
-      if (s.logistics === 'outbound' || s.logistics === 'unloading') {
+      if (s.logistics === 'truck_out' || s.logistics === 'at_customer') {
         return new THREE.Vector3(s.truck.pos.x, 2, s.truck.pos.z);
       }
+      if (s.logistics !== 'idle') return new THREE.Vector3(side.loadingDock.x, 2, side.loadingDock.z);
       return null;
   }
 }
@@ -156,11 +155,11 @@ const TeamFactory3D: React.FC<{ team: TeamId }> = ({ team }) => {
       <Forklift3D team={team} />
       <DeliveryTruck3D team={team} />
 
-      <FactoryOperator3D team={team} />
+      <IngredientHandler3D team={team} index={0} />
+      <IngredientHandler3D team={team} index={1} />
+      <MixerOperator3D team={team} />
       <QualityInspector3D team={team} />
-      <LoaderWorker3D team={team} />
-      <WarehouseWorker3D team={team} />
-      <WarehouseWorker3D team={team} offset={3.2} />
+      <PackingWorker3D team={team} />
     </group>
   );
 };

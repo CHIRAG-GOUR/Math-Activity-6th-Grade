@@ -20,7 +20,7 @@ import { FactoryScene3D } from '../world/FactoryScene3D';
 import { TeamConsole } from './TeamConsole';
 import { FactoryOverlays } from './FactoryOverlays';
 import { useFactoryStore } from '../store/factoryStore';
-import { drainEvents } from '../engine/factorySim';
+import { drainEvents, runningStep, sim } from '../engine/factorySim';
 import { factoryAudio } from '../engine/factoryAudio';
 
 /** Feeds simulation events to the audio engine, outside the render loop. */
@@ -29,6 +29,16 @@ const AudioBridge: React.FC = () => {
     let raf = 0;
     const pump = () => {
       for (const e of drainEvents()) factoryAudio.onEvent(e);
+      // Keep the running-machine sounds in step with the two factories.
+      const b = sim.blue;
+      const r = sim.red;
+      factoryAudio.setMachines({
+        conveyor: b.phase === 'running' || r.phase === 'running',
+        mixer: runningStep('blue') === 'mixing' || runningStep('red') === 'mixing',
+        truck: b.logistics === 'truck_out' || b.logistics === 'truck_back'
+          || r.logistics === 'truck_out' || r.logistics === 'truck_back',
+        forklift: b.logistics.startsWith('fork') || r.logistics.startsWith('fork'),
+      });
       raf = requestAnimationFrame(pump);
     };
     raf = requestAnimationFrame(pump);

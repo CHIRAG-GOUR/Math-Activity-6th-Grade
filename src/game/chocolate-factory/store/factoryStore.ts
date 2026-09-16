@@ -2,44 +2,45 @@
 // THE CHOCOLATE FACTORY — GAME STATE
 //
 // Two completely independent teams. There is NO global "current team": Blue
-// and Red each hold their own mission index, question, selection, attempt
-// count and results, and each advances the moment THEIR OWN machines are
-// free. Neither team can ever be blocked by the other.
+// and Red each hold their own cycle, step, question, selection and results,
+// and each advances the moment THEIR OWN machines finish a step.
 //
-// The store owns the mission/question flow; the simulation owns the physical
-// factory. They meet in exactly two places: `applyAnswer` hands a tapped
-// answer to the line, and the simulation calls back when a line goes idle
-// (issue the next mission) or a truck reaches a customer (record results).
+// A CYCLE is one customer order fulfilled in FIVE steps, one question each:
+//   cocoa -> mixing -> molds -> cooling & cutting -> packaging
+// then the forklift loads the truck and the truck makes the delivery.
+// Five cycles per team, one per curriculum round: 25 questions each.
 // ============================================================
 
 'use client';
 
 import { create } from 'zustand';
 import type { CustomerOrder, FractionQuestion, GamePhase, RoundNumber, TeamId } from '../types';
-import { generateQuestion, PRODUCTS, pick } from '../engine/fractionEngine';
+import { customerFor, generateQuestion, PRODUCTS, pick } from '../engine/fractionEngine';
 import {
-  isTeamQuiet, lineIsFree, resetSim, setFactoryHandlers, sim, submitAnswer, setCelebrating,
+  isTeamQuiet, resetSim, setFactoryHandlers, sim, submitAnswer, victoryRun,
+  STEPS, STEPS_PER_CYCLE, STEP_LABEL, STEP_ACTION, type StepId,
 } from '../engine/factorySim';
 
-export const MISSIONS_PER_ROUND = 2;
-export const TOTAL_ROUNDS = 5;
-export const TOTAL_MISSIONS = MISSIONS_PER_ROUND * TOTAL_ROUNDS;
+export const TOTAL_CYCLES = 5;
+export const TOTAL_QUESTIONS = TOTAL_CYCLES * STEPS_PER_CYCLE;
 
-export type TeamStatus = 'answering' | 'retry' | 'producing' | 'complete';
+export type TeamStatus = 'answering' | 'retry' | 'working' | 'delivering' | 'complete';
 
 export interface TeamState {
-  /** How many missions have been handed to this team so far (0-based cursor). */
-  missionIndex: number;
+  cycle: number;
+  step: number;
   round: RoundNumber;
+  stepId: StepId;
+  stepLabel: string;
+  stepAction: string;
   order: CustomerOrder | null;
   selected: number | null;
   attempt: 1 | 2;
   status: TeamStatus;
-  /** Short feedback line shown in the console after a tap. */
   feedback: string | null;
   lastCorrect: boolean | null;
+  questionsAnswered: number;
 
-  // Results, updated when a truck actually reaches a customer.
   ordersCompleted: number;
   deliveries: number;
   onTime: number;
@@ -64,14 +65,12 @@ interface FactoryStore {
   resetGame: () => void;
 }
 
-function roundOf(missionIndex: number): RoundNumber {
-  return (Math.min(TOTAL_ROUNDS, Math.floor(missionIndex / MISSIONS_PER_ROUND) + 1)) as RoundNumber;
-}
-
 function makeTeam(): TeamState {
   return {
-    missionIndex: 0, round: 1, order: null, selected: null, attempt: 1,
-    status: 'answering', feedback: null, lastCorrect: null,
+    cycle: 0, step: 0, round: 1, stepId: STEPS[0],
+    stepLabel: STEP_LABEL[STEPS[0]], stepAction: STEP_ACTION[STEPS[0]],
+    order: null, selected: null, attempt: 1, status: 'answering',
+    feedback: null, lastCorrect: null, questionsAnswered: 0,
     ordersCompleted: 0, deliveries: 0, onTime: 0,
     quality: 92, satisfaction: 88, waste: 0, rework: 0, score: 0,
   };
@@ -80,31 +79,42 @@ function makeTeam(): TeamState {
 /** Factory performance, not "who tapped fastest" — the brief's win condition. */
 export function scoreOf(t: TeamState): number {
   return Math.round(
-    t.ordersCompleted * 100 +
+    t.ordersCompleted * 120 +
+    t.questionsAnswered * 10 +
     t.quality * 2 +
     t.satisfaction * 2 +
     t.onTime * 30 -
-    t.waste * 15 -
+    t.waste * 18 -
     t.rework * 10
   );
 }
 
-/** Builds the customer order (and its fraction question) for one mission slot. */
-function makeOrder(team: TeamId, missionIndex: number): CustomerOrder {
-  const round = roundOf(missionIndex);
-  // Blue and Red draw from the same bank at different offsets, so the two
-  // teams get comparable-but-different questions every mission.
-  const bankIndex = missionIndex * 2 + (team === 'blue' ? 0 : 1);
-  const seed = (team === 'blue' ? 1013 : 7717) + missionIndex * 131 + round * 17;
-  const question: FractionQuestion = generateQuestion(round, bankIndex, seed);
-  const units = 40 + ((missionIndex * 3 + (team === 'blue' ? 0 : 1)) % 8) * 20;
+/** The customer this whole five-step cycle is being made for. */
+function cycleCustomer(team: TeamId, cycle: number) {
+  const i = cycle * 2 + (team === 'blue' ? 0 : 1);
+  const c = customerFor(i);
   return {
-    id: `${team}-order-${missionIndex + 1}`,
+    type: c.type,
+    name: c.name,
+    product: pick(PRODUCTS, i),
+    units: 40 + ((cycle * 3 + (team === 'blue' ? 0 : 1)) % 8) * 20,
+  };
+}
+
+/** One step's question, drawn from the round matching this cycle. */
+function makeStepOrder(team: TeamId, cycle: number, step: number): CustomerOrder {
+  const round = (Math.min(TOTAL_CYCLES, cycle + 1)) as RoundNumber;
+  const cust = cycleCustomer(team, cycle);
+  const bankIndex = cycle * 7 + step * 2 + (team === 'blue' ? 0 : 1);
+  const seed = (team === 'blue' ? 2311 : 8677) + cycle * 419 + step * 53;
+  const question: FractionQuestion = generateQuestion(round, bankIndex, seed);
+  return {
+    id: `${team}-c${cycle + 1}-s${step + 1}`,
     round,
-    customer: question.customerType,
-    customerName: question.customerName,
-    productName: pick(PRODUCTS, bankIndex),
-    units,
+    customer: cust.type,
+    customerName: cust.name,
+    productName: cust.product,
+    units: cust.units,
     question,
   };
 }
@@ -112,20 +122,28 @@ function makeOrder(team: TeamId, missionIndex: number): CustomerOrder {
 let handlersBound = false;
 
 export const useFactoryStore = create<FactoryStore>((set, get) => {
-  /** Hands a team its next mission, or marks it finished. */
-  const issueMission = (team: TeamId) => {
-    const t = get()[team];
-    if (t.missionIndex >= TOTAL_MISSIONS) {
-      set((s) => ({ [team]: { ...s[team], status: 'complete', order: null, feedback: 'ALL MISSIONS COMPLETE' } } as Partial<FactoryStore>));
+  /** Hands the team the question for whatever step its factory is now on. */
+  const issueQuestion = (team: TeamId) => {
+    const side = sim[team];
+    if (side.cycle >= TOTAL_CYCLES) {
+      set((s) => ({
+        [team]: { ...s[team], status: 'complete', order: null, feedback: 'ALL FIVE ORDERS COMPLETE' },
+      } as Partial<FactoryStore>));
       maybeFinish();
       return;
     }
-    const order = makeOrder(team, t.missionIndex);
+    const stepId = STEPS[side.stepIndex];
+    const order = makeStepOrder(team, side.cycle, side.stepIndex);
     set((s) => ({
       [team]: {
         ...s[team],
-        order,
+        cycle: side.cycle,
+        step: side.stepIndex,
         round: order.round,
+        stepId,
+        stepLabel: STEP_LABEL[stepId],
+        stepAction: STEP_ACTION[stepId],
+        order,
         selected: null,
         attempt: 1,
         status: 'answering',
@@ -135,23 +153,21 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     } as Partial<FactoryStore>));
   };
 
-  /** Ends the match once both teams are out of missions AND their factories are quiet. */
   const maybeFinish = () => {
     const s = get();
-    if (s.phase === 'final_results' || s.phase === 'game_complete') return;
-    const done = (t: TeamState) => t.missionIndex >= TOTAL_MISSIONS;
-    if (!done(s.blue) || !done(s.red)) return;
+    if (s.phase === 'final_results') return;
+    const done = (team: TeamId) => sim[team].cycle >= TOTAL_CYCLES;
+    if (!done('blue') || !done('red')) return;
     if (!isTeamQuiet('blue') || !isTeamQuiet('red')) {
-      // Let the last trucks finish their run, then score.
       set({ phase: 'grand_finale' });
       setTimeout(maybeFinish, 900);
       return;
     }
     const blueScore = scoreOf(s.blue);
     const redScore = scoreOf(s.red);
-    const winner: TeamId | 'tie' =
-      blueScore === redScore ? 'tie' : blueScore > redScore ? 'blue' : 'red';
-    if (winner !== 'tie') setCelebrating(winner, true);
+    const winner: TeamId | 'tie' = blueScore === redScore ? 'tie' : blueScore > redScore ? 'blue' : 'red';
+    // The factory that ran best sends its truck out on the victory delivery.
+    if (winner !== 'tie') victoryRun(winner);
     set((st) => ({
       phase: 'final_results',
       winner,
@@ -164,10 +180,8 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     if (handlersBound) return;
     handlersBound = true;
     setFactoryHandlers({
-      // The machines are free again: give that team its next mission at once.
-      onLineIdle: (team) => issueMission(team),
-      // A truck reached a customer: bank the real results.
-      onDelivered: (team) => {
+      onStepReady: (team) => issueQuestion(team),
+      onCycleDelivered: (team) => {
         const side = sim[team];
         set((s) => {
           const next: TeamState = {
@@ -199,8 +213,8 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
       resetSim();
       bindHandlers();
       set({ phase: 'operating', winner: null, blue: makeTeam(), red: makeTeam() });
-      issueMission('blue');
-      issueMission('red');
+      issueQuestion('blue');
+      issueQuestion('red');
     },
 
     selectAnswer: (team, index) => {
@@ -213,7 +227,6 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
       const t = get()[team];
       if (!t.order || t.selected === null) return;
       if (t.status !== 'answering' && t.status !== 'retry') return;
-      if (!lineIsFree(team)) return;
 
       const result = submitAnswer(team, t.order, t.selected, t.attempt);
       if (result === 'ignored') return;
@@ -226,7 +239,7 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
             selected: null,
             status: 'retry',
             lastCorrect: false,
-            feedback: 'BATCH SENT TO REWORK — CHECK THE FRACTION AND TRY AGAIN',
+            feedback: 'CHECK THE FRACTION — THE LINE IS HOLDING FOR A CORRECTION',
             rework: s[team].rework + 1,
           },
         } as Partial<FactoryStore>));
@@ -234,15 +247,19 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
       }
 
       const correct = t.selected === t.order.question.correctIndex;
+      const side = sim[team];
+      const lastStep = side.stepIndex >= STEPS_PER_CYCLE - 1;
       set((s) => ({
         [team]: {
           ...s[team],
-          missionIndex: s[team].missionIndex + 1,
-          status: 'producing',
+          status: lastStep ? 'delivering' : 'working',
           lastCorrect: correct,
+          questionsAnswered: s[team].questionsAnswered + 1,
+          quality: side.quality,
+          waste: side.wasteUnits,
           feedback: correct
-            ? 'CORRECT — MIXER AUTHORISED, PRODUCTION RUNNING'
-            : 'WRONG QUANTITY APPLIED — THE LINE IS MAKING THAT AMOUNT',
+            ? `${STEP_LABEL[STEPS[side.stepIndex]]} — RUNNING NOW`
+            : 'WRONG AMOUNT APPLIED — THE LINE IS MAKING THAT MUCH',
         },
       } as Partial<FactoryStore>));
     },

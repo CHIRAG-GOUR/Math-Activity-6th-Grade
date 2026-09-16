@@ -959,16 +959,17 @@ export function CityPedestrians3D() {
       }
 
       // ── 1. STRICT VEHICLE & ROAD CROSSING SAFETY PHYSICS ──
+      const curRadius = Math.hypot(ped.pos.x, ped.pos.z);
+      const targetRadius = Math.hypot(targetVec.x, targetVec.z);
       const isTargetAcrossRoad =
-        (ped.pos.z < 3.5 && targetVec.z > 5.5) ||
-        (ped.pos.z > 7.5 && targetVec.z < 5.5);
+        (curRadius < 6.8 && targetRadius > 10.2) ||
+        (curRadius > 10.2 && targetRadius < 6.8);
 
-      const atNorthCurb = ped.pos.z >= 2.4 && ped.pos.z <= 3.2;
-      const atSouthCurb = ped.pos.z >= 7.8 && ped.pos.z <= 8.6;
-      const isNearCrosswalk = Math.abs(ped.pos.x - (-7.0)) < 1.4 || Math.abs(ped.pos.x - 7.0) < 1.4;
+      const atInnerCurb = curRadius >= 6.3 && curRadius <= 6.9;
+      const atOuterCurb = curRadius >= 10.1 && curRadius <= 10.7;
 
-      if (isTargetAcrossRoad && isNearCrosswalk && (atNorthCurb || atSouthCurb)) {
-        const safeToCross = cityTraffic.isRoadSafeToCross(ped.pos.x);
+      if (isTargetAcrossRoad && (atInnerCurb || atOuterCurb)) {
+        const safeToCross = cityTraffic.isRoadSafeToCross(ped.pos.x, ped.pos.z);
         if (!safeToCross) {
           ped.isWalking = false;
           ped.state = 'WAITING_TRAFFIC';
@@ -978,10 +979,11 @@ export function CityPedestrians3D() {
         }
       }
 
-      const onRoadway = ped.pos.z >= 3.5 && ped.pos.z <= 7.5;
+      const onRoadway = curRadius >= 6.8 && curRadius <= 10.2;
       if (onRoadway) {
         cityTraffic.updatePedestrian(ped.id, ped.pos.x, ped.pos.z);
       }
+
 
       if (ped.state === 'IDLE') {
         ped.stateTimer -= delta;
@@ -1006,16 +1008,20 @@ export function CityPedestrians3D() {
         dir.normalize();
 
         const targetAngle = Math.atan2(dir.x, dir.z);
-        ped.yaw = THREE.MathUtils.damp(ped.yaw, targetAngle, 5, delta);
+        // Natural exponential heading damping (learn from Chocolate Factory kinematics)
+        let diff = (targetAngle - ped.yaw) % (Math.PI * 2);
+        if (diff < -Math.PI) diff += Math.PI * 2;
+        if (diff > Math.PI) diff -= Math.PI * 2;
+        ped.yaw += diff * (1 - Math.exp(-9 * delta));
 
-        // Advance position
+        // Advance position in facing direction
         const moveDist = ped.speed * delta;
         ped.pos.x += Math.sin(ped.yaw) * moveDist;
         ped.pos.z += Math.cos(ped.yaw) * moveDist;
         ped.pos.y = 0.03; // Ground clamp
 
         // Advance walk cycle frequency locked to travel speed
-        ped.walkPhase += moveDist * 5.2;
+        ped.walkPhase += moveDist * 6.0;
       }
 
       // ── 3. HARD OBSTACLE COLLISION BOUNDARIES WITH TANGENTIAL DEFLECTION ──

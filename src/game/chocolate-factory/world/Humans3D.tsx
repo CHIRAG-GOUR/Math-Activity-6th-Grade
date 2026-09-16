@@ -16,8 +16,8 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { TeamId } from '../types';
-import { sim } from '../engine/factorySim';
-import { sideOf } from '../engine/factoryLayout';
+import { runningStep, sim } from '../engine/factorySim';
+import { sideOf, sideSign } from '../engine/factoryLayout';
 import { GEO, MAT, teamVestMat } from './materials';
 import { angleDelta, type Vec3 } from './geom';
 
@@ -160,101 +160,138 @@ export const Person3D: React.FC<{ look: Look; read: () => PersonState; scale?: n
   );
 };
 
-// ── ROLE PRESETS ─────────────────────────────────────────────────────────
+// ── ROLE PRESETS ──
 
 const looks = (team: TeamId) => ({
+  handler: { skin: MAT.skin, hair: MAT.hair, top: MAT.vestHi, hat: 'hardhat' as const },
+  handlerB: { skin: MAT.skinDark, hair: MAT.hairLight, top: MAT.vestHi, hat: 'hardhat' as const },
   operator: { skin: MAT.skin, hair: MAT.hair, top: teamVestMat(team), hat: 'hardhat' as const },
-  inspector: { skin: MAT.skinDark, hair: MAT.hair, top: MAT.coatWhite, hat: 'none' as const, coat: false },
-  loader: { skin: MAT.skin, hair: MAT.hairLight, top: teamVestMat(team), hat: 'cap' as const },
-  warehouse: { skin: MAT.skinDark, hair: MAT.hairLight, top: MAT.vestHi, hat: 'hardhat' as const },
+  inspector: { skin: MAT.skinDark, hair: MAT.hair, top: MAT.coatWhite, hat: 'none' as const },
+  packer: { skin: MAT.skin, hair: MAT.hairLight, top: teamVestMat(team), hat: 'cap' as const },
 });
 
-/** Stands at the mixer control panel, working the valves while a batch runs. */
-export const FactoryOperator3D: React.FC<{ team: TeamId }> = ({ team }) => {
-  const home = sideOf(team).operatorHome;
+const headingTowards = (from: Vec3, to: Vec3) => Math.atan2(-(to.x - from.x), -(to.z - from.z));
+
+/**
+ * Ingredient handler: fetches a sack of cocoa from the pallet stack, carries
+ * it to the measuring tank and tips it in. Between batches they keep working
+ * the store rather than standing about.
+ */
+export const IngredientHandler3D: React.FC<{ team: TeamId; index: 0 | 1 }> = ({ team, index }) => {
+  const sack = useRef<THREE.Mesh>(null);
+  const tank = sideOf(team).measuringTank;
+
+  const read = (): PersonState => {
+    const w = sim[team].handlers[index];
+    const walking = w.task === 'to_pallet' || w.task === 'to_tank' || w.task === 'back' || w.task === 'ambient';
+    return {
+      pos: w.pos,
+      heading: w.task === 'tipping' ? headingTowards(w.pos, tank) : w.heading,
+      moving: walking && w.task !== 'ambient' ? true : w.task === 'ambient',
+      carrying: w.carrying,
+      gesture: w.task === 'tipping' ? 'operate' : 'none',
+    };
+  };
+
+  useFrame(() => {
+    const w = sim[team].handlers[index];
+    if (!sack.current) return;
+    sack.current.visible = w.carrying;
+    if (!w.carrying) return;
+    const tipping = w.task === 'tipping';
+    const f = { x: -Math.sin(w.heading), z: -Math.cos(w.heading) };
+    // Held at the chest while walking, raised and tilted over the tank to pour.
+    sack.current.position.set(
+      w.pos.x + f.x * (tipping ? 0.75 : 0.5),
+      tipping ? 1.85 : 1.05,
+      w.pos.z + f.z * (tipping ? 0.75 : 0.5)
+    );
+    sack.current.rotation.set(tipping ? -1.15 : 0, w.heading, 0);
+  });
+
+  return (
+    <group>
+      <Person3D look={index === 0 ? looks(team).handler : looks(team).handlerB} read={read} />
+      <mesh ref={sack} geometry={GEO.box} material={MAT.boxCard} scale={[0.5, 0.46, 0.42]} castShadow visible={false} />
+    </group>
+  );
+};
+
+/** Works the mixer control panel while a batch is running. */
+export const MixerOperator3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const mixer = sideOf(team).mixer;
   const read = (): PersonState => {
-    const s = sim[team];
-    const busy = s.line === 'filling' || s.line === 'mixing' || s.line === 'molding';
+    const w = sim[team].operator;
+    const step = runningStep(team);
     return {
-      pos: home,
-      heading: Math.atan2(-(mixer.x - home.x), -(mixer.z - home.z)),
+      pos: w.pos,
+      heading: headingTowards(w.pos, mixer),
       moving: false,
       carrying: false,
-      gesture: busy ? 'operate' : 'none',
+      gesture: step === 'mixing' || step === 'molding' ? 'operate' : 'inspect',
     };
   };
   return <Person3D look={looks(team).operator} read={read} />;
 };
 
-/** Watches the quality station and leans in when a batch is being scanned. */
+/** Checks the bars as they come off the cutter. */
 export const QualityInspector3D: React.FC<{ team: TeamId }> = ({ team }) => {
-  const home = sideOf(team).inspectorHome;
   const station = sideOf(team).qcStation;
   const read = (): PersonState => {
-    const s = sim[team];
+    const w = sim[team].inspector;
     return {
-      pos: home,
-      heading: Math.atan2(-(station.x - home.x), -(station.z - home.z)),
+      pos: w.pos,
+      heading: headingTowards(w.pos, station),
       moving: false,
       carrying: false,
-      gesture: s.line === 'quality_check' || s.line === 'cutting' ? 'inspect' : 'none',
+      gesture: 'inspect',
     };
   };
   return (
     <group>
       <Person3D look={looks(team).inspector} read={read} />
-      {/* clipboard resting on the inspection desk */}
       <mesh
         geometry={GEO.box} material={MAT.wood}
-        position={[home.x + (team === 'blue' ? 0.6 : -0.6), 1.02, home.z + 0.5]}
-        scale={[0.34, 0.03, 0.44]} rotation={[0, 0, 0]}
+        position={[sideOf(team).inspectorHome.x + sideSign(team) * 0.7, 1.02, sideOf(team).inspectorHome.z + 0.6]}
+        scale={[0.34, 0.03, 0.44]}
       />
     </group>
   );
 };
 
-/** Carries sealed boxes from the packaging line out to the truck. */
-export const LoaderWorker3D: React.FC<{ team: TeamId }> = ({ team }) => {
+/** Boxes the wrapped bars at the packaging machine. */
+export const PackingWorker3D: React.FC<{ team: TeamId }> = ({ team }) => {
+  const machine = sideOf(team).packagingMachine;
+  const box = useRef<THREE.Mesh>(null);
   const read = (): PersonState => {
-    const s = sim[team];
-    const w = s.loader;
-    const moving = w.task === 'to_truck' || w.task === 'return';
-    return { pos: w.pos, heading: w.heading, moving, carrying: w.carrying, gesture: 'none' };
+    const w = sim[team].packer;
+    const step = runningStep(team);
+    return {
+      pos: w.pos,
+      heading: headingTowards(w.pos, machine),
+      moving: false,
+      carrying: step === 'packaging',
+      gesture: step === 'packaging' ? 'operate' : 'inspect',
+    };
   };
-  const boxRef = useRef<THREE.Mesh>(null);
   useFrame(() => {
     const s = sim[team];
-    if (!boxRef.current) return;
-    boxRef.current.visible = s.loader.carrying;
-    if (s.loader.carrying) {
-      const h = s.loader.heading;
-      const f = { x: -Math.sin(h), z: -Math.cos(h) };
-      boxRef.current.position.set(s.loader.pos.x + f.x * 0.46, 1.06, s.loader.pos.z + f.z * 0.46);
-      boxRef.current.rotation.y = h;
-    }
+    if (!box.current) return;
+    const packing = runningStep(team) === 'packaging';
+    box.current.visible = packing;
+    if (!packing) return;
+    const w = s.packer;
+    const f = { x: -Math.sin(w.heading), z: -Math.cos(w.heading) };
+    box.current.position.set(w.pos.x + f.x * 0.48, 1.04 + Math.sin(w.phase * 3) * 0.06, w.pos.z + f.z * 0.48);
+    box.current.rotation.y = w.heading;
   });
   return (
     <group>
-      <Person3D look={looks(team).loader} read={read} />
-      <mesh ref={boxRef} geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
-        scale={[0.56, 0.42, 0.46]} castShadow visible={false} />
+      <Person3D look={looks(team).packer} read={read} />
+      <mesh ref={box} geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
+        scale={[0.5, 0.38, 0.42]} castShadow visible={false} />
     </group>
   );
-};
-
-/** Moves pallets around the ingredient store. */
-export const WarehouseWorker3D: React.FC<{ team: TeamId; offset?: number }> = ({ team, offset = 0 }) => {
-  const s = sideOf(team);
-  const base: Vec3 = { x: s.palletStack.x + (team === 'blue' ? 2.6 : -2.6), y: 0, z: s.palletStack.z + 1.6 + offset };
-  const read = (): PersonState => ({
-    pos: base,
-    heading: Math.atan2(-(s.palletStack.x - base.x), -(s.palletStack.z - base.z)),
-    moving: false,
-    carrying: false,
-    gesture: 'inspect',
-  });
-  return <Person3D look={looks(team).warehouse} read={read} />;
 };
 
 /** Seated driver for the forklift — simplified pose, built into the cab. */
@@ -266,7 +303,6 @@ export const SeatedDriver3D: React.FC<{ team: TeamId }> = ({ team }) => (
     <mesh geometry={GEO.box} material={MAT.skin} position={[0, 0.84, 0]} scale={[0.27, 0.29, 0.25]} castShadow />
     <mesh geometry={GEO.box} material={MAT.hair} position={[0, 0.98, 0.01]} scale={[0.29, 0.09, 0.27]} />
     <mesh geometry={GEO.sphereLow} material={MAT.hardHat} position={[0, 1.03, 0]} scale={[0.31, 0.22, 0.31]} />
-    {/* arms reaching the wheel */}
     <mesh geometry={GEO.box} material={teamVestMat(team)} position={[-0.24, 0.5, -0.22]} scale={[0.13, 0.13, 0.42]} />
     <mesh geometry={GEO.box} material={teamVestMat(team)} position={[0.24, 0.5, -0.22]} scale={[0.13, 0.13, 0.42]} />
   </group>

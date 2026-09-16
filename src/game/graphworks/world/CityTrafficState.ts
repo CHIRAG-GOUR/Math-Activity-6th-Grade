@@ -1,8 +1,8 @@
 // ============================================================
 // GRAPHWORKS — City Traffic & Pedestrian Crosswalk Coordinator
-// Real-time synchronization between moving highway vehicles and
-// pedestrians to ensure humans NEVER cross into moving traffic and
-// vehicles always stop for crossing pedestrians.
+// Real-time synchronization between moving vehicles on the circular
+// boulevard and pedestrians to ensure humans NEVER cross into moving traffic
+// and vehicles always yield for crossing pedestrians.
 // ============================================================
 
 export interface LiveVehicle {
@@ -24,10 +24,9 @@ class TrafficCoordinator {
   private vehicles: Map<number, LiveVehicle> = new Map();
   private pedestrians: Map<string, LivePedestrian> = new Map();
 
-  // Highway crosswalk coordinates along the avenue
-  public readonly crosswalkX = [-7.0, 7.0];
-  public readonly roadZMin = 3.6;
-  public readonly roadZMax = 7.4;
+  // Circular road dimensions (Center [0,0,0])
+  public readonly ringInnerRadius = 6.8;
+  public readonly ringOuterRadius = 10.2;
 
   // Update vehicle position from CityTransit3D loop
   public updateVehicle(id: number, x: number, z: number, currentSpeed: number, isBraking: boolean) {
@@ -36,28 +35,32 @@ class TrafficCoordinator {
 
   // Update pedestrian position from CityPedestrians3D loop
   public updatePedestrian(id: string, x: number, z: number) {
-    const isCrossing = z >= this.roadZMin && z <= this.roadZMax;
+    const r = Math.hypot(x, z);
+    const isCrossing = r >= this.ringInnerRadius && r <= this.ringOuterRadius;
     this.pedestrians.set(id, { id, x, z, isCrossing });
   }
 
-  // Check if it is completely safe for a pedestrian to cross at crosswalk X
-  public isRoadSafeToCross(pedX: number): boolean {
-    const dangerZone = 8.5; // meters buffer around crosswalk
+  // Check if it is completely safe for a pedestrian at (pedX, pedZ) to enter/cross the circular road
+  public isRoadSafeToCross(pedX: number, pedZ: number): boolean {
+    const dangerDist = 4.8; // Safe clearance distance in meters
     for (const v of this.vehicles.values()) {
-      const dist = Math.abs(v.x - pedX);
-      // If a vehicle is moving towards or within the crosswalk zone, it is NOT safe
-      if (dist < dangerZone && Math.abs(v.currentSpeed) > 0.4) {
+      const dist = Math.hypot(v.x - pedX, v.z - pedZ);
+      // If a vehicle is approaching within danger radius and moving, wait at curb
+      if (dist < dangerDist && Math.abs(v.currentSpeed) > 0.4) {
         return false;
       }
     }
     return true;
   }
 
-  // Check if any pedestrian is actively crossing near crosswalk X (so cars must stop)
-  public isPedestrianInCrosswalk(cwX: number): boolean {
+  // Check if any pedestrian is actively on the circular roadway near (x, z)
+  public isPedestrianInProximity(vehX: number, vehZ: number): boolean {
     for (const p of this.pedestrians.values()) {
-      if (Math.abs(p.x - cwX) < 1.6 && p.z >= this.roadZMin - 0.8 && p.z <= this.roadZMax + 0.8) {
-        return true;
+      if (p.isCrossing) {
+        const dist = Math.hypot(p.x - vehX, p.z - vehZ);
+        if (dist < 3.2) {
+          return true;
+        }
       }
     }
     return false;
@@ -65,3 +68,4 @@ class TrafficCoordinator {
 }
 
 export const cityTraffic = new TrafficCoordinator();
+

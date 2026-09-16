@@ -14,6 +14,16 @@
 
 import type { FactoryEvent } from '../types';
 
+/** The machine sounds that run continuously while something is working. */
+export type MachineLayer = 'conveyor' | 'mixer' | 'truck' | 'forklift';
+
+export interface MachineState {
+  conveyor: boolean;
+  mixer: boolean;
+  truck: boolean;
+  forklift: boolean;
+}
+
 class FactoryAudio {
   private ctx: AudioContext | null = null;
   private master: GainNode | null = null;
@@ -21,6 +31,9 @@ class FactoryAudio {
   private bedNodes: AudioScheduledSourceNode[] = [];
   private muted = false;
   private lastAt = new Map<string, number>();
+
+  /** Continuous machine layers, faded in and out with what is actually running. */
+  private layers: Partial<Record<MachineLayer, { gain: GainNode; level: number }>> = {};
 
   private init() {
     if (typeof window === 'undefined') return;
@@ -131,6 +144,77 @@ class FactoryAudio {
     this.bedNodes.push(hum);
   }
 
+  /**
+   * Builds one continuous voice per machine layer. Each is a filtered tone or
+   * noise bed that simply gets faded up while that machine is working, so the
+   * factory sounds busy without stacking dozens of one-shots.
+   */
+  private buildLayer(name: MachineLayer) {
+    if (!this.ctx || !this.master || this.layers[name]) return;
+    const t = this.ctx.currentTime;
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0, t);
+    gain.connect(this.master);
+
+    if (name === 'conveyor' || name === 'truck') {
+      // Rolling noise: belts, and the truck's engine while it drives.
+      const len = Math.floor(this.ctx.sampleRate * 3);
+      const buf = this.ctx.createBuffer(1, len, this.ctx.sampleRate);
+      const d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      const src = this.ctx.createBufferSource();
+      src.buffer = buf; src.loop = true;
+      const lp = this.ctx.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(name === 'truck' ? 260 : 700, t);
+      src.connect(lp); lp.connect(gain);
+      src.start(t);
+      this.bedNodes.push(src);
+      if (name === 'truck') {
+        const rumble = this.ctx.createOscillator();
+        const rg = this.ctx.createGain();
+        rumble.type = 'sawtooth';
+        rumble.frequency.setValueAtTime(62, t);
+        rg.gain.setValueAtTime(0.5, t);
+        rumble.connect(rg); rg.connect(gain);
+        rumble.start(t);
+        this.bedNodes.push(rumble);
+      }
+    } else {
+      // Motor tone: the mixer drive and the forklift's electric whine.
+      const osc = this.ctx.createOscillator();
+      const lp = this.ctx.createBiquadFilter();
+      osc.type = name === 'mixer' ? 'sawtooth' : 'triangle';
+      osc.frequency.setValueAtTime(name === 'mixer' ? 96 : 220, t);
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(name === 'mixer' ? 420 : 900, t);
+      osc.connect(lp); lp.connect(gain);
+      osc.start(t);
+      this.bedNodes.push(osc);
+    }
+    this.layers[name] = { gain, level: 0 };
+  }
+
+  /** Called every frame with what the two factories are doing. */
+  setMachines(state: MachineState) {
+    if (!this.ctx || !this.master) return;
+    const targets: Record<MachineLayer, number> = {
+      conveyor: state.conveyor ? 0.1 : 0,
+      mixer: state.mixer ? 0.085 : 0,
+      truck: state.truck ? 0.1 : 0,
+      forklift: state.forklift ? 0.05 : 0,
+    };
+    for (const name of Object.keys(targets) as MachineLayer[]) {
+      this.buildLayer(name);
+      const layer = this.layers[name];
+      if (!layer) continue;
+      const want = targets[name];
+      if (Math.abs(want - layer.level) < 0.002) continue;
+      layer.level = want;
+      layer.gain.gain.setTargetAtTime(want, this.ctx.currentTime, want > 0 ? 0.12 : 0.3);
+    }
+  }
+
   onEvent(e: FactoryEvent) {
     if (this.muted) return;
     this.init();
@@ -172,7 +256,14 @@ class FactoryAudio {
         if (this.allow('stamp', 0.25)) this.tone(1500, 2100, 0.09, 'square', 0.09);
         break;
       case 'box_seal':
-        if (this.allow('seal', 0.25)) { this.noise(0.22, 1200, 300, 0.1); this.tone(300, 220, 0.12, 'sine', 0.07); }
+        if (this.allow('seal', 0.18)) { this.noise(0.22, 1200, 300, 0.1); this.tone(300, 220, 0.12, 'sine', 0.07); }
+        break;
+      case 'forklift_beep':
+        // Reversing beeper, two short pips.
+        if (this.allow('beep', 0.7)) {
+          this.tone(1100, 1100, 0.11, 'square', 0.06);
+          this.tone(1100, 1100, 0.11, 'square', 0.06, 0.18);
+        }
         break;
       case 'truck_depart':
         if (this.allow('truck', 1.2)) { this.tone(52, 84, 1.3, 'sawtooth', 0.13); this.noise(1.1, 360, 130, 0.08); }
@@ -197,6 +288,7 @@ class FactoryAudio {
   shutdown() {
     for (const n of this.bedNodes) { try { n.stop(); } catch { /* already stopped */ } }
     this.bedNodes = [];
+    this.layers = {};
     if (this.ctx) void this.ctx.close();
     this.ctx = null;
     this.master = null;

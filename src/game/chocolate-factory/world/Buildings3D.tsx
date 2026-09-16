@@ -170,9 +170,10 @@ export const CentralAtrium3D: React.FC = () => {
         <mesh key={sgn} geometry={GEO.box} material={MAT.glass} position={[sgn * (t.w / 2 + 0.05), 9, 0]} scale={[0.2, 7, t.d - 2.5]} />
       ))}
       <mesh geometry={GEO.box} material={MAT.glass} position={[0, 9, t.d / 2 + 0.05]} scale={[t.w - 2.5, 7, 0.2]} />
-      {/* copper pipework climbing the tower */}
-      {[-4.2, 4.2].map((x) => (
-        <mesh key={x} geometry={GEO.cyl} material={MAT.copper} position={[x, 10, t.d / 2 + 0.6]} scale={[0.5, 20, 0.5]} />
+      {/* copper pipework, kept round the SIDES so the scoreboard stays clear */}
+      {[-1, 1].map((sgn) => (
+        <mesh key={sgn} geometry={GEO.cyl} material={MAT.copper}
+          position={[sgn * (t.w / 2 + 0.45), 8, -1]} scale={[0.5, 16, 0.5]} />
       ))}
       {/* factory name over the entrance */}
       <mesh position={[0, 4.4, t.d / 2 + 0.35]}>
@@ -187,9 +188,9 @@ export const CentralAtrium3D: React.FC = () => {
           <meshBasicMaterial map={board.texture} />
         </mesh>
       </group>
-      {/* chimney stacks */}
-      {[-3.5, 3.5].map((x) => (
-        <mesh key={x} geometry={GEO.cyl} material={MAT.brickWarm} position={[x, t.h + 3, -3]} scale={[2.2, 5, 2.2]} castShadow />
+      {/* chimney stacks, set behind the tower and out of the scoreboard's way */}
+      {[-6.2, 6.2].map((x) => (
+        <mesh key={x} geometry={GEO.cyl} material={MAT.brickWarm} position={[x, t.h + 2, -5.5]} scale={[2.0, 4, 2.0]} castShadow />
       ))}
     </group>
   );
@@ -204,7 +205,7 @@ export const CentralProcessing3D: React.FC = () => {
   const stirrers = useRef<THREE.Group>(null);
   useFrame((_, delta) => {
     if (!stirrers.current) return;
-    const busy = sim.blue.line !== 'idle' || sim.red.line !== 'idle';
+    const busy = sim.blue.phase === 'running' || sim.red.phase === 'running';
     stirrers.current.children.forEach((c, i) => {
       c.rotation.y += delta * (busy ? 1.1 : 0.25) * (i % 2 ? 1 : -1);
     });

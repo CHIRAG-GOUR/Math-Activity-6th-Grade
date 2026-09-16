@@ -11,7 +11,7 @@
 import React from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import type { TeamId } from '../types';
-import { useFactoryStore, TOTAL_MISSIONS } from '../store/factoryStore';
+import { useFactoryStore, TOTAL_CYCLES, TOTAL_QUESTIONS } from '../store/factoryStore';
 import { factoryAudio } from '../engine/factoryAudio';
 
 const Metric: React.FC<{ label: string; value: string; tint: string }> = ({ label, value, tint }) => (
@@ -68,7 +68,7 @@ export const FactoryOverlays: React.FC = () => {
             <p className="mt-4 text-xs xl:text-sm font-bold text-slate-600 leading-relaxed">
               Both factories run at the same time. Every fraction you apply sets the real amount of
               chocolate your line produces — the tank fills to it, the molds take it, the truck carries
-              it to the customer. {TOTAL_MISSIONS} missions each across 5 production rounds.
+              it to the customer. {TOTAL_CYCLES} customer orders each, five steps per order, {TOTAL_QUESTIONS} fractions apiece.
             </p>
 
             <button

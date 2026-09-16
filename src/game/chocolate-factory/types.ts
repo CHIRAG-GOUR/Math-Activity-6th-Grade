@@ -62,7 +62,7 @@ export interface FactoryEvent {
   team: TeamId;
   kind:
     | 'valve_open' | 'mixer_start' | 'mold_fill' | 'cooling_enter' | 'cut'
-    | 'quality_stamp' | 'box_seal' | 'truck_depart' | 'truck_arrive' | 'customer_happy'
+    | 'quality_stamp' | 'box_seal' | 'forklift_beep' | 'truck_depart' | 'truck_arrive' | 'customer_happy'
     | 'customer_meh' | 'customer_unhappy' | 'rework' | 'correct' | 'wrong';
 }
 

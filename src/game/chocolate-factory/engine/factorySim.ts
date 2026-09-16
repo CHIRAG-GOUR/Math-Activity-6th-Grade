@@ -1,23 +1,22 @@
 // ============================================================
 // THE CHOCOLATE FACTORY — PRODUCTION SIMULATION
 //
-// Mutable state stepped outside React, like the Decimal Delivery game's
-// depotSim. This is where a fraction answer becomes a PHYSICAL event: the
-// tank actually fills to that value, the mixer actually turns, the mold
-// actually fills, the truck actually drives to the customer.
+// ONE QUESTION = ONE STEP OF THE PRODUCTION CHAIN. A cycle is five steps,
+// and each correct fraction physically advances the factory one stage:
 //
-// The team's tapped answer — right OR wrong — is what the tank fills to.
-// Correctness only drives quality, rework and waste; it never fakes the
-// physical amount produced.
+//   1 INGREDIENTS  handlers carry sacks and tip cocoa into the tank
+//   2 MIXING       the mixer turns and the chocolate comes together
+//   3 MOLDING      chocolate pours into that many molds
+//   4 COOLING      bars run the tunnel and the cutter slices them
+//   5 PACKAGING    bars are wrapped and boxed onto a pallet
 //
-// TWO INDEPENDENT CHAINS PER TEAM, so neither team ever waits:
+//   then the forklift carries the pallet of boxes to the truck and the
+//   truck drives the order out to its customer.
 //
-//   LINE       tank -> mixer -> mold -> cooling -> cutter -> QC -> packaging
-//   LOGISTICS  loader -> truck -> customer -> truck home
-//
-// Packaging hands a finished SHIPMENT to the logistics queue and the line
-// goes idle immediately, so a team can start its next batch while its last
-// truck is still out on the road. The two teams share nothing at all.
+// The fraction the team taps sets the QUANTITY at that step — the tank
+// level, the amount mixed, how many molds fill, how many bars are cut, how
+// many boxes are packed. A wrong fraction makes the wrong amount; it is
+// never faked. Both teams run their own chain and never wait for each other.
 // ============================================================
 
 import type {
@@ -25,155 +24,194 @@ import type {
 } from '../types';
 import { toDecimal } from './fractionMath';
 import {
-  CARGO_SLOTS, forkliftIngredientRoute, forkliftReturnRoute, loaderCarryRoute, loaderReturnRoute,
+  CARGO_SLOTS, forkliftPalletRoute, forkliftToTruck, handlerToPallet, handlerToTank,
   sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute,
 } from './factoryLayout';
 import { angleDelta, polylineLength, samplePolyline, smooth, type Vec3 } from '../world/geom';
 
-// Stage durations, in seconds. The whole line runs in about nine seconds, so
-// a team is never left watching an animation with nothing to do.
-const FILL_TIME = 1.7;
-const MIX_TIME = 1.9;
-const MOLD_TIME = 1.2;
-const COOL_TIME = 1.3;
-const CUT_TIME = 0.9;
-const QC_TIME = 1.0;
-const QC_REWORK_EXTRA = 1.3;
-const PACK_TIME = 1.4;
-const REWORK_FLASH = 1.4;
+// ── THE FIVE STEPS ───────────────────────────────────────────────────────
 
-const TRUCK_SPEED = 9.0;
-const CARRY_SPEED = 2.6;
-const FORK_SPEED = 4.2;
-const UNLOAD_PAUSE = 1.2;
+export type StepId = 'ingredients' | 'mixing' | 'molding' | 'cooling' | 'packaging';
+export const STEPS: StepId[] = ['ingredients', 'mixing', 'molding', 'cooling', 'packaging'];
+export const STEPS_PER_CYCLE = STEPS.length;
 
-export const MOLDS_PER_BATCH = 8;
-export const MOLD_GRID_MAX = 16;
-export const BARS_PER_BOX = 4;
+export const STEP_LABEL: Record<StepId, string> = {
+  ingredients: 'LOAD THE COCOA',
+  mixing: 'MIX THE BATCH',
+  molding: 'FILL THE MOLDS',
+  cooling: 'COOL & CUT THE BARS',
+  packaging: 'WRAP & BOX THE ORDER',
+};
 
-export type LineStage =
-  | 'idle' | 'filling' | 'mixing' | 'molding' | 'cooling' | 'cutting' | 'quality_check' | 'packaging';
-export type LogisticsStage = 'idle' | 'loading' | 'outbound' | 'unloading' | 'returning';
+export const STEP_ACTION: Record<StepId, string> = {
+  ingredients: 'Sets how full the cocoa tank is filled.',
+  mixing: 'Sets how much chocolate the mixer makes.',
+  molding: 'Sets how many molds are filled.',
+  cooling: 'Sets how many bars come off the cutter.',
+  packaging: 'Sets how many boxes go on the pallet.',
+};
 
-export interface Shipment {
-  order: CustomerOrder;
-  boxes: number;
-  quality: number;
-  wasCorrect: boolean;
-  attempt: 1 | 2;
+const STEP_TIME: Record<StepId, number> = {
+  ingredients: 7.2,
+  mixing: 3.4,
+  molding: 2.8,
+  cooling: 4.2,
+  packaging: 3.4,
+};
+
+export const MAX_MOLDS = 12;
+export const MAX_BARS = 20;
+export const MAX_BOXES = 5;
+
+const REWORK_FLASH = 1.5;
+const TRUCK_SPEED = 9.5;
+const WALK_SPEED = 2.6;
+const FORK_SPEED = 4.4;
+const UNLOAD_PAUSE = 1.4;
+
+// ── STATE ────────────────────────────────────────────────────────────────
+
+export type StepPhase = 'awaiting' | 'running';
+export type Logistics =
+  | 'idle' | 'fork_to_pallet' | 'fork_lift' | 'fork_to_truck' | 'fork_unload'
+  | 'fork_return' | 'truck_out' | 'at_customer' | 'truck_back';
+
+interface Mover {
+  pos: Vec3; heading: number; task: string; path: Vec3[]; travel: number;
+  carrying: boolean; phase: number;
 }
-
-interface Mover { pos: Vec3; heading: number; task: string; path: Vec3[]; travel: number; }
 
 export interface SideSim {
   team: TeamId;
 
-  // ── LINE ──
-  line: LineStage;
-  lineStartAt: number;
-  batchOrder: CustomerOrder | null;
-  batchAttempt: 1 | 2;
-  batchCorrect: boolean;
-  decimalValue: number;
+  // ── cycle / step ──
+  cycle: number;
+  stepIndex: number;
+  phase: StepPhase;
+  stepT: number;
+  stepStartAt: number;
+  order: CustomerOrder | null;
+  attemptUsed: 1 | 2;
+  lastCorrect: boolean;
+  wrongFlashT: number;
+
+  // ── quantities, each one set by the fraction answered at that step ──
+  cocoaFill: number;
+  mixAmount: number;
+  moldCount: number;
+  barCount: number;
+  boxCount: number;
+
+  // ── machine animation ──
   tankFill: number;
-  tankTarget: number;
   mixerSpin: number;
   moldFill: number;
-  moldCount: number;
   coolT: number;
   cutT: number;
-  qcT: number;
-  qcRework: boolean;
   packT: number;
-  wrongFlashT: number;
-  lastBatchQuality: number;
+  tipPour: number;
+
+  // ── quality / waste ──
+  stepQuality: number[];
   quality: number;
   wasteUnits: number;
   reworkCount: number;
 
-  // ── LOGISTICS ──
-  logistics: LogisticsStage;
-  shipments: Shipment[];
-  activeShipment: Shipment | null;
-  boxesAtDock: number;
+  // ── logistics ──
+  logistics: Logistics;
+  boxesOnPallet: number;
   boxesInTruck: number;
+  forkLift: number;
   truck: Mover & { customer: CustomerType | null; pauseT: number };
-  loader: Mover & { carrying: boolean };
   forklift: Mover;
+  handlers: Mover[];
+  operator: Mover;
+  inspector: Mover;
+  packer: Mover;
 
-  // ── PEOPLE / FEEDBACK ──
-  operatorPhase: number;
-  inspectorPhase: number;
-  reaction: 'happy' | 'meh' | 'unhappy' | null;
-  reactionUntil: number;
-  celebrating: boolean;
-
-  // ── RESULTS ──
-  batchesProduced: number;
+  // ── results ──
+  cyclesDone: number;
   ordersCompleted: number;
   deliveries: number;
   onTimeDeliveries: number;
   customerSatisfaction: number;
   relationships: Partial<Record<CustomerType, CustomerRelationship>>;
+  reaction: 'happy' | 'meh' | 'unhappy' | null;
+  reactionUntil: number;
+  celebrating: boolean;
 
   events: FactoryEvent[];
 }
 
 export interface FactoryHandlers {
-  /** The line finished a batch and is free — the team may be given its next question. */
-  onLineIdle?: (team: TeamId) => void;
-  onDelivered?: (team: TeamId, order: CustomerOrder, satisfaction: number) => void;
+  /** A step finished — the team can be given the question for the next one. */
+  onStepReady?: (team: TeamId) => void;
+  /** A full five-step cycle was delivered to its customer. */
+  onCycleDelivered?: (team: TeamId, order: CustomerOrder, satisfaction: number) => void;
 }
 let handlers: FactoryHandlers = {};
 export function setFactoryHandlers(h: FactoryHandlers) { handlers = h; }
 
-function mover(home: Vec3): Mover { return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0 }; }
+function mover(home: Vec3): Mover {
+  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6 };
+}
 
 function makeSide(team: TeamId): SideSim {
   const s = sideOf(team);
   return {
     team,
-    line: 'idle', lineStartAt: 0, batchOrder: null, batchAttempt: 1, batchCorrect: true,
-    decimalValue: 0, tankFill: 0, tankTarget: 0, mixerSpin: 0, moldFill: 0, moldCount: 0,
-    coolT: 0, cutT: 0, qcT: 0, qcRework: false, packT: 0, wrongFlashT: 0,
-    lastBatchQuality: 92, quality: 92, wasteUnits: 0, reworkCount: 0,
-    logistics: 'idle', shipments: [], activeShipment: null, boxesAtDock: 0, boxesInTruck: 0,
+    cycle: 0, stepIndex: 0, phase: 'awaiting', stepT: 0, stepStartAt: 0,
+    order: null, attemptUsed: 1, lastCorrect: true, wrongFlashT: 0,
+    cocoaFill: 0, mixAmount: 0, moldCount: 0, barCount: 0, boxCount: 0,
+    tankFill: 0, mixerSpin: 0, moldFill: 0, coolT: 0, cutT: 0, packT: 0, tipPour: 0,
+    stepQuality: [], quality: 92, wasteUnits: 0, reworkCount: 0,
+    logistics: 'idle', boxesOnPallet: 0, boxesInTruck: 0, forkLift: 0.2,
     truck: { ...mover(s.truckHome), customer: null, pauseT: 0 },
-    loader: { ...mover(s.loaderHome), carrying: false },
     forklift: mover(s.forkliftHome),
-    operatorPhase: team === 'blue' ? 0 : 1.6,
-    inspectorPhase: team === 'blue' ? 0.7 : 2.1,
-    reaction: null, reactionUntil: 0, celebrating: false,
-    batchesProduced: 0, ordersCompleted: 0, deliveries: 0, onTimeDeliveries: 0,
+    handlers: [mover(s.handlerHome[0]), mover(s.handlerHome[1])],
+    operator: mover(s.operatorHome),
+    inspector: mover(s.inspectorHome),
+    packer: mover(s.packerHome),
+    cyclesDone: 0, ordersCompleted: 0, deliveries: 0, onTimeDeliveries: 0,
     customerSatisfaction: 88, relationships: {},
+    reaction: null, reactionUntil: 0, celebrating: false,
     events: [],
   };
 }
 
 export const sim = { blue: makeSide('blue'), red: makeSide('red'), elapsed: 0 };
 export const sideSim = (team: TeamId): SideSim => sim[team];
-
-export function resetSim() {
-  sim.blue = makeSide('blue');
-  sim.red = makeSide('red');
-  sim.elapsed = 0;
-}
+export function resetSim() { sim.blue = makeSide('blue'); sim.red = makeSide('red'); sim.elapsed = 0; }
 
 function emit(side: SideSim, kind: FactoryEvent['kind']) { side.events.push({ team: side.team, kind }); }
 
-/** True while the team's machines are free to start another batch. */
-export function lineIsFree(team: TeamId): boolean { return sim[team].line === 'idle'; }
+export const currentStep = (team: TeamId): StepId => STEPS[Math.min(STEPS.length - 1, sim[team].stepIndex)];
+export const stepIsOpen = (team: TeamId): boolean => sim[team].phase === 'awaiting';
+
+/** The step actually running right now, or null while the team is answering. */
+export function runningStep(team: TeamId): StepId | null {
+  const s = sim[team];
+  return s.phase === 'running' ? STEPS[Math.min(STEPS.length - 1, s.stepIndex)] : null;
+}
+
+/** True while anything at all is moving for this team. */
+export function isBusy(team: TeamId): boolean {
+  const s = sim[team];
+  return s.phase === 'running' || s.logistics !== 'idle';
+}
+
+// ── APPLYING AN ANSWER ───────────────────────────────────────────────────
 
 /**
- * The team taps an answer. `selectedIndex` drives the PHYSICAL outcome whether
- * it is right or wrong. A first miss costs a rework flash and a retry; a
- * second miss actually produces that wrong quantity.
+ * The team taps an answer for the CURRENT step. The tapped fraction sets that
+ * step's quantity — right or wrong. A first miss costs a rework flash and a
+ * retry; a second miss runs the step at the wrong amount.
  */
 export function submitAnswer(
   team: TeamId, order: CustomerOrder, selectedIndex: number, attempt: 1 | 2
-): 'retry' | 'produced' | 'ignored' {
+): 'retry' | 'applied' | 'ignored' {
   const side = sim[team];
-  if (side.line !== 'idle') return 'ignored';
+  if (side.phase !== 'awaiting') return 'ignored';
   const q = order.question;
   const correct = selectedIndex === q.correctIndex;
 
@@ -185,23 +223,59 @@ export function submitAnswer(
     return 'retry';
   }
 
-  const value = q.optionValues[selectedIndex] ?? q.optionValues[q.correctIndex];
-  side.batchOrder = order;
-  side.batchAttempt = attempt;
-  side.batchCorrect = correct;
-  side.decimalValue = Math.max(0.05, toDecimal(value));
-  side.tankTarget = Math.min(1, side.decimalValue);
-  side.tankFill = 0;
-  side.mixerSpin = 0;
-  side.moldFill = 0;
-  side.moldCount = Math.max(1, Math.round(side.decimalValue * MOLDS_PER_BATCH));
-  side.coolT = 0; side.cutT = 0; side.qcT = 0; side.packT = 0; side.qcRework = false;
-  side.line = 'filling';
-  side.lineStartAt = sim.elapsed;
+  const value = Math.max(0.08, Math.min(1.6, toDecimal(q.optionValues[selectedIndex] ?? q.optionValues[q.correctIndex])));
+  side.order = order;
+  side.attemptUsed = attempt;
+  side.lastCorrect = correct;
+
+  const step = STEPS[side.stepIndex];
+  switch (step) {
+    case 'ingredients':
+      side.cocoaFill = Math.min(1, value);
+      side.tankFill = 0;
+      side.tipPour = 0;
+      dispatchHandlers(side);
+      emit(side, 'valve_open');
+      break;
+    case 'mixing':
+      side.mixAmount = Math.min(1, value);
+      side.mixerSpin = 0;
+      emit(side, 'mixer_start');
+      break;
+    case 'molding':
+      side.moldCount = Math.max(1, Math.round(value * MAX_MOLDS));
+      side.moldFill = 0;
+      emit(side, 'mold_fill');
+      break;
+    case 'cooling':
+      side.barCount = Math.max(1, Math.round(value * MAX_BARS));
+      side.coolT = 0; side.cutT = 0;
+      emit(side, 'cooling_enter');
+      break;
+    case 'packaging':
+      side.boxCount = Math.max(1, Math.min(MAX_BOXES, Math.round(value * MAX_BOXES)));
+      side.packT = 0;
+      side.boxesOnPallet = 0;
+      emit(side, 'box_seal');
+      break;
+  }
+
+  // Quality for this step: clean first-time work runs best.
+  const quality = correct
+    ? (attempt === 1 ? 90 + Math.round(Math.random() * 9) : 72 + Math.round(Math.random() * 13))
+    : 35 + Math.round(Math.random() * 20);
+  side.stepQuality.push(quality);
+  if (!correct) { side.wasteUnits++; emit(side, 'rework'); }
+  side.quality = Math.round(side.stepQuality.reduce((a, b) => a + b, 0) / side.stepQuality.length);
+
+  side.phase = 'running';
+  side.stepT = 0;
+  side.stepStartAt = sim.elapsed;
   emit(side, correct ? 'correct' : 'wrong');
-  emit(side, 'valve_open');
-  return 'produced';
+  return 'applied';
 }
+
+// ── STEP ────────────────────────────────────────────────────────────────
 
 export function stepSim(rawDt: number) {
   const dt = Math.min(0.05, Math.max(0.0005, rawDt));
@@ -210,251 +284,360 @@ export function stepSim(rawDt: number) {
   stepSide(sim.red, dt);
 }
 
-function rollQuality(side: SideSim): number {
-  const range: [number, number] = side.batchCorrect
-    ? (side.batchAttempt === 1 ? [90, 99] : [72, 85])
-    : [35, 55];
-  return Math.round(range[0] + Math.random() * (range[1] - range[0]));
-}
-
 function stepSide(side: SideSim, dt: number) {
   if (side.wrongFlashT > 0) side.wrongFlashT = Math.max(0, side.wrongFlashT - dt);
-  side.operatorPhase += dt;
-  side.inspectorPhase += dt;
   if (side.reactionUntil > 0 && sim.elapsed > side.reactionUntil) { side.reaction = null; side.reactionUntil = 0; }
 
-  stepLine(side, dt);
+  if (side.phase === 'running') runStep(side, dt);
+  stepHandlers(side, dt);
+  stepStationCrew(side, dt);
   stepLogistics(side, dt);
-  stepForklift(side, dt);
 }
 
-// ── THE PRODUCTION LINE ─────────────────────────────────────────────────
+function runStep(side: SideSim, dt: number) {
+  const step = STEPS[side.stepIndex];
+  const dur = STEP_TIME[step];
+  const t = Math.min(1, (sim.elapsed - side.stepStartAt) / dur);
+  side.stepT = t;
 
-function lineElapsed(side: SideSim): number { return sim.elapsed - side.lineStartAt; }
-function advance(side: SideSim, to: LineStage) { side.line = to; side.lineStartAt = sim.elapsed; }
-
-function stepLine(side: SideSim, dt: number) {
-  switch (side.line) {
-    case 'idle':
-      // Chocolate drains back out of the measuring tank between batches.
-      side.tankFill = Math.max(0, side.tankFill - dt * 0.6);
+  switch (step) {
+    case 'ingredients':
+      // The tank fills as the handlers tip each sack in (see stepHandlers).
       break;
-
-    case 'filling': {
-      const t = Math.min(1, lineElapsed(side) / FILL_TIME);
-      side.tankFill = side.tankTarget * smooth(t);
-      if (t >= 1) { side.tankFill = side.tankTarget; emit(side, 'mixer_start'); advance(side, 'mixing'); }
+    case 'mixing':
+      side.mixerSpin += dt * 4.2;
+      side.tankFill = side.cocoaFill * (1 - smooth(Math.max(0, t - 0.2) / 0.8));
       break;
-    }
-
-    case 'mixing': {
-      side.mixerSpin += dt * 3.6;
-      if (lineElapsed(side) >= MIX_TIME) { emit(side, 'mold_fill'); advance(side, 'molding'); }
-      break;
-    }
-
-    case 'molding': {
-      const t = Math.min(1, lineElapsed(side) / MOLD_TIME);
+    case 'molding':
       side.moldFill = smooth(t);
-      // The measuring tank empties into the molds as they fill.
-      side.tankFill = side.tankTarget * (1 - smooth(t));
-      if (t >= 1) { emit(side, 'cooling_enter'); advance(side, 'cooling'); }
       break;
-    }
-
-    case 'cooling': {
-      side.coolT = Math.min(1, lineElapsed(side) / COOL_TIME);
-      if (side.coolT >= 1) advance(side, 'cutting');
+    case 'cooling':
+      side.coolT = Math.min(1, t / 0.62);
+      side.cutT = t > 0.62 ? Math.min(1, (t - 0.62) / 0.38) : 0;
+      if (side.cutT > 0 && side.cutT < 0.06) emit(side, 'cut');
       break;
-    }
-
-    case 'cutting': {
-      side.cutT = Math.min(1, lineElapsed(side) / CUT_TIME);
-      if (side.cutT >= 1) {
-        emit(side, 'cut');
-        side.lastBatchQuality = rollQuality(side);
-        side.quality = Math.round(side.quality * 0.65 + side.lastBatchQuality * 0.35);
-        side.qcRework = side.lastBatchQuality < 55;
-        if (side.qcRework) { side.reworkCount++; emit(side, 'rework'); }
-        advance(side, 'quality_check');
-      }
+    case 'packaging':
+      side.packT = t;
+      side.boxesOnPallet = Math.min(side.boxCount, Math.floor(t * side.boxCount * 1.02));
       break;
-    }
-
-    case 'quality_check': {
-      const dur = QC_TIME + (side.qcRework ? QC_REWORK_EXTRA : 0);
-      side.qcT = Math.min(1, lineElapsed(side) / dur);
-      if (side.qcT >= 1) { emit(side, 'quality_stamp'); advance(side, 'packaging'); }
-      break;
-    }
-
-    case 'packaging': {
-      side.packT = Math.min(1, lineElapsed(side) / PACK_TIME);
-      if (side.packT < 1) break;
-
-      // A rejected batch loses a unit to the rework bin before boxing.
-      const waste = side.qcRework ? 1 : 0;
-      side.wasteUnits += waste;
-      const bars = Math.max(1, side.moldCount - waste);
-      const boxes = Math.max(1, Math.ceil(bars / BARS_PER_BOX));
-      if (side.batchOrder) {
-        side.shipments.push({
-          order: side.batchOrder, boxes,
-          quality: side.lastBatchQuality, wasCorrect: side.batchCorrect, attempt: side.batchAttempt,
-        });
-      }
-      side.batchesProduced++;
-      side.boxesAtDock += boxes;
-      side.moldFill = 0;
-      side.packT = 0;
-      emit(side, 'box_seal');
-      advance(side, 'idle');
-      // The machines are free: the team may take its next question right now,
-      // while this shipment is still being loaded and driven out.
-      handlers.onLineIdle?.(side.team);
-      break;
-    }
   }
+
+  if (t < 1) return;
+
+  // Step complete.
+  if (step === 'cooling') emit(side, 'quality_stamp');
+  if (step === 'packaging') {
+    side.boxesOnPallet = side.boxCount;
+    emit(side, 'box_seal');
+    // The pallet is ready: the forklift comes for it.
+    side.logistics = 'fork_to_pallet';
+    side.forklift.task = 'to_pallet';
+    side.forklift.path = forkliftPalletRoute(side.team, side.forklift.pos);
+    side.forklift.travel = 0;
+    side.phase = 'awaiting';
+    return;
+  }
+
+  side.stepIndex++;
+  side.phase = 'awaiting';
+  handlers.onStepReady?.(side.team);
 }
 
-// ── LOGISTICS: LOADER + TRUCK ───────────────────────────────────────────
+// ── INGREDIENT HANDLERS: carry sacks, tip cocoa into the tank ───────────
+
+function dispatchHandlers(side: SideSim) {
+  side.handlers.forEach((h, i) => {
+    h.task = 'to_pallet';
+    h.carrying = false;
+    h.path = handlerToPallet(side.team, h.pos, i);
+    h.travel = 0;
+  });
+}
 
 function follow(mv: Mover, speed: number, dt: number): boolean {
   const next = mv.travel + speed * dt;
   const r = samplePolyline(mv.path, next, 0);
   mv.travel = Math.min(next, polylineLength(mv.path));
   mv.pos = r.pos;
-  mv.heading += angleDelta(mv.heading, r.heading) * (1 - Math.exp(-6 * dt));
+  mv.heading += angleDelta(mv.heading, r.heading) * (1 - Math.exp(-7 * dt));
   return r.done;
 }
 
+function stepHandlers(side: SideSim, dt: number) {
+  const active = side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients';
+  const trips = 2;
+
+  side.handlers.forEach((h, i) => {
+    h.phase += dt * (h.task.startsWith('to_') ? 7 : 1.6);
+
+    switch (h.task) {
+      case 'idle':
+      case 'ambient': {
+        // Nobody stands idle: between batches they tidy the ingredient store.
+        ambientPatrol(side, h, i, dt);
+        break;
+      }
+      case 'to_pallet': {
+        if (follow(h, WALK_SPEED, dt)) {
+          h.carrying = true;
+          h.task = 'to_tank';
+          h.path = handlerToTank(side.team, h.pos);
+          h.travel = 0;
+        }
+        break;
+      }
+      case 'to_tank': {
+        if (follow(h, WALK_SPEED * 0.9, dt)) { h.task = 'tipping'; h.travel = 0; h.phase = 0; }
+        break;
+      }
+      case 'tipping': {
+        // Tip the sack over the tank mouth: the level actually rises.
+        h.phase += dt;
+        side.tipPour = 1;
+        const share = side.cocoaFill / (trips * side.handlers.length);
+        side.tankFill = Math.min(side.cocoaFill, side.tankFill + share * dt / 0.9);
+        if (h.phase > 1.1) {
+          h.carrying = false;
+          side.tipPour = 0;
+          h.task = 'back';
+          h.path = handlerToPallet(side.team, h.pos, i);
+          h.travel = 0;
+          emit(side, 'mold_fill');
+        }
+        break;
+      }
+      case 'back': {
+        if (follow(h, WALK_SPEED, dt)) {
+          const done = !active || side.tankFill >= side.cocoaFill - 0.02;
+          if (done) { h.task = 'ambient'; h.travel = 0; }
+          else { h.task = 'to_pallet'; h.path = handlerToPallet(side.team, h.pos, i); h.travel = 0; }
+        }
+        break;
+      }
+    }
+  });
+
+  // The tank has to reach the answered level before the step can finish.
+  if (active && side.stepT >= 1 && side.tankFill < side.cocoaFill - 0.02) {
+    side.stepStartAt = sim.elapsed - STEP_TIME.ingredients * 0.9;
+  }
+}
+
+/** Slow work-loop so no member of staff is ever just standing about. */
+function ambientPatrol(side: SideSim, m: Mover, index: number, dt: number) {
+  const s = sideOf(side.team);
+  const home = s.handlerHome[index % 2];
+  const away = { x: home.x + sideSign(side.team) * 2.6, y: 0, z: home.z + 2.4 };
+  if (!m.path.length || m.travel >= polylineLength(m.path) - 0.01) {
+    const atHome = Math.hypot(m.pos.x - home.x, m.pos.z - home.z) < 1.2;
+    m.path = atHome ? [m.pos, away] : [m.pos, home];
+    m.travel = 0;
+  }
+  follow(m, WALK_SPEED * 0.45, dt);
+}
+
+// ── STATION CREW: operator, inspector, packer ───────────────────────────
+
+function stepStationCrew(side: SideSim, dt: number) {
+  const step = STEPS[side.stepIndex];
+  const running = side.phase === 'running';
+  side.operator.phase += dt;
+  side.inspector.phase += dt;
+  side.packer.phase += dt;
+
+  // Each of them shifts a little around their station so the floor looks worked.
+  const bob = (m: Mover, base: Vec3, amount: number, rate: number) => {
+    m.pos = {
+      x: base.x + Math.sin(m.phase * rate) * amount,
+      y: 0,
+      z: base.z + Math.cos(m.phase * rate * 0.7) * amount * 0.6,
+    };
+  };
+  const s = sideOf(side.team);
+  bob(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding') ? 0.5 : 0.25, 0.9);
+  bob(side.inspector, s.inspectorHome, running && step === 'cooling' ? 0.55 : 0.2, 0.8);
+  bob(side.packer, s.packerHome, running && step === 'packaging' ? 0.5 : 0.22, 1.1);
+}
+
+// ── LOGISTICS: forklift pallet run, then the truck ──────────────────────
+
 function stepLogistics(side: SideSim, dt: number) {
-  const truck = side.truck;
-  const loader = side.loader;
+  const f = side.forklift;
+  const t = side.truck;
+  f.phase += dt;
 
   switch (side.logistics) {
     case 'idle': {
-      const next = side.shipments.shift();
-      if (!next) break;
-      side.activeShipment = next;
-      side.logistics = 'loading';
-      loader.task = 'to_truck';
-      loader.carrying = true;
-      loader.path = loaderCarryRoute(side.team);
-      loader.travel = 0;
-      break;
-    }
-
-    case 'loading': {
-      if (loader.task === 'to_truck') {
-        if (follow(loader, CARRY_SPEED, dt)) {
-          // Boxes physically arrive in the bed, one cargo slot each.
-          const boxes = side.activeShipment?.boxes ?? 1;
-          side.boxesInTruck = Math.min(CARGO_SLOTS.length, side.boxesInTruck + boxes);
-          side.boxesAtDock = Math.max(0, side.boxesAtDock - boxes);
-          loader.carrying = false;
-          loader.task = 'return';
-          loader.path = loaderReturnRoute(side.team, loader.pos);
-          loader.travel = 0;
-        }
-      } else if (loader.task === 'return') {
-        if (follow(loader, CARRY_SPEED, dt)) {
-          loader.task = 'idle';
-          const ship = side.activeShipment;
-          if (ship) {
-            truck.customer = ship.order.customer;
-            truck.path = truckRoute(side.team, ship.order.customer);
-            truck.travel = 0;
-            side.logistics = 'outbound';
-            emit(side, 'truck_depart');
-          } else {
-            side.logistics = 'idle';
-          }
+      // The forklift keeps the yard tidy rather than parking up dead.
+      if (f.task === 'idle' && side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients') {
+        f.task = 'yard';
+        f.path = [f.pos, { x: sideOf(side.team).palletStack.x, y: 0, z: sideOf(side.team).palletStack.z + 3.4 }];
+        f.travel = 0;
+      } else if (f.task === 'yard') {
+        if (follow(f, FORK_SPEED * 0.7, dt)) {
+          f.task = 'idle';
+          f.path = [f.pos, sideOf(side.team).forkliftHome];
+          f.travel = 0;
         }
       }
       break;
     }
 
-    case 'outbound': {
-      if (follow(truck, TRUCK_SPEED, dt)) {
-        truck.pauseT = 0;
-        side.logistics = 'unloading';
+    case 'fork_to_pallet': {
+      if (follow(f, FORK_SPEED, dt)) {
+        side.logistics = 'fork_lift';
+        f.task = 'lifting';
+        f.travel = 0;
+        emit(side, 'forklift_beep');
+      }
+      break;
+    }
+
+    case 'fork_lift': {
+      side.forkLift = Math.min(1.1, side.forkLift + dt * 1.2);
+      if (side.forkLift >= 1.05) {
+        f.carrying = true;
+        side.logistics = 'fork_to_truck';
+        f.task = 'hauling';
+        f.path = forkliftToTruck(side.team, f.pos);
+        f.travel = 0;
+      }
+      break;
+    }
+
+    case 'fork_to_truck': {
+      if (follow(f, FORK_SPEED * 0.8, dt)) {
+        side.logistics = 'fork_unload';
+        t.pauseT = 0;
+      }
+      break;
+    }
+
+    case 'fork_unload': {
+      // Boxes go into the bed one at a time.
+      t.pauseT += dt;
+      const want = Math.min(side.boxCount, Math.floor(t.pauseT / 0.34));
+      if (want > side.boxesInTruck) {
+        side.boxesInTruck = Math.min(CARGO_SLOTS.length, want);
+        side.boxesOnPallet = Math.max(0, side.boxCount - want);
+        emit(side, 'box_seal');
+      }
+      if (t.pauseT > side.boxCount * 0.34 + 0.5) {
+        f.carrying = false;
+        side.boxesOnPallet = 0;
+        side.forkLift = 0.2;
+        side.logistics = 'fork_return';
+        f.task = 'returning';
+        f.path = [f.pos, sideOf(side.team).forkliftHome];
+        f.travel = 0;
+      }
+      break;
+    }
+
+    case 'fork_return': {
+      if (follow(f, FORK_SPEED, dt)) {
+        f.task = 'idle';
+        startDelivery(side);
+      }
+      break;
+    }
+
+    case 'truck_out': {
+      if (follow(t, TRUCK_SPEED, dt)) {
+        t.pauseT = 0;
+        side.logistics = 'at_customer';
         emit(side, 'truck_arrive');
         resolveDelivery(side);
       }
       break;
     }
 
-    case 'unloading': {
-      truck.pauseT += dt;
-      if (truck.pauseT > UNLOAD_PAUSE) {
+    case 'at_customer': {
+      t.pauseT += dt;
+      if (t.pauseT > UNLOAD_PAUSE) {
         side.boxesInTruck = 0;
-        truck.path = truckReturnRoute(side.team, truck.customer ?? 'shop');
-        truck.travel = 0;
-        side.logistics = 'returning';
+        t.path = truckReturnRoute(side.team, t.customer ?? 'shop');
+        t.travel = 0;
+        side.logistics = 'truck_back';
       }
       break;
     }
 
-    case 'returning': {
-      if (follow(truck, TRUCK_SPEED, dt)) {
-        truck.customer = null;
-        side.activeShipment = null;
+    case 'truck_back': {
+      if (follow(t, TRUCK_SPEED, dt)) {
+        t.customer = null;
         side.logistics = 'idle';
+        // Ready for the next cycle's first question.
+        side.cycle++;
+        side.stepIndex = 0;
+        side.phase = 'awaiting';
+        side.stepQuality = [];
+        side.cocoaFill = 0; side.mixAmount = 0; side.moldCount = 0;
+        side.barCount = 0; side.boxCount = 0;
+        side.tankFill = 0; side.moldFill = 0; side.coolT = 0; side.cutT = 0; side.packT = 0;
+        handlers.onStepReady?.(side.team);
       }
       break;
     }
   }
+}
+
+function startDelivery(side: SideSim) {
+  const order = side.order;
+  const customer: CustomerType = order?.customer ?? 'shop';
+  side.truck.customer = customer;
+  side.truck.path = truckRoute(side.team, customer);
+  side.truck.travel = 0;
+  side.logistics = 'truck_out';
+  side.cyclesDone++;
+  emit(side, 'truck_depart');
 }
 
 function resolveDelivery(side: SideSim) {
-  const ship = side.activeShipment;
-  if (!ship) return;
-
-  const accuracy = ship.wasCorrect ? (ship.attempt === 1 ? 100 : 82) : 40;
-  const speed = ship.attempt === 1 ? 94 : 76;
-  const satisfaction = Math.round(accuracy * 0.4 + ship.quality * 0.35 + speed * 0.25);
-  side.customerSatisfaction = Math.round(side.customerSatisfaction * 0.7 + satisfaction * 0.3);
-  side.reaction = satisfaction >= 80 ? 'happy' : satisfaction >= 55 ? 'meh' : 'unhappy';
-  side.reactionUntil = sim.elapsed + 2.4;
+  const order = side.order;
+  const quality = side.quality;
+  const accuracy = Math.round(
+    (side.stepQuality.filter((q) => q >= 70).length / Math.max(1, side.stepQuality.length)) * 100
+  );
+  const satisfaction = Math.round(accuracy * 0.45 + quality * 0.4 + 15);
+  side.customerSatisfaction = Math.round(side.customerSatisfaction * 0.65 + satisfaction * 0.35);
+  side.reaction = satisfaction >= 80 ? 'happy' : satisfaction >= 58 ? 'meh' : 'unhappy';
+  side.reactionUntil = sim.elapsed + 2.6;
   emit(side, side.reaction === 'happy' ? 'customer_happy' : side.reaction === 'meh' ? 'customer_meh' : 'customer_unhappy');
 
-  const type = ship.order.customer;
-  const rel = side.relationships[type] ?? { type, ordersServed: 0, goodStreak: 0, returning: false };
-  rel.ordersServed++;
-  if (side.reaction !== 'unhappy') {
-    rel.goodStreak++;
-    if (rel.goodStreak >= 2) rel.returning = true;
-  } else rel.goodStreak = 0;
-  side.relationships[type] = rel;
+  if (order) {
+    const type = order.customer;
+    const rel = side.relationships[type] ?? { type, ordersServed: 0, goodStreak: 0, returning: false };
+    rel.ordersServed++;
+    if (side.reaction !== 'unhappy') { rel.goodStreak++; if (rel.goodStreak >= 2) rel.returning = true; }
+    else rel.goodStreak = 0;
+    side.relationships[type] = rel;
+  }
 
   side.ordersCompleted++;
   side.deliveries++;
-  if (ship.wasCorrect && ship.attempt === 1) side.onTimeDeliveries++;
-  handlers.onDelivered?.(side.team, ship.order, satisfaction);
+  if (accuracy >= 80) side.onTimeDeliveries++;
+  if (order) handlers.onCycleDelivered?.(side.team, order, satisfaction);
 }
 
-// ── FORKLIFT: ingredients out of the warehouse while a batch is mixing ──
+// ── FINALE: the winning factory sends its truck out ─────────────────────
 
-function stepForklift(side: SideSim, dt: number) {
-  const f = side.forklift;
-  const wantActive = side.line === 'filling' || side.line === 'mixing';
+export function setCelebrating(team: TeamId, on: boolean) { sim[team].celebrating = on; }
 
-  if (wantActive && f.task === 'idle') {
-    f.task = 'to_tank';
-    f.path = forkliftIngredientRoute(side.team);
-    f.travel = 0;
-  } else if (!wantActive && f.task === 'at_tank') {
-    f.task = 'return';
-    f.path = forkliftReturnRoute(side.team, f.pos);
-    f.travel = 0;
-  }
-
-  if (f.task === 'to_tank') { if (follow(f, FORK_SPEED, dt)) f.task = 'at_tank'; }
-  else if (f.task === 'return') { if (follow(f, FORK_SPEED, dt)) f.task = 'idle'; }
+/** Sends the winner's truck out on a victory delivery, loaded with its boxes. */
+export function victoryRun(team: TeamId) {
+  const side = sim[team];
+  side.celebrating = true;
+  if (side.logistics !== 'idle') return;
+  side.boxesInTruck = Math.min(CARGO_SLOTS.length, Math.max(4, side.boxCount || 4));
+  side.truck.customer = side.order?.customer ?? 'festival';
+  side.truck.path = truckRoute(team, side.truck.customer);
+  side.truck.travel = 0;
+  side.logistics = 'truck_out';
+  emit(side, 'truck_depart');
 }
 
-// ── QUERIES FOR THE RENDERER / UI ───────────────────────────────────────
+// ── QUERIES ──────────────────────────────────────────────────────────────
 
 export function drainEvents(): FactoryEvent[] {
   const all = [...sim.blue.events, ...sim.red.events];
@@ -468,12 +651,9 @@ export function cargoWorldPos(team: TeamId, index: number): Vec3 {
   return truckLocalToWorld(t.pos, t.heading, CARGO_SLOTS[index % CARGO_SLOTS.length]);
 }
 
-/** Nothing left in flight — used to decide when the match can be scored. */
 export function isTeamQuiet(team: TeamId): boolean {
   const s = sim[team];
-  return s.line === 'idle' && s.logistics === 'idle' && s.shipments.length === 0;
+  return s.phase === 'awaiting' && s.logistics === 'idle';
 }
-
-export function setCelebrating(team: TeamId, on: boolean) { sim[team].celebrating = on; }
 
 export { sideOf, sideSign };

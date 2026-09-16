@@ -13,7 +13,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { TeamId } from '../types';
-import { sim, MOLD_GRID_MAX } from '../engine/factorySim';
+import { sim, runningStep, MAX_MOLDS } from '../engine/factorySim';
 import { sideOf, sideSign } from '../engine/factoryLayout';
 import { GEO, MAT, TEAM_HEX, teamMat } from './materials';
 import { drawReadout, LiveDisplay, makeTankScale } from './canvasText';
@@ -42,8 +42,8 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
       liquid.current.position.y = 0.55 + h / 2;
       liquid.current.visible = fill > 0.004;
     }
-    // Ingredient flows down the feed pipe only while the valve is open.
-    const filling = s.line === 'filling';
+    // Cocoa pours in only while a handler is actually tipping a sack.
+    const filling = runningStep(team) === 'ingredients' && s.tipPour > 0.5;
     if (flow.current) {
       flow.current.visible = filling;
       if (filling) {
@@ -109,10 +109,13 @@ export const Mixer3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame((state) => {
     const s = sim[team];
-    const mixing = s.line === 'mixing';
+    const mixing = runningStep(team) === 'mixing';
     if (blades.current) blades.current.rotation.y = s.mixerSpin;
     if (choc.current) {
-      const amount = s.line === 'mixing' || s.line === 'molding' ? Math.min(1, s.tankTarget + 0.08) : 0;
+      const step = runningStep(team);
+      const amount = step === 'mixing' ? Math.min(1, s.mixAmount) * Math.min(1, s.stepT * 1.6)
+        : step === 'molding' ? Math.min(1, s.mixAmount) * (1 - s.moldFill * 0.9)
+          : 0;
       const h = Math.max(0.001, amount * 2.6);
       choc.current.scale.set(3.4, h, 3.4);
       choc.current.position.y = 1.5 + h / 2;
@@ -193,12 +196,14 @@ export const MoldingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame(() => {
     const s = sim[team];
-    const molding = s.line === 'molding';
+    const molding = runningStep(team) === 'molding';
     if (pour.current) pour.current.visible = molding;
 
     if (cavities.current) {
-      const filled = Math.min(MOLD_GRID_MAX, s.moldCount);
-      const done = s.line === 'cooling' || s.line === 'cutting' || s.line === 'quality_check' || s.line === 'packaging';
+      const filled = Math.min(MAX_MOLDS, s.moldCount);
+      const step = runningStep(team);
+      // The filled molds stay on the tray until the bars move on down the line.
+      const done = s.stepIndex > 2 || step === 'cooling' || step === 'packaging';
       cavities.current.children.forEach((child, i) => {
         const m = child as THREE.Mesh;
         const active = i < filled && (molding || done);
@@ -264,13 +269,14 @@ export const CoolingTunnel3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame((_, delta) => {
     const sm = sim[team];
-    if (fans.current) fans.current.children.forEach((f, i) => { f.rotation.z += delta * (2.4 + i * 0.3); });
+    const cooling = runningStep(team) === 'cooling';
+    if (fans.current) fans.current.children.forEach((f, i) => { f.rotation.z += delta * (cooling ? 4.4 : 1.6) * (1 + i * 0.12); });
     if (sheet.current) {
-      const inTunnel = sm.line === 'cooling';
+      const inTunnel = cooling && sm.coolT < 1;
       sheet.current.visible = inTunnel;
       if (inTunnel) sheet.current.position.z = entry.z + len * sm.coolT;
     }
-    const temp = sm.line === 'cooling' ? 12 : 16;
+    const temp = cooling ? 12 : 16;
     display.update(`${temp}`, (ctx, w, h) => drawReadout(ctx, w, h, 'COOLING', `${temp}°C`, '#67e8f9'));
   });
 
@@ -325,11 +331,12 @@ export const CuttingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame(() => {
     const s = sim[team];
-    const cutting = s.line === 'cutting';
-    const after = s.line === 'quality_check' || s.line === 'packaging';
+    const step = runningStep(team);
+    const cutting = step === 'cooling' && s.cutT > 0;
+    const after = s.stepIndex > 3 || step === 'packaging';
     if (blade.current) {
       // Blade drops through the sheet, then lifts clear again.
-      const t = cutting ? Math.sin(Math.min(1, s.cutT) * Math.PI) : 0;
+      const t = cutting ? Math.abs(Math.sin(Math.min(1, s.cutT) * Math.PI * 3)) : 0;
       blade.current.position.y = 2.7 - t * 1.35;
     }
     if (sheet.current) sheet.current.visible = cutting && s.cutT < 0.55;
@@ -375,7 +382,7 @@ export const QualityStation3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame((state) => {
     const s = sim[team];
-    const scanning = s.line === 'quality_check';
+    const scanning = runningStep(team) === 'cooling' && s.cutT > 0.2;
     if (scanLight.current) {
       scanLight.current.visible = scanning;
       if (scanning) scanLight.current.position.z = -1.6 + ((state.clock.elapsedTime * 3) % 1) * 3.2;
@@ -383,10 +390,10 @@ export const QualityStation3D: React.FC<{ team: TeamId }> = ({ team }) => {
     if (lamp.current) {
       lamp.current.material = !scanning
         ? MAT.lampOff
-        : s.qcRework ? MAT.lampRed : s.lastBatchQuality >= 86 ? MAT.lampGreen : MAT.lampAmber;
+        : s.quality >= 86 ? MAT.lampGreen : s.quality >= 60 ? MAT.lampAmber : MAT.lampRed;
     }
-    const q = s.lastBatchQuality;
-    display.update(`${q}-${s.line}`, (ctx, w, h) =>
+    const q = s.quality;
+    display.update(`${q}-${s.stepIndex}`, (ctx, w, h) =>
       drawReadout(ctx, w, h, 'QUALITY', `${q}%`, q >= 86 ? '#4ade80' : q >= 60 ? '#fbbf24' : '#f87171'));
   });
 
@@ -433,7 +440,7 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
   useFrame((state) => {
     const s = sim[team];
-    const packing = s.line === 'packaging';
+    const packing = runningStep(team) === 'packaging';
     if (wrapArm.current) {
       wrapArm.current.rotation.z = packing ? Math.sin(state.clock.elapsedTime * 7) * 0.5 : 0;
     }
@@ -441,7 +448,8 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
       sealer.current.position.y = packing ? 2.1 - Math.abs(Math.sin(state.clock.elapsedTime * 5)) * 0.5 : 2.1;
     }
     if (stack.current) {
-      const boxes = Math.min(6, s.boxesAtDock);
+      // Boxes stack up on the pallet as they are sealed, then leave with the forklift.
+      const boxes = Math.min(6, s.boxesOnPallet);
       stack.current.children.forEach((c, i) => { c.visible = i < boxes; });
     }
   });

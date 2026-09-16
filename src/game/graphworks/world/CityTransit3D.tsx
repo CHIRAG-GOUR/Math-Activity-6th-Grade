@@ -115,24 +115,24 @@ export function CityTransit3D() {
   const blueTrainX = useRef(-12);
   const redTrainX = useRef(-12);
 
-  // Dynamic vehicles with current positions, velocities, and lane directions
+  // Dynamic vehicles running along the circular round road (Inner Blue Lane R=7.6m, Outer Red Lane R=9.2m)
   const vehicles = useMemo(
     () => [
-      // Westbound Lane (Z = 4.6, +X travel, Blue Lane)
-      { id: 1, lane: 'blue' as const, slot: 0, x: -28, z: 4.6, baseSpeed: 5.2, currentSpeed: 5.2, type: 'sedan' as const, color: '#2563eb', rotY: Math.PI / 2, isBraking: false },
-      { id: 2, lane: 'blue' as const, slot: 1, x: -16, z: 4.6, baseSpeed: 4.6, currentSpeed: 4.6, type: 'bus' as const, color: '#0284c7', rotY: Math.PI / 2, isBraking: false },
-      { id: 3, lane: 'blue' as const, slot: 2, x: -4, z: 4.6, baseSpeed: 5.0, currentSpeed: 5.0, type: 'sedan' as const, color: '#38bdf8', rotY: Math.PI / 2, isBraking: false },
-      { id: 4, lane: 'blue' as const, slot: 3, x: 8, z: 4.6, baseSpeed: 4.8, currentSpeed: 4.8, type: 'van' as const, color: '#ffffff', rotY: Math.PI / 2, isBraking: false },
-      { id: 5, lane: 'blue' as const, slot: 4, x: 20, z: 4.6, baseSpeed: 5.1, currentSpeed: 5.1, type: 'sedan' as const, color: '#1d4ed8', rotY: Math.PI / 2, isBraking: false },
-      { id: 6, lane: 'blue' as const, slot: 5, x: 32, z: 4.6, baseSpeed: 4.7, currentSpeed: 4.7, type: 'sedan' as const, color: '#60a5fa', rotY: Math.PI / 2, isBraking: false },
+      // Inner Circle (Radius = 7.6m, Counter-Clockwise, Blue Team Lane)
+      { id: 1, lane: 'blue' as const, slot: 0, radius: 7.6, angle: 0, x: 7.6, z: 0, rotY: Math.PI, baseSpeed: 4.8, currentSpeed: 4.8, type: 'sedan' as const, color: '#2563eb', isBraking: false },
+      { id: 2, lane: 'blue' as const, slot: 1, radius: 7.6, angle: (1 / 6) * Math.PI * 2, x: 3.8, z: 6.58, rotY: Math.PI - (1 / 6) * Math.PI * 2, baseSpeed: 4.4, currentSpeed: 4.4, type: 'bus' as const, color: '#0284c7', isBraking: false },
+      { id: 3, lane: 'blue' as const, slot: 2, radius: 7.6, angle: (2 / 6) * Math.PI * 2, x: -3.8, z: 6.58, rotY: Math.PI - (2 / 6) * Math.PI * 2, baseSpeed: 4.6, currentSpeed: 4.6, type: 'sedan' as const, color: '#38bdf8', isBraking: false },
+      { id: 4, lane: 'blue' as const, slot: 3, radius: 7.6, angle: (3 / 6) * Math.PI * 2, x: -7.6, z: 0, rotY: 0, baseSpeed: 4.5, currentSpeed: 4.5, type: 'van' as const, color: '#ffffff', isBraking: false },
+      { id: 5, lane: 'blue' as const, slot: 4, radius: 7.6, angle: (4 / 6) * Math.PI * 2, x: -3.8, z: -6.58, rotY: -(1 / 3) * Math.PI, baseSpeed: 4.7, currentSpeed: 4.7, type: 'sedan' as const, color: '#1d4ed8', isBraking: false },
+      { id: 6, lane: 'blue' as const, slot: 5, radius: 7.6, angle: (5 / 6) * Math.PI * 2, x: 3.8, z: -6.58, rotY: -(2 / 3) * Math.PI, baseSpeed: 4.3, currentSpeed: 4.3, type: 'sedan' as const, color: '#60a5fa', isBraking: false },
 
-      // Eastbound Lane (Z = 6.4, -X travel, Red Lane)
-      { id: 7, lane: 'red' as const, slot: 0, x: 28, z: 6.4, baseSpeed: -5.2, currentSpeed: -5.2, type: 'sedan' as const, color: '#dc2626', rotY: -Math.PI / 2, isBraking: false },
-      { id: 8, lane: 'red' as const, slot: 1, x: 16, z: 6.4, baseSpeed: -4.5, currentSpeed: -4.5, type: 'bus' as const, color: '#ef4444', rotY: -Math.PI / 2, isBraking: false },
-      { id: 9, lane: 'red' as const, slot: 2, x: 4, z: 6.4, baseSpeed: -5.0, currentSpeed: -5.0, type: 'sedan' as const, color: '#f87171', rotY: -Math.PI / 2, isBraking: false },
-      { id: 10, lane: 'red' as const, slot: 3, x: -8, z: 6.4, baseSpeed: -4.8, currentSpeed: -4.8, type: 'van' as const, color: '#ffffff', rotY: -Math.PI / 2, isBraking: false },
-      { id: 11, lane: 'red' as const, slot: 4, x: -20, z: 6.4, baseSpeed: -5.1, currentSpeed: -5.1, type: 'sedan' as const, color: '#b91c1c', rotY: -Math.PI / 2, isBraking: false },
-      { id: 12, lane: 'red' as const, slot: 5, x: -32, z: 6.4, baseSpeed: -4.7, currentSpeed: -4.7, type: 'sedan' as const, color: '#fb7185', rotY: -Math.PI / 2, isBraking: false },
+      // Outer Circle (Radius = 9.2m, Counter-Clockwise, Red Team Lane)
+      { id: 7, lane: 'red' as const, slot: 0, radius: 9.2, angle: (0.5 / 6) * Math.PI * 2, x: 7.97, z: 4.6, rotY: Math.PI - (0.5 / 6) * Math.PI * 2, baseSpeed: 5.0, currentSpeed: 5.0, type: 'sedan' as const, color: '#dc2626', isBraking: false },
+      { id: 8, lane: 'red' as const, slot: 1, radius: 9.2, angle: (1.5 / 6) * Math.PI * 2, x: 0, z: 9.2, rotY: Math.PI / 2, baseSpeed: 4.5, currentSpeed: 4.5, type: 'bus' as const, color: '#ef4444', isBraking: false },
+      { id: 9, lane: 'red' as const, slot: 2, radius: 9.2, angle: (2.5 / 6) * Math.PI * 2, x: -7.97, z: 4.6, rotY: Math.PI / 6, baseSpeed: 4.8, currentSpeed: 4.8, type: 'sedan' as const, color: '#f87171', isBraking: false },
+      { id: 10, lane: 'red' as const, slot: 3, radius: 9.2, angle: (3.5 / 6) * Math.PI * 2, x: -7.97, z: -4.6, rotY: -Math.PI / 6, baseSpeed: 4.6, currentSpeed: 4.6, type: 'van' as const, color: '#ffffff', isBraking: false },
+      { id: 11, lane: 'red' as const, slot: 4, radius: 9.2, angle: (4.5 / 6) * Math.PI * 2, x: 0, z: -9.2, rotY: -Math.PI / 2, baseSpeed: 4.9, currentSpeed: 4.9, type: 'sedan' as const, color: '#b91c1c', isBraking: false },
+      { id: 12, lane: 'red' as const, slot: 5, radius: 9.2, angle: (5.5 / 6) * Math.PI * 2, x: 7.97, z: -4.6, rotY: -(5 / 6) * Math.PI, baseSpeed: 4.4, currentSpeed: 4.4, type: 'sedan' as const, color: '#fb7185', isBraking: false },
     ],
     []
   );
@@ -152,9 +152,6 @@ export function CityTransit3D() {
     const blueSpeedMult = Math.max(0.55, 1.2 - (blueCount / 50) * 0.5);
     const redSpeedMult = Math.max(0.55, 1.2 - (redCount / 50) * 0.5);
 
-    // Periodic pedestrian crossing window (every 14s for 3.5s)
-    const isCrossingCycle = (t % 14) > 10.5;
-
     vehicles.forEach((v, idx) => {
       const isBlue = v.lane === 'blue';
       const activeLimit = isBlue ? blueActiveLimit : redActiveLimit;
@@ -164,62 +161,51 @@ export function CityTransit3D() {
       let desiredSpeed = v.baseSpeed * speedMult;
       v.isBraking = false;
 
-      // Check distance to crosswalks at X = -7 and X = +7
-      const crosswalks = [-7.0, 7.0];
-      crosswalks.forEach((cwX) => {
-        const pedCrossing = cityTraffic.isPedestrianInCrosswalk(cwX);
-        if (pedCrossing || isCrossingCycle) {
-          if (v.baseSpeed > 0 && v.x < cwX && cwX - v.x < 5.0 && cwX - v.x > 0.2) {
-            desiredSpeed = 0;
-            v.isBraking = true;
-          } else if (v.baseSpeed < 0 && v.x > cwX && v.x - cwX < 5.0 && v.x - cwX > 0.2) {
-            desiredSpeed = 0;
-            v.isBraking = true;
-          }
-        }
-      });
+      // Yielding to crossing pedestrians
+      const currentX = Math.cos(v.angle) * v.radius;
+      const currentZ = Math.sin(v.angle) * v.radius;
+      if (cityTraffic.isPedestrianInProximity(currentX, currentZ)) {
+        desiredSpeed = 0;
+        v.isBraking = true;
+      }
 
-      // Car-following spacing physics
+      // Car-following spacing physics along the circular track
       vehicles.forEach((otherV, otherIdx) => {
-        if (idx === otherIdx || v.z !== otherV.z) return;
-        if (v.baseSpeed > 0) {
-          const dist = otherV.x - v.x;
-          if (dist > 0 && dist < 6.5) {
-            desiredSpeed = Math.min(desiredSpeed, Math.max(0, otherV.currentSpeed * 0.9));
-            if (dist < 4.5) v.isBraking = true;
-          }
-        } else {
-          const dist = v.x - otherV.x;
-          if (dist > 0 && dist < 6.5) {
-            desiredSpeed = Math.max(desiredSpeed, Math.min(0, otherV.currentSpeed * 0.9));
-            if (dist < 4.5) v.isBraking = true;
-          }
+        if (idx === otherIdx || v.lane !== otherV.lane) return;
+        let deltaAngle = otherV.angle - v.angle;
+        while (deltaAngle < 0) deltaAngle += Math.PI * 2;
+        while (deltaAngle >= Math.PI * 2) deltaAngle -= Math.PI * 2;
+
+        const arcDist = deltaAngle * v.radius;
+        if (arcDist > 0 && arcDist < 5.8) {
+          desiredSpeed = Math.min(desiredSpeed, Math.max(0, otherV.currentSpeed * 0.88));
+          if (arcDist < 3.8) v.isBraking = true;
         }
       });
 
       // Smooth acceleration / deceleration
       v.currentSpeed = THREE.MathUtils.damp(v.currentSpeed, desiredSpeed, 4.5, delta);
-      v.x += v.currentSpeed * delta;
+      
+      // Advance angle along circle
+      const omega = v.currentSpeed / v.radius;
+      v.angle = (v.angle + omega * delta) % (Math.PI * 2);
 
-      // Wrap around road boundaries (-36 to +36)
-      if (v.x > 36) v.x = -36;
-      if (v.x < -36) v.x = 36;
-
-      // Straight continuous lanes (Blue lane at Z=4.6, Red lane at Z=6.4)
-      const dynamicZ = v.z;
-      const dynamicYaw = v.rotY;
+      // Compute Cartesian Coordinates
+      const posX = Math.cos(v.angle) * v.radius;
+      const posZ = Math.sin(v.angle) * v.radius;
+      // Tangential Yaw (Front of vehicle model points along forward curve)
+      const rotY = -v.angle + Math.PI;
 
       // Update coordinator with live state
-      cityTraffic.updateVehicle(v.id, v.x, dynamicZ, v.currentSpeed, v.isBraking);
+      cityTraffic.updateVehicle(v.id, posX, posZ, v.currentSpeed, v.isBraking);
 
       // Update Three.js vehicle group transform
       if (trafficGroupRef.current && trafficGroupRef.current.children[idx]) {
         const carGroup = trafficGroupRef.current.children[idx] as THREE.Group;
         carGroup.visible = isActive;
-        carGroup.position.x = v.x;
-        carGroup.position.z = dynamicZ;
-        carGroup.rotation.y = dynamicYaw;
-        carGroup.rotation.z = v.isBraking ? (v.baseSpeed > 0 ? 0.03 : -0.03) : 0;
+        carGroup.position.set(posX, 0.03, posZ);
+        carGroup.rotation.y = rotY;
+        carGroup.rotation.z = v.isBraking ? -0.02 : 0;
       }
     });
 
@@ -261,82 +247,95 @@ export function CityTransit3D() {
 
   return (
     <group>
-      {/* ── 1. MAIN ARTERIAL HIGHWAY AVENUE ── */}
-      <group position={[0, 0, 5.5]}>
-        {/* Asphalt Road Surface */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-          <planeGeometry args={[72, 4.2]} />
-          <primitive object={CITY_MAT.asphalt} attach="material" />
+      {/* ── 1. CIRCULAR BOULEVARD ROAD MARKINGS & STREETLIGHTS ── */}
+      <group position={[0, 0, 0]}>
+        {/* Outer Circular Sidewalk Ring */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+          <ringGeometry args={[10.2, 11.2, 48]} />
+          <primitive object={CITY_MAT.sidewalk} attach="material" />
         </mesh>
-        {/* Continuous Yellow Centerline */}
+
+        {/* Inner Solid White Edge Line */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
-          <planeGeometry args={[72, 0.12]} />
-          <primitive object={CITY_MAT.roadMarkingYellow} attach="material" />
-        </mesh>
-
-        {/* Solid White Edge Lines */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -1.95]}>
-          <planeGeometry args={[72, 0.08]} />
-          <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 1.95]}>
-          <planeGeometry args={[72, 0.08]} />
+          <ringGeometry args={[6.85, 6.95, 48]} />
           <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
         </mesh>
 
-        {/* Concrete Sidewalks with Curbs */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -2.6]}>
-          <planeGeometry args={[72, 1.1]} />
-          <primitive object={CITY_MAT.sidewalk} attach="material" />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 2.6]}>
-          <planeGeometry args={[72, 1.1]} />
-          <primitive object={CITY_MAT.sidewalk} attach="material" />
+        {/* Outer Solid White Edge Line */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
+          <ringGeometry args={[10.05, 10.15, 48]} />
+          <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
         </mesh>
 
-        {/* Modern Streetlamps along Boulevard */}
-        {[-26, -18, -10, -2, 6, 14, 22, 30].map((lx) => (
-          <group key={lx} position={[lx, 0, -2.7]}>
-            <mesh position={[0, 1.6, 0]}>
-              <cylinderGeometry args={[0.04, 0.06, 3.2, 8]} />
-              <meshStandardMaterial color="#64748b" metalness={0.8} />
-            </mesh>
-            <mesh position={[0, 3.2, 0.4]}>
-              <boxGeometry args={[0.1, 0.08, 0.8]} />
-              <meshStandardMaterial color="#64748b" metalness={0.8} />
-            </mesh>
-            <mesh position={[0, 3.16, 0.7]}>
-              <boxGeometry args={[0.12, 0.04, 0.2]} />
-              <meshStandardMaterial color="#fffef0" emissive="#fffef0" emissiveIntensity={1.0} />
-            </mesh>
+        {/* 4 Radial Crosswalk Zebra Stripes (North, South, East, West) */}
+        {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((cwAngle, cwi) => (
+          <group key={cwi} rotation={[0, cwAngle, 0]}>
+            {[-0.6, -0.2, 0.2, 0.6].map((offset, si) => (
+              <mesh
+                key={si}
+                rotation={[-Math.PI / 2, 0, 0]}
+                position={[8.5, 0.03, offset]}
+              >
+                <planeGeometry args={[3.2, 0.24]} />
+                <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
+              </mesh>
+            ))}
           </group>
         ))}
+
+        {/* 8 Modern Curved Boulevard Streetlamps Around Circular Road */}
+        {[0, 1, 2, 3, 4, 5, 6, 7].map((li) => {
+          const lAngle = (li / 8) * Math.PI * 2;
+          const lx = Math.cos(lAngle) * 11.0;
+          const lz = Math.sin(lAngle) * 11.0;
+          const rotY = -lAngle - Math.PI / 2;
+          return (
+            <group key={li} position={[lx, 0, lz]} rotation={[0, rotY, 0]}>
+              <mesh position={[0, 1.6, 0]}>
+                <cylinderGeometry args={[0.04, 0.06, 3.2, 8]} />
+                <meshStandardMaterial color="#64748b" metalness={0.8} />
+              </mesh>
+              <mesh position={[0, 3.2, 0.4]}>
+                <boxGeometry args={[0.1, 0.08, 0.8]} />
+                <meshStandardMaterial color="#64748b" metalness={0.8} />
+              </mesh>
+              <mesh position={[0, 3.16, 0.7]}>
+                <boxGeometry args={[0.12, 0.04, 0.2]} />
+                <meshStandardMaterial color="#fffef0" emissive="#fffef0" emissiveIntensity={1.0} />
+              </mesh>
+            </group>
+          );
+        })}
       </group>
 
       {/* ── 2. DYNAMIC VEHICLES ON HIGHWAY (UNLOCKS AT QUESTION 4) ── */}
       {cityStage < 4 ? (
         <group>
-          {/* Clean Road-Closed Barriers (Awaiting Transport Activation) */}
-          {[-18, -6, 6, 18].map((bx) => (
-            <group key={bx} position={[bx, 0, 5.5]}>
-              {/* White/Red Striped Barrier Bar */}
-              <mesh position={[0, 0.45, 0]}>
-                <boxGeometry args={[2.2, 0.12, 0.08]} />
-                <meshStandardMaterial color="#f8fafc" roughness={0.4} />
-              </mesh>
-              <mesh position={[0, 0.45, 0.01]}>
-                <boxGeometry args={[0.5, 0.1, 0.02]} />
-                <meshStandardMaterial color="#ef4444" roughness={0.4} />
-              </mesh>
-              {/* Support Posts */}
-              {[-0.9, 0.9].map((px) => (
-                <mesh key={px} position={[px, 0.22, 0]}>
-                  <cylinderGeometry args={[0.03, 0.04, 0.44, 6]} />
-                  <meshStandardMaterial color="#94a3b8" metalness={0.7} />
+          {/* Clean Road-Closed Barriers Around Circular Boulevard */}
+          {[0, Math.PI / 2, Math.PI, (3 * Math.PI) / 2].map((bAngle, bi) => {
+            const bx = Math.cos(bAngle) * 8.5;
+            const bz = Math.sin(bAngle) * 8.5;
+            return (
+              <group key={bi} position={[bx, 0, bz]} rotation={[0, -bAngle + Math.PI / 2, 0]}>
+                {/* White/Red Striped Barrier Bar */}
+                <mesh position={[0, 0.45, 0]}>
+                  <boxGeometry args={[2.4, 0.12, 0.08]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.4} />
                 </mesh>
-              ))}
-            </group>
-          ))}
+                <mesh position={[0, 0.45, 0.01]}>
+                  <boxGeometry args={[0.6, 0.1, 0.02]} />
+                  <meshStandardMaterial color="#ef4444" roughness={0.4} />
+                </mesh>
+                {/* Support Posts */}
+                {[-1.0, 1.0].map((px) => (
+                  <mesh key={px} position={[px, 0.22, 0]}>
+                    <cylinderGeometry args={[0.03, 0.04, 0.44, 6]} />
+                    <meshStandardMaterial color="#94a3b8" metalness={0.7} />
+                  </mesh>
+                ))}
+              </group>
+            );
+          })}
         </group>
       ) : (
         <group ref={trafficGroupRef}>
@@ -347,6 +346,7 @@ export function CityTransit3D() {
           ))}
         </group>
       )}
+
 
       {/* ── 3. DUAL HIGH-SPEED BULLET TRAINS (INDEPENDENT BLUE & RED) ── */}
       {/* Blue Train on South Rail (Track 1) */}

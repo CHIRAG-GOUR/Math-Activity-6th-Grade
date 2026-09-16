@@ -12,7 +12,7 @@ import React, { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { TeamId } from '../types';
-import { sim } from '../engine/factorySim';
+import { runningStep, sim } from '../engine/factorySim';
 import { CARGO_SLOTS } from '../engine/factoryLayout';
 import { GEO, MAT, teamMat } from './materials';
 import { SeatedDriver3D } from './Humans3D';
@@ -28,7 +28,8 @@ export const Forklift3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const last = useRef<{ x: number; z: number } | null>(null);
 
   useFrame((state) => {
-    const f = sim[team].forklift;
+    const s = sim[team];
+    const f = s.forklift;
     if (root.current) {
       root.current.position.set(f.pos.x, 0, f.pos.z);
       root.current.rotation.y = f.heading;
@@ -38,13 +39,24 @@ export const Forklift3D: React.FC<{ team: TeamId }> = ({ team }) => {
     last.current = { x: f.pos.x, z: f.pos.z };
     if (wheels.current) wheels.current.children.forEach((w) => { w.rotation.x -= moved / 0.3; });
 
-    // Carrying a pallet of cocoa out to the tank, empty on the way back.
-    const carrying = f.task === 'to_tank' || f.task === 'at_tank';
-    if (pallet.current) pallet.current.visible = carrying;
-    if (forks.current) forks.current.position.y = carrying ? 0.55 : 0.18;
-    if (beacon.current) {
-      beacon.current.material = f.task !== 'idle' && Math.sin(state.clock.elapsedTime * 8) > 0 ? MAT.lampAmber : MAT.lampOff;
+    // Forks ride at the height the simulation has lifted them to.
+    if (forks.current) forks.current.position.y = 0.12 + s.forkLift * 0.75;
+
+    // The pallet of finished boxes is only on the forks while it is being moved.
+    if (pallet.current) {
+      const carrying = f.carrying || s.logistics === 'fork_lift' || s.logistics === 'fork_unload';
+      pallet.current.visible = carrying;
+      const onPallet = s.logistics === 'fork_unload' ? s.boxesOnPallet : s.boxCount;
+      pallet.current.children.forEach((c, i) => {
+        if (i === 0) return;            // the pallet deck itself
+        c.visible = carrying && i <= onPallet;
+      });
     }
+    if (beacon.current) {
+      const working = f.task !== 'idle' || s.logistics !== 'idle';
+      beacon.current.material = working && Math.sin(state.clock.elapsedTime * 8) > 0 ? MAT.lampAmber : MAT.lampOff;
+    }
+    void runningStep;
   });
 
   return (
@@ -71,11 +83,11 @@ export const Forklift3D: React.FC<{ team: TeamId }> = ({ team }) => {
           <mesh key={x} geometry={GEO.box} material={MAT.steel} position={[x, 0.06, -1.45]} scale={[0.12, 0.06, 1.55]} castShadow />
         ))}
         <group ref={pallet} position={[0, 0.18, -1.45]} visible={false}>
-          <mesh geometry={GEO.box} material={MAT.wood} scale={[1.1, 0.12, 1.2]} castShadow />
-          {/* sacks of cocoa on the pallet */}
-          {[[-0.26, -0.28], [0.26, -0.28], [-0.26, 0.28], [0.26, 0.28]].map(([x, z], i) => (
-            <mesh key={i} geometry={GEO.box} material={i % 2 ? MAT.boxCard : MAT.woodDark}
-              position={[x, 0.3, z]} scale={[0.48, 0.46, 0.5]} castShadow />
+          <mesh geometry={GEO.box} material={MAT.wood} scale={[1.2, 0.14, 1.3]} castShadow />
+          {/* up to five sealed boxes of chocolate, stacked on the pallet */}
+          {[[-0.3, -0.32, 0.36], [0.3, -0.32, 0.36], [-0.3, 0.32, 0.36], [0.3, 0.32, 0.36], [0, 0, 0.82]].map(([x, z, y], i) => (
+            <mesh key={i} geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
+              position={[x, y, z]} scale={[0.54, 0.42, 0.5]} castShadow visible={false} />
           ))}
         </group>
       </group>
@@ -114,7 +126,7 @@ export const DeliveryTruck3D: React.FC<{ team: TeamId }> = ({ team }) => {
       cargo.current.children.forEach((c, i) => { c.visible = i < s.boxesInTruck; });
     }
     if (lights.current) {
-      const driving = s.logistics === 'outbound' || s.logistics === 'returning';
+      const driving = s.logistics === 'truck_out' || s.logistics === 'truck_back';
       lights.current.children.forEach((l) => {
         (l as THREE.Mesh).material = driving ? MAT.lampAmber : MAT.lampOff;
       });
