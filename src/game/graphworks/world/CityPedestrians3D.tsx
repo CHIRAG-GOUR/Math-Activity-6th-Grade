@@ -699,19 +699,19 @@ export function CityPedestrians3D() {
       id: 'worker-1',
       role: 'city_worker' as CharacterRole,
       route: [
-        [0.0, 0, 5.2],
-        [3.0, 0, 4.2],
-        [5.2, 0, 0.0],
-        [3.0, 0, -4.2],
-        [0.0, 0, -5.2],
-        [-3.0, 0, -4.2],
-        [-5.2, 0, 0.0],
-        [-3.0, 0, 4.2],
+        [0.0, 0, 6.2],
+        [4.0, 0, 5.2],
+        [6.2, 0, 0.0],
+        [4.0, 0, -5.2],
+        [0.0, 0, -6.2],
+        [-4.0, 0, -5.2],
+        [-6.2, 0, 0.0],
+        [-4.0, 0, 5.2],
       ],
       speed: 1.05,
       currentWp: 0,
-      pos: new THREE.Vector3(0.0, 0.03, 5.2),
-      lastPos: new THREE.Vector3(0.0, 0.03, 5.2),
+      pos: new THREE.Vector3(0.0, 0.03, 6.2),
+      lastPos: new THREE.Vector3(0.0, 0.03, 6.2),
       stuckTimer: 0,
       yaw: 0,
       walkPhase: 0,
@@ -810,15 +810,15 @@ export function CityPedestrians3D() {
       id: 'engineer-1',
       role: 'systems_engineer' as CharacterRole,
       route: [
-        [0.0, 0, 4.6],
-        [4.6, 0, 0.0],
-        [0.0, 0, -4.6],
-        [-4.6, 0, 0.0],
+        [0.0, 0, 5.6],
+        [5.6, 0, 0.0],
+        [0.0, 0, -5.6],
+        [-5.6, 0, 0.0],
       ],
       speed: 1.0,
       currentWp: 0,
-      pos: new THREE.Vector3(0.0, 0.03, 4.6),
-      lastPos: new THREE.Vector3(0.0, 0.03, 4.6),
+      pos: new THREE.Vector3(0.0, 0.03, 5.6),
+      lastPos: new THREE.Vector3(0.0, 0.03, 5.6),
       stuckTimer: 0,
       yaw: 0,
       walkPhase: 3.1,
@@ -903,27 +903,27 @@ export function CityPedestrians3D() {
       const dist = ped.pos.distanceTo(targetVec);
 
       // Advance waypoint upon arrival (generous 0.55m threshold)
-      if (dist < 0.55) {
+      if (dist < 0.65) {
         ped.currentWp = (ped.currentWp + 1) % ped.route.length;
-        if (Math.random() < 0.1) {
+        if (Math.random() < 0.08) {
           ped.isWalking = false;
           ped.state = 'IDLE';
-          ped.stateTimer = 1.0;
+          ped.stateTimer = 1.5 + Math.random() * 1.5;
         }
       }
 
       // ── SMART STUCK PREVENTION & AUTO-RECOVERY ENGINE ──
       if (ped.isWalking) {
         const movedDist = ped.pos.distanceTo(ped.lastPos);
-        if (movedDist < 0.02) {
+        if (movedDist < 0.015) {
           ped.stuckTimer += delta;
-          if (ped.stuckTimer > 0.7) {
+          if (ped.stuckTimer > 0.5) {
             // Unstuck recovery: advance waypoint and give gentle lateral escape nudge
             ped.currentWp = (ped.currentWp + 1) % ped.route.length;
             ped.stuckTimer = 0;
             const outward = new THREE.Vector2(ped.pos.x, ped.pos.z).normalize();
-            ped.pos.x += outward.x * 0.35;
-            ped.pos.z += outward.y * 0.35;
+            ped.pos.x += outward.x * 0.25;
+            ped.pos.z += outward.y * 0.25;
           }
         } else {
           ped.stuckTimer = 0;
@@ -971,15 +971,15 @@ export function CityPedestrians3D() {
         pedestrians.forEach((otherPed, otherIdx) => {
           if (idx === otherIdx) return;
           const separationDist = ped.pos.distanceTo(otherPed.pos);
-          if (separationDist < 0.85 && separationDist > 0.01) {
+          if (separationDist < 0.7 && separationDist > 0.01) {
             const pushDir = new THREE.Vector3().subVectors(ped.pos, otherPed.pos).normalize();
-            dir.addScaledVector(pushDir, 0.7 / separationDist);
+            dir.addScaledVector(pushDir, 0.4 / separationDist);
           }
         });
         dir.normalize();
 
         const targetAngle = Math.atan2(dir.x, dir.z);
-        ped.yaw = THREE.MathUtils.damp(ped.yaw, targetAngle, 8, delta);
+        ped.yaw = THREE.MathUtils.damp(ped.yaw, targetAngle, 5, delta);
 
         // Advance position
         const moveDist = ped.speed * delta;

@@ -425,25 +425,62 @@ export function CityDistricts3D() {
           <primitive object={CITY_MAT.concrete} attach="material" />
         </mesh>
 
-        {/* Modern Arched Glass Canopy */}
-        <mesh position={[0, 3.0, 0]} rotation={[0, 0, 0]}>
-          <cylinderGeometry args={[4.2, 4.2, 14, 16, 1, true, 0, Math.PI]} />
-          <meshStandardMaterial
-            color="#67e8f9"
-            emissive="#0284c7"
-            emissiveIntensity={0.2}
-            transparent
-            opacity={0.65}
-            side={THREE.DoubleSide}
-            roughness={0.1}
-          />
+        {/* Platform Safety Edge Line (Yellow) */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.82, 1.75]}>
+          <planeGeometry args={[17, 0.15]} />
+          <meshStandardMaterial color="#facc15" roughness={0.5} />
         </mesh>
-        {/* Steel Arch Canopy Ribs */}
-        {[-6, -2, 2, 6].map((rx) => (
-          <mesh key={rx} position={[rx, 3.0, 0]}>
-            <torusGeometry args={[4.22, 0.1, 8, 16, Math.PI]} />
-            <meshStandardMaterial color="#ffffff" metalness={0.8} />
-          </mesh>
+
+        {/* Flat Modern Station Roof Canopy */}
+        <mesh position={[0, 3.6, 0]} castShadow>
+          <boxGeometry args={[16, 0.15, 4.2]} />
+          <meshStandardMaterial color="#f1f5f9" roughness={0.3} metalness={0.2} />
+        </mesh>
+        {/* Canopy underside (warm glow) */}
+        <mesh position={[0, 3.5, 0]}>
+          <boxGeometry args={[15.6, 0.04, 3.8]} />
+          <meshStandardMaterial color="#fef9c3" emissive="#fde047" emissiveIntensity={0.4} />
+        </mesh>
+
+        {/* 6 Steel Support Columns for Canopy */}
+        {[-6, -2, 2, 6].map((cx) => (
+          <React.Fragment key={cx}>
+            <mesh position={[cx, 2.0, -1.6]} castShadow>
+              <cylinderGeometry args={[0.08, 0.1, 3.2, 8]} />
+              <meshStandardMaterial color="#94a3b8" metalness={0.85} roughness={0.2} />
+            </mesh>
+            <mesh position={[cx, 2.0, 1.6]} castShadow>
+              <cylinderGeometry args={[0.08, 0.1, 3.2, 8]} />
+              <meshStandardMaterial color="#94a3b8" metalness={0.85} roughness={0.2} />
+            </mesh>
+          </React.Fragment>
+        ))}
+
+        {/* Station Signage Board */}
+        <mesh position={[0, 3.2, 1.95]}>
+          <boxGeometry args={[4.0, 0.45, 0.06]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.5} />
+        </mesh>
+        <mesh position={[0, 3.2, 2.0]}>
+          <boxGeometry args={[3.6, 0.3, 0.02]} />
+          <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.6} />
+        </mesh>
+
+        {/* Two Small Waiting Shelters */}
+        {[-5.0, 5.0].map((sx) => (
+          <group key={sx} position={[sx, 0.82, -1.0]}>
+            {/* Bench */}
+            <mesh position={[0, 0.22, 0]}>
+              <boxGeometry args={[1.2, 0.08, 0.35]} />
+              <meshStandardMaterial color="#78350f" roughness={0.8} />
+            </mesh>
+            {[-0.5, 0.5].map((lx) => (
+              <mesh key={lx} position={[lx, 0.11, 0]}>
+                <boxGeometry args={[0.06, 0.22, 0.3]} />
+                <meshStandardMaterial color="#334155" metalness={0.7} />
+              </mesh>
+            ))}
+          </group>
         ))}
 
         {/* Dual Railway Tracks & Sleepers */}

@@ -126,60 +126,39 @@ function MarketDistrictBuilding({ stage, winningBlueprint }: { stage: number; wi
       </mesh>
 
       {!isComplete ? (
-        // ── STAGE 0–1: UNBUILT FOUNDATION & CONSTRUCTION ZONE ──
+        // ── STAGE 0–1: PREPARED DEVELOPMENT LOT ──
         <group>
-          {/* Yellow/Black Safety Striping on Slab Perimeter */}
-          {[-3.4, 3.4].map((px) => (
+          {/* Clean Ground Survey Markings */}
+          {[-3.0, 3.0].map((px) => (
             <mesh key={px} position={[px, 0.22, 0]}>
-              <boxGeometry args={[0.25, 0.04, 4.8]} />
-              <primitive object={CITY_MAT.hazardStripe} attach="material" />
+              <boxGeometry args={[0.06, 0.02, 4.6]} />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
             </mesh>
           ))}
-          {/* Construction Scaffolding Framework */}
-          {[-2.5, 0, 2.5].map((sx) => (
-            <group key={sx} position={[sx, 0, 0]}>
-              <mesh position={[0, 1.2, -1.8]}>
-                <cylinderGeometry args={[0.04, 0.04, 2.4, 6]} />
-                <meshStandardMaterial color="#94a3b8" metalness={0.8} />
+          {[-2.0, 2.0].map((pz) => (
+            <mesh key={pz} position={[0, 0.22, pz]}>
+              <boxGeometry args={[6.4, 0.02, 0.06]} />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
+            </mesh>
+          ))}
+          {/* Corner Stakes */}
+          {[-3.0, 3.0].map((sx) =>
+            [-2.0, 2.0].map((sz) => (
+              <mesh key={`${sx}_${sz}`} position={[sx, 0.4, sz]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.5, 6]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.7} />
               </mesh>
-              <mesh position={[0, 1.2, 1.8]}>
-                <cylinderGeometry args={[0.04, 0.04, 2.4, 6]} />
-                <meshStandardMaterial color="#94a3b8" metalness={0.8} />
-              </mesh>
-            </group>
-          ))}
-          {/* Lumber Stacks & Construction Pallets */}
-          <mesh position={[-1.2, 0.35, -0.6]} castShadow>
-            <boxGeometry args={[1.4, 0.45, 0.9]} />
-            <meshStandardMaterial color="#b45309" roughness={0.9} />
-          </mesh>
-          {/* Surveyor Tripod */}
-          <group position={[1.5, 0.2, 0.8]}>
-            <mesh position={[0, 0.55, 0]}>
-              <cylinderGeometry args={[0.02, 0.22, 1.1, 3]} />
-              <meshStandardMaterial color="#eab308" metalness={0.6} />
+            ))
+          )}
+          {/* Future Site Information Board */}
+          <group position={[0, 0.6, 2.2]}>
+            <mesh position={[0, 0.35, 0]}>
+              <boxGeometry args={[1.6, 0.7, 0.06]} />
+              <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
             </mesh>
-            <mesh position={[0, 1.15, 0]}>
-              <boxGeometry args={[0.2, 0.15, 0.2]} />
-              <meshStandardMaterial color="#ef4444" />
-            </mesh>
-          </group>
-          {/* Safety Cones */}
-          {[-2.8, -1.4, 1.4, 2.8].map((cx, i) => (
-            <mesh key={i} position={[cx, 0.3, 2.2]}>
-              <cylinderGeometry args={[0.02, 0.12, 0.45, 8]} />
-              <meshStandardMaterial color="#f97316" roughness={0.4} />
-            </mesh>
-          ))}
-          {/* Future Site Notice Board */}
-          <group position={[0, 0.8, 2.0]}>
-            <mesh position={[0, 0, 0]}>
-              <boxGeometry args={[1.8, 0.8, 0.06]} />
-              <meshStandardMaterial color="#fef08a" />
-            </mesh>
-            <mesh position={[0, 0.5, 0.04]}>
-              <boxGeometry args={[1.6, 0.18, 0.02]} />
-              <meshStandardMaterial color="#0284c7" />
+            <mesh position={[0, 0.52, 0.04]}>
+              <boxGeometry args={[1.4, 0.16, 0.02]} />
+              <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.3} />
             </mesh>
           </group>
         </group>
@@ -828,65 +807,78 @@ export function CityArchitecture3D() {
         {/* Foundation Plinth (Always Grounded) */}
         <mesh position={[0, 0.6, 0]} castShadow receiveShadow>
           <cylinderGeometry args={[2.2, 2.8, 1.2, 8]} />
-          <meshStandardMaterial color="#334155" roughness={0.6} metalness={0.4} />
+          <meshStandardMaterial color="#e2e8f0" roughness={0.5} metalness={0.15} />
         </mesh>
 
         {!isDataTowerComplete ? (
-          // ── STAGE 0–4: ACTIVE CONSTRUCTION SITE & SKELETAL FOUNDATION ──
+          // ── STAGE 0–4: ELEGANT TOWER FOUNDATION & FUTURE SITE ──
           <group>
-            {/* Safety Hazard Warning Striping on Plinth Edge */}
-            {[0, 1, 2, 3].map((hi) => {
-              const hAngle = (hi / 4) * Math.PI * 2 + Math.PI / 8;
-              return (
-                <mesh key={hi} position={[Math.cos(hAngle) * 2.3, 1.22, Math.sin(hAngle) * 2.3]} rotation={[-Math.PI / 2, 0, hAngle]}>
-                  <planeGeometry args={[1.4, 0.2]} />
-                  <primitive object={CITY_MAT.hazardStripe} attach="material" />
-                </mesh>
-              );
-            })}
+            {/* Polished White Granite Pedestal Cap */}
+            <mesh position={[0, 1.25, 0]} castShadow>
+              <cylinderGeometry args={[2.0, 2.2, 0.12, 16]} />
+              <meshStandardMaterial color="#f8fafc" roughness={0.35} metalness={0.15} />
+            </mesh>
 
-            {/* Exposed Steel Rebar Columns */}
+            {/* Subtle Radial Geometric Floor Engravings */}
             {[0, 1, 2, 3, 4, 5].map((ri) => {
               const rAngle = (ri / 6) * Math.PI * 2;
               return (
-                <mesh key={ri} position={[Math.cos(rAngle) * 1.1, 2.1, Math.sin(rAngle) * 1.1]}>
-                  <cylinderGeometry args={[0.04, 0.04, 2.2, 6]} />
-                  <meshStandardMaterial color="#64748b" metalness={0.8} />
+                <mesh key={ri} rotation={[-Math.PI / 2, 0, rAngle]} position={[0, 1.32, 0]}>
+                  <planeGeometry args={[0.08, 3.8]} />
+                  <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
                 </mesh>
               );
             })}
 
-            {/* Safety Cones Surrounding Tower Foundation */}
-            {[0, 1, 2, 3, 4, 5, 6, 7].map((ci) => {
-              const cAngle = (ci / 8) * Math.PI * 2;
+            {/* Central Tower Core Preview (Short structural column) */}
+            <mesh position={[0, 2.2, 0]} castShadow>
+              <cylinderGeometry args={[0.5, 0.7, 2.0, 12]} />
+              <meshStandardMaterial color="#e2e8f0" roughness={0.4} metalness={0.3} />
+            </mesh>
+            {/* Core cap */}
+            <mesh position={[0, 3.3, 0]}>
+              <cylinderGeometry args={[0.65, 0.5, 0.2, 12]} />
+              <meshStandardMaterial color="#cbd5e1" roughness={0.3} metalness={0.5} />
+            </mesh>
+
+            {/* 4 Decorative Brushed Steel Bollards */}
+            {[0, 1, 2, 3].map((bi) => {
+              const bAngle = (bi / 4) * Math.PI * 2 + Math.PI / 4;
+              const bx = Math.cos(bAngle) * 2.6;
+              const bz = Math.sin(bAngle) * 2.6;
               return (
-                <mesh key={ci} position={[Math.cos(cAngle) * 2.9, 0.3, Math.sin(cAngle) * 2.9]}>
-                  <cylinderGeometry args={[0.02, 0.12, 0.5, 8]} />
-                  <meshStandardMaterial color="#f97316" roughness={0.4} />
-                </mesh>
+                <group key={bi} position={[bx, 0.1, bz]}>
+                  <mesh position={[0, 0.35, 0]} castShadow>
+                    <cylinderGeometry args={[0.08, 0.1, 0.7, 8]} />
+                    <meshStandardMaterial color="#94a3b8" metalness={0.85} roughness={0.2} />
+                  </mesh>
+                  <mesh position={[0, 0.72, 0]}>
+                    <sphereGeometry args={[0.1, 8, 8]} />
+                    <meshStandardMaterial color="#cbd5e1" metalness={0.9} roughness={0.15} />
+                  </mesh>
+                </group>
               );
             })}
 
-            {/* Site Construction Crane */}
-            <group position={[-3.5, 0, -2.5]}>
-              <mesh position={[0, 4.5, 0]} castShadow>
-                <boxGeometry args={[0.4, 9.0, 0.4]} />
-                <meshStandardMaterial color="#eab308" metalness={0.6} />
+            {/* Subtle Blue Glow Ring at Base (Data conduit preview) */}
+            <mesh position={[0, 1.35, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[1.85, 1.95, 24]} />
+              <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.5} transparent opacity={0.6} />
+            </mesh>
+
+            {/* Information Kiosk: "FUTURE DATA TOWER" */}
+            <group position={[2.2, 0.1, 1.8]}>
+              <mesh position={[0, 0.6, 0]} castShadow>
+                <boxGeometry args={[0.6, 1.2, 0.1]} />
+                <meshStandardMaterial color="#f1f5f9" roughness={0.4} />
               </mesh>
-              {/* Crane Jib Arm */}
-              <mesh position={[2.0, 9.0, 0]} castShadow>
-                <boxGeometry args={[5.2, 0.35, 0.35]} />
-                <meshStandardMaterial color="#eab308" metalness={0.6} />
+              <mesh position={[0, 0.6, 0.06]}>
+                <boxGeometry args={[0.5, 0.28, 0.02]} />
+                <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.3} />
               </mesh>
-              {/* Counterweight */}
-              <mesh position={[-1.2, 9.0, 0]}>
-                <boxGeometry args={[0.9, 0.6, 0.6]} />
-                <meshStandardMaterial color="#334155" />
-              </mesh>
-              {/* Hoist Cable */}
-              <mesh position={[3.0, 7.2, 0]}>
-                <cylinderGeometry args={[0.015, 0.015, 3.4, 4]} />
-                <meshStandardMaterial color="#0f172a" />
+              <mesh position={[0, 0, 0]}>
+                <cylinderGeometry args={[0.04, 0.06, 0.12, 8]} />
+                <meshStandardMaterial color="#64748b" metalness={0.7} />
               </mesh>
             </group>
           </group>

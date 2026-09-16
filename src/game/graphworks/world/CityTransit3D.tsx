@@ -308,21 +308,25 @@ export function CityTransit3D() {
       {/* ── 2. DYNAMIC VEHICLES ON HIGHWAY (UNLOCKS AT QUESTION 4) ── */}
       {cityStage < 4 ? (
         <group>
-          {/* Construction Road Hazard Barricades & Orange Drums */}
-          {[-24, -12, 0, 12, 24].map((bx) => (
+          {/* Clean Road-Closed Barriers (Awaiting Transport Activation) */}
+          {[-18, -6, 6, 18].map((bx) => (
             <group key={bx} position={[bx, 0, 5.5]}>
-              <mesh position={[-1.2, 0.35, -0.9]}>
-                <cylinderGeometry args={[0.22, 0.22, 0.7, 12]} />
-                <meshStandardMaterial color="#f97316" roughness={0.5} />
+              {/* White/Red Striped Barrier Bar */}
+              <mesh position={[0, 0.45, 0]}>
+                <boxGeometry args={[2.2, 0.12, 0.08]} />
+                <meshStandardMaterial color="#f8fafc" roughness={0.4} />
               </mesh>
-              <mesh position={[1.2, 0.35, 0.9]}>
-                <cylinderGeometry args={[0.22, 0.22, 0.7, 12]} />
-                <meshStandardMaterial color="#f97316" roughness={0.5} />
+              <mesh position={[0, 0.45, 0.01]}>
+                <boxGeometry args={[0.5, 0.1, 0.02]} />
+                <meshStandardMaterial color="#ef4444" roughness={0.4} />
               </mesh>
-              <mesh position={[0, 0.25, 0]}>
-                <boxGeometry args={[2.0, 0.15, 0.1]} />
-                <primitive object={CITY_MAT.hazardStripe} attach="material" />
-              </mesh>
+              {/* Support Posts */}
+              {[-0.9, 0.9].map((px) => (
+                <mesh key={px} position={[px, 0.22, 0]}>
+                  <cylinderGeometry args={[0.03, 0.04, 0.44, 6]} />
+                  <meshStandardMaterial color="#94a3b8" metalness={0.7} />
+                </mesh>
+              ))}
             </group>
           ))}
         </group>
