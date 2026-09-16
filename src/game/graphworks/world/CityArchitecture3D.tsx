@@ -683,7 +683,6 @@ export function CityArchitecture3D() {
   const middleRingRef = useRef<THREE.Group>(null);
   const upperRingRef = useRef<THREE.Group>(null);
   const coreGlowMeshRef = useRef<THREE.Mesh>(null);
-  const fountainJetsRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
@@ -709,15 +708,6 @@ export function CityArchitecture3D() {
         if (winningBlueprint === 'blue') mat.color.set('#38bdf8');
         else if (winningBlueprint === 'red') mat.color.set('#f87171');
       }
-    }
-
-    // 3. Plaza Fountain Jets (Active from Stage 3 onwards)
-    if (fountainJetsRef.current) {
-      const isFountainActive = cityStage >= 3;
-      fountainJetsRef.current.children.forEach((jet, i) => {
-        const targetScale = isFountainActive ? 0.5 + Math.sin(t * 3.2 + i * 0.8) * 0.3 : 0.02;
-        jet.scale.set(1, Math.max(0.02, targetScale), 1);
-      });
     }
   });
 
@@ -772,34 +762,6 @@ export function CityArchitecture3D() {
             </group>
           );
         })}
-
-        {/* Central Fountain Pool */}
-        <mesh position={[0, 0.2, 0]}>
-          <cylinderGeometry args={[2.5, 2.6, 0.4, 24]} />
-          <meshStandardMaterial color="#ffffff" roughness={0.4} />
-        </mesh>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.38, 0]}>
-          <circleGeometry args={[2.35, 24]} />
-          <meshStandardMaterial
-            color={winningBlueprint === 'blue' ? '#38bdf8' : winningBlueprint === 'red' ? '#f87171' : '#0ea5e9'}
-            roughness={0.1}
-            transparent
-            opacity={0.9}
-          />
-        </mesh>
-
-        {/* Dancing Water Fountain Jets (Activates at Stage 3) */}
-        <group ref={fountainJetsRef} position={[0, 0.4, 0]}>
-          {[0, 1, 2, 3, 4, 5].map((i) => {
-            const angle = (i / 6) * Math.PI * 2;
-            return (
-              <mesh key={i} position={[Math.cos(angle) * 1.5, 0.4, Math.sin(angle) * 1.5]}>
-                <cylinderGeometry args={[0.04, 0.08, 1.2, 6]} />
-                <meshStandardMaterial color="#bae6fd" transparent opacity={0.75} roughness={0.1} />
-              </mesh>
-            );
-          })}
-        </group>
       </group>
 
       {/* ── 2. THE CENTRAL DATA TOWER (STAGE 0 FOUNDATION VS STAGE 5 SUPERSTRUCTURE) ── */}

@@ -110,24 +110,24 @@ const ARCHETYPE_STYLES: Record<CharacterRole, CharacterStyle> = {
 const CIRCULAR_OBSTACLES = [
   // Central Data Tower base
   { x: 0, z: 0, radius: 2.3, name: 'tower_base' },
-  // Park central fountain bowl
-  { x: 0, z: 11, radius: 1.6, name: 'park_fountain' },
+  // Grand Boulevard Central Fountain Roundabout (Center of Road)
+  { x: 0, z: 5.5, radius: 2.5, name: 'road_central_fountain' },
   // 4 Plaza Ornamental Flowerbeds
   { x: 3.25, z: 3.25, radius: 0.9, name: 'flowerbed_ne' },
   { x: -3.25, z: 3.25, radius: 0.9, name: 'flowerbed_nw' },
   { x: -3.25, z: -3.25, radius: 0.9, name: 'flowerbed_sw' },
   { x: 3.25, z: -3.25, radius: 0.9, name: 'flowerbed_se' },
-  // Boulevard streetlamps & poles (Z = 3.0, X=0 omitted for concourse)
-  { x: -26, z: 3.0, radius: 0.35, name: 'lamp_1' },
-  { x: -18, z: 3.0, radius: 0.35, name: 'lamp_2' },
-  { x: -10, z: 3.0, radius: 0.35, name: 'lamp_3' },
-  { x: 10, z: 3.0, radius: 0.35, name: 'lamp_5' },
-  { x: 18, z: 3.0, radius: 0.35, name: 'lamp_6' },
-  { x: 26, z: 3.0, radius: 0.35, name: 'lamp_7' },
+  // Boulevard streetlamps & poles (Z = 2.8 / 8.2 along sidewalks)
+  { x: -26, z: 2.8, radius: 0.35, name: 'lamp_1' },
+  { x: -18, z: 2.8, radius: 0.35, name: 'lamp_2' },
+  { x: -10, z: 2.8, radius: 0.35, name: 'lamp_3' },
+  { x: 10, z: 2.8, radius: 0.35, name: 'lamp_5' },
+  { x: 18, z: 2.8, radius: 0.35, name: 'lamp_6' },
+  { x: 26, z: 2.8, radius: 0.35, name: 'lamp_7' },
   // Traffic signal poles
-  { x: -8.5, z: 3.1, radius: 0.35, name: 'traffic_pole_1' },
-  { x: 8.5, z: 3.1, radius: 0.35, name: 'traffic_pole_2' },
-  // Tree trunks
+  { x: -8.5, z: 2.9, radius: 0.35, name: 'traffic_pole_1' },
+  { x: 8.5, z: 2.9, radius: 0.35, name: 'traffic_pole_2' },
+  // Tree trunks in park
   { x: -7.2, z: 9.5, radius: 0.35, name: 'tree_1' },
   { x: 7.2, z: 9.5, radius: 0.35, name: 'tree_2' },
   { x: -6.8, z: 12.8, radius: 0.35, name: 'tree_3' },
@@ -313,47 +313,66 @@ export function StylizedHumanRig({
     }
 
     if (isWalking) {
-      // ── ACTIVE DYNAMIC WALK CYCLE ──
-      const strideAngle = 0.52;
+      // ── BIOMECHANICALLY AUTHENTIC BIPEDAL WALK GAIT ──
       const phase = walkPhase;
 
-      // 1. Pelvis dynamics: vertical bob and lateral sway
+      // 1. Pelvic Kinematics: Center of Mass vertical oscillation, lateral weight-shift & yaw
       if (pelvisRef.current) {
-        const bob = Math.abs(Math.sin(phase)) * 0.04;
-        pelvisRef.current.position.y = 0.72 + bob;
-        pelvisRef.current.rotation.y = Math.sin(phase) * 0.07;
-        pelvisRef.current.rotation.z = Math.cos(phase) * 0.035;
+        // Vertical COM: double-bounce per stride (lowest at double-support, highest at mid-stance)
+        const verticalBob = (Math.sin(phase * 2) * 0.5 + 0.5) * 0.032;
+        pelvisRef.current.position.y = 0.72 + verticalBob;
+        // Lateral sway: shifting pelvis over the weight-bearing stance foot
+        pelvisRef.current.position.x = Math.sin(phase) * 0.024;
+        // Pelvic yaw rotation (turning into the leading hip)
+        pelvisRef.current.rotation.y = Math.sin(phase) * 0.075;
+        // Pelvic roll list (weight-bearing hip raises slightly, swing side lowers)
+        pelvisRef.current.rotation.z = Math.cos(phase) * 0.03;
       }
 
-      // 2. Torso counter-rotates slightly
+      // 2. Torso counter-balance: twists opposite to pelvis in yaw, slight forward lean
       if (torsoRef.current) {
-        torsoRef.current.rotation.y = -Math.sin(phase) * 0.08;
-        torsoRef.current.rotation.x = 0.03;
+        torsoRef.current.rotation.y = -Math.sin(phase) * 0.065;
+        torsoRef.current.rotation.x = 0.045 + Math.min(0.03, (walkSpeed / 1.5) * 0.02);
       }
 
-      // 3. Legs: alternating hip swing and knee flexion
-      const leftLegForward = Math.sin(phase);
-      const rightLegForward = Math.sin(phase + Math.PI);
+      // 3. Legs Biomechanics: Left Leg (phase) vs Right Leg (phase + Math.PI)
+      // Thigh Pitch: Negative tilts thigh forward (+Z), Positive extends backward (-Z)
+      const leftThighPitch = -Math.sin(phase) * 0.44;
+      const rightThighPitch = -Math.sin(phase + Math.PI) * 0.44;
 
-      if (leftHipRef.current) leftHipRef.current.rotation.x = leftLegForward * strideAngle;
-      if (rightHipRef.current) rightHipRef.current.rotation.x = rightLegForward * strideAngle;
-
-      if (leftKneeRef.current) {
-        const leftKneeBend = Math.max(0, -leftLegForward * 0.85);
-        leftKneeRef.current.rotation.x = leftKneeBend;
+      if (leftHipRef.current) {
+        leftHipRef.current.rotation.x = leftThighPitch;
+        leftHipRef.current.rotation.z = Math.cos(phase) * 0.02;
       }
-      if (rightKneeRef.current) {
-        const rightKneeBend = Math.max(0, -rightLegForward * 0.85);
-        rightKneeRef.current.rotation.x = rightKneeBend;
+      if (rightHipRef.current) {
+        rightHipRef.current.rotation.x = rightThighPitch;
+        rightHipRef.current.rotation.z = -Math.cos(phase) * 0.02;
       }
 
-      if (leftFootRef.current) leftFootRef.current.rotation.x = -Math.sin(phase) * 0.18;
-      if (rightFootRef.current) rightFootRef.current.rotation.x = -Math.sin(phase + Math.PI) * 0.18;
+      // Knee Flexion: During swing phase (sin > 0), knee flexes dramatically backward (+X rotation)
+      // to clear ground; during stance phase (sin <= 0), knee remains straight/supporting weight.
+      const leftSwing = Math.max(0, Math.sin(phase));
+      const leftPush = Math.max(0, -Math.cos(phase)) * Math.max(0, -Math.sin(phase));
+      const leftKneeAngle = Math.max(0.04, Math.pow(leftSwing, 1.1) * 0.95 + leftPush * 0.4);
 
-      // 4. Arms: swing opposite to legs
-      const armSwingAngle = 0.42;
+      const rightSwing = Math.max(0, Math.sin(phase + Math.PI));
+      const rightPush = Math.max(0, -Math.cos(phase + Math.PI)) * Math.max(0, -Math.sin(phase + Math.PI));
+      const rightKneeAngle = Math.max(0.04, Math.pow(rightSwing, 1.1) * 0.95 + rightPush * 0.4);
+
+      if (leftKneeRef.current) leftKneeRef.current.rotation.x = leftKneeAngle;
+      if (rightKneeRef.current) rightKneeRef.current.rotation.x = rightKneeAngle;
+
+      // Ankle / Foot Pitch: Heel strike (dorsiflexion < 0) -> flat foot -> push-off roll (plantarflexion > 0)
+      const leftFootRoll = -Math.sin(phase) * 0.2 + Math.cos(phase) * 0.12;
+      const rightFootRoll = -Math.sin(phase + Math.PI) * 0.2 + Math.cos(phase + Math.PI) * 0.12;
+
+      if (leftFootRef.current) leftFootRef.current.rotation.x = leftFootRoll;
+      if (rightFootRef.current) rightFootRef.current.rotation.x = rightFootRoll;
+
+      // 4. Arms Counter-Swing with Dynamic Elbow Flexion
+      const armSwingRange = 0.38;
       if (leftShoulderRef.current) {
-        leftShoulderRef.current.rotation.x = -leftLegForward * armSwingAngle;
+        leftShoulderRef.current.rotation.x = Math.sin(phase) * armSwingRange;
         leftShoulderRef.current.rotation.z = 0.08;
       }
       if (rightShoulderRef.current) {
@@ -361,27 +380,27 @@ export function StylizedHumanRig({
           rightShoulderRef.current.rotation.x = -0.6 + Math.sin(t * 1.5) * 0.05;
           rightShoulderRef.current.rotation.z = -0.15;
         } else {
-          rightShoulderRef.current.rotation.x = -rightLegForward * armSwingAngle;
+          rightShoulderRef.current.rotation.x = -Math.sin(phase) * armSwingRange;
           rightShoulderRef.current.rotation.z = -0.08;
         }
       }
 
       if (leftElbowRef.current) {
-        leftElbowRef.current.rotation.x = 0.25 + Math.max(0, -leftLegForward * 0.4);
+        leftElbowRef.current.rotation.x = 0.2 + Math.max(0, Math.sin(phase) * 0.32);
       }
       if (rightElbowRef.current) {
         if (style.hasTablet) {
           rightElbowRef.current.rotation.x = 0.9;
         } else {
-          rightElbowRef.current.rotation.x = 0.25 + Math.max(0, -rightLegForward * 0.4);
+          rightElbowRef.current.rotation.x = 0.2 + Math.max(0, -Math.sin(phase) * 0.32);
         }
       }
 
-      // 5. Head stays relatively stable
+      // 5. Head Stabilization & Micro-Gaze
       if (headRef.current) {
         headRef.current.rotation.y = THREE.MathUtils.damp(
           headRef.current.rotation.y,
-          Math.sin(t * 0.8) * 0.1,
+          Math.sin(t * 0.8) * 0.08,
           4,
           delta
         );
@@ -699,19 +718,19 @@ export function CityPedestrians3D() {
       id: 'worker-1',
       role: 'city_worker' as CharacterRole,
       route: [
-        [0.0, 0, 6.2],
-        [4.0, 0, 5.2],
-        [6.2, 0, 0.0],
-        [4.0, 0, -5.2],
-        [0.0, 0, -6.2],
-        [-4.0, 0, -5.2],
-        [-6.2, 0, 0.0],
-        [-4.0, 0, 5.2],
+        [0.0, 0, 2.2],
+        [3.6, 0, 1.6],
+        [4.8, 0, 0.0],
+        [3.6, 0, -3.6],
+        [0.0, 0, -4.5],
+        [-3.6, 0, -3.6],
+        [-4.8, 0, 0.0],
+        [-3.6, 0, 1.6],
       ],
       speed: 1.05,
       currentWp: 0,
-      pos: new THREE.Vector3(0.0, 0.03, 6.2),
-      lastPos: new THREE.Vector3(0.0, 0.03, 6.2),
+      pos: new THREE.Vector3(0.0, 0.03, 2.2),
+      lastPos: new THREE.Vector3(0.0, 0.03, 2.2),
       stuckTimer: 0,
       yaw: 0,
       walkPhase: 0,
@@ -810,15 +829,17 @@ export function CityPedestrians3D() {
       id: 'engineer-1',
       role: 'systems_engineer' as CharacterRole,
       route: [
-        [0.0, 0, 5.6],
-        [5.6, 0, 0.0],
-        [0.0, 0, -5.6],
-        [-5.6, 0, 0.0],
+        [2.2, 0, 2.0],
+        [5.0, 0, 0.0],
+        [2.2, 0, -3.2],
+        [-2.2, 0, -3.2],
+        [-5.0, 0, 0.0],
+        [-2.2, 0, 2.0],
       ],
       speed: 1.0,
       currentWp: 0,
-      pos: new THREE.Vector3(0.0, 0.03, 5.6),
-      lastPos: new THREE.Vector3(0.0, 0.03, 5.6),
+      pos: new THREE.Vector3(2.2, 0.03, 2.0),
+      lastPos: new THREE.Vector3(2.2, 0.03, 2.0),
       stuckTimer: 0,
       yaw: 0,
       walkPhase: 3.1,

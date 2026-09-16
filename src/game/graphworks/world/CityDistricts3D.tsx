@@ -21,7 +21,6 @@ export function CityDistricts3D() {
   const radarDishRef = useRef<THREE.Mesh>(null);
   const skimmerRef = useRef<THREE.Group>(null);
   const steamRef = useRef<THREE.Group>(null);
-  const parkFountainRef = useRef<THREE.Group>(null);
 
   // Independent damped telemetry values for 60 FPS buttery smoothness
   const blueTempRef = useRef(15);
@@ -30,7 +29,6 @@ export function CityDistricts3D() {
   const redWaterRef = useRef(50);
   const bluePowerRef = useRef(30);
   const redPowerRef = useRef(30);
-  const fountainHeightRef = useRef(0.8);
 
   const blueMercuryRef = useRef<THREE.Mesh>(null);
   const redMercuryRef = useRef<THREE.Mesh>(null);
@@ -49,9 +47,6 @@ export function CityDistricts3D() {
     redWaterRef.current = THREE.MathUtils.damp(redWaterRef.current, redCity.water.reservoirLevel, 4.5, delta);
     bluePowerRef.current = THREE.MathUtils.damp(bluePowerRef.current, blueCity.power.generationMW, 5.0, delta);
     redPowerRef.current = THREE.MathUtils.damp(redPowerRef.current, redCity.power.generationMW, 5.0, delta);
-
-    const avgFountainTarget = (blueCity.park.fountainHeight + redCity.park.fountainHeight) / 2;
-    fountainHeightRef.current = THREE.MathUtils.damp(fountainHeightRef.current, avgFountainTarget, 4.5, delta);
 
     const activeWind = (blueCity.weather.windSpeed + redCity.weather.windSpeed) / 2;
 
@@ -116,16 +111,6 @@ export function CityDistricts3D() {
       redCoronaRef.current.rotation.y -= delta * (1.5 + (redPowerRef.current / 30) * 3);
       (redCoronaRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
         0.8 + Math.cos(t * 10) * 0.5 * (redPowerRef.current / 50);
-    }
-
-    // ── 5. PARK CIVIC FOUNTAIN JET HEIGHT (UNLOCKS AT QUESTION 3) ──
-    if (parkFountainRef.current) {
-      const isParkActive = cityStage >= 3;
-      parkFountainRef.current.children.forEach((jet, i) => {
-        const h = isParkActive ? fountainHeightRef.current : 0.02;
-        jet.scale.set(1, (0.3 + Math.sin(t * 4 + i * 1.5) * 0.15) * (h / 0.8), 1);
-        jet.position.y = (h / 2) * 0.6;
-      });
     }
   });
 
@@ -578,28 +563,73 @@ export function CityDistricts3D() {
           <meshStandardMaterial color="#f8fafc" roughness={0.7} />
         </mesh>
 
-        {/* Grand Civic Park Fountain */}
+        {/* Botanical Garden Central Pavilion & Floral Terrace */}
         <group position={[0, 0, 0]}>
-          <mesh position={[0, 0.25, 0]}>
-            <cylinderGeometry args={[1.6, 1.8, 0.5, 20]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          {/* Circular Granite Terrace */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.04, 0]}>
+            <circleGeometry args={[1.8, 24]} />
+            <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
           </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.48, 0]}>
-            <circleGeometry args={[1.5, 20]} />
-            <meshStandardMaterial color="#38bdf8" roughness={0.1} transparent opacity={0.9} />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.045, 0]}>
+            <ringGeometry args={[1.7, 1.85, 24]} />
+            <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
           </mesh>
-          {/* Vertical Fountain Jets */}
-          <group ref={parkFountainRef} position={[0, 0.5, 0]}>
-            {[0, 1, 2, 3].map((fi) => {
-              const fAngle = (fi / 4) * Math.PI * 2;
-              return (
-                <mesh key={fi} position={[Math.cos(fAngle) * 0.7, 0.5, Math.sin(fAngle) * 0.7]}>
-                  <cylinderGeometry args={[0.04, 0.06, 1.4, 6]} />
-                  <meshStandardMaterial color="#bae6fd" transparent opacity={0.8} />
+
+          {/* Garden Pavilion Pergola Structure */}
+          {[-1.1, 1.1].map((px) =>
+            [-0.7, 0.7].map((pz) => (
+              <group key={`${px}-${pz}`} position={[px, 0, pz]}>
+                {/* Stone Base */}
+                <mesh position={[0, 0.15, 0]}>
+                  <cylinderGeometry args={[0.08, 0.1, 0.3, 8]} />
+                  <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
                 </mesh>
-              );
-            })}
-          </group>
+                {/* White Column */}
+                <mesh position={[0, 0.9, 0]}>
+                  <cylinderGeometry args={[0.05, 0.05, 1.2, 8]} />
+                  <meshStandardMaterial color="#f8fafc" roughness={0.4} />
+                </mesh>
+              </group>
+            ))
+          )}
+
+          {/* Pergola Roof Beams */}
+          <mesh position={[0, 1.55, 0]}>
+            <boxGeometry args={[2.5, 0.06, 1.6]} />
+            <meshStandardMaterial color="#78350f" roughness={0.7} />
+          </mesh>
+          {[-0.8, -0.4, 0, 0.4, 0.8].map((rx) => (
+            <mesh key={rx} position={[rx, 1.6, 0]}>
+              <boxGeometry args={[0.05, 0.05, 1.75]} />
+              <meshStandardMaterial color="#92400e" roughness={0.7} />
+            </mesh>
+          ))}
+
+          {/* Rose Flowerbeds around Terrace */}
+          {[-1.5, 1.5].map((fx) => (
+            <group key={fx} position={[fx, 0.06, 0]}>
+              <mesh rotation={[-Math.PI / 2, 0, 0]}>
+                <circleGeometry args={[0.45, 12]} />
+                <meshStandardMaterial color="#15803d" roughness={0.8} />
+              </mesh>
+              {/* Colorful Flowers */}
+              {[0, 1, 2, 3].map((fl) => {
+                const fAngle = (fl / 4) * Math.PI * 2;
+                return (
+                  <mesh
+                    key={fl}
+                    position={[Math.cos(fAngle) * 0.22, 0.08, Math.sin(fAngle) * 0.22]}
+                  >
+                    <sphereGeometry args={[0.07, 6, 6]} />
+                    <meshStandardMaterial
+                      color={fl % 2 === 0 ? '#f43f5e' : '#fbbf24'}
+                      roughness={0.6}
+                    />
+                  </mesh>
+                );
+              })}
+            </group>
+          ))}
         </group>
 
         {/* Park Promenade Benches */}
