@@ -139,23 +139,19 @@ export const DeliveryTruck3D: React.FC<{ team: TeamId }> = ({ team }) => {
       <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 1.35, -2.5]} scale={[2.3, 1.7, 2.0]} castShadow receiveShadow />
       <mesh geometry={GEO.box} material={MAT.glass} position={[0, 1.75, -3.45]} scale={[2.0, 0.9, 0.16]} />
       <mesh geometry={GEO.box} material={MAT.steelDark} position={[0, 0.55, -2.5]} scale={[2.4, 0.5, 2.2]} />
-      {/* box body with team livery */}
-      <mesh geometry={GEO.box} material={MAT.wall} position={[0, 1.75, 0.6]} scale={[2.5, 2.3, 5.0]} castShadow receiveShadow />
-      <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 0.72, 0.6]} scale={[2.56, 0.5, 5.06]} />
-      <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 2.86, 0.6]} scale={[2.56, 0.22, 5.06]} />
-      {/* chocolate roundel on the side */}
-      {[-1.28, 1.28].map((x) => (
-        <mesh key={x} geometry={GEO.cylLow} material={MAT.chocolate} position={[x, 1.8, 0.6]} rotation={[0, 0, Math.PI / 2]} scale={[1.3, 0.06, 1.3]} />
+      {/* DROPSIDE FLATBED: the load has to stay in view, so the bed is open
+          with low side rails rather than a closed box body. */}
+      <mesh geometry={GEO.box} material={MAT.steelDark} position={[0, 0.72, 0.6]} scale={[2.5, 0.42, 5.1]} castShadow />
+      <mesh geometry={GEO.box} material={MAT.woodDark} position={[0, 0.96, 0.6]} scale={[2.4, 0.12, 5.0]} receiveShadow />
+      {/* dropside rails */}
+      {[-1.2, 1.2].map((x) => (
+        <mesh key={x} geometry={GEO.box} material={teamMat(team)} position={[x, 1.32, 0.6]} scale={[0.12, 0.62, 5.0]} castShadow />
       ))}
-      {/* open bed deck for the cargo */}
-      <mesh geometry={GEO.box} material={MAT.woodDark} position={[0, 0.98, 0.6]} scale={[2.3, 0.1, 4.8]} />
-      <group ref={cargo}>
-        {CARGO_SLOTS.map((slot, i) => (
-          <mesh key={i} geometry={GEO.box}
-            material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
-            position={[slot.x, slot.y + 0.45, slot.z - 1.6]} scale={[0.66, 0.52, 0.56]} castShadow visible={false} />
-        ))}
-      </group>
+      <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 1.32, 3.15]} scale={[2.5, 0.62, 0.12]} castShadow />
+      {/* headboard behind the cab, carrying the factory roundel */}
+      <mesh geometry={GEO.box} material={MAT.wall} position={[0, 1.65, -1.7]} scale={[2.5, 1.3, 0.16]} castShadow />
+      <mesh geometry={GEO.cylLow} material={MAT.chocolate} position={[0, 1.7, -1.79]} rotation={[Math.PI / 2, 0, 0]} scale={[0.9, 0.06, 0.9]} />
+
       {/* wheels */}
       <group ref={wheels}>
         {[[-1.15, -2.4], [1.15, -2.4], [-1.15, 1.3], [1.15, 1.3], [-1.15, 2.5], [1.15, 2.5]].map(([x, z], i) => (
