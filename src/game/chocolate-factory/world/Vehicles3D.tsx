@@ -86,8 +86,11 @@ export const Forklift3D: React.FC<{ team: TeamId }> = ({ team }) => {
           <mesh geometry={GEO.box} material={MAT.wood} scale={[1.2, 0.14, 1.3]} castShadow />
           {/* up to five sealed boxes of chocolate, stacked on the pallet */}
           {[[-0.3, -0.32, 0.36], [0.3, -0.32, 0.36], [-0.3, 0.32, 0.36], [0.3, 0.32, 0.36], [0, 0, 0.82]].map(([x, z, y], i) => (
-            <mesh key={i} geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
-              position={[x, y, z]} scale={[0.54, 0.42, 0.5]} castShadow visible={false} />
+            <group key={i} position={[x, y, z]} visible={false}>
+              <mesh geometry={GEO.box} material={MAT.boxCard} scale={[0.54, 0.42, 0.5]} castShadow />
+              <mesh geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
+                position={[0, 0.23, 0]} scale={[0.56, 0.07, 0.52]} />
+            </group>
           ))}
         </group>
       </group>
@@ -151,6 +154,19 @@ export const DeliveryTruck3D: React.FC<{ team: TeamId }> = ({ team }) => {
       {/* headboard behind the cab, carrying the factory roundel */}
       <mesh geometry={GEO.box} material={MAT.wall} position={[0, 1.65, -1.7]} scale={[2.5, 1.3, 0.16]} castShadow />
       <mesh geometry={GEO.cylLow} material={MAT.chocolate} position={[0, 1.7, -1.79]} rotation={[Math.PI / 2, 0, 0]} scale={[0.9, 0.06, 0.9]} />
+
+      {/* THE LOAD: only boxes the forklift actually set down are visible.
+          Cardboard bodies with a team-coloured lid, so a loaded bed reads
+          instantly against the coloured rails. */}
+      <group ref={cargo}>
+        {CARGO_SLOTS.map((slot, i) => (
+          <group key={i} position={[slot.x, slot.y + 0.66, slot.z - 1.4]} visible={false}>
+            <mesh geometry={GEO.box} material={MAT.boxCard} scale={[0.62, 0.5, 0.54]} castShadow />
+            <mesh geometry={GEO.box} material={team === 'blue' ? MAT.boxBlue : MAT.boxRed}
+              position={[0, 0.27, 0]} scale={[0.64, 0.08, 0.56]} />
+          </group>
+        ))}
+      </group>
 
       {/* wheels */}
       <group ref={wheels}>

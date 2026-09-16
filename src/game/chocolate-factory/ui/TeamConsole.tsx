@@ -112,7 +112,7 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
   return (
     <div
       className={
-        'pointer-events-auto select-none w-full rounded-2xl border-[3px] shadow-[0_10px_40px_rgba(15,23,42,0.35)] overflow-hidden ' +
+        'pointer-events-auto select-none w-full rounded-2xl border-[3px] shadow-[0_10px_40px_rgba(15,23,42,0.35)] max-h-[82vh] overflow-y-auto ' +
         'bg-gradient-to-b from-white to-slate-50 ' + (isBlue ? 'border-blue-600' : 'border-red-600')
       }
     >
@@ -170,19 +170,19 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
               </div>
             </div>
 
-            <div className={`mt-1.5 rounded-lg border px-2 py-1.5 ${tint.soft}`}>
+            <div className={`mt-1.5 rounded-lg border px-2.5 py-1.5 ${tint.soft}`}>
               <div className="text-[10px] font-black uppercase tracking-wider text-slate-700">
                 STEP {t.step + 1} · {t.stepLabel}
               </div>
-              <div className="text-[9px] font-bold text-slate-500 leading-tight">{t.stepAction}</div>
+              <div className="text-[9.5px] font-bold text-slate-600 leading-snug">{t.stepAction}</div>
             </div>
 
-            <p className="mt-2 text-[12px] xl:text-[13px] font-bold text-slate-800 leading-snug min-h-[2.5rem]">
+            <p className="mt-2 text-[12.5px] xl:text-[14px] font-bold text-slate-900 leading-snug break-words">
               {order.question.prompt}
             </p>
           </>
         ) : (
-          <p className="text-[12px] font-bold text-slate-500 leading-snug min-h-[4rem] flex items-center">
+          <p className="text-[12px] font-bold text-slate-500 leading-snug min-h-[3rem] flex items-center">
             {finished
               ? (isChampion
                 ? 'Your factory ran the best production line of the shift — the victory truck is rolling out.'
@@ -203,7 +203,7 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
                 onPointerDown={() => canAnswer && selectAnswer(team, i)}
                 disabled={!canAnswer}
                 className={
-                  'h-12 xl:h-14 rounded-xl border-2 text-lg xl:text-xl font-black tabular-nums transition active:scale-95 ' +
+                  'min-h-[48px] xl:min-h-[56px] py-2 px-2 rounded-xl border-2 text-base xl:text-xl font-black tabular-nums transition active:scale-95 flex items-center justify-center text-center break-words ' +
                   (chosen
                     ? `ring-4 ${tint.ring} text-slate-900 shadow-inner`
                     : canAnswer

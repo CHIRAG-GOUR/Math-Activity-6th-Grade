@@ -337,7 +337,7 @@ export const LoadingDock3D: React.FC<{ team: TeamId }> = ({ team }) => {
       <mesh geometry={GEO.box} material={MAT.wallTrim} position={[sign * -3.2, 0.6, 0]} scale={[6, 1.2, 8]} castShadow receiveShadow />
       <mesh geometry={GEO.box} material={teamMat(team)} position={[sign * -3.2, 1.24, 0]} scale={[6.1, 0.12, 8.1]} />
       {/* canopy */}
-      <mesh geometry={GEO.box} material={MAT.roof} position={[sign * -3.2, 5.2, 0]} scale={[7.5, 0.4, 9]} castShadow />
+      <mesh geometry={GEO.box} material={MAT.roof} position={[sign * -3.6, 4.6, 0]} scale={[5.4, 0.3, 8]} castShadow />
       {[-3.6, 3.6].map((z) => (
         <mesh key={z} geometry={GEO.box} material={MAT.steel} position={[sign * -0.4, 3, z]} scale={[0.3, 4.4, 0.3]} />
       ))}
