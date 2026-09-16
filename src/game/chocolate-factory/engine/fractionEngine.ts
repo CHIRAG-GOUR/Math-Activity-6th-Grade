@@ -98,9 +98,13 @@ const nextId = () => `cfq-${++uid}`;
 // ── ROUND 1 — FRACTION RECOGNITION ──────────────────────────────────────
 
 const ID_SEEDS: [number, number][] = [
-  [3, 4], [1, 4], [3, 8], [5, 8], [2, 6], [5, 6], [3, 10], [7, 10],
-  [2, 5], [3, 5], [1, 6], [7, 8], [1, 8], [4, 6], [2, 8], [6, 8],
-  [4, 5], [1, 5], [3, 6], [4, 8], [1, 3], [2, 3], [1, 10], [9, 10],
+  [1, 2], [1, 3], [2, 3], [1, 4], [2, 4], [3, 4],
+  [1, 5], [2, 5], [3, 5], [4, 5],
+  [1, 6], [2, 6], [3, 6], [4, 6], [5, 6],
+  [1, 8], [2, 8], [3, 8], [4, 8], [5, 8], [6, 8], [7, 8],
+  [1, 10], [2, 10], [3, 10], [4, 10], [5, 10], [6, 10], [7, 10], [8, 10], [9, 10],
+  [1, 12], [5, 12], [7, 12], [11, 12],
+  [2, 7], [3, 7], [4, 7], [5, 7],
 ];
 
 function questionIdentify(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -133,14 +137,20 @@ function questionIdentify(round: RoundNumber, i: number, rng: () => number): Fra
 // ── ROUND 2 — EQUIVALENT FRACTIONS ──────────────────────────────────────
 
 const EQ_SEEDS: { base: [number, number]; scale: number }[] = [
-  { base: [1, 2], scale: 2 }, { base: [1, 2], scale: 3 }, { base: [1, 2], scale: 4 },
-  { base: [1, 3], scale: 2 }, { base: [1, 3], scale: 3 }, { base: [2, 3], scale: 2 },
-  { base: [1, 4], scale: 2 }, { base: [1, 4], scale: 3 }, { base: [3, 4], scale: 2 },
-  { base: [2, 5], scale: 2 }, { base: [3, 5], scale: 2 }, { base: [1, 5], scale: 3 },
-  { base: [5, 6], scale: 2 }, { base: [1, 6], scale: 2 }, { base: [1, 6], scale: 3 },
-  { base: [3, 8], scale: 2 }, { base: [1, 8], scale: 2 }, { base: [7, 8], scale: 2 },
-  { base: [2, 3], scale: 3 }, { base: [1, 3], scale: 4 }, { base: [3, 4], scale: 3 },
-  { base: [1, 2], scale: 5 }, { base: [4, 5], scale: 2 }, { base: [1, 10], scale: 2 },
+  { base: [1, 2], scale: 2 }, { base: [1, 2], scale: 3 }, { base: [1, 2], scale: 4 }, { base: [1, 2], scale: 5 }, { base: [1, 2], scale: 6 },
+  { base: [1, 3], scale: 2 }, { base: [1, 3], scale: 3 }, { base: [1, 3], scale: 4 },
+  { base: [2, 3], scale: 2 }, { base: [2, 3], scale: 3 }, { base: [2, 3], scale: 4 },
+  { base: [1, 4], scale: 2 }, { base: [1, 4], scale: 3 },
+  { base: [3, 4], scale: 2 }, { base: [3, 4], scale: 3 },
+  { base: [1, 5], scale: 2 }, { base: [1, 5], scale: 3 }, { base: [1, 5], scale: 4 },
+  { base: [2, 5], scale: 2 }, { base: [2, 5], scale: 3 },
+  { base: [3, 5], scale: 2 }, { base: [3, 5], scale: 3 },
+  { base: [4, 5], scale: 2 }, { base: [4, 5], scale: 3 },
+  { base: [1, 6], scale: 2 }, { base: [1, 6], scale: 3 },
+  { base: [5, 6], scale: 2 },
+  { base: [1, 8], scale: 2 }, { base: [3, 8], scale: 2 }, { base: [5, 8], scale: 2 }, { base: [7, 8], scale: 2 },
+  { base: [1, 10], scale: 2 }, { base: [3, 10], scale: 2 }, { base: [7, 10], scale: 2 }, { base: [9, 10], scale: 2 },
+  { base: [2, 7], scale: 2 }, { base: [3, 7], scale: 2 },
 ];
 
 function questionEquivalent(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -169,6 +179,10 @@ function questionEquivalent(round: RoundNumber, i: number, rng: () => number): F
 // ── ROUND 3 — COMPARING / ORDERING FRACTIONS ────────────────────────────
 
 const CMP_SEEDS: [[number, number], [number, number]][] = [
+  [[1, 2], [1, 4]], [[3, 4], [1, 2]], [[2, 3], [1, 3]], [[3, 5], [4, 5]],
+  [[5, 8], [3, 8]], [[7, 10], [3, 10]], [[1, 3], [1, 2]], [[2, 5], [1, 2]],
+  [[3, 4], [5, 8]], [[2, 3], [3, 4]], [[5, 6], [2, 3]], [[7, 8], [3, 4]],
+  [[1, 4], [3, 8]], [[4, 5], [7, 10]], [[3, 10], [2, 5]], [[5, 8], [1, 2]],
   [[3, 5], [2, 3]], [[1, 2], [2, 5]], [[3, 4], [5, 6]], [[2, 3], [3, 5]],
   [[5, 8], [3, 4]], [[1, 3], [1, 4]], [[4, 5], [7, 8]], [[2, 5], [3, 8]],
   [[5, 6], [7, 8]], [[3, 8], [2, 5]], [[1, 2], [4, 9]], [[7, 10], [2, 3]],
@@ -211,6 +225,10 @@ const ADD_SEEDS: { a: [number, number]; b: [number, number]; op: 'add' | 'subtra
   { a: [1, 5], b: [2, 5], op: 'add' }, { a: [3, 10], b: [4, 10], op: 'add' },
   { a: [1, 2], b: [1, 4], op: 'add' }, { a: [1, 3], b: [1, 6], op: 'add' },
   { a: [1, 4], b: [1, 8], op: 'add' }, { a: [2, 5], b: [1, 10], op: 'add' },
+  { a: [3, 8], b: [1, 8], op: 'add' }, { a: [1, 6], b: [2, 6], op: 'add' },
+  { a: [2, 5], b: [2, 5], op: 'add' }, { a: [1, 10], b: [6, 10], op: 'add' },
+  { a: [1, 2], b: [3, 8], op: 'add' }, { a: [1, 4], b: [3, 8], op: 'add' },
+  { a: [1, 3], b: [2, 6], op: 'add' }, { a: [3, 10], b: [2, 5], op: 'add' },
   { a: [7, 8], b: [3, 8], op: 'subtract' }, { a: [5, 6], b: [1, 6], op: 'subtract' },
   { a: [3, 4], b: [1, 4], op: 'subtract' }, { a: [4, 5], b: [2, 5], op: 'subtract' },
   { a: [9, 10], b: [3, 10], op: 'subtract' }, { a: [7, 8], b: [1, 4], op: 'subtract' },
@@ -218,6 +236,9 @@ const ADD_SEEDS: { a: [number, number]; b: [number, number]; op: 'add' | 'subtra
   { a: [3, 4], b: [1, 8], op: 'subtract' }, { a: [7, 10], b: [1, 5], op: 'subtract' },
   { a: [1, 6], b: [1, 3], op: 'add' }, { a: [2, 8], b: [3, 8], op: 'add' },
   { a: [5, 12], b: [3, 12], op: 'add' }, { a: [11, 12], b: [5, 12], op: 'subtract' },
+  { a: [5, 8], b: [1, 8], op: 'subtract' }, { a: [4, 6], b: [1, 6], op: 'subtract' },
+  { a: [3, 5], b: [1, 5], op: 'subtract' }, { a: [8, 10], b: [5, 10], op: 'subtract' },
+  { a: [1, 2], b: [1, 4], op: 'subtract' }, { a: [3, 4], b: [1, 2], op: 'subtract' },
 ];
 
 function questionAddSubtract(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -255,6 +276,9 @@ const MIXED_SEEDS: { whole: number; num: number; den: number }[] = [
   { whole: 1, num: 1, den: 2 }, { whole: 2, num: 1, den: 4 }, { whole: 1, num: 3, den: 4 },
   { whole: 2, num: 1, den: 2 }, { whole: 1, num: 2, den: 3 }, { whole: 3, num: 1, den: 4 },
   { whole: 1, num: 1, den: 3 }, { whole: 2, num: 3, den: 8 }, { whole: 1, num: 5, den: 8 },
+  { whole: 3, num: 1, den: 2 }, { whole: 2, num: 2, den: 5 }, { whole: 1, num: 4, den: 5 },
+  { whole: 2, num: 1, den: 6 }, { whole: 1, num: 5, den: 6 }, { whole: 3, num: 3, den: 4 },
+  { whole: 2, num: 5, den: 8 },
 ];
 
 function questionMixed(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -278,7 +302,9 @@ function questionMixed(round: RoundNumber, i: number, rng: () => number): Fracti
 }
 
 const IMPROPER_SEEDS: [number, number][] = [
-  [7, 4], [9, 4], [5, 2], [7, 3], [8, 3], [11, 4], [13, 5], [9, 2], [7, 6], [11, 8],
+  [3, 2], [5, 2], [7, 2], [5, 4], [7, 4], [9, 4], [11, 4],
+  [4, 3], [5, 3], [7, 3], [8, 3], [6, 5], [7, 5], [8, 5], [9, 5],
+  [9, 8], [11, 8], [13, 8], [7, 6], [11, 6],
 ];
 
 function questionImproper(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -304,10 +330,13 @@ function questionImproper(round: RoundNumber, i: number, rng: () => number): Fra
 }
 
 const OFQ_SEEDS: { frac: [number, number]; qty: number }[] = [
-  { frac: [3, 4], qty: 120 }, { frac: [1, 2], qty: 80 }, { frac: [2, 5], qty: 100 },
-  { frac: [5, 8], qty: 96 }, { frac: [3, 5], qty: 60 }, { frac: [7, 10], qty: 150 },
-  { frac: [1, 3], qty: 90 }, { frac: [2, 3], qty: 72 }, { frac: [5, 6], qty: 48 },
-  { frac: [3, 8], qty: 64 }, { frac: [1, 4], qty: 200 }, { frac: [9, 10], qty: 40 },
+  { frac: [1, 2], qty: 60 }, { frac: [1, 2], qty: 80 }, { frac: [3, 4], qty: 40 },
+  { frac: [3, 4], qty: 120 }, { frac: [1, 4], qty: 100 }, { frac: [1, 4], qty: 200 },
+  { frac: [1, 3], qty: 60 }, { frac: [1, 3], qty: 90 }, { frac: [2, 3], qty: 30 },
+  { frac: [2, 3], qty: 72 }, { frac: [1, 5], qty: 50 }, { frac: [2, 5], qty: 50 },
+  { frac: [2, 5], qty: 100 }, { frac: [3, 5], qty: 60 }, { frac: [4, 5], qty: 50 },
+  { frac: [1, 6], qty: 60 }, { frac: [5, 6], qty: 48 }, { frac: [3, 8], qty: 64 },
+  { frac: [5, 8], qty: 96 }, { frac: [7, 10], qty: 150 }, { frac: [9, 10], qty: 40 },
 ];
 
 function questionOfQuantity(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -333,9 +362,10 @@ function questionOfQuantity(round: RoundNumber, i: number, rng: () => number): F
 }
 
 const MUL_SEEDS: [[number, number], [number, number]][] = [
-  [[2, 3], [3, 4]], [[1, 2], [2, 3]], [[3, 4], [2, 3]], [[4, 5], [1, 2]],
-  [[2, 3], [3, 5]], [[3, 4], [1, 3]], [[5, 6], [3, 5]], [[1, 3], [3, 4]],
-  [[2, 5], [5, 6]], [[3, 8], [2, 3]], [[5, 8], [2, 5]], [[7, 8], [2, 7]],
+  [[1, 2], [1, 2]], [[1, 2], [2, 3]], [[2, 3], [3, 4]], [[3, 4], [2, 3]],
+  [[4, 5], [1, 2]], [[2, 3], [3, 5]], [[3, 4], [1, 3]], [[5, 6], [3, 5]],
+  [[1, 3], [3, 4]], [[2, 5], [5, 6]], [[3, 8], [2, 3]], [[5, 8], [2, 5]],
+  [[7, 8], [2, 7]], [[1, 4], [2, 3]], [[2, 5], [1, 2]], [[3, 5], [1, 2]],
 ];
 
 function questionMultiply(round: RoundNumber, i: number, rng: () => number): FractionQuestion {
@@ -367,6 +397,9 @@ const WORD_SEEDS: { qty: number; frac: [number, number]; theme: 'recipe' | 'inve
   { qty: 60, frac: [2, 3], theme: 'delivery' }, { qty: 80, frac: [3, 5], theme: 'recipe' },
   { qty: 50, frac: [1, 2], theme: 'inventory' }, { qty: 72, frac: [5, 6], theme: 'delivery' },
   { qty: 120, frac: [7, 12], theme: 'recipe' }, { qty: 90, frac: [4, 9], theme: 'inventory' },
+  { qty: 30, frac: [2, 3], theme: 'recipe' }, { qty: 100, frac: [4, 5], theme: 'delivery' },
+  { qty: 45, frac: [2, 5], theme: 'inventory' }, { qty: 64, frac: [3, 8], theme: 'recipe' },
+  { qty: 80, frac: [1, 4], theme: 'delivery' }, { qty: 50, frac: [3, 5], theme: 'inventory' },
 ];
 
 function questionWordProblem(round: RoundNumber, i: number, rng: () => number): FractionQuestion {

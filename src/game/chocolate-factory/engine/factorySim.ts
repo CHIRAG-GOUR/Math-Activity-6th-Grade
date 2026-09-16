@@ -217,7 +217,7 @@ export function submitAnswer(
   const q = order.question;
   const correct = selectedIndex === q.correctIndex;
 
-  if (!correct && attempt === 1) {
+  if (!correct) {
     side.wrongFlashT = REWORK_FLASH;
     side.reworkCount++;
     emit(side, 'wrong');
@@ -228,7 +228,7 @@ export function submitAnswer(
   const value = Math.max(0.08, Math.min(1.6, toDecimal(q.optionValues[selectedIndex] ?? q.optionValues[q.correctIndex])));
   side.order = order;
   side.attemptUsed = attempt;
-  side.lastCorrect = correct;
+  side.lastCorrect = true;
 
   const step = STEPS[side.stepIndex];
   switch (step) {
@@ -263,17 +263,14 @@ export function submitAnswer(
   }
 
   // Quality for this step: clean first-time work runs best.
-  const quality = correct
-    ? (attempt === 1 ? 90 + Math.round(Math.random() * 9) : 72 + Math.round(Math.random() * 13))
-    : 35 + Math.round(Math.random() * 20);
+  const quality = attempt === 1 ? 90 + Math.round(Math.random() * 9) : 75 + Math.round(Math.random() * 10);
   side.stepQuality.push(quality);
-  if (!correct) { side.wasteUnits++; emit(side, 'rework'); }
   side.quality = Math.round(side.stepQuality.reduce((a, b) => a + b, 0) / side.stepQuality.length);
 
   side.phase = 'running';
   side.stepT = 0;
   side.stepStartAt = sim.elapsed;
-  emit(side, correct ? 'correct' : 'wrong');
+  emit(side, 'correct');
   return 'applied';
 }
 

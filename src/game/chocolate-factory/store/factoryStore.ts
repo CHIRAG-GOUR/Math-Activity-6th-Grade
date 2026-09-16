@@ -21,8 +21,8 @@ import {
   STEPS, STEPS_PER_CYCLE, STEP_LABEL, STEP_ACTION, type StepId,
 } from '../engine/factorySim';
 
-export const TOTAL_CYCLES = 5;
-export const TOTAL_QUESTIONS = TOTAL_CYCLES * STEPS_PER_CYCLE;
+export const TOTAL_CYCLES = 1;
+export const TOTAL_QUESTIONS = 5;
 
 export type TeamStatus = 'answering' | 'retry' | 'working' | 'delivering' | 'complete';
 
@@ -81,7 +81,7 @@ function makeTeam(team: TeamId = 'blue'): TeamState {
 export function scoreOf(t: TeamState): number {
   return Math.round(
     t.ordersCompleted * 120 +
-    t.questionsAnswered * 10 +
+    t.questionsAnswered * 20 +
     t.quality * 2 +
     t.satisfaction * 2 +
     t.onTime * 30 -
@@ -102,12 +102,12 @@ function cycleCustomer(team: TeamId, cycle: number) {
   };
 }
 
-/** One step's question, drawn from the round matching this cycle. */
+/** One step's question, drawn from the round matching this step (1 to 5). */
 function makeStepOrder(team: TeamId, cycle: number, step: number): CustomerOrder {
-  const round = (Math.min(TOTAL_CYCLES, cycle + 1)) as RoundNumber;
+  const round = (Math.min(5, step + 1)) as RoundNumber;
   const cust = cycleCustomer(team, cycle);
-  const bankIndex = cycle * 7 + step * 2 + (team === 'blue' ? 0 : 1);
-  const seed = (team === 'blue' ? 2311 : 8677) + cycle * 419 + step * 53;
+  const bankIndex = Math.floor(Math.random() * 20) * 5 + step * 2 + (team === 'blue' ? 0 : 1);
+  const seed = (team === 'blue' ? 2311 : 8677) + cycle * 419 + step * 53 + Math.floor(Math.random() * 1000);
   const question: FractionQuestion = generateQuestion(round, bankIndex, seed);
   return {
     id: `${team}-c${cycle + 1}-s${step + 1}`,
@@ -243,7 +243,7 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
             selected: null,
             status: 'retry',
             lastCorrect: false,
-            feedback: 'CHECK THE FRACTION — THE LINE IS HOLDING FOR A CORRECTION',
+            feedback: 'INCORRECT FRACTION — LINE IS HOLDING. PLEASE SELECT THE CORRECT ANSWER TO PROCEED.',
             rework: s[team].rework + 1,
           },
         } as Partial<FactoryStore>));
@@ -257,13 +257,11 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
         [team]: {
           ...s[team],
           status: lastStep ? 'delivering' : 'working',
-          lastCorrect: correct,
+          lastCorrect: true,
           questionsAnswered: s[team].questionsAnswered + 1,
           quality: side.quality,
           waste: side.wasteUnits,
-          feedback: correct
-            ? `${STEP_LABEL[STEPS[side.stepIndex]]} — RUNNING NOW`
-            : 'WRONG AMOUNT APPLIED — THE LINE IS MAKING THAT MUCH',
+          feedback: `${STEP_LABEL[STEPS[side.stepIndex]]} — RUNNING NOW`,
         },
       } as Partial<FactoryStore>));
     },
