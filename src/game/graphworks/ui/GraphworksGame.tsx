@@ -211,47 +211,42 @@ export function GraphworksGame() {
   if (!mounted) return null;
 
   return (
-    <div className="w-screen h-screen overflow-hidden flex flex-col bg-gray-100"
+    <div className="relative w-screen h-screen overflow-hidden select-none bg-sky-100"
       style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
       {/* Load Inter font */}
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
 
-      {/* BRIEFING MODAL */}
-      <GraphworksBriefing />
-
-      {/* VICTORY CINEMATIC */}
-      <GraphworksVictory />
-
-      {/* TOP HEADER / SCOREBOARD */}
-      <GraphworksHeader />
-
-      {/* MAIN GAME AREA */}
-      <div className="flex-1 relative flex">
-        {/* BLUE GRAPH STUDIO — LEFT */}
-        <div className="w-[350px] flex-shrink-0 p-2 overflow-y-auto z-20"
-          style={{ maxHeight: 'calc(100vh - 52px)' }}>
-          <GraphStudio team="blue" />
-        </div>
-
-        {/* CENTRAL 3D CITY */}
-        <div className="flex-1 relative">
-          <DataCityCanvas />
-
-          {/* Overlay labels */}
-          <DistrictLabels />
-          <RoundProgress />
-          <GraphRunIndicator />
-        </div>
-
-        {/* RED GRAPH STUDIO — RIGHT */}
-        <div className="w-[350px] flex-shrink-0 p-2 overflow-y-auto z-20"
-          style={{ maxHeight: 'calc(100vh - 52px)' }}>
-          <GraphStudio team="red" />
-        </div>
+      {/* ── FULLSCREEN 3D DATA CITY CANVAS ── */}
+      <div className="absolute inset-0 z-0">
+        <DataCityCanvas />
+        <DistrictLabels />
+        <GraphRunIndicator />
       </div>
 
-      {/* MISSION CONTROLLER */}
+      {/* ── BRIEFING MODAL ── */}
+      <GraphworksBriefing />
+
+      {/* ── VICTORY CINEMATIC ── */}
+      <GraphworksVictory />
+
+      {/* ── TOP SCOREBOARD & CONTROLS HEADER ── */}
+      <div className="relative z-20 pointer-events-auto">
+        <GraphworksHeader />
+        <RoundProgress />
+      </div>
+
+      {/* ── MISSION CONTROLLER LOGIC ── */}
       <MissionController />
+
+      {/* ── BOTTOM-LEFT CORNER: BLUE GRAPH STUDIO ── */}
+      <div className="fixed z-30 bottom-2.5 left-2.5 w-[310px] min-w-[310px] max-w-[310px] pointer-events-auto">
+        <GraphStudio team="blue" />
+      </div>
+
+      {/* ── BOTTOM-RIGHT CORNER: RED GRAPH STUDIO ── */}
+      <div className="fixed z-30 bottom-2.5 right-2.5 w-[310px] min-w-[310px] max-w-[310px] pointer-events-auto">
+        <GraphStudio team="red" />
+      </div>
     </div>
   );
 }
