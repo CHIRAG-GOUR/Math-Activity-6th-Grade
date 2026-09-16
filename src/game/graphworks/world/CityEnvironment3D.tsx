@@ -1,19 +1,31 @@
 // ============================================================
 // GRAPHWORKS — THE DATA CITY: 3D Environment & Sky Dome
-// 360° Daytime Azure Sky Dome (No black voids!), Sunlit Coastal Bay,
-// Distant Mountains, Drifting Clouds, Marina with Boats, and Scenic Foliage
+// 360° Daytime Azure Sky Dome, Sunlit Coastal Bay,
+// Distant Mountains, Drifting Clouds, Marina with Boats,
+// Multi-species Stylized Trees (Oak, Cherry Blossom, Cypress),
+// and flocking coastal seagulls.
 // ============================================================
 'use client';
 
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { CITY_GEO, CITY_MAT, CITY_COLORS } from './CityMaterials';
+import { CITY_GEO, CITY_MAT } from './CityMaterials';
+
+// Tree species definition
+interface StylizedTreeData {
+  pos: [number, number, number];
+  scale: number;
+  species: 'oak' | 'cherry' | 'cypress';
+  rotationY: number;
+}
 
 export function CityEnvironment3D() {
   const cloudsRef = useRef<THREE.Group>(null);
   const waterRef = useRef<THREE.Mesh>(null);
   const boatsRef = useRef<THREE.Group>(null);
+  const foliageGroupRef = useRef<THREE.Group>(null);
+  const birdsGroupRef = useRef<THREE.Group>(null);
 
   // ── 1. 360° DAYLIGHT SKY DOME (NO BLACK VOIDS GUARANTEED) ──
   const skyDomeGeo = useMemo(() => {
@@ -61,59 +73,45 @@ export function CityEnvironment3D() {
     { pos: [95, 10, -50] as [number, number, number], scale: [50, 20, 30] as [number, number, number], color: '#334155' },
   ], []);
 
-  // ── 3. ORGANIC PROCEDURAL TREES ──
-  const treeClusters = useMemo(() => {
-    const arr: { pos: [number, number, number]; scale: number; type: 'round' | 'tall'; hue: string }[] = [];
-    const hues = ['#22c55e', '#16a34a', '#15803d', '#4ade80'];
+  // ── 3. CURATED MULTI-SPECIES TREES (NATURAL GROUPING & BALANCED VISTAS) ──
+  const trees = useMemo<StylizedTreeData[]>(() => {
+    const arr: StylizedTreeData[] = [
+      // Park flanking trees (framing the central promenade without blocking tower)
+      { pos: [-7.2, 0, 9.5], scale: 1.1, species: 'oak', rotationY: 0.3 },
+      { pos: [7.2, 0, 9.5], scale: 1.1, species: 'oak', rotationY: -0.4 },
+      { pos: [-6.8, 0, 12.8], scale: 0.95, species: 'cherry', rotationY: 0.8 },
+      { pos: [6.8, 0, 12.8], scale: 0.95, species: 'cherry', rotationY: -0.6 },
+      { pos: [-4.2, 0, 14.2], scale: 0.85, species: 'oak', rotationY: 1.2 },
+      { pos: [4.2, 0, 14.2], scale: 0.85, species: 'oak', rotationY: -1.1 },
 
-    // Park area clusters
-    for (let i = 0; i < 16; i++) {
-      const angle = (i / 16) * Math.PI * 2;
-      const r = 3 + Math.random() * 5;
-      arr.push({
-        pos: [Math.cos(angle) * r, 0, 8 + Math.sin(angle) * r],
-        scale: 0.65 + Math.random() * 0.45,
-        type: i % 3 === 0 ? 'tall' : 'round',
-        hue: hues[i % hues.length],
-      });
-    }
+      // Boulevard roadside cypresses (neat architectural accents along sidewalks)
+      { pos: [-12.0, 0, 8.2], scale: 1.15, species: 'cypress', rotationY: 0.1 },
+      { pos: [-16.0, 0, 8.2], scale: 1.05, species: 'cypress', rotationY: 0.2 },
+      { pos: [12.0, 0, 8.2], scale: 1.15, species: 'cypress', rotationY: -0.1 },
+      { pos: [16.0, 0, 8.2], scale: 1.05, species: 'cypress', rotationY: -0.2 },
 
-    // Waterfront promenade tree line
-    for (let i = 0; i < 9; i++) {
-      arr.push({
-        pos: [-24 + i * 6, 0, 15.5],
-        scale: 0.8 + Math.random() * 0.3,
-        type: 'round',
-        hue: hues[(i + 1) % hues.length],
-      });
-    }
+      // Waterfront promenade tree line
+      { pos: [-20.0, 0, 15.5], scale: 1.0, species: 'oak', rotationY: 0.5 },
+      { pos: [-12.0, 0, 15.5], scale: 1.1, species: 'cherry', rotationY: 1.1 },
+      { pos: [12.0, 0, 15.5], scale: 1.1, species: 'cherry', rotationY: -0.7 },
+      { pos: [20.0, 0, 15.5], scale: 1.0, species: 'oak', rotationY: -0.5 },
 
-    // Suburban green belts
-    for (let i = 0; i < 6; i++) {
-      arr.push({
-        pos: [-28 + Math.random() * 6, 0, -5 + Math.random() * 10],
-        scale: 0.9 + Math.random() * 0.4,
-        type: 'tall',
-        hue: hues[i % hues.length],
-      });
-      arr.push({
-        pos: [22 + Math.random() * 6, 0, -5 + Math.random() * 10],
-        scale: 0.9 + Math.random() * 0.4,
-        type: 'round',
-        hue: hues[(i + 2) % hues.length],
-      });
-    }
-
+      // District boundaries green belts
+      { pos: [-24.0, 0, 0.0], scale: 1.2, species: 'oak', rotationY: 0.9 },
+      { pos: [-26.0, 0, -8.0], scale: 1.1, species: 'cypress', rotationY: 0.3 },
+      { pos: [24.0, 0, 0.0], scale: 1.2, species: 'oak', rotationY: -0.9 },
+      { pos: [26.0, 0, -8.0], scale: 1.1, species: 'cypress', rotationY: -0.3 },
+    ];
     return arr;
   }, []);
 
-  // Frame animation for water and clouds
+  // Frame animation for water, clouds, tree sway, and coastal birds
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
 
     // Gentle cloud drift
     if (cloudsRef.current) {
-      cloudsRef.current.position.x = (t * 0.4) % 120 - 60;
+      cloudsRef.current.position.x = ((t * 0.35) % 120) - 60;
     }
 
     // Subtle water surface wave ripple
@@ -121,11 +119,34 @@ export function CityEnvironment3D() {
       waterRef.current.position.y = -0.15 + Math.sin(t * 1.5) * 0.02;
     }
 
-    // Gentle boat bobbing
+    // Gentle boat bobbing in bay
     if (boatsRef.current) {
       boatsRef.current.children.forEach((boat, i) => {
         boat.position.y = Math.sin(t * 2 + i * 1.2) * 0.04;
         boat.rotation.z = Math.sin(t * 1.5 + i) * 0.03;
+      });
+    }
+
+    // Natural wind rustle on foliage canopies
+    if (foliageGroupRef.current) {
+      foliageGroupRef.current.children.forEach((treeMesh, i) => {
+        const sway = Math.sin(t * 1.8 + i * 0.7) * 0.018;
+        treeMesh.rotation.z = sway;
+      });
+    }
+
+    // Flocking coastal gulls gliding over the bay
+    if (birdsGroupRef.current) {
+      birdsGroupRef.current.children.forEach((bird, i) => {
+        const birdSpeed = 0.4 + i * 0.1;
+        const bAngle = t * birdSpeed + (i * Math.PI * 2) / 5;
+        const radius = 16 + (i % 3) * 6;
+        bird.position.x = Math.cos(bAngle) * radius;
+        bird.position.z = 22 + Math.sin(bAngle) * 8;
+        bird.position.y = 12 + Math.sin(t * 2 + i) * 1.2;
+        bird.rotation.y = -bAngle + Math.PI / 2;
+        // Wing flapping
+        bird.rotation.z = Math.sin(t * 6 + i) * 0.15;
       });
     }
   });
@@ -221,17 +242,14 @@ export function CityEnvironment3D() {
           { pos: [19, 0, 1.5] as [number, number, number], rotY: -0.4, hullColor: '#dc2626', sailColor: '#ffffff' },
         ].map((boat, i) => (
           <group key={i} position={boat.pos} rotation={[0, boat.rotY, 0]}>
-            {/* Hull */}
             <mesh position={[0, 0.1, 0]}>
               <boxGeometry args={[1.2, 0.4, 2.8]} />
               <meshStandardMaterial color={boat.hullColor} roughness={0.4} />
             </mesh>
-            {/* Mast */}
             <mesh position={[0, 1.4, 0]}>
               <cylinderGeometry args={[0.04, 0.05, 2.6, 6]} />
               <meshStandardMaterial color="#94a3b8" metalness={0.7} />
             </mesh>
-            {/* Triangular Sail */}
             <mesh position={[0, 1.5, 0.4]} rotation={[0, Math.PI / 2, 0]}>
               <bufferGeometry>
                 <bufferAttribute
@@ -245,26 +263,102 @@ export function CityEnvironment3D() {
         ))}
       </group>
 
-      {/* ── ORGANIC URBAN TREES ── */}
-      <group>
-        {treeClusters.map((t, idx) => (
-          <group key={idx} position={t.pos} scale={[t.scale, t.scale, t.scale]}>
-            {/* Tree Trunk */}
-            <mesh position={[0, 0.7, 0]} castShadow>
-              <cylinderGeometry args={[0.12, 0.18, 1.4, 6]} />
-              <meshStandardMaterial color="#78350f" roughness={0.9} />
+      {/* ── COASTAL SEAGULLS ── */}
+      <group ref={birdsGroupRef}>
+        {[0, 1, 2, 3, 4].map((bi) => (
+          <group key={bi}>
+            {/* Bird body */}
+            <mesh scale={[0.15, 0.08, 0.3]}>
+              <boxGeometry args={[1, 1, 1]} />
+              <meshStandardMaterial color="#ffffff" roughness={0.5} />
             </mesh>
-            {/* Tree Canopy */}
-            {t.type === 'round' ? (
-              <mesh position={[0, 1.9, 0]} castShadow>
-                <dodecahedronGeometry args={[1.0, 1]} />
-                <meshStandardMaterial color={t.hue} roughness={0.75} flatShading />
-              </mesh>
-            ) : (
-              <mesh position={[0, 2.2, 0]} castShadow>
-                <coneGeometry args={[0.9, 2.6, 6]} />
-                <meshStandardMaterial color={t.hue} roughness={0.75} flatShading />
-              </mesh>
+            {/* Left Wing */}
+            <mesh position={[-0.28, 0.02, 0]} rotation={[0, 0, -0.2]}>
+              <boxGeometry args={[0.45, 0.02, 0.15]} />
+              <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
+            </mesh>
+            {/* Right Wing */}
+            <mesh position={[0.28, 0.02, 0]} rotation={[0, 0, 0.2]}>
+              <boxGeometry args={[0.45, 0.02, 0.15]} />
+              <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
+            </mesh>
+          </group>
+        ))}
+      </group>
+
+      {/* ── HIGH-QUALITY MULTI-SPECIES TREES ── */}
+      <group ref={foliageGroupRef}>
+        {trees.map((t, idx) => (
+          <group key={idx} position={t.pos} scale={[t.scale, t.scale, t.scale]} rotation={[0, t.rotationY, 0]}>
+            {/* 1. LUSH PARK OAK / ELM */}
+            {t.species === 'oak' && (
+              <group>
+                {/* Textured Trunk with Root Flairs */}
+                <mesh position={[0, 0.75, 0]} castShadow>
+                  <cylinderGeometry args={[0.16, 0.24, 1.5, 8]} />
+                  <meshStandardMaterial color="#5c3817" roughness={0.9} />
+                </mesh>
+                {/* Main Dense Canopy Sphere */}
+                <mesh position={[0, 2.0, 0]} castShadow>
+                  <sphereGeometry args={[1.1, 10, 10]} />
+                  <meshStandardMaterial color="#16a34a" roughness={0.7} flatShading />
+                </mesh>
+                {/* Secondary Canopy Cluster Left */}
+                <mesh position={[-0.45, 2.35, 0.2]} castShadow>
+                  <sphereGeometry args={[0.8, 8, 8]} />
+                  <meshStandardMaterial color="#15803d" roughness={0.7} flatShading />
+                </mesh>
+                {/* Secondary Canopy Cluster Right */}
+                <mesh position={[0.45, 2.2, -0.2]} castShadow>
+                  <sphereGeometry args={[0.85, 8, 8]} />
+                  <meshStandardMaterial color="#22c55e" roughness={0.7} flatShading />
+                </mesh>
+              </group>
+            )}
+
+            {/* 2. FLOWERING CHERRY BLOSSOM TREE */}
+            {t.species === 'cherry' && (
+              <group>
+                {/* Slender Dark Cherry Trunk */}
+                <mesh position={[0, 0.8, 0]} castShadow>
+                  <cylinderGeometry args={[0.12, 0.18, 1.6, 8]} />
+                  <meshStandardMaterial color="#451a03" roughness={0.85} />
+                </mesh>
+                {/* Pastel Pink Blossom Masses */}
+                <mesh position={[0, 2.1, 0]} castShadow>
+                  <sphereGeometry args={[1.05, 10, 10]} />
+                  <meshStandardMaterial color="#f472b6" roughness={0.65} flatShading />
+                </mesh>
+                <mesh position={[-0.4, 2.4, 0.15]} castShadow>
+                  <sphereGeometry args={[0.75, 8, 8]} />
+                  <meshStandardMaterial color="#fbcfe8" roughness={0.6} flatShading />
+                </mesh>
+                <mesh position={[0.4, 2.25, -0.15]} castShadow>
+                  <sphereGeometry args={[0.78, 8, 8]} />
+                  <meshStandardMaterial color="#ec4899" roughness={0.65} flatShading />
+                </mesh>
+              </group>
+            )}
+
+            {/* 3. COLUMNAR ITALIAN CYPRESS */}
+            {t.species === 'cypress' && (
+              <group>
+                {/* Short Sturdy Trunk */}
+                <mesh position={[0, 0.35, 0]} castShadow>
+                  <cylinderGeometry args={[0.1, 0.14, 0.7, 8]} />
+                  <meshStandardMaterial color="#3e2723" roughness={0.9} />
+                </mesh>
+                {/* Lower Tier */}
+                <mesh position={[0, 1.4, 0]} castShadow>
+                  <cylinderGeometry args={[0.38, 0.52, 1.6, 8]} />
+                  <meshStandardMaterial color="#166534" roughness={0.75} flatShading />
+                </mesh>
+                {/* Upper Tier Tapered Crown */}
+                <mesh position={[0, 2.6, 0]} castShadow>
+                  <coneGeometry args={[0.4, 1.2, 8]} />
+                  <meshStandardMaterial color="#15803d" roughness={0.75} flatShading />
+                </mesh>
+              </group>
             )}
           </group>
         ))}

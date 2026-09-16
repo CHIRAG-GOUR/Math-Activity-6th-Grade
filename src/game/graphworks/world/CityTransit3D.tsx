@@ -1,48 +1,57 @@
 // ============================================================
-// GRAPHWORKS — THE DATA CITY: City Transit & Traffic Simulation
-// Multi-lane moving vehicles (sedans, transit buses, delivery vans),
-// animated high-speed bullet train on monorail, and citizens walking.
+// GRAPHWORKS — THE DATA CITY: City Transit & Intelligent Traffic Simulation
+// Multi-lane moving vehicles (sedans, transit buses, delivery vans) with
+// car-following collision avoidance, crosswalk braking at zebra stripes,
+// aerodynamic bullet train on elevated railway, and road infrastructure.
 // ============================================================
 'use client';
 
 import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { CITY_GEO, CITY_MAT, CITY_COLORS } from './CityMaterials';
-import { useGraphworksStore } from '../store/graphworksStore';
+import { CITY_MAT } from './CityMaterials';
 
-// Individual procedural vehicle component
+// Individual procedural vehicle component with wheels and lights
 function VehicleModel({
   color,
   type = 'sedan',
+  brakeLightsOn = false,
 }: {
   color: string;
   type?: 'sedan' | 'bus' | 'van';
+  brakeLightsOn?: boolean;
 }) {
   const isBus = type === 'bus';
   const isVan = type === 'van';
 
-  const bodyLength = isBus ? 3.6 : isVan ? 2.2 : 1.8;
-  const bodyHeight = isBus ? 1.1 : isVan ? 1.0 : 0.65;
-  const bodyWidth = isBus ? 1.0 : 0.85;
+  const bodyLength = isBus ? 3.8 : isVan ? 2.4 : 1.9;
+  const bodyHeight = isBus ? 1.2 : isVan ? 1.05 : 0.68;
+  const bodyWidth = isBus ? 1.05 : 0.88;
 
   return (
     <group>
-      {/* Chassis / Body */}
+      {/* Main Vehicle Body Chassis */}
       <mesh position={[0, bodyHeight / 2 + 0.15, 0]} castShadow>
         <boxGeometry args={[bodyWidth, bodyHeight, bodyLength]} />
-        <meshStandardMaterial color={color} roughness={0.3} metalness={0.2} />
+        <meshStandardMaterial color={color} roughness={0.3} metalness={0.25} />
       </mesh>
 
-      {/* Windshield & Windows */}
+      {/* Windshield & Cabin Glass */}
       {!isBus && (
         <mesh position={[0, bodyHeight + 0.05, -0.1]} castShadow>
-          <boxGeometry args={[bodyWidth * 0.9, 0.45, bodyLength * 0.55]} />
+          <boxGeometry args={[bodyWidth * 0.92, 0.45, bodyLength * 0.52]} />
+          <meshStandardMaterial color="#0f172a" roughness={0.15} metalness={0.7} />
+        </mesh>
+      )}
+
+      {isBus && (
+        <mesh position={[0, bodyHeight * 0.7 + 0.15, 0]}>
+          <boxGeometry args={[bodyWidth * 1.02, 0.4, bodyLength * 0.88]} />
           <meshStandardMaterial color="#0f172a" roughness={0.2} metalness={0.6} />
         </mesh>
       )}
 
-      {/* Headlights */}
+      {/* Headlights (Warm White Glow) */}
       <mesh position={[-bodyWidth * 0.35, 0.35, -bodyLength / 2 - 0.02]}>
         <boxGeometry args={[0.15, 0.1, 0.05]} />
         <meshStandardMaterial color="#fffef0" emissive="#fffef0" emissiveIntensity={1.2} />
@@ -52,25 +61,33 @@ function VehicleModel({
         <meshStandardMaterial color="#fffef0" emissive="#fffef0" emissiveIntensity={1.2} />
       </mesh>
 
-      {/* Red Taillights */}
+      {/* Taillights / Brake Lights */}
       <mesh position={[-bodyWidth * 0.35, 0.35, bodyLength / 2 + 0.02]}>
         <boxGeometry args={[0.15, 0.1, 0.05]} />
-        <meshStandardMaterial color="#ef4444" emissive="#dc2626" emissiveIntensity={1.2} />
+        <meshStandardMaterial
+          color="#ef4444"
+          emissive="#dc2626"
+          emissiveIntensity={brakeLightsOn ? 2.5 : 0.8}
+        />
       </mesh>
       <mesh position={[bodyWidth * 0.35, 0.35, bodyLength / 2 + 0.02]}>
         <boxGeometry args={[0.15, 0.1, 0.05]} />
-        <meshStandardMaterial color="#ef4444" emissive="#dc2626" emissiveIntensity={1.2} />
+        <meshStandardMaterial
+          color="#ef4444"
+          emissive="#dc2626"
+          emissiveIntensity={brakeLightsOn ? 2.5 : 0.8}
+        />
       </mesh>
 
-      {/* Wheels */}
-      {[-bodyWidth / 2 - 0.04, bodyWidth / 2 + 0.04].map((wx, i) => (
+      {/* Wheels with Rims */}
+      {[-bodyWidth / 2 - 0.03, bodyWidth / 2 + 0.03].map((wx, i) => (
         <React.Fragment key={i}>
           <mesh position={[wx, 0.18, -bodyLength * 0.3]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.18, 0.18, 0.08, 12]} />
+            <cylinderGeometry args={[0.18, 0.18, 0.07, 12]} />
             <meshStandardMaterial color="#1e293b" roughness={0.9} />
           </mesh>
           <mesh position={[wx, 0.18, bodyLength * 0.3]} rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.18, 0.18, 0.08, 12]} />
+            <cylinderGeometry args={[0.18, 0.18, 0.07, 12]} />
             <meshStandardMaterial color="#1e293b" roughness={0.9} />
           </mesh>
         </React.Fragment>
@@ -80,113 +97,134 @@ function VehicleModel({
 }
 
 export function CityTransit3D() {
-  const blueCity = useGraphworksStore((s) => s.blueCity);
-  const redCity = useGraphworksStore((s) => s.redCity);
-
   const trainRef = useRef<THREE.Group>(null);
   const trafficGroupRef = useRef<THREE.Group>(null);
-  const pedestriansRef = useRef<THREE.Group>(null);
 
-  // Highway lanes and vehicles
-  const vehicles = useMemo(() => [
-    // Westbound Lane (Z = 4.6)
-    { id: 1, basePos: [-20, 0, 4.6], speed: 4.8, type: 'sedan' as const, color: '#2563eb', rotY: Math.PI / 2 },
-    { id: 2, basePos: [-6, 0, 4.6], speed: 4.5, type: 'bus' as const, color: '#0284c7', rotY: Math.PI / 2 },
-    { id: 3, basePos: [10, 0, 4.6], speed: 5.2, type: 'sedan' as const, color: '#f59e0b', rotY: Math.PI / 2 },
-    { id: 4, basePos: [24, 0, 4.6], speed: 4.6, type: 'van' as const, color: '#ffffff', rotY: Math.PI / 2 },
+  // Dynamic vehicles with current positions, velocities, and lane directions
+  const vehicles = useMemo(
+    () => [
+      // Westbound Lane (Z = 4.6, +X travel)
+      { id: 1, x: -28, z: 4.6, baseSpeed: 5.0, currentSpeed: 5.0, type: 'sedan' as const, color: '#2563eb', rotY: Math.PI / 2, isBraking: false },
+      { id: 2, x: -14, z: 4.6, baseSpeed: 4.5, currentSpeed: 4.5, type: 'bus' as const, color: '#0284c7', rotY: Math.PI / 2, isBraking: false },
+      { id: 3, x: 2, z: 4.6, baseSpeed: 5.2, currentSpeed: 5.2, type: 'sedan' as const, color: '#f59e0b', rotY: Math.PI / 2, isBraking: false },
+      { id: 4, x: 18, z: 4.6, baseSpeed: 4.8, currentSpeed: 4.8, type: 'van' as const, color: '#ffffff', rotY: Math.PI / 2, isBraking: false },
 
-    // Eastbound Lane (Z = 6.4)
-    { id: 5, basePos: [22, 0, 6.4], speed: -4.8, type: 'sedan' as const, color: '#dc2626', rotY: -Math.PI / 2 },
-    { id: 6, basePos: [8, 0, 6.4], speed: -4.2, type: 'bus' as const, color: '#ef4444', rotY: -Math.PI / 2 },
-    { id: 7, basePos: [-8, 0, 6.4], speed: -5.0, type: 'sedan' as const, color: '#ffffff', rotY: -Math.PI / 2 },
-    { id: 8, basePos: [-22, 0, 6.4], speed: -4.6, type: 'sedan' as const, color: '#10b981', rotY: -Math.PI / 2 },
-  ], []);
-
-  // Citizens walking in park
-  const pedestrians = useMemo(() => [
-    { pos: [-4, 0, 11], speed: 0.8, color: '#2563eb' },
-    { pos: [-1.5, 0, 11.5], speed: -0.7, color: '#dc2626' },
-    { pos: [2, 0, 10.8], speed: 0.9, color: '#f59e0b' },
-    { pos: [4.5, 0, 11.2], speed: -0.6, color: '#10b981' },
-    { pos: [-8, 0, 11], speed: 0.75, color: '#64748b' },
-    { pos: [8, 0, 11.5], speed: -0.85, color: '#3b82f6' },
-  ], []);
+      // Eastbound Lane (Z = 6.4, -X travel)
+      { id: 5, x: 28, z: 6.4, baseSpeed: -5.0, currentSpeed: -5.0, type: 'sedan' as const, color: '#dc2626', rotY: -Math.PI / 2, isBraking: false },
+      { id: 6, x: 14, z: 6.4, baseSpeed: -4.3, currentSpeed: -4.3, type: 'bus' as const, color: '#ef4444', rotY: -Math.PI / 2, isBraking: false },
+      { id: 7, x: -2, z: 6.4, baseSpeed: -5.1, currentSpeed: -5.1, type: 'sedan' as const, color: '#ffffff', rotY: -Math.PI / 2, isBraking: false },
+      { id: 8, x: -18, z: 6.4, baseSpeed: -4.7, currentSpeed: -4.7, type: 'sedan' as const, color: '#10b981', rotY: -Math.PI / 2, isBraking: false },
+    ],
+    []
+  );
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
 
-    // 1. Move vehicles along the highway avenue
-    if (trafficGroupRef.current) {
-      trafficGroupRef.current.children.forEach((carGroup, idx) => {
-        const v = vehicles[idx];
-        if (!v) return;
+    // ── 1. VEHICLE SIMULATION: SPACING PHYSICS & CROSSWALK BRAKING ──
+    // Periodic pedestrian crossing window (every 14s for 3.5s)
+    const isCrossingCycle = (t % 14) > 10.5;
 
-        // Position wrapped along X: -32 to +32
-        const span = 64;
-        let x = v.basePos[0] + t * v.speed;
-        x = ((x + 32) % span) - 32;
-        if (x < -32) x += span;
+    vehicles.forEach((v, idx) => {
+      let desiredSpeed = v.baseSpeed;
+      v.isBraking = false;
 
-        carGroup.position.x = x;
+      // Check distance to crosswalks at X = -5 and X = +5
+      const crosswalks = [-5.0, 5.0];
+      if (isCrossingCycle) {
+        crosswalks.forEach((cwX) => {
+          if (v.baseSpeed > 0 && v.x < cwX && cwX - v.x < 4.0 && cwX - v.x > 0.3) {
+            // Westbound car approaching crosswalk from left: decelerate to complete stop
+            desiredSpeed = 0;
+            v.isBraking = true;
+          } else if (v.baseSpeed < 0 && v.x > cwX && v.x - cwX < 4.0 && v.x - cwX > 0.3) {
+            // Eastbound car approaching crosswalk from right: decelerate to complete stop
+            desiredSpeed = 0;
+            v.isBraking = true;
+          }
+        });
+      }
+
+      // Check distance to car directly ahead in same lane (car-following spacing physics)
+      vehicles.forEach((otherV, otherIdx) => {
+        if (idx === otherIdx || v.z !== otherV.z) return;
+        if (v.baseSpeed > 0) {
+          // Moving in +X direction
+          const dist = otherV.x - v.x;
+          if (dist > 0 && dist < 6.5) {
+            desiredSpeed = Math.min(desiredSpeed, Math.max(0, otherV.currentSpeed * 0.9));
+            if (dist < 4.5) v.isBraking = true;
+          }
+        } else {
+          // Moving in -X direction
+          const dist = v.x - otherV.x;
+          if (dist > 0 && dist < 6.5) {
+            desiredSpeed = Math.max(desiredSpeed, Math.min(0, otherV.currentSpeed * 0.9));
+            if (dist < 4.5) v.isBraking = true;
+          }
+        }
       });
-    }
 
-    // 2. High-speed bullet train along elevated railway track
+      // Smooth acceleration / deceleration
+      v.currentSpeed = THREE.MathUtils.damp(v.currentSpeed, desiredSpeed, 4, delta);
+      v.x += v.currentSpeed * delta;
+
+      // Wrap around road boundaries (-36 to +36)
+      if (v.x > 36) v.x = -36;
+      if (v.x < -36) v.x = 36;
+
+      // Update Three.js vehicle group transform
+      if (trafficGroupRef.current && trafficGroupRef.current.children[idx]) {
+        const carGroup = trafficGroupRef.current.children[idx];
+        carGroup.position.x = v.x;
+        // Subtle pitch dip under heavy braking
+        carGroup.rotation.z = v.isBraking ? (v.baseSpeed > 0 ? 0.03 : -0.03) : 0;
+      }
+    });
+
+    // ── 2. BULLET TRAIN CRUISE ──
     if (trainRef.current) {
-      // Train smoothly cruises along the line
       const trainX = -18 + ((t * 6.5) % 36);
       trainRef.current.position.x = trainX;
-    }
-
-    // 3. Citizens walking with subtle gait stride
-    if (pedestriansRef.current) {
-      pedestriansRef.current.children.forEach((ped, idx) => {
-        const p = pedestrians[idx];
-        if (!p) return;
-        const x = p.pos[0] + Math.sin(t * p.speed) * 3.5;
-        ped.position.x = x;
-        // Subtle vertical bounce for walking gait
-        ped.position.y = Math.abs(Math.sin(t * 5 + idx)) * 0.05;
-      });
     }
   });
 
   return (
     <group>
-      {/* ── 1. MAIN HIGHWAY ARTERIAL AVENUE ── */}
+      {/* ── 1. MAIN ARTERIAL HIGHWAY AVENUE ── */}
       <group position={[0, 0, 5.5]}>
         {/* Asphalt Road Surface */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]} receiveShadow>
-          <planeGeometry args={[70, 3.8]} />
+          <planeGeometry args={[72, 3.8]} />
           <primitive object={CITY_MAT.asphalt} attach="material" />
         </mesh>
-        {/* Yellow Centerline */}
+        {/* Yellow Broken Centerline */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 0]}>
-          <planeGeometry args={[70, 0.12]} />
+          <planeGeometry args={[72, 0.12]} />
           <primitive object={CITY_MAT.roadMarkingYellow} attach="material" />
         </mesh>
-        {/* White Edge Lines */}
+        {/* Solid White Edge Lines */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, -1.75]}>
-          <planeGeometry args={[70, 0.08]} />
+          <planeGeometry args={[72, 0.08]} />
           <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.025, 1.75]}>
-          <planeGeometry args={[70, 0.08]} />
+          <planeGeometry args={[72, 0.08]} />
           <primitive object={CITY_MAT.roadMarkingWhite} attach="material" />
         </mesh>
 
-        {/* Concrete Sidewalks with Pedestrian Curbs */}
+        {/* Concrete Sidewalks with Curbs */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, -2.4]}>
-          <planeGeometry args={[70, 1.1]} />
+          <planeGeometry args={[72, 1.1]} />
           <primitive object={CITY_MAT.sidewalk} attach="material" />
         </mesh>
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.03, 2.4]}>
-          <planeGeometry args={[70, 1.1]} />
+          <planeGeometry args={[72, 1.1]} />
           <primitive object={CITY_MAT.sidewalk} attach="material" />
         </mesh>
 
-        {/* Modern Streetlamps */}
-        {[-24, -16, -8, 0, 8, 16, 24].map((lx) => (
+        {/* Modern Streetlamps along Boulevard */}
+        {[-26, -18, -10, 0, 10, 18, 26].map((lx) => (
           <group key={lx} position={[lx, 0, -2.5]}>
             <mesh position={[0, 1.6, 0]}>
               <cylinderGeometry args={[0.04, 0.06, 3.2, 8]} />
@@ -207,8 +245,8 @@ export function CityTransit3D() {
       {/* ── 2. DYNAMIC VEHICLES ON HIGHWAY ── */}
       <group ref={trafficGroupRef}>
         {vehicles.map((v) => (
-          <group key={v.id} position={v.basePos as [number, number, number]} rotation={[0, v.rotY, 0]}>
-            <VehicleModel color={v.color} type={v.type} />
+          <group key={v.id} position={[v.x, 0, v.z]} rotation={[0, v.rotY, 0]}>
+            <VehicleModel color={v.color} type={v.type} brakeLightsOn={v.isBraking} />
           </group>
         ))}
       </group>
@@ -226,7 +264,7 @@ export function CityTransit3D() {
             <boxGeometry args={[0.9, 0.65, 0.84]} />
             <meshStandardMaterial color="#ffffff" roughness={0.2} metalness={0.4} />
           </mesh>
-          {/* Red/Blue Team Livery Stripe */}
+          {/* Cyan/Blue High-Speed Livery Stripe */}
           <mesh position={[0.2, 0.55, 0]}>
             <boxGeometry args={[3.4, 0.16, 0.88]} />
             <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.4} />
@@ -269,33 +307,6 @@ export function CityTransit3D() {
             <meshStandardMaterial color="#0f172a" roughness={0.1} />
           </mesh>
         </group>
-      </group>
-
-      {/* ── 4. STYLIZED CITIZEN PEDESTRIANS IN PARK ── */}
-      <group ref={pedestriansRef}>
-        {pedestrians.map((p, idx) => (
-          <group key={idx} position={p.pos as [number, number, number]}>
-            {/* Legs */}
-            <mesh position={[-0.08, 0.22, 0]}>
-              <cylinderGeometry args={[0.04, 0.04, 0.44, 6]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-            <mesh position={[0.08, 0.22, 0]}>
-              <cylinderGeometry args={[0.04, 0.04, 0.44, 6]} />
-              <meshStandardMaterial color="#1e293b" />
-            </mesh>
-            {/* Torso */}
-            <mesh position={[0, 0.65, 0]}>
-              <boxGeometry args={[0.26, 0.45, 0.16]} />
-              <meshStandardMaterial color={p.color} roughness={0.6} />
-            </mesh>
-            {/* Head */}
-            <mesh position={[0, 1.0, 0]}>
-              <sphereGeometry args={[0.1, 10, 10]} />
-              <meshStandardMaterial color="#fed7aa" roughness={0.6} />
-            </mesh>
-          </group>
-        ))}
       </group>
     </group>
   );

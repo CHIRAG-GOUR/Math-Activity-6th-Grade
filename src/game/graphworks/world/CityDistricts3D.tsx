@@ -327,57 +327,63 @@ export function CityDistricts3D() {
       {/* ============================================================ */}
       {/* 5. TRAFFIC JUNCTION DISTRICT (Multi-Lane Interchange)         */}
       {/* ============================================================ */}
+      {/* 5. TRAFFIC JUNCTION DISTRICT (Multi-Lane Interchange & Crosswalks) */}
+      {/* ============================================================ */}
       <group position={[0, 0, 5.5]}>
-        {/* Overhead Steel Highway Information Gantry */}
-        <group position={[0, 0, 0]}>
-          {/* Vertical Support Posts */}
-          <mesh position={[-7.5, 2.4, 0]}>
-            <cylinderGeometry args={[0.12, 0.12, 4.8, 8]} />
-            <meshStandardMaterial color="#64748b" metalness={0.8} />
-          </mesh>
-          <mesh position={[7.5, 2.4, 0]}>
-            <cylinderGeometry args={[0.12, 0.12, 4.8, 8]} />
-            <meshStandardMaterial color="#64748b" metalness={0.8} />
-          </mesh>
-          {/* Overhead Horizontal Truss */}
-          <mesh position={[0, 4.6, 0]}>
-            <boxGeometry args={[15.2, 0.35, 0.35]} />
-            <meshStandardMaterial color="#475569" metalness={0.8} />
-          </mesh>
-          {/* Electronic Directional Signboard */}
-          <mesh position={[0, 4.5, 0.22]}>
-            <boxGeometry args={[6.5, 1.2, 0.1]} />
-            <meshStandardMaterial color="#0284c7" />
-          </mesh>
-        </group>
+        {/* Zebra Pedestrian Crosswalks (Connecting Park Promenade to Civic Plaza) */}
+        {[-5.0, 5.0].map((cx) => (
+          <group key={cx} position={[cx, 0.026, 0]}>
+            {/* 6 High-Visibility White Zebra Stripes */}
+            {[-1.3, -0.8, -0.3, 0.2, 0.7, 1.2].map((sz, si) => (
+              <mesh key={si} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, sz]}>
+                <planeGeometry args={[1.6, 0.35]} />
+                <meshStandardMaterial color="#ffffff" roughness={0.3} />
+              </mesh>
+            ))}
+            {/* Yellow Tactile Paving Warning Strips on Curb */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, -1.9]}>
+              <planeGeometry args={[1.8, 0.25]} />
+              <meshStandardMaterial color="#facc15" roughness={0.8} />
+            </mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.008, 1.9]}>
+              <planeGeometry args={[1.8, 0.25]} />
+              <meshStandardMaterial color="#facc15" roughness={0.8} />
+            </mesh>
+          </group>
+        ))}
 
-        {/* Working 3-Aspect LED Traffic Signals */}
-        {[-6, 6].map((tx) => (
-          <group key={tx} position={[tx, 0, -2.5]}>
+        {/* Sleek Roadside 3-Aspect LED Traffic Signals (Unobstructed View) */}
+        {[-8.5, 8.5].map((tx) => (
+          <group key={tx} position={[tx, 0, -2.4]}>
             {/* Pole */}
             <mesh position={[0, 2.0, 0]}>
-              <cylinderGeometry args={[0.08, 0.08, 4.0, 8]} />
+              <cylinderGeometry args={[0.07, 0.09, 4.0, 8]} />
               <meshStandardMaterial color="#334155" metalness={0.8} />
             </mesh>
             {/* Black Signal Head */}
-            <mesh position={[0, 3.6, 0.15]}>
-              <boxGeometry args={[0.35, 0.95, 0.25]} />
+            <mesh position={[0, 3.5, 0.15]}>
+              <boxGeometry args={[0.32, 0.9, 0.22]} />
               <meshStandardMaterial color="#0f172a" roughness={0.6} />
             </mesh>
             {/* Red Light */}
-            <mesh position={[0, 3.9, 0.3]}>
-              <sphereGeometry args={[0.09, 8, 8]} />
+            <mesh position={[0, 3.8, 0.28]}>
+              <sphereGeometry args={[0.08, 8, 8]} />
               <meshStandardMaterial color="#ef4444" emissive="#ef4444" emissiveIntensity={1.4} />
             </mesh>
             {/* Amber Light */}
-            <mesh position={[0, 3.6, 0.3]}>
-              <sphereGeometry args={[0.09, 8, 8]} />
+            <mesh position={[0, 3.5, 0.28]}>
+              <sphereGeometry args={[0.08, 8, 8]} />
               <meshStandardMaterial color="#f59e0b" emissive="#f59e0b" emissiveIntensity={0.2} />
             </mesh>
             {/* Green Light */}
-            <mesh position={[0, 3.3, 0.3]}>
-              <sphereGeometry args={[0.09, 8, 8]} />
+            <mesh position={[0, 3.2, 0.28]}>
+              <sphereGeometry args={[0.08, 8, 8]} />
               <meshStandardMaterial color="#22c55e" emissive="#22c55e" emissiveIntensity={1.5} />
+            </mesh>
+            {/* Pedestrian Push-Button Signal Housing */}
+            <mesh position={[0, 1.2, 0.12]}>
+              <boxGeometry args={[0.16, 0.26, 0.12]} />
+              <meshStandardMaterial color="#facc15" roughness={0.5} />
             </mesh>
           </group>
         ))}
