@@ -314,6 +314,348 @@ function MarketDistrictBuilding({ stage, winningBlueprint }: { stage: number; wi
   );
 }
 
+// ── 3. PROCEDURAL SKYSCRAPER ARCHITECTURAL TEXTURES & GEOMETRY ──
+function createSkyscraperFacadeTexture(options: {
+  theme: 'blue' | 'red' | 'cyan' | 'amber' | 'corporate';
+  floors: number;
+  columns: number;
+  winningTeam: Team | 'tie' | null;
+  seed: number;
+}): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  const width = 512;
+  const height = 1024;
+  canvas.width = width;
+  canvas.height = height;
+  const ctx = canvas.getContext('2d')!;
+
+  const { theme, floors, columns, winningTeam, seed } = options;
+
+  // Background structural wall
+  ctx.fillStyle = '#0f172a';
+  ctx.fillRect(0, 0, width, height);
+
+  const floorHeight = height / floors;
+  const colWidth = width / columns;
+  const padX = colWidth * 0.12;
+  const padY = floorHeight * 0.16;
+  const winW = colWidth - padX * 2;
+  const winH = floorHeight - padY * 2;
+
+  // Palette selection
+  const isRed = winningTeam === 'red';
+  const isBlue = winningTeam === 'blue';
+
+  let primaryGlow = '#38bdf8';
+  let secondaryGlow = '#0284c7';
+  if (isRed || (!winningTeam && (theme === 'red' || theme === 'amber'))) {
+    primaryGlow = '#fb7185';
+    secondaryGlow = '#e11d48';
+  } else if (isBlue || (!winningTeam && (theme === 'blue' || theme === 'cyan'))) {
+    primaryGlow = '#38bdf8';
+    secondaryGlow = '#0284c7';
+  } else if (theme === 'corporate') {
+    primaryGlow = isRed ? '#fb7185' : '#38bdf8';
+    secondaryGlow = isRed ? '#e11d48' : '#0284c7';
+  }
+
+  for (let f = 0; f < floors; f++) {
+    const y = f * floorHeight;
+    const isLobby = f >= floors - 2;
+
+    // Floor Spandrel structural divider band
+    ctx.fillStyle = f % 2 === 0 ? '#1e293b' : '#334155';
+    ctx.fillRect(0, y + floorHeight - padY, width, padY);
+    ctx.fillStyle = '#64748b';
+    ctx.fillRect(0, y + floorHeight - padY, width, 2);
+
+    if (isLobby) {
+      // 2-story Grand Ground Lobby with warm chandeliers and illuminated glass
+      ctx.fillStyle = '#090d16';
+      ctx.fillRect(0, y, width, floorHeight);
+      for (let c = 0; c < columns; c++) {
+        const x = c * colWidth;
+        const lobbyGrad = ctx.createLinearGradient(x, y, x, y + floorHeight);
+        lobbyGrad.addColorStop(0, '#fef9c3');
+        lobbyGrad.addColorStop(0.4, '#fed7aa');
+        lobbyGrad.addColorStop(1, '#fde68a');
+        ctx.fillStyle = lobbyGrad;
+        ctx.fillRect(x + padX * 0.4, y + padY * 0.4, colWidth - padX * 0.8, floorHeight - padY * 0.8);
+
+        // Lobby structural column
+        ctx.fillStyle = '#0f172a';
+        ctx.fillRect(x, y, 4, floorHeight);
+      }
+      continue;
+    }
+
+    for (let c = 0; c < columns; c++) {
+      const x = c * colWidth;
+      const winX = x + padX;
+      const winY = y + padY;
+
+      // Pseudo-random light state
+      const hash = Math.sin(seed * 1000 + f * 43.17 + c * 89.31) * 10000;
+      const rand = hash - Math.floor(hash);
+
+      const isLit = rand < 0.52;
+      const isAccent = rand < 0.22;
+
+      if (isLit) {
+        const grad = ctx.createLinearGradient(winX, winY, winX, winY + winH);
+        if (isAccent || winningTeam) {
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.3, primaryGlow);
+          grad.addColorStop(1, secondaryGlow);
+        } else if (rand > 0.35) {
+          // Warm interior office lights
+          grad.addColorStop(0, '#fef9c3');
+          grad.addColorStop(0.5, '#fde047');
+          grad.addColorStop(1, '#f59e0b');
+        } else {
+          // Cool daylight office lights
+          grad.addColorStop(0, '#ffffff');
+          grad.addColorStop(0.5, '#bae6fd');
+          grad.addColorStop(1, '#38bdf8');
+        }
+        ctx.fillStyle = grad;
+        ctx.fillRect(winX, winY, winW, winH);
+
+        // Venetian blinds in some lit windows
+        if (rand > 0.28) {
+          ctx.fillStyle = 'rgba(15, 23, 42, 0.3)';
+          const blinds = 3;
+          const bh = winH / (blinds * 2);
+          for (let b = 0; b < blinds; b++) {
+            ctx.fillRect(winX, winY + b * bh * 2, winW, 1.2);
+          }
+        }
+      } else {
+        // Dark reflective glass with diagonal sky reflection
+        const darkGrad = ctx.createLinearGradient(winX, winY, winX + winW, winY + winH);
+        darkGrad.addColorStop(0, '#090d16');
+        darkGrad.addColorStop(0.5, '#1e293b');
+        darkGrad.addColorStop(1, '#0f172a');
+        ctx.fillStyle = darkGrad;
+        ctx.fillRect(winX, winY, winW, winH);
+
+        // Diagonal glass reflection highlight
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.12)';
+        ctx.beginPath();
+        ctx.moveTo(winX, winY + winH * 0.6);
+        ctx.lineTo(winX + winW * 0.6, winY);
+        ctx.lineTo(winX + winW, winY);
+        ctx.lineTo(winX, winY + winH);
+        ctx.closePath();
+        ctx.fill();
+      }
+
+      // Sleek Window Frame Border
+      ctx.strokeStyle = '#090d16';
+      ctx.lineWidth = 1.2;
+      ctx.strokeRect(winX, winY, winW, winH);
+
+      // Central Vertical Mullion
+      ctx.strokeStyle = '#1e293b';
+      ctx.lineWidth = 0.8;
+      ctx.beginPath();
+      ctx.moveTo(winX + winW / 2, winY);
+      ctx.lineTo(winX + winW / 2, winY + winH);
+      ctx.stroke();
+    }
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.RepeatWrapping;
+  texture.wrapT = THREE.RepeatWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
+function SkyscraperTower3D({
+  pos,
+  size,
+  floors,
+  columns,
+  theme,
+  minStage,
+  seed,
+  cityStage,
+  winningBlueprint,
+}: {
+  pos: [number, number, number];
+  size: [number, number, number];
+  floors: number;
+  columns: number;
+  theme: 'blue' | 'red' | 'cyan' | 'amber' | 'corporate';
+  minStage: number;
+  seed: number;
+  cityStage: number;
+  winningBlueprint: Team | 'tie' | null;
+}) {
+  const isVisible = cityStage >= minStage;
+  const beaconRef = useRef<THREE.Mesh>(null);
+
+  const texture = useMemo(
+    () =>
+      createSkyscraperFacadeTexture({
+        theme,
+        floors,
+        columns,
+        winningTeam: winningBlueprint,
+        seed,
+      }),
+    [theme, floors, columns, winningBlueprint, seed]
+  );
+
+  useFrame((state) => {
+    const t = state.clock.getElapsedTime();
+    if (beaconRef.current) {
+      // Blinking red aviation warning light at top of antenna
+      const blink = Math.sin(t * 6 + seed) > 0.2;
+      (beaconRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = blink ? 2.5 : 0.2;
+    }
+  });
+
+  if (!isVisible) {
+    // Skeletal foundation frame when unbuilt
+    return (
+      <group position={pos}>
+        <mesh position={[0, 0.4, 0]} receiveShadow>
+          <boxGeometry args={[size[0], 0.8, size[2]]} />
+          <meshStandardMaterial color="#334155" roughness={0.8} />
+        </mesh>
+        {[-size[0] / 2 + 0.2, size[0] / 2 - 0.2].map((fx, fi) => (
+          <mesh key={fi} position={[fx, 1.8, 0]}>
+            <boxGeometry args={[0.1, 2.2, 0.1]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.7} />
+          </mesh>
+        ))}
+      </group>
+    );
+  }
+
+  const [w, h, d] = size;
+  const cornerCols = [
+    [-w / 2, 0, -d / 2],
+    [w / 2, 0, -d / 2],
+    [-w / 2, 0, d / 2],
+    [w / 2, 0, d / 2],
+  ];
+
+  const spandrelHeights = [h * 0.25 - h / 2, h * 0.5 - h / 2, h * 0.75 - h / 2];
+
+  return (
+    <group position={pos}>
+      {/* Main Textured Skyscraper Core */}
+      <mesh position={[0, 0, 0]} castShadow receiveShadow>
+        <boxGeometry args={size} />
+        <meshStandardMaterial map={texture} roughness={0.25} metalness={0.35} />
+      </mesh>
+
+      {/* Dark Roof Gravel Cap */}
+      <mesh position={[0, h / 2 + 0.01, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[w, d]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.85} metalness={0.2} />
+      </mesh>
+
+      {/* 4 Full-Height Vertical Structural Corner Columns */}
+      {cornerCols.map((cPos, ci) => (
+        <mesh key={ci} position={[cPos[0], 0, cPos[2]]} castShadow>
+          <boxGeometry args={[0.16, h + 0.08, 0.16]} />
+          <meshStandardMaterial color="#f8fafc" metalness={0.85} roughness={0.2} />
+        </mesh>
+      ))}
+
+      {/* Horizontal Architectural Floor Ledge Bands */}
+      {spandrelHeights.map((sh, si) => (
+        <mesh key={si} position={[0, sh, 0]} castShadow>
+          <boxGeometry args={[w + 0.12, 0.18, d + 0.12]} />
+          <meshStandardMaterial color="#cbd5e1" metalness={0.8} roughness={0.25} />
+        </mesh>
+      ))}
+
+      {/* Ground-Level Grand Modern Entrance Canopy (+Z Front) */}
+      <group position={[0, -h / 2 + 1.8, d / 2 + 0.55]}>
+        <mesh castShadow>
+          <boxGeometry args={[w * 0.75, 0.08, 1.1]} />
+          <meshStandardMaterial color="#1e293b" metalness={0.85} roughness={0.2} />
+        </mesh>
+        {/* Recessed Warm Under-Canopy Spotlight */}
+        <mesh position={[0, -0.045, 0]}>
+          <boxGeometry args={[w * 0.65, 0.01, 0.9]} />
+          <meshStandardMaterial color="#fef08a" emissive="#fde047" emissiveIntensity={1.4} />
+        </mesh>
+        {/* Twin Steel Canopy Support Struts */}
+        {[-w * 0.3, w * 0.3].map((cx, ci) => (
+          <mesh key={ci} position={[cx, -0.9, 0.45]}>
+            <cylinderGeometry args={[0.035, 0.035, 1.8, 8]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.9} roughness={0.15} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Rooftop Parapet Perimeter Safety Rails */}
+      {[-w / 2 + 0.05, w / 2 - 0.05].map((px, pi) => (
+        <mesh key={pi} position={[px, h / 2 + 0.22, 0]}>
+          <boxGeometry args={[0.08, 0.42, d]} />
+          <meshStandardMaterial color="#64748b" metalness={0.7} />
+        </mesh>
+      ))}
+      {[-d / 2 + 0.05, d / 2 - 0.05].map((pz, pi) => (
+        <mesh key={pi} position={[0, h / 2 + 0.22, pz]}>
+          <boxGeometry args={[w, 0.42, 0.08]} />
+          <meshStandardMaterial color="#64748b" metalness={0.7} />
+        </mesh>
+      ))}
+
+      {/* Rooftop Stepped Mechanical Penthouse Box */}
+      <mesh position={[0, h / 2 + 0.55, 0]} castShadow>
+        <boxGeometry args={[w * 0.55, 1.1, d * 0.55]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.6} metalness={0.4} />
+      </mesh>
+
+      {/* Rooftop Dual HVAC Industrial Chillers with Fan Grilles */}
+      {[-w * 0.2, w * 0.2].map((cx, ci) => (
+        <group key={ci} position={[cx, h / 2 + 0.3, d * 0.22]}>
+          <mesh castShadow>
+            <boxGeometry args={[0.65, 0.48, 0.45]} />
+            <meshStandardMaterial color="#475569" roughness={0.7} metalness={0.5} />
+          </mesh>
+          <mesh position={[0, 0.25, 0]}>
+            <cylinderGeometry args={[0.16, 0.16, 0.04, 12]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.9} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Communications Antenna Spire */}
+      <mesh position={[0, h / 2 + 2.5, 0]} castShadow>
+        <cylinderGeometry args={[0.035, 0.12, 2.8, 8]} />
+        <meshStandardMaterial color="#cbd5e1" metalness={0.95} roughness={0.15} />
+      </mesh>
+
+      {/* Pulsing Red Aviation Warning Beacon */}
+      <mesh ref={beaconRef} position={[0, h / 2 + 3.9, 0]}>
+        <sphereGeometry args={[0.14, 12, 12]} />
+        <meshStandardMaterial color="#ef4444" emissive="#dc2626" emissiveIntensity={2.0} />
+      </mesh>
+    </group>
+  );
+}
+
+const SKYSCRAPERS = [
+  { id: 'west_tower_1', pos: [-6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'blue' as const, minStage: 2, seed: 1 },
+  { id: 'west_tower_2', pos: [-10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'cyan' as const, minStage: 0, seed: 2 },
+  { id: 'west_tower_3', pos: [-8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'blue' as const, minStage: 4, seed: 3 },
+  { id: 'east_tower_1', pos: [6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'red' as const, minStage: 2, seed: 4 },
+  { id: 'east_tower_2', pos: [10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'amber' as const, minStage: 0, seed: 5 },
+  { id: 'east_tower_3', pos: [8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'red' as const, minStage: 4, seed: 6 },
+  { id: 'west_metro',   pos: [-16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'cyan' as const, minStage: 5, seed: 7 },
+  { id: 'east_metro',   pos: [16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'amber' as const, minStage: 5, seed: 8 },
+  { id: 'civic_center', pos: [0, 6, -22] as [number, number, number], size: [5.0, 12, 4.0] as [number, number, number], floors: 16, cols: 8, theme: 'corporate' as const, minStage: 5, seed: 9 },
+];
+
 export function CityArchitecture3D() {
   const cityStage = useGraphworksStore((s) => s.cityStage);
   const winningBlueprint = useGraphworksStore((s) => s.winningBlueprint);
@@ -363,30 +705,6 @@ export function CityArchitecture3D() {
   const upperRingRef = useRef<THREE.Group>(null);
   const coreGlowMeshRef = useRef<THREE.Mesh>(null);
   const fountainJetsRef = useRef<THREE.Group>(null);
-
-  // Skyscrapers definition: glassColor dynamically shifts on winningBlueprint
-  const towers = useMemo(() => {
-    const isBlueWin = winningBlueprint === 'blue';
-    const isRedWin = winningBlueprint === 'red';
-
-    const getGlass = (defaultCol: string) => {
-      if (isBlueWin) return '#38bdf8';
-      if (isRedWin) return '#f87171';
-      return defaultCol;
-    };
-
-    return [
-      { pos: [-6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], color: '#f8fafc', glassColor: getGlass('#38bdf8'), minStage: 2 },
-      { pos: [-10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], color: '#ffffff', glassColor: getGlass('#67e8f9'), minStage: 0 },
-      { pos: [-8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], color: '#e2e8f0', glassColor: getGlass('#38bdf8'), minStage: 4 },
-      { pos: [6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], color: '#f8fafc', glassColor: getGlass('#f87171'), minStage: 2 },
-      { pos: [10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], color: '#ffffff', glassColor: getGlass('#fb7185'), minStage: 0 },
-      { pos: [8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], color: '#e2e8f0', glassColor: getGlass('#f87171'), minStage: 4 },
-      { pos: [-16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], color: '#cbd5e1', glassColor: getGlass('#67e8f9'), minStage: 5 },
-      { pos: [16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], color: '#cbd5e1', glassColor: getGlass('#fb7185'), minStage: 5 },
-      { pos: [0, 6, -22] as [number, number, number], size: [5.0, 12, 4.0] as [number, number, number], color: '#e2e8f0', glassColor: getGlass('#38bdf8'), minStage: 5 },
-    ];
-  }, [winningBlueprint]);
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
@@ -465,11 +783,11 @@ export function CityArchitecture3D() {
           return (
             <group key={idx} position={[px, 0.04, pz]}>
               <mesh rotation={[-Math.PI / 2, 0, 0]}>
-                <circleGeometry args={[1.1, 16]} />
+                <circleGeometry args={[0.82, 16]} />
                 <meshStandardMaterial color={cityStage >= 3 ? '#22c55e' : '#84cc16'} roughness={0.8} />
               </mesh>
-              <mesh position={[0, 0.08, 0]}>
-                <cylinderGeometry args={[1.15, 1.15, 0.15, 16]} />
+              <mesh position={[0, 0.04, 0]}>
+                <cylinderGeometry args={[0.85, 0.85, 0.08, 16]} />
                 <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
               </mesh>
             </group>
@@ -740,56 +1058,20 @@ export function CityArchitecture3D() {
 
       {/* ── 4. MODERN METROPOLITAN SKYSCRAPERS ── */}
       <group>
-        {towers.map((t, idx) => {
-          const isVisible = cityStage >= t.minStage;
-          if (!isVisible) {
-            // Render skeletal foundation frame when unbuilt
-            return (
-              <group key={idx} position={t.pos}>
-                <mesh position={[0, 0.4, 0]} receiveShadow>
-                  <boxGeometry args={[t.size[0], 0.8, t.size[2]]} />
-                  <meshStandardMaterial color="#334155" roughness={0.8} />
-                </mesh>
-                {/* Structural framework poles */}
-                {[-t.size[0] / 2 + 0.2, t.size[0] / 2 - 0.2].map((fx, fi) => (
-                  <mesh key={fi} position={[fx, 1.8, 0]}>
-                    <boxGeometry args={[0.1, 2.2, 0.1]} />
-                    <meshStandardMaterial color="#94a3b8" metalness={0.7} />
-                  </mesh>
-                ))}
-              </group>
-            );
-          }
-
-          return (
-            <group key={idx} position={t.pos}>
-              {/* Main Tower Core */}
-              <mesh position={[0, 0, 0]} castShadow receiveShadow>
-                <boxGeometry args={t.size} />
-                <meshStandardMaterial color={t.color} roughness={0.35} metalness={0.15} />
-              </mesh>
-
-              {/* Architectural Glass Curtain Wall Insets */}
-              <mesh position={[0, 0, t.size[2] / 2 + 0.02]} scale={[t.size[0] * 0.85, t.size[1] * 0.88, 0.05]}>
-                <boxGeometry args={[1, 1, 1]} />
-                <meshStandardMaterial
-                  color={t.glassColor}
-                  emissive={t.glassColor}
-                  emissiveIntensity={winningBlueprint ? 0.45 : 0.2}
-                  roughness={0.1}
-                  transparent
-                  opacity={0.85}
-                />
-              </mesh>
-
-              {/* Penthouse Rooftop Box */}
-              <mesh position={[0, t.size[1] / 2 + 0.35, 0]}>
-                <boxGeometry args={[t.size[0] * 0.65, 0.7, t.size[2] * 0.65]} />
-                <meshStandardMaterial color="#0f172a" roughness={0.5} />
-              </mesh>
-            </group>
-          );
-        })}
+        {SKYSCRAPERS.map((t) => (
+          <SkyscraperTower3D
+            key={t.id}
+            pos={t.pos}
+            size={t.size}
+            floors={t.floors}
+            columns={t.cols}
+            theme={t.theme}
+            minStage={t.minStage}
+            seed={t.seed}
+            cityStage={cityStage}
+            winningBlueprint={winningBlueprint}
+          />
+        ))}
       </group>
 
       {/* ── 5. 3D SKY PROCLAMATION (VICTORY FINALE) ── */}

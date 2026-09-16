@@ -108,37 +108,32 @@ const ARCHETYPE_STYLES: Record<CharacterRole, CharacterStyle> = {
 
 // ── WORLD OBSTACLES (HARD BOUNDARIES HUMANS MUST NEVER ENTER) ──
 const CIRCULAR_OBSTACLES = [
-  // Central Data Tower base & fountain
-  { x: 0, z: 0, radius: 2.8, name: 'tower_base' },
-  // Park central fountain
-  { x: 0, z: 11, radius: 2.1, name: 'park_fountain' },
-  // Plaza flowerbeds
-  { x: 3.25, z: 3.25, radius: 1.3, name: 'flowerbed_1' },
-  { x: -3.25, z: 3.25, radius: 1.3, name: 'flowerbed_2' },
-  { x: 3.25, z: -3.25, radius: 1.3, name: 'flowerbed_3' },
-  { x: -3.25, z: -3.25, radius: 1.3, name: 'flowerbed_4' },
-  // Boulevard streetlamps & poles (Z = 3.0)
-  { x: -26, z: 3.0, radius: 0.45, name: 'lamp_1' },
-  { x: -18, z: 3.0, radius: 0.45, name: 'lamp_2' },
-  { x: -10, z: 3.0, radius: 0.45, name: 'lamp_3' },
-  { x: 0, z: 3.0, radius: 0.45, name: 'lamp_4' },
-  { x: 10, z: 3.0, radius: 0.45, name: 'lamp_5' },
-  { x: 18, z: 3.0, radius: 0.45, name: 'lamp_6' },
-  { x: 26, z: 3.0, radius: 0.45, name: 'lamp_7' },
+  // Central Data Tower base
+  { x: 0, z: 0, radius: 2.3, name: 'tower_base' },
+  // Park central fountain bowl
+  { x: 0, z: 11, radius: 1.6, name: 'park_fountain' },
+  // 4 Plaza Ornamental Flowerbeds
+  { x: 3.25, z: 3.25, radius: 0.9, name: 'flowerbed_ne' },
+  { x: -3.25, z: 3.25, radius: 0.9, name: 'flowerbed_nw' },
+  { x: -3.25, z: -3.25, radius: 0.9, name: 'flowerbed_sw' },
+  { x: 3.25, z: -3.25, radius: 0.9, name: 'flowerbed_se' },
+  // Boulevard streetlamps & poles (Z = 3.0, X=0 omitted for concourse)
+  { x: -26, z: 3.0, radius: 0.35, name: 'lamp_1' },
+  { x: -18, z: 3.0, radius: 0.35, name: 'lamp_2' },
+  { x: -10, z: 3.0, radius: 0.35, name: 'lamp_3' },
+  { x: 10, z: 3.0, radius: 0.35, name: 'lamp_5' },
+  { x: 18, z: 3.0, radius: 0.35, name: 'lamp_6' },
+  { x: 26, z: 3.0, radius: 0.35, name: 'lamp_7' },
   // Traffic signal poles
-  { x: -8.5, z: 3.1, radius: 0.45, name: 'traffic_pole_1' },
-  { x: 8.5, z: 3.1, radius: 0.45, name: 'traffic_pole_2' },
+  { x: -8.5, z: 3.1, radius: 0.35, name: 'traffic_pole_1' },
+  { x: 8.5, z: 3.1, radius: 0.35, name: 'traffic_pole_2' },
   // Tree trunks
-  { x: -7.2, z: 9.5, radius: 0.5, name: 'tree_1' },
-  { x: 7.2, z: 9.5, radius: 0.5, name: 'tree_2' },
-  { x: -6.8, z: 12.8, radius: 0.5, name: 'tree_3' },
-  { x: 6.8, z: 12.8, radius: 0.5, name: 'tree_4' },
-  { x: -4.2, z: 14.2, radius: 0.5, name: 'tree_5' },
-  { x: 4.2, z: 14.2, radius: 0.5, name: 'tree_6' },
-  { x: -12.0, z: 8.2, radius: 0.5, name: 'tree_7' },
-  { x: -16.0, z: 8.2, radius: 0.5, name: 'tree_8' },
-  { x: 12.0, z: 8.2, radius: 0.5, name: 'tree_9' },
-  { x: 16.0, z: 8.2, radius: 0.5, name: 'tree_10' },
+  { x: -7.2, z: 9.5, radius: 0.35, name: 'tree_1' },
+  { x: 7.2, z: 9.5, radius: 0.35, name: 'tree_2' },
+  { x: -6.8, z: 12.8, radius: 0.35, name: 'tree_3' },
+  { x: 6.8, z: 12.8, radius: 0.35, name: 'tree_4' },
+  { x: -4.2, z: 14.2, radius: 0.35, name: 'tree_5' },
+  { x: 4.2, z: 14.2, radius: 0.35, name: 'tree_6' },
 ];
 
 const BOX_OBSTACLES = [
@@ -147,9 +142,9 @@ const BOX_OBSTACLES = [
   { minX: -12.2, maxX: -8.8, minZ: -6.8, maxZ: -3.2, name: 'bldg_left_2' },
   { minX: 4.5, maxX: 8.5, minZ: -10.0, maxZ: -6.0, name: 'bldg_right_1' },
   { minX: 8.8, maxX: 12.2, minZ: -6.8, maxZ: -3.2, name: 'bldg_right_2' },
-  // Park Benches
-  { minX: -4.3, maxX: -2.7, minZ: 11.8, maxZ: 12.6, name: 'bench_left' },
-  { minX: 2.7, maxX: 4.3, minZ: 11.8, maxZ: 12.6, name: 'bench_right' },
+  // Park Benches (Exact bounds)
+  { minX: -4.1, maxX: -2.9, minZ: 12.0, maxZ: 12.4, name: 'bench_left' },
+  { minX: 2.9, maxX: 4.1, minZ: 12.0, maxZ: 12.4, name: 'bench_right' },
 ];
 
 // ── HIERARCHICALLY ARTICULATED HUMAN RIG ──
@@ -697,142 +692,167 @@ export function StylizedHumanRig({
 
 // ── PEDESTRIAN NAVIGATOR & CROWD CONTROLLER ──
 export function CityPedestrians3D() {
-  // Carefully planned routes that stay strictly on sidewalks and paths
+  // Carefully planned routes that stay strictly on spacious sidewalks and unobstructed paths
   const pedestrians = useMemo(() => [
-    // 1. City Worker: Inspecting central civic plaza walkway
+    // 1. City Worker (Orange vest): Patrols open granite plaza around Data Tower foundation
     {
       id: 'worker-1',
       role: 'city_worker' as CharacterRole,
       route: [
-        [-2.0, 0, 3.8],
-        [2.0, 0, 3.8],
-        [3.8, 0, 2.0],
-        [3.8, 0, -2.0],
-        [-3.8, 0, -2.0],
-        [-3.8, 0, 2.0],
+        [0.0, 0, 5.2],
+        [3.0, 0, 4.2],
+        [5.2, 0, 0.0],
+        [3.0, 0, -4.2],
+        [0.0, 0, -5.2],
+        [-3.0, 0, -4.2],
+        [-5.2, 0, 0.0],
+        [-3.0, 0, 4.2],
       ],
       speed: 1.05,
       currentWp: 0,
-      pos: new THREE.Vector3(-2.0, 0, 3.8),
+      pos: new THREE.Vector3(0.0, 0.03, 5.2),
+      lastPos: new THREE.Vector3(0.0, 0.03, 5.2),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 0,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 2. Weather Scientist: Walking along South park trail
+    // 2. Weather Scientist (Azure blue coat): Strolls gracefully along South park promenade
     {
       id: 'scientist-1',
       role: 'weather_scientist' as CharacterRole,
       route: [
-        [-5.2, 0, 9.5],
-        [-2.5, 0, 9.8],
-        [-1.6, 0, 12.8],
-        [-5.2, 0, 12.0],
+        [-5.2, 0, 9.4],
+        [-5.2, 0, 13.8],
+        [0.0, 0, 14.4],
+        [5.2, 0, 13.8],
+        [5.2, 0, 9.4],
+        [0.0, 0, 9.0],
       ],
       speed: 0.95,
       currentWp: 0,
-      pos: new THREE.Vector3(-5.2, 0, 9.5),
+      pos: new THREE.Vector3(-5.2, 0.03, 9.4),
+      lastPos: new THREE.Vector3(-5.2, 0.03, 9.4),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 1.2,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 3. Train Passenger: Commuting via East Zebra Crosswalk (X = 5.0)
+    // 3. Train Passenger (Violet sweater): Commutes via East Zebra Crosswalk (X = 5.0)
     {
       id: 'passenger-1',
       role: 'train_passenger' as CharacterRole,
       route: [
         [5.0, 0, 8.2], // South sidewalk curb waiting point
-        [5.0, 0, 2.8], // Crosses zebra crossing to North sidewalk
+        [5.0, 0, 2.6], // North sidewalk across zebra crossing
         [7.2, 0, 2.6], // North promenade
-        [5.0, 0, 2.8], // North sidewalk curb waiting point
-        [5.0, 0, 8.2], // Crosses zebra crossing back to South sidewalk
+        [7.2, 0, 8.2], // South promenade
       ],
-      speed: 1.25,
+      speed: 1.2,
       currentWp: 0,
-      pos: new THREE.Vector3(5.0, 0, 8.2),
+      pos: new THREE.Vector3(5.0, 0.03, 8.2),
+      lastPos: new THREE.Vector3(5.0, 0.03, 8.2),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 2.5,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 4. Park Visitor 1: Strolling along park promenade loop
+    // 4. Park Visitor 1 (Green tee): Strolling along park garden trail
     {
       id: 'visitor-1',
       role: 'park_visitor' as CharacterRole,
       route: [
-        [-2.5, 0, 13.5],
-        [0.0, 0, 13.8],
-        [2.5, 0, 13.5],
-        [1.2, 0, 10.2],
-        [-1.2, 0, 10.2],
+        [-2.4, 0, 14.2],
+        [2.4, 0, 14.2],
+        [4.8, 0, 9.2],
+        [2.4, 0, 9.0],
+        [-2.4, 0, 9.0],
+        [-4.8, 0, 9.2],
       ],
       speed: 0.92,
       currentWp: 0,
-      pos: new THREE.Vector3(-2.5, 0, 13.5),
+      pos: new THREE.Vector3(-2.4, 0.03, 14.2),
+      lastPos: new THREE.Vector3(-2.4, 0.03, 14.2),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 0.8,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 5. Traffic Officer: Supervising West Zebra Crosswalk (X = -5.0)
+    // 5. Traffic Officer (Lime vest): Supervising West Zebra Crosswalk (X = -5.0)
     {
       id: 'officer-1',
       role: 'traffic_officer' as CharacterRole,
       route: [
-        [-5.0, 0, 2.8], // North sidewalk curb
+        [-5.0, 0, 2.6], // North sidewalk curb
         [-5.0, 0, 8.2], // South sidewalk curb
-        [-5.0, 0, 2.8],
       ],
       speed: 0.85,
       currentWp: 0,
-      pos: new THREE.Vector3(-5.0, 0, 2.8),
+      pos: new THREE.Vector3(-5.0, 0.03, 2.6),
+      lastPos: new THREE.Vector3(-5.0, 0.03, 2.6),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 1.9,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 6. Systems Engineer: Calibrating Data Tower along North concourse
+    // 6. Systems Engineer (Cyan coat): North concourse inspection
     {
       id: 'engineer-1',
       role: 'systems_engineer' as CharacterRole,
       route: [
-        [2.2, 0, 3.8],
-        [1.5, 0, 2.2],
-        [-1.5, 0, 2.2],
-        [-2.2, 0, 3.8],
+        [0.0, 0, 4.6],
+        [4.6, 0, 0.0],
+        [0.0, 0, -4.6],
+        [-4.6, 0, 0.0],
       ],
       speed: 1.0,
       currentWp: 0,
-      pos: new THREE.Vector3(2.2, 0, 3.8),
+      pos: new THREE.Vector3(0.0, 0.03, 4.6),
+      lastPos: new THREE.Vector3(0.0, 0.03, 4.6),
+      stuckTimer: 0,
       yaw: 0,
       walkPhase: 3.1,
       isWalking: true,
       state: 'WALKING',
       stateTimer: 0,
     },
+    // 7. Park Botanist (Cyan / Blue coat): Walking the East-West botanical garden trail
+    {
+      id: 'botanist-1',
+      role: 'weather_scientist' as CharacterRole,
+      route: [
+        [4.8, 0, 13.8],
+        [0.0, 0, 14.2],
+        [-4.8, 0, 13.8],
+        [-4.8, 0, 9.2],
+        [0.0, 0, 9.2],
+        [4.8, 0, 9.2],
+      ],
+      speed: 0.88,
+      currentWp: 0,
+      pos: new THREE.Vector3(4.8, 0.03, 13.8),
+      lastPos: new THREE.Vector3(4.8, 0.03, 13.8),
+      stuckTimer: 0,
+      yaw: -Math.PI / 2,
+      walkPhase: 0.4,
+      isWalking: true,
+      state: 'WALKING',
+      stateTimer: 0,
+    },
   ], []);
 
-  // Bench Sitters: Peaceful citizens enjoying park fountain
-  const benchSitters = useMemo(() => [
-    {
-      id: 'sitter-left',
-      role: 'park_visitor' as CharacterRole,
-      pos: [-3.5, 0.05, 12.2] as [number, number, number],
-      rotY: 0,
-    },
-    {
-      id: 'sitter-right',
-      role: 'weather_scientist' as CharacterRole,
-      pos: [3.5, 0.05, 12.2] as [number, number, number],
-      rotY: 0,
-    },
-  ], []);
+  // Bench Sitters: Set to empty so no character is static or motionless
+  const benchSitters = useMemo(() => [] as { id: string; role: CharacterRole; pos: [number, number, number]; rotY: number }[], []);
 
   const gamePhase = useGraphworksStore((s) => s.gamePhase);
   const cityStage = useGraphworksStore((s) => s.cityStage);
@@ -882,42 +902,55 @@ export function CityPedestrians3D() {
       const targetVec = new THREE.Vector3(targetArr[0], targetArr[1], targetArr[2]);
       const dist = ped.pos.distanceTo(targetVec);
 
-      // Advance waypoint upon arrival
-      if (dist < 0.35) {
+      // Advance waypoint upon arrival (generous 0.55m threshold)
+      if (dist < 0.55) {
         ped.currentWp = (ped.currentWp + 1) % ped.route.length;
-        if (Math.random() < 0.2) {
+        if (Math.random() < 0.1) {
           ped.isWalking = false;
           ped.state = 'IDLE';
-          ped.stateTimer = 1.8;
+          ped.stateTimer = 1.0;
+        }
+      }
+
+      // ── SMART STUCK PREVENTION & AUTO-RECOVERY ENGINE ──
+      if (ped.isWalking) {
+        const movedDist = ped.pos.distanceTo(ped.lastPos);
+        if (movedDist < 0.02) {
+          ped.stuckTimer += delta;
+          if (ped.stuckTimer > 0.7) {
+            // Unstuck recovery: advance waypoint and give gentle lateral escape nudge
+            ped.currentWp = (ped.currentWp + 1) % ped.route.length;
+            ped.stuckTimer = 0;
+            const outward = new THREE.Vector2(ped.pos.x, ped.pos.z).normalize();
+            ped.pos.x += outward.x * 0.35;
+            ped.pos.z += outward.y * 0.35;
+          }
+        } else {
+          ped.stuckTimer = 0;
+          ped.lastPos.copy(ped.pos);
         }
       }
 
       // ── 1. STRICT VEHICLE & ROAD CROSSING SAFETY PHYSICS ──
-      // Determine if next leg crosses the road avenue (Z between 3.5 and 7.5)
       const isTargetAcrossRoad =
         (ped.pos.z < 3.5 && targetVec.z > 5.5) ||
         (ped.pos.z > 7.5 && targetVec.z < 5.5);
 
-      // If approaching road curb holding zone
-      const atNorthCurb = ped.pos.z >= 2.6 && ped.pos.z <= 3.4;
-      const atSouthCurb = ped.pos.z >= 7.6 && ped.pos.z <= 8.4;
-      const isNearCrosswalk = Math.abs(ped.pos.x - (-5.0)) < 1.2 || Math.abs(ped.pos.x - 5.0) < 1.2;
+      const atNorthCurb = ped.pos.z >= 2.4 && ped.pos.z <= 3.2;
+      const atSouthCurb = ped.pos.z >= 7.8 && ped.pos.z <= 8.6;
+      const isNearCrosswalk = Math.abs(ped.pos.x - (-5.0)) < 1.4 || Math.abs(ped.pos.x - 5.0) < 1.4;
 
       if (isTargetAcrossRoad && isNearCrosswalk && (atNorthCurb || atSouthCurb)) {
-        // Pedestrian is at the curb ready to cross: verify highway traffic clearance
         const safeToCross = cityTraffic.isRoadSafeToCross(ped.pos.x);
         if (!safeToCross) {
-          // Cars are approaching or moving! HALT at curb, DO NOT STEP ONTO ROAD!
           ped.isWalking = false;
           ped.state = 'WAITING_TRAFFIC';
         } else {
-          // Highway is clear or vehicles are stopped at zebra line: safe to cross!
           ped.isWalking = true;
           ped.state = 'WALKING';
         }
       }
 
-      // If actively crossing the road, register with coordinator so vehicles stop!
       const onRoadway = ped.pos.z >= 3.5 && ped.pos.z <= 7.5;
       if (onRoadway) {
         cityTraffic.updatePedestrian(ped.id, ped.pos.x, ped.pos.z);
@@ -954,12 +987,11 @@ export function CityPedestrians3D() {
         ped.pos.z += Math.cos(ped.yaw) * moveDist;
         ped.pos.y = 0.03; // Ground clamp
 
-        // Advance walk cycle frequency locked to travel speed (no sliding!)
+        // Advance walk cycle frequency locked to travel speed
         ped.walkPhase += moveDist * 5.2;
       }
 
-      // ── 3. HARD OBSTACLE COLLISION BOUNDARIES (POLES, BUILDINGS, TREES, FOUNTAINS) ──
-      // A. Circular Obstacles (Streetlamps, signal poles, trees, fountains, tower base)
+      // ── 3. HARD OBSTACLE COLLISION BOUNDARIES WITH TANGENTIAL DEFLECTION ──
       CIRCULAR_OBSTACLES.forEach((obs) => {
         const dx = ped.pos.x - obs.x;
         const dz = ped.pos.z - obs.z;
@@ -969,10 +1001,14 @@ export function CityPedestrians3D() {
           const overlap = minDist - dist;
           ped.pos.x += (dx / dist) * overlap;
           ped.pos.z += (dz / dist) * overlap;
+
+          // Tangential sliding deflection: guide character smoothly around obstacle!
+          const tangentAngle = Math.atan2(-dz, dx);
+          ped.yaw = THREE.MathUtils.damp(ped.yaw, tangentAngle, 6, delta);
         }
       });
 
-      // B. Box Obstacles (Skyscrapers, district buildings, benches)
+      // Box Obstacles (Skyscrapers, district buildings, benches)
       BOX_OBSTACLES.forEach((box) => {
         const pad = 0.35;
         if (
@@ -981,7 +1017,6 @@ export function CityPedestrians3D() {
           ped.pos.z >= box.minZ - pad &&
           ped.pos.z <= box.maxZ + pad
         ) {
-          // Push out along the closest face
           const dLeft = Math.abs(ped.pos.x - (box.minX - pad));
           const dRight = Math.abs(ped.pos.x - (box.maxX + pad));
           const dFront = Math.abs(ped.pos.z - (box.minZ - pad));

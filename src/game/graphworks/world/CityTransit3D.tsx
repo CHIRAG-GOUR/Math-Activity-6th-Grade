@@ -286,8 +286,8 @@ export function CityTransit3D() {
           <primitive object={CITY_MAT.sidewalk} attach="material" />
         </mesh>
 
-        {/* Modern Streetlamps along Boulevard */}
-        {[-26, -18, -10, 0, 10, 18, 26].map((lx) => (
+        {/* Modern Streetlamps along Boulevard (omitting X=0 for open pedestrian plaza concourse) */}
+        {[-26, -18, -10, 10, 18, 26].map((lx) => (
           <group key={lx} position={[lx, 0, -2.5]}>
             <mesh position={[0, 1.6, 0]}>
               <cylinderGeometry args={[0.04, 0.06, 3.2, 8]} />
