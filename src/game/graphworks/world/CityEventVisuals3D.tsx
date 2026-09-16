@@ -593,12 +593,12 @@ export function CityEventVisuals3D() {
     crisisResolved: false,
   };
 
-  // Weather state
+  // Weather state (Rain is strictly hidden unless the weather day event is active)
   const isWeatherEvent = eventCode === 'WEATHER_DAY';
-  const isRaining = isWeatherEvent || blueCity.weather.isRaining || redCity.weather.isRaining;
+  const isRaining = isWeatherEvent && (blueCity.weather.rainfall > 0 || redCity.weather.rainfall > 0 || blueCity.weather.isRaining || redCity.weather.isRaining);
   const rainIntensity = isWeatherEvent
     ? (phase / 5) * (blueCity.weather.temperature < 15 ? 1.0 : 0.6)
-    : blueCity.weather.rainfall > 0 ? 0.7 : 0.3;
+    : 0;
   const isRainClearing = isWeatherEvent && phase === 5;
 
   return (

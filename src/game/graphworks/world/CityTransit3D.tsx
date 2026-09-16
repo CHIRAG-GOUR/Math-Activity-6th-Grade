@@ -343,76 +343,213 @@ import { useGraphworksStore } from '../store/graphworksStore';export function Ci
           <primitive object={CITY_MAT.sidewalk} attach="material" />
         </mesh>
 
-        {/* ── GRAND BOULEVARD CENTRAL FOUNTAIN ROUNDABOUT ── */}
+        {/* ── GRAND BOULEVARD CENTRAL CIVIC ROUNDABOUT (FOUNTAIN UNLOCKS AT QUESTION 3) ── */}
         <group position={[0, 0, 0]}>
-          {/* Raised Granite Roundabout Island Curb */}
-          <mesh position={[0, 0.12, 0]} receiveShadow castShadow>
-            <cylinderGeometry args={[2.25, 2.38, 0.24, 32]} />
-            <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
+          {/* Raised Dark Slate Roundabout Curb */}
+          <mesh position={[0, 0.14, 0]} receiveShadow castShadow>
+            <cylinderGeometry args={[2.32, 2.46, 0.28, 32]} />
+            <meshStandardMaterial color="#334155" roughness={0.6} metalness={0.2} />
           </mesh>
-          {/* Island Landscaped Lawn Ring */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.245, 0]}>
-            <ringGeometry args={[1.75, 2.2, 32]} />
+          {/* Polished Granite Curb Rim */}
+          <mesh position={[0, 0.28, 0]}>
+            <cylinderGeometry args={[2.34, 2.34, 0.04, 32]} />
+            <meshStandardMaterial color="#94a3b8" roughness={0.4} metalness={0.3} />
+          </mesh>
+          {/* Landscaped Green Lawn Apron */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.285, 0]}>
+            <circleGeometry args={[2.3, 32]} />
             <meshStandardMaterial color="#16a34a" roughness={0.8} />
           </mesh>
 
-          {/* Tier 1 Fountain Basin (Polished White Marble) */}
-          <mesh position={[0, 0.38, 0]} castShadow receiveShadow>
-            <cylinderGeometry args={[1.75, 1.82, 0.32, 28]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.25} />
-          </mesh>
-          {/* Shimmering Pool Water Surface */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.52, 0]}>
-            <circleGeometry args={[1.68, 28]} />
-            <meshStandardMaterial
-              color={winningBlueprint === 'blue' ? '#38bdf8' : winningBlueprint === 'red' ? '#f87171' : '#0ea5e9'}
-              roughness={0.1}
-              metalness={0.2}
-              transparent
-              opacity={0.88}
-            />
-          </mesh>
+          {cityStage < 3 ? (
+            // ── STAGES 0–2: LANDSCAPED CIVIC GARDEN ROUNDABOUT ──
+            <group position={[0, 0.3, 0]}>
+              {/* Circular Flowerbed Mound */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.05, 0]}>
+                <circleGeometry args={[1.5, 24]} />
+                <meshStandardMaterial color="#15803d" roughness={0.85} />
+              </mesh>
+              {/* Colorful Flower Rings */}
+              {[0, 1, 2, 3, 4, 5, 6, 7].map((fi) => {
+                const fa = (fi / 8) * Math.PI * 2;
+                const fx = Math.cos(fa) * 1.1;
+                const fz = Math.sin(fa) * 1.1;
+                return (
+                  <mesh key={fi} position={[fx, 0.12, fz]}>
+                    <sphereGeometry args={[0.1, 6, 6]} />
+                    <meshStandardMaterial color={fi % 2 === 0 ? '#f43f5e' : '#fbbf24'} />
+                  </mesh>
+                );
+              })}
+              {/* Central Survey Marker / Future Landmark Plaque */}
+              <mesh position={[0, 0.15, 0]}>
+                <cylinderGeometry args={[0.3, 0.35, 0.2, 12]} />
+                <meshStandardMaterial color="#64748b" roughness={0.5} />
+              </mesh>
+              <mesh position={[0, 0.26, 0]}>
+                <cylinderGeometry args={[0.22, 0.22, 0.04, 12]} />
+                <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.5} />
+              </mesh>
+            </group>
+          ) : (
+            // ── STAGE 3+: GRAND BOULEVARD CENTRAL CIVIC FOUNTAIN ──
+            <group>
+              {/* Tier 1 Great Fountain Basin (Carved Stone with Coping) */}
+              <mesh position={[0, 0.42, 0]} castShadow receiveShadow>
+                <cylinderGeometry args={[1.82, 1.9, 0.42, 28]} />
+                <meshStandardMaterial color="#475569" roughness={0.5} metalness={0.15} />
+              </mesh>
+              <mesh position={[0, 0.63, 0]}>
+                <cylinderGeometry args={[1.86, 1.86, 0.04, 28]} />
+                <meshStandardMaterial color="#94a3b8" roughness={0.35} metalness={0.2} />
+              </mesh>
 
-          {/* Tier 2 Center Pedestal & Upper Basin */}
-          <mesh position={[0, 0.72, 0]} castShadow>
-            <cylinderGeometry args={[0.42, 0.55, 0.44, 16]} />
-            <meshStandardMaterial color="#f8fafc" roughness={0.3} />
-          </mesh>
-          <mesh position={[0, 0.96, 0]} castShadow>
-            <cylinderGeometry args={[0.78, 0.5, 0.16, 16]} />
-            <meshStandardMaterial color="#ffffff" roughness={0.25} />
-          </mesh>
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 1.04, 0]}>
-            <circleGeometry args={[0.72, 16]} />
-            <meshStandardMaterial color="#38bdf8" roughness={0.1} transparent opacity={0.9} />
-          </mesh>
+              {/* Dark Wet Slate Basin Interior Floor */}
+              <mesh position={[0, 0.24, 0]}>
+                <cylinderGeometry args={[1.72, 1.72, 0.04, 28]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.2} />
+              </mesh>
 
-          {/* Central Finial Spire */}
-          <mesh position={[0, 1.18, 0]} castShadow>
-            <coneGeometry args={[0.09, 0.32, 8]} />
-            <meshStandardMaterial color="#0284c7" metalness={0.7} roughness={0.2} />
-          </mesh>
+              {/* Shimmering Deep Aqua Pool Water Surface */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.54, 0]}>
+                <circleGeometry args={[1.76, 28]} />
+                <meshStandardMaterial
+                  color={winningBlueprint === 'blue' ? '#38bdf8' : winningBlueprint === 'red' ? '#f87171' : '#0284c7'}
+                  roughness={0.05}
+                  metalness={0.3}
+                  transparent
+                  opacity={0.92}
+                />
+              </mesh>
+              {/* Animated Water Ripple Mesh */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.545, 0]}>
+                <ringGeometry args={[0.4, 1.7, 28]} />
+                <meshStandardMaterial
+                  color="#38bdf8"
+                  roughness={0.1}
+                  transparent
+                  opacity={0.65}
+                />
+              </mesh>
 
-          {/* Dynamic Dancing Fountain Water Jets */}
-          <group ref={boulevardFountainJetsRef}>
-            {/* Center High Geyser Jet */}
-            <mesh position={[0, 1.25, 0]}>
-              <cylinderGeometry args={[0.045, 0.08, 1.7, 8]} />
-              <meshStandardMaterial color="#bae6fd" transparent opacity={0.8} roughness={0.1} />
-            </mesh>
-            {/* 6 Outer Perimeter Arc Jets */}
-            {[0, 1, 2, 3, 4, 5].map((ji) => {
-              const jAngle = (ji / 6) * Math.PI * 2;
-              const jx = Math.cos(jAngle) * 1.15;
-              const jz = Math.sin(jAngle) * 1.15;
-              return (
-                <mesh key={ji} position={[jx, 0.62, jz]} rotation={[-Math.sin(jAngle) * 0.3, 0, Math.cos(jAngle) * 0.3]}>
-                  <cylinderGeometry args={[0.03, 0.05, 0.9, 6]} />
-                  <meshStandardMaterial color="#bae6fd" transparent opacity={0.75} roughness={0.1} />
+              {/* Tier 2 Classical Center Pedestal (Carved Limestone) */}
+              <mesh position={[0, 0.76, 0]} castShadow>
+                <cylinderGeometry args={[0.38, 0.54, 0.64, 16]} />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.4} metalness={0.15} />
+              </mesh>
+              {/* 4 Bronze Water Spouts */}
+              {[0, 1, 2, 3].map((si) => {
+                const sAngle = (si / 4) * Math.PI * 2;
+                return (
+                  <mesh
+                    key={si}
+                    position={[Math.cos(sAngle) * 0.46, 0.88, Math.sin(sAngle) * 0.46]}
+                    rotation={[0, -sAngle, 0]}
+                    castShadow
+                  >
+                    <cylinderGeometry args={[0.04, 0.06, 0.12, 8]} />
+                    <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.3} />
+                  </mesh>
+                );
+              })}
+
+              {/* Tier 2 Elevated Overflow Basin Bowl */}
+              <mesh position={[0, 1.06, 0]} castShadow>
+                <cylinderGeometry args={[0.92, 0.58, 0.26, 20]} />
+                <meshStandardMaterial color="#64748b" roughness={0.4} metalness={0.15} />
+              </mesh>
+              <mesh position={[0, 1.19, 0]}>
+                <cylinderGeometry args={[0.94, 0.94, 0.03, 20]} />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.3} metalness={0.2} />
+              </mesh>
+              {/* Upper Basin Aqua Water */}
+              <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 1.18, 0]}>
+                <circleGeometry args={[0.88, 20]} />
+                <meshStandardMaterial
+                  color="#0284c7"
+                  roughness={0.05}
+                  transparent
+                  opacity={0.94}
+                />
+              </mesh>
+
+              {/* Cascading Water Curtains (Spilling from Upper Bowl to Lower Pool) */}
+              <mesh position={[0, 0.85, 0]}>
+                <cylinderGeometry args={[0.9, 1.45, 0.6, 20, 1, true]} />
+                <meshStandardMaterial
+                  color="#bae6fd"
+                  transparent
+                  opacity={0.72}
+                  roughness={0.1}
+                  side={THREE.DoubleSide}
+                />
+              </mesh>
+
+              {/* Tier 3 Central Spire & Bronze Finial */}
+              <mesh position={[0, 1.34, 0]} castShadow>
+                <cylinderGeometry args={[0.1, 0.22, 0.4, 12]} />
+                <meshStandardMaterial color="#cbd5e1" roughness={0.4} />
+              </mesh>
+              <mesh position={[0, 1.56, 0]} castShadow>
+                <coneGeometry args={[0.1, 0.26, 8]} />
+                <meshStandardMaterial color="#d97706" metalness={0.85} roughness={0.25} />
+              </mesh>
+
+              {/* Submerged Pool LED Glow Lighting */}
+              <pointLight
+                color="#38bdf8"
+                intensity={2.5}
+                distance={5.5}
+                position={[0, 0.7, 0]}
+              />
+
+              {/* Dynamic Dancing Fountain Water Jets */}
+              <group ref={boulevardFountainJetsRef}>
+                {/* Center High Geyser Plume */}
+                <mesh position={[0, 1.62, 0]}>
+                  <cylinderGeometry args={[0.06, 0.12, 2.2, 8]} />
+                  <meshStandardMaterial
+                    color="#ffffff"
+                    emissive="#bae6fd"
+                    emissiveIntensity={0.6}
+                    transparent
+                    opacity={0.88}
+                    roughness={0.1}
+                  />
                 </mesh>
-              );
-            })}
-          </group>
+                {/* 8 Perimeter Parabolic Inward Arc Jets */}
+                {[0, 1, 2, 3, 4, 5, 6, 7].map((ji) => {
+                  const jAngle = (ji / 8) * Math.PI * 2;
+                  const jx = Math.cos(jAngle) * 1.25;
+                  const jz = Math.sin(jAngle) * 1.25;
+                  return (
+                    <group key={ji} position={[jx, 0.62, jz]}>
+                      {/* Splash foam base ring */}
+                      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.02, 0]}>
+                        <circleGeometry args={[0.12, 8]} />
+                        <meshStandardMaterial color="#ffffff" transparent opacity={0.75} />
+                      </mesh>
+                      {/* Angled Arc Jet */}
+                      <mesh
+                        rotation={[-Math.sin(jAngle) * 0.35, 0, Math.cos(jAngle) * 0.35]}
+                        position={[0, 0.45, 0]}
+                      >
+                        <cylinderGeometry args={[0.035, 0.06, 1.1, 6]} />
+                        <meshStandardMaterial
+                          color="#bae6fd"
+                          emissive="#38bdf8"
+                          emissiveIntensity={0.4}
+                          transparent
+                          opacity={0.85}
+                          roughness={0.1}
+                        />
+                      </mesh>
+                    </group>
+                  );
+                })}
+              </group>
+            </group>
+          )}
         </group>
 
         {/* Modern Streetlamps along Boulevard (omitting center for fountain roundabout) */}

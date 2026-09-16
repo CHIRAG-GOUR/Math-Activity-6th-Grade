@@ -666,13 +666,29 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
             ? 'blue'
             : 'red';
 
+        const milestoneTitles = [
+          `⚡ GOOD ANSWER! HAVE IT! STAGE 1: WEATHER & SKY ONLINE!`,
+          `⚡ GOOD ANSWER! HAVE IT! STAGE 2: COMMERCIAL DISTRICTS BUILT!`,
+          `⚡ GOOD ANSWER! HAVE IT! STAGE 3: GRAND FOUNTAIN & CITIZENS ARRIVE!`,
+          `⚡ GOOD ANSWER! HAVE IT! STAGE 4: TRANSIT & HIGHWAY VEHICLES ACTIVE!`,
+          `⚡ GOOD ANSWER! HAVE IT! STAGE 5: DATA CITY CHAMPIONSHIP VICTORY!`,
+        ];
+
+        const milestoneSubtitles = [
+          `🌤️ Weather station radar & atmospheric wind turbine operational! (+100 PTS)`,
+          `🏢 Commercial high-rise & modern marketplace constructed! (+100 PTS)`,
+          `⛲ Grand Boulevard fountain water surging & citizens entering the city! (+100 PTS)`,
+          `🚗 Road barriers open, traffic signals live & bullet trains cruising! (+100 PTS)`,
+          `🗼 Central Data Tower powered up! Winning math blueprint claims the city! (+100 PTS)`,
+        ];
+
         const banner: RoundWinBannerData = {
           visible: true,
           team: winningTeam,
-          title: `⚡ ${winningTeam.toUpperCase()} DESIGNED SYSTEM ${currentRoundNum}!`,
+          title: milestoneTitles[Math.min(4, Math.max(0, currentRoundNum - 1))],
           subtitle: isMatchComplete
             ? `🏆 5 QUESTIONS COMPLETE! ${finalWinner.toUpperCase()}'S GRAPH BECOMES THE CITY BLUEPRINT!`
-            : `QUESTION ${currentRoundNum} OF 5 WON (+100 PTS) · PHYSICAL CITY EVOLVING...`,
+            : milestoneSubtitles[Math.min(4, Math.max(0, currentRoundNum - 1))],
           round: currentRoundNum,
         };
 

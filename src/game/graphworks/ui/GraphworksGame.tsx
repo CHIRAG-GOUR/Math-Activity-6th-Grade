@@ -51,6 +51,9 @@ function RoundWinBanner() {
   const teamBorder = isBlue ? 'border-sky-400 shadow-sky-500/50' : 'border-rose-400 shadow-rose-500/50';
   const teamGlow = isBlue ? 'bg-sky-500/20' : 'bg-rose-500/20';
 
+  const milestoneIcons = ['🌤️', '🏢', '⛲', '🚗', '🗼'];
+  const currentIcon = milestoneIcons[Math.min(4, Math.max(0, roundBanner.round - 1))];
+
   return (
     <div className="fixed inset-0 z-50 pointer-events-none flex items-center justify-center p-4">
       {/* Dark overlay backdrop with subtle blur */}
@@ -58,11 +61,11 @@ function RoundWinBanner() {
 
       {/* Floating arcade victory card */}
       <div
-        className={`relative z-10 max-w-md w-full bg-slate-900/95 border-2 ${teamBorder} rounded-3xl p-6 text-center text-white shadow-2xl animate-in zoom-in-90 duration-200`}
+        className={`relative z-10 max-w-lg w-full bg-slate-900/95 border-2 ${teamBorder} rounded-3xl p-6 text-center text-white shadow-2xl animate-in zoom-in-90 duration-200`}
       >
-        {/* Floating trophy badge */}
-        <div className="mx-auto -mt-12 w-16 h-16 rounded-2xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-3xl shadow-lg shadow-amber-500/50 border-2 border-white animate-bounce">
-          🏆
+        {/* Floating trophy / milestone object icon */}
+        <div className="mx-auto -mt-14 w-20 h-20 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center text-4xl shadow-lg shadow-amber-500/50 border-4 border-white animate-bounce">
+          {currentIcon}
         </div>
 
         {/* First to answer badge */}
@@ -70,7 +73,7 @@ function RoundWinBanner() {
           <span>⚡ FIRST TO ANSWER CORRECTLY! ⚡</span>
         </div>
 
-        <h2 className="mt-2 text-2xl md:text-3xl font-black tracking-tight" style={{ color: teamColor }}>
+        <h2 className="mt-2 text-xl md:text-2xl font-black tracking-tight" style={{ color: teamColor }}>
           {roundBanner.title}
         </h2>
 
