@@ -174,10 +174,10 @@ export const ChocolateFactoryGame: React.FC = () => {
         ) : (
           /* Desktop, Laptop, and TV Screens: Dual Side Panels at Bottom Corners */
           <>
-            <div className="pointer-events-none absolute bottom-3 left-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
+            <div className="fixed z-30 bottom-3 left-3 w-[350px] md:w-[380px] lg:w-[410px] xl:w-[450px] 2xl:w-[480px] max-w-[calc(50vw-24px)] pointer-events-auto">
               <TeamConsole team="blue" />
             </div>
-            <div className="pointer-events-none absolute bottom-3 right-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
+            <div className="fixed z-30 bottom-3 right-3 w-[350px] md:w-[380px] lg:w-[410px] xl:w-[450px] 2xl:w-[480px] max-w-[calc(50vw-24px)] pointer-events-auto">
               <TeamConsole team="red" />
             </div>
           </>

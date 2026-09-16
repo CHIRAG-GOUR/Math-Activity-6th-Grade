@@ -373,8 +373,6 @@ function follow(mv: Mover, speed: number, dt: number): boolean {
 
 function stepHandlers(side: SideSim, dt: number) {
   const active = side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients';
-  // One trip each: two handlers, two sacks, and the tank holds the answer.
-  const trips = 1;
 
   side.handlers.forEach((h, i) => {
     h.phase += dt * (h.task.startsWith('to_') ? 7 : 1.6);
@@ -382,8 +380,13 @@ function stepHandlers(side: SideSim, dt: number) {
     switch (h.task) {
       case 'idle':
       case 'ambient': {
-        // Nobody stands idle: between batches they tidy the ingredient store.
-        ambientPatrol(side, h, i, dt);
+        // Stationed at their ingredient prep workstations (pallet stack & measuring intake)
+        const s = sideOf(side.team);
+        const home = s.handlerHome[i % 2];
+        h.pos = { ...home };
+        h.heading = headingTowards(h.pos, i === 0 ? s.palletStack : s.measuringTank);
+        h.path = [];
+        h.travel = 0;
         break;
       }
       case 'to_pallet': {
@@ -430,20 +433,10 @@ function stepHandlers(side: SideSim, dt: number) {
       }
     }
   });
-
 }
 
-/** Slow work-loop so no member of staff is ever just standing about. */
-function ambientPatrol(side: SideSim, m: Mover, index: number, dt: number) {
-  const s = sideOf(side.team);
-  const home = s.handlerHome[index % 2];
-  const away = { x: home.x + sideSign(side.team) * 2.6, y: 0, z: home.z + 2.4 };
-  if (!m.path.length || m.travel >= polylineLength(m.path) - 0.01) {
-    const atHome = Math.hypot(m.pos.x - home.x, m.pos.z - home.z) < 1.2;
-    m.path = atHome ? [m.pos, away] : [m.pos, home];
-    m.travel = 0;
-  }
-  follow(m, WALK_SPEED * 0.45, dt);
+function headingTowards(from: Vec3, to: Vec3) {
+  return Math.atan2(-(to.x - from.x), -(to.z - from.z));
 }
 
 // ── STATION CREW: operator, inspector, packer ───────────────────────────

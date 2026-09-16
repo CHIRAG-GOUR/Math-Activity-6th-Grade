@@ -608,14 +608,14 @@ export const IngredientHandler3D: React.FC<{ team: TeamId; index: 0 | 1 }> = ({ 
 
   const read = (): PersonState => {
     const w = sim[team].handlers[index];
-    const walking = w.task === 'to_pallet' || w.task === 'to_tank' || w.task === 'back' || w.task === 'ambient';
+    const walking = w.task === 'to_pallet' || w.task === 'to_tank' || w.task === 'back';
     const isTipping = w.task === 'tipping';
     return {
       pos: w.pos,
       heading: isTipping ? headingTowards(w.pos, tank) : w.heading,
-      moving: walking && w.task !== 'ambient',
+      moving: walking,
       carrying: w.carrying,
-      gesture: isTipping ? 'pour' : w.task === 'ambient' ? 'tablet' : 'none',
+      gesture: isTipping ? 'pour' : index === 0 ? 'inspect' : 'tablet',
     };
   };
 
