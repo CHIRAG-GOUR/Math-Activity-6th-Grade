@@ -109,14 +109,14 @@ export const ArticulatedHuman3D: React.FC<HumanoidRigProps> = ({
 
     if (s.moving) {
       // ── BIPEDAL WALKING GAIT ──
-      walkPhase.current += delta * 7.5;
+      walkPhase.current += delta * 14.0;
       const p = walkPhase.current;
 
       // 1. Pelvic bobbing and lateral sway
       if (pelvisRef.current) {
-        pelvisRef.current.position.y = 0.72 + Math.abs(Math.sin(p)) * 0.035;
-        pelvisRef.current.rotation.y = Math.sin(p) * 0.07;
-        pelvisRef.current.rotation.z = Math.cos(p) * 0.025;
+        pelvisRef.current.position.y = 0.72 + Math.abs(Math.sin(p)) * 0.045;
+        pelvisRef.current.rotation.y = Math.sin(p) * 0.09;
+        pelvisRef.current.rotation.z = Math.cos(p) * 0.03;
       }
       if (torsoRef.current) {
         torsoRef.current.rotation.y = -Math.sin(p) * 0.06;
@@ -610,9 +610,18 @@ export const IngredientHandler3D: React.FC<{ team: TeamId; index: 0 | 1 }> = ({ 
     const w = sim[team].handlers[index];
     const walking = w.task === 'to_pallet' || w.task === 'to_tank' || w.task === 'back';
     const isTipping = w.task === 'tipping';
+    const facePos = isTipping
+      ? tank
+      : w.task === 'to_pallet'
+      ? sideOf(team).palletStack
+      : w.task === 'to_tank'
+      ? tank
+      : index === 0
+      ? sideOf(team).palletStack
+      : tank;
     return {
       pos: w.pos,
-      heading: isTipping ? headingTowards(w.pos, tank) : w.heading,
+      heading: walking || isTipping ? w.heading : headingTowards(w.pos, facePos),
       moving: walking,
       carrying: w.carrying,
       gesture: isTipping ? 'pour' : index === 0 ? 'inspect' : 'tablet',

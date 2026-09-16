@@ -24,7 +24,7 @@ import type {
 } from '../types';
 import { toDecimal } from './fractionMath';
 import {
-  CARGO_SLOTS, forkliftPalletRoute, forkliftToTruck, handlerToPallet, handlerToTank,
+  CARGO_SLOTS, forkliftPalletRoute, forkliftToTruck, handlerToHome, handlerToPallet, handlerToTank,
   sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute,
 } from './factoryLayout';
 import { angleDelta, polylineLength, samplePolyline, smooth, type Vec3 } from '../world/geom';
@@ -52,11 +52,11 @@ export const STEP_ACTION: Record<StepId, string> = {
 };
 
 const STEP_TIME: Record<StepId, number> = {
-  ingredients: 7.2,
-  mixing: 3.4,
-  molding: 2.8,
-  cooling: 4.2,
-  packaging: 3.4,
+  ingredients: 3.5,
+  mixing: 2.8,
+  molding: 2.4,
+  cooling: 3.0,
+  packaging: 2.8,
 };
 
 export const MAX_MOLDS = 12;
@@ -64,10 +64,10 @@ export const MAX_BARS = 20;
 export const MAX_BOXES = 5;
 
 const REWORK_FLASH = 1.5;
-const TRUCK_SPEED = 9.5;
-const WALK_SPEED = 3.1;
-const FORK_SPEED = 4.4;
-const UNLOAD_PAUSE = 1.4;
+const TRUCK_SPEED = 18.0;
+const WALK_SPEED = 7.2;
+const FORK_SPEED = 8.5;
+const UNLOAD_PAUSE = 0.8;
 
 // ── STATE ────────────────────────────────────────────────────────────────
 
@@ -372,7 +372,7 @@ function stepHandlers(side: SideSim, dt: number) {
   const active = side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients';
 
   side.handlers.forEach((h, i) => {
-    h.phase += dt * (h.task.startsWith('to_') ? 7 : 1.6);
+    h.phase += dt * (h.task.startsWith('to_') ? 9 : 2.5);
 
     switch (h.task) {
       case 'idle':
@@ -396,15 +396,14 @@ function stepHandlers(side: SideSim, dt: number) {
         break;
       }
       case 'to_tank': {
-        if (follow(h, WALK_SPEED * 0.9, dt)) { h.task = 'tipping'; h.travel = 0; h.phase = 0; h.poured = 0; }
+        if (follow(h, WALK_SPEED, dt)) { h.task = 'tipping'; h.travel = 0; h.phase = 0; h.poured = 0; }
         break;
       }
       case 'tipping': {
-        // The sack empties into the tank at a steady rate, and the tip only
-        // ends when the whole share is actually in — not on a timer.
+        // The sack empties into the tank smoothly and briskly
         side.tipPour = 1;
-        const share = side.cocoaFill / side.handlers.length;
-        const rate = share / 1.15;
+        const share = Math.max(0.1, side.cocoaFill / side.handlers.length);
+        const rate = share / 0.75;
         const give = Math.min(rate * dt, share - h.poured);
         h.poured += give;
         side.tankFill = Math.min(side.cocoaFill, side.tankFill + give);
@@ -413,7 +412,7 @@ function stepHandlers(side: SideSim, dt: number) {
           h.poured = 0;
           side.tipPour = 0;
           h.task = 'back';
-          h.path = handlerToPallet(side.team, h.pos, i);
+          h.path = handlerToHome(side.team, h.pos, i);
           h.travel = 0;
           emit(side, 'mold_fill');
         }
@@ -441,11 +440,11 @@ function headingTowards(from: Vec3, to: Vec3) {
 function stepStationCrew(side: SideSim, dt: number) {
   const step = STEPS[side.stepIndex];
   const running = side.phase === 'running';
-  side.operator.phase += dt;
-  side.inspector.phase += dt;
-  side.packer.phase += dt;
+  side.operator.phase += dt * (running ? 2.5 : 1.2);
+  side.inspector.phase += dt * (running ? 2.5 : 1.2);
+  side.packer.phase += dt * (running ? 2.5 : 1.2);
 
-  // Each of them shifts a little around their station so the floor looks worked.
+  // Each of them shifts around their station dynamically so the floor looks alive.
   const bob = (m: Mover, base: Vec3, amount: number, rate: number) => {
     m.pos = {
       x: base.x + Math.sin(m.phase * rate) * amount,
@@ -454,9 +453,9 @@ function stepStationCrew(side: SideSim, dt: number) {
     };
   };
   const s = sideOf(side.team);
-  bob(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding') ? 0.5 : 0.25, 0.9);
-  bob(side.inspector, s.inspectorHome, running && step === 'cooling' ? 0.55 : 0.2, 0.8);
-  bob(side.packer, s.packerHome, running && step === 'packaging' ? 0.5 : 0.22, 1.1);
+  bob(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding') ? 0.6 : 0.25, 1.8);
+  bob(side.inspector, s.inspectorHome, running && step === 'cooling' ? 0.65 : 0.25, 1.6);
+  bob(side.packer, s.packerHome, running && step === 'packaging' ? 0.6 : 0.25, 2.0);
 }
 
 // ── LOGISTICS: forklift pallet run, then the truck ──────────────────────
@@ -494,7 +493,7 @@ function stepLogistics(side: SideSim, dt: number) {
     }
 
     case 'fork_lift': {
-      side.forkLift = Math.min(1.1, side.forkLift + dt * 1.2);
+      side.forkLift = Math.min(1.1, side.forkLift + dt * 2.4);
       if (side.forkLift >= 1.05) {
         f.carrying = true;
         side.logistics = 'fork_to_truck';
@@ -506,7 +505,7 @@ function stepLogistics(side: SideSim, dt: number) {
     }
 
     case 'fork_to_truck': {
-      if (follow(f, FORK_SPEED * 0.8, dt)) {
+      if (follow(f, FORK_SPEED, dt)) {
         side.logistics = 'fork_unload';
         t.pauseT = 0;
       }
@@ -514,15 +513,15 @@ function stepLogistics(side: SideSim, dt: number) {
     }
 
     case 'fork_unload': {
-      // Boxes go into the bed one at a time.
+      // Boxes go into the bed one at a time briskly.
       t.pauseT += dt;
-      const want = Math.min(side.boxCount, Math.floor(t.pauseT / 0.34));
+      const want = Math.min(side.boxCount, Math.floor(t.pauseT / 0.16));
       if (want > side.boxesInTruck) {
         side.boxesInTruck = Math.min(CARGO_SLOTS.length, want);
         side.boxesOnPallet = Math.max(0, side.boxCount - want);
         emit(side, 'box_seal');
       }
-      if (t.pauseT > side.boxCount * 0.34 + 0.5) {
+      if (t.pauseT > side.boxCount * 0.16 + 0.25) {
         f.carrying = false;
         side.boxesOnPallet = 0;
         side.forkLift = 0.2;

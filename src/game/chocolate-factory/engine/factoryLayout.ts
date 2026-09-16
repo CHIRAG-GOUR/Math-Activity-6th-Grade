@@ -176,16 +176,27 @@ export function forkliftReturnRoute(team: TeamId, from: Vec3): Vec3[] {
   return [from, v(from.x, 0, s.forkliftHome.z - 2), s.forkliftHome];
 }
 
-/** Ingredient handler: pallet stack -> tip point at the tank -> back. */
-export function handlerToTank(team: TeamId, from: Vec3): Vec3[] {
-  const s = sideOf(team);
-  const sign = sideSign(team);
-  return [from, v(s.palletStack.x + sign * 3, 0, s.tipPoint.z - 2.5), s.tipPoint];
-}
+/** Ingredient handler: home/current pos -> pallet stack to pick up cocoa sacks. */
 export function handlerToPallet(team: TeamId, from: Vec3, index: number): Vec3[] {
   const s = sideOf(team);
   const sign = sideSign(team);
-  return [from, v(s.palletStack.x + sign * 3, 0, s.tipPoint.z - 2.5), s.handlerHome[index % 2]];
+  const target = v(s.palletStack.x + sign * (index === 0 ? 1.4 : -1.4), 0, s.palletStack.z + (index === 0 ? 0.8 : -0.8));
+  return [from, v(s.palletStack.x + sign * 2.2, 0, (from.z + target.z) / 2), target];
+}
+
+/** Ingredient handler: pallet stack with sack -> tip point at the measuring tank. */
+export function handlerToTank(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  return [from, v(s.palletStack.x + sign * 2.2, 0, s.tipPoint.z - 1.2), s.tipPoint];
+}
+
+/** Ingredient handler: tank tip point -> return to home workstation. */
+export function handlerToHome(team: TeamId, from: Vec3, index: number): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  const home = s.handlerHome[index % 2];
+  return [from, v(s.palletStack.x + sign * 2.2, 0, (from.z + home.z) / 2), home];
 }
 
 /** Forklift: packaging pallet of boxes -> alongside the truck bed -> back. */
