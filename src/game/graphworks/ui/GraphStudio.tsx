@@ -555,6 +555,58 @@ function DataStrip({
   );
 }
 
+// ── LIVE PHYSICAL SIMULATION TELEMETRY BADGE ──
+function LiveSimulationPill({ team }: { team: Team }) {
+  const telemetry = useGraphworksStore((s) => (team === 'blue' ? s.blueTelemetry : s.redTelemetry));
+
+  if (!telemetry) {
+    return (
+      <div className="flex items-center justify-between px-2 py-0.5 rounded bg-slate-100/90 text-[8.5px] font-bold text-slate-500 border border-slate-200">
+        <span>City System Connected</span>
+        <span className="flex items-center gap-1">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+          Live Physical Control Active
+        </span>
+      </div>
+    );
+  }
+
+  const { trend, delta, value, dataLabel, district } = telemetry;
+
+  let trendIcon = '•';
+  let trendText = 'System Initialized';
+  let trendClass = 'text-slate-700 bg-slate-100 border-slate-200';
+
+  if (trend === 'increasing') {
+    trendIcon = '↗';
+    trendText = `RISING (+${Math.round(delta)}) · System Accelerating`;
+    trendClass = 'text-emerald-800 bg-emerald-50 border-emerald-300';
+  } else if (trend === 'decreasing') {
+    trendIcon = '↘';
+    trendText = `DECREASING (${Math.round(delta)}) · System Draining / Slowing`;
+    trendClass = 'text-rose-800 bg-rose-50 border-rose-300';
+  } else if (trend === 'constant') {
+    trendIcon = '→';
+    trendText = district === 'train' ? 'CONSTANT (0 Change) · Train Stopped' : 'STEADY (0 Change) · Constant State';
+    trendClass = 'text-amber-800 bg-amber-50 border-amber-300';
+  }
+
+  return (
+    <div
+      className={`flex items-center justify-between px-2 py-0.5 rounded border text-[9px] font-bold shadow-2xs transition-all ${trendClass}`}
+    >
+      <div className="flex items-center gap-1 truncate">
+        <span className="font-black text-[11px] leading-none">{trendIcon}</span>
+        <span className="truncate">{trendText}</span>
+      </div>
+      <div className="flex items-center gap-1 font-mono font-black shrink-0 text-[9.5px]">
+        <span>{dataLabel}:</span>
+        <span className="underline">{Math.round(value)}</span>
+      </div>
+    </div>
+  );
+}
+
 // ── PRECISION NUDGE CONTROLS (±1, ±5, ±10) ──
 function PrecisionControls({
   label,
@@ -853,6 +905,9 @@ export function GraphStudio({ team }: { team: Team }) {
           selectedIdx={selectedIdx}
           onSelectIdx={setSelectedIdx}
         />
+
+        {/* Live Physical Simulation Telemetry & Real-Time Trend Feedback */}
+        <LiveSimulationPill team={team} />
 
         {/* Compact SVG Graph Canvas */}
         <GraphCanvas

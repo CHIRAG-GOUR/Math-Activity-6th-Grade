@@ -22,40 +22,107 @@ export function CityDistricts3D() {
   const steamRef = useRef<THREE.Group>(null);
   const parkFountainRef = useRef<THREE.Group>(null);
 
-  const avgTemp = (blueCity.weather.temperature + redCity.weather.temperature) / 2;
-  const windSpeed = (blueCity.weather.windSpeed + redCity.weather.windSpeed) / 2;
-  const waterLevel = (blueCity.water.reservoirLevel + redCity.water.reservoirLevel) / 200;
+  // Independent damped telemetry values for 60 FPS buttery smoothness
+  const blueTempRef = useRef(15);
+  const redTempRef = useRef(15);
+  const blueWaterRef = useRef(50);
+  const redWaterRef = useRef(50);
+  const bluePowerRef = useRef(30);
+  const redPowerRef = useRef(30);
+  const fountainHeightRef = useRef(0.8);
+
+  const blueMercuryRef = useRef<THREE.Mesh>(null);
+  const redMercuryRef = useRef<THREE.Mesh>(null);
+  const blueWaterCylRef = useRef<THREE.Mesh>(null);
+  const redWaterCylRef = useRef<THREE.Mesh>(null);
+  const blueCoronaRef = useRef<THREE.Mesh>(null);
+  const redCoronaRef = useRef<THREE.Mesh>(null);
 
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
 
-    // 1. Weather turbine spin proportional to wind speed
+    // ── 1. DAMPED LIVE DATA INTERPOLATION (NO ABRUPT JUMPS) ──
+    blueTempRef.current = THREE.MathUtils.damp(blueTempRef.current, blueCity.weather.temperature, 5.0, delta);
+    redTempRef.current = THREE.MathUtils.damp(redTempRef.current, redCity.weather.temperature, 5.0, delta);
+    blueWaterRef.current = THREE.MathUtils.damp(blueWaterRef.current, blueCity.water.reservoirLevel, 4.5, delta);
+    redWaterRef.current = THREE.MathUtils.damp(redWaterRef.current, redCity.water.reservoirLevel, 4.5, delta);
+    bluePowerRef.current = THREE.MathUtils.damp(bluePowerRef.current, blueCity.power.generationMW, 5.0, delta);
+    redPowerRef.current = THREE.MathUtils.damp(redPowerRef.current, redCity.power.generationMW, 5.0, delta);
+
+    const avgFountainTarget = (blueCity.park.fountainHeight + redCity.park.fountainHeight) / 2;
+    fountainHeightRef.current = THREE.MathUtils.damp(fountainHeightRef.current, avgFountainTarget, 4.5, delta);
+
+    const activeWind = (blueCity.weather.windSpeed + redCity.weather.windSpeed) / 2;
+
+    // ── 2. WEATHER STATION PHYSICAL ACTUATORS ──
+    // Turbine spin proportional to wind speed
     if (turbineRef.current) {
-      turbineRef.current.rotation.z += delta * (1.2 + windSpeed * 0.18);
+      turbineRef.current.rotation.z += delta * (1.2 + activeWind * 0.22);
     }
-
-    // 2. Weather radar dish continuous rotation
+    // Radar dish rotation
     if (radarDishRef.current) {
-      radarDishRef.current.rotation.y += delta * 0.8;
+      radarDishRef.current.rotation.y += delta * 0.9;
+    }
+    // Blue Thermometer column
+    if (blueMercuryRef.current) {
+      const norm = Math.max(0.05, Math.min(1.0, blueTempRef.current / 40));
+      blueMercuryRef.current.scale.y = norm;
+      blueMercuryRef.current.position.y = 0.5 + norm * 1.3;
+    }
+    // Red Thermometer column
+    if (redMercuryRef.current) {
+      const norm = Math.max(0.05, Math.min(1.0, redTempRef.current / 40));
+      redMercuryRef.current.scale.y = norm;
+      redMercuryRef.current.position.y = 0.5 + norm * 1.3;
     }
 
-    // 3. Water treatment clarifier skimmer slow rotation
+    // ── 3. WATER TREATMENT PHYSICAL ACTUATORS ──
+    // Clarifier skimmer speed proportional to active flow
+    const activeFlow = (blueCity.water.flowRate + redCity.water.flowRate) / 2;
     if (skimmerRef.current) {
-      skimmerRef.current.rotation.y += delta * 0.35;
+      skimmerRef.current.rotation.y += delta * (0.3 + (activeFlow / 100) * 0.8);
+    }
+    // Blue Reservoir water level
+    if (blueWaterCylRef.current) {
+      const norm = Math.max(0.06, Math.min(1.0, blueWaterRef.current / 100));
+      blueWaterCylRef.current.scale.y = norm;
+      blueWaterCylRef.current.position.y = 0.1 + norm * 1.1;
+    }
+    // Red Reservoir water level
+    if (redWaterCylRef.current) {
+      const norm = Math.max(0.06, Math.min(1.0, redWaterRef.current / 100));
+      redWaterCylRef.current.scale.y = norm;
+      redWaterCylRef.current.position.y = 0.1 + norm * 1.1;
     }
 
-    // 4. Power plant cooling tower steam rising
+    // ── 4. POWER STATION PHYSICAL ACTUATORS ──
+    // Cooling tower steam: rise speed and volume directly driven by power output!
+    const activePower = (bluePowerRef.current + redPowerRef.current) / 2;
+    const powerNorm = Math.min(2.0, Math.max(0.3, activePower / 35));
     if (steamRef.current) {
       steamRef.current.children.forEach((puff, i) => {
-        puff.position.y = 4.2 + ((t * 0.8 + i * 0.7) % 2.5);
-        puff.scale.setScalar(0.4 + (puff.position.y - 4.2) * 0.35);
+        puff.position.y = 4.2 + ((t * (0.8 * powerNorm) + i * 0.7) % (2.5 * powerNorm));
+        puff.scale.setScalar((0.35 + (puff.position.y - 4.2) * 0.3) * powerNorm);
       });
     }
+    // Corona rings electrical pulsing
+    if (blueCoronaRef.current) {
+      blueCoronaRef.current.rotation.y += delta * (1.5 + (bluePowerRef.current / 30) * 3);
+      (blueCoronaRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.8 + Math.sin(t * 10) * 0.5 * (bluePowerRef.current / 50);
+    }
+    if (redCoronaRef.current) {
+      redCoronaRef.current.rotation.y -= delta * (1.5 + (redPowerRef.current / 30) * 3);
+      (redCoronaRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity =
+        0.8 + Math.cos(t * 10) * 0.5 * (redPowerRef.current / 50);
+    }
 
-    // 5. Park fountain dancing water jets
+    // ── 5. PARK CIVIC FOUNTAIN JET HEIGHT ──
     if (parkFountainRef.current) {
       parkFountainRef.current.children.forEach((jet, i) => {
-        jet.scale.set(1, 0.4 + Math.sin(t * 4 + i * 1.5) * 0.35, 1);
+        const h = fountainHeightRef.current;
+        jet.scale.set(1, (0.3 + Math.sin(t * 4 + i * 1.5) * 0.15) * (h / 0.8), 1);
+        jet.position.y = (h / 2) * 0.6;
       });
     }
   });
@@ -127,57 +194,87 @@ export function CityDistricts3D() {
           </group>
         </group>
 
-        {/* Working Giant Mercury Thermometer */}
-        <group position={[2.5, 1.2, 1.8]}>
-          {/* Wooden Mounting Backboard */}
+        {/* ── DUAL WORKING MERCURY THERMOMETERS (INDEPENDENT BLUE & RED) ── */}
+        {/* Blue Team Thermometer */}
+        <group position={[1.8, 1.2, 1.8]}>
+          {/* Mounting Backboard with Blue Header */}
           <mesh position={[0, 1.8, 0]}>
-            <boxGeometry args={[0.8, 3.8, 0.2]} />
-            <meshStandardMaterial color="#fef3c7" roughness={0.7} />
+            <boxGeometry args={[0.7, 3.8, 0.2]} />
+            <meshStandardMaterial color="#eff6ff" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 3.6, 0.12]}>
+            <boxGeometry args={[0.6, 0.25, 0.05]} />
+            <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.8} />
           </mesh>
           {/* Glass Tube */}
           <mesh position={[0, 1.8, 0.12]}>
-            <cylinderGeometry args={[0.12, 0.12, 3.2, 12]} />
-            <meshStandardMaterial color="#e0f2fe" transparent opacity={0.45} roughness={0.1} />
+            <cylinderGeometry args={[0.1, 0.1, 3.0, 12]} />
+            <meshStandardMaterial color="#e0f2fe" transparent opacity={0.4} roughness={0.1} />
           </mesh>
-          {/* Dynamic Rising/Falling Mercury Column */}
-          <mesh
-            position={[0, 0.5 + (Math.max(5, avgTemp) / 45) * 1.3, 0.12]}
-            scale={[1, Math.max(0.15, Math.min(1.0, avgTemp / 40)), 1]}
-          >
-            <cylinderGeometry args={[0.08, 0.08, 2.6, 12]} />
-            <meshStandardMaterial color="#ef4444" emissive="#b91c1c" emissiveIntensity={0.6} />
+          {/* Live Rising/Falling Mercury Column */}
+          <mesh ref={blueMercuryRef} position={[0, 1.1, 0.12]}>
+            <cylinderGeometry args={[0.07, 0.07, 2.6, 12]} />
+            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={0.8} />
+          </mesh>
+          {/* Blue Mercury Bulb */}
+          <mesh position={[0, 0.3, 0.12]}>
+            <sphereGeometry args={[0.18, 16, 16]} />
+            <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.9} />
+          </mesh>
+        </group>
+
+        {/* Red Team Thermometer */}
+        <group position={[3.1, 1.2, 1.8]}>
+          {/* Mounting Backboard with Red Header */}
+          <mesh position={[0, 1.8, 0]}>
+            <boxGeometry args={[0.7, 3.8, 0.2]} />
+            <meshStandardMaterial color="#fef2f2" roughness={0.6} />
+          </mesh>
+          <mesh position={[0, 3.6, 0.12]}>
+            <boxGeometry args={[0.6, 0.25, 0.05]} />
+            <meshStandardMaterial color="#dc2626" emissive="#b91c1c" emissiveIntensity={0.8} />
+          </mesh>
+          {/* Glass Tube */}
+          <mesh position={[0, 1.8, 0.12]}>
+            <cylinderGeometry args={[0.1, 0.1, 3.0, 12]} />
+            <meshStandardMaterial color="#ffe4e6" transparent opacity={0.4} roughness={0.1} />
+          </mesh>
+          {/* Live Rising/Falling Mercury Column */}
+          <mesh ref={redMercuryRef} position={[0, 1.1, 0.12]}>
+            <cylinderGeometry args={[0.07, 0.07, 2.6, 12]} />
+            <meshStandardMaterial color="#f87171" emissive="#dc2626" emissiveIntensity={0.8} />
           </mesh>
           {/* Red Mercury Bulb */}
           <mesh position={[0, 0.3, 0.12]}>
-            <sphereGeometry args={[0.22, 16, 16]} />
-            <meshStandardMaterial color="#dc2626" emissive="#b91c1c" emissiveIntensity={0.7} />
+            <sphereGeometry args={[0.18, 16, 16]} />
+            <meshStandardMaterial color="#dc2626" emissive="#b91c1c" emissiveIntensity={0.9} />
           </mesh>
         </group>
       </group>
 
       {/* ============================================================ */}
-      {/* 2. WATER TREATMENT PLANT DISTRICT                            */}
+      {/* 2. WATER TREATMENT PLANT DISTRICT (DUAL RESERVOIRS)          */}
       {/* ============================================================ */}
       <group position={[-16, 0, -11]}>
         {/* Foundation Slab */}
         <mesh position={[0, 0.1, 0]} receiveShadow>
-          <boxGeometry args={[8.5, 0.2, 6.5]} />
+          <boxGeometry args={[10.5, 0.2, 6.5]} />
           <primitive object={CITY_MAT.concrete} attach="material" />
         </mesh>
 
         {/* Filtration & Pump Building */}
-        <mesh position={[-1.8, 1.4, -0.8]} castShadow>
+        <mesh position={[-2.6, 1.4, -0.8]} castShadow>
           <boxGeometry args={[4.2, 2.6, 3.8]} />
           <meshStandardMaterial color="#e2e8f0" roughness={0.4} />
         </mesh>
         {/* Building Blue Roof */}
-        <mesh position={[-1.8, 2.8, -0.8]} castShadow>
+        <mesh position={[-2.6, 2.8, -0.8]} castShadow>
           <boxGeometry args={[4.4, 0.25, 4.0]} />
           <meshStandardMaterial color="#0284c7" roughness={0.4} />
         </mesh>
 
         {/* Circular Clarifier Basin 1 */}
-        <group position={[2.4, 0.4, -1.2]}>
+        <group position={[1.8, 0.4, -1.2]}>
           {/* Concrete Basin Walls */}
           <mesh>
             <cylinderGeometry args={[1.6, 1.7, 0.8, 20]} />
@@ -197,36 +294,63 @@ export function CityDistricts3D() {
           </group>
         </group>
 
-        {/* Cylindrical Reservoir Tank (Water Level responds to data!) */}
-        <group position={[2.4, 0.2, 1.6]}>
+        {/* ── DUAL RESERVOIR TANKS (INDEPENDENT BLUE & RED WATER LEVELS) ── */}
+        {/* Blue Team Reservoir Tank */}
+        <group position={[0.8, 0.2, 1.6]}>
+          {/* Blue Label Badge */}
+          <mesh position={[0, 2.7, 0]}>
+            <boxGeometry args={[1.2, 0.22, 0.05]} />
+            <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.8} />
+          </mesh>
           {/* Transparent Glass/Poly Tank Casing */}
           <mesh position={[0, 1.2, 0]}>
-            <cylinderGeometry args={[1.3, 1.3, 2.4, 16]} />
-            <meshStandardMaterial color="#94a3b8" metalness={0.7} transparent opacity={0.35} roughness={0.1} />
+            <cylinderGeometry args={[1.0, 1.0, 2.4, 16]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.7} transparent opacity={0.32} roughness={0.1} />
           </mesh>
           {/* Physical Water Level Inside Tank */}
-          <mesh
-            position={[0, 0.1 + waterLevel * 1.1, 0]}
-            scale={[1, Math.max(0.08, waterLevel), 1]}
-          >
-            <cylinderGeometry args={[1.22, 1.22, 2.2, 16]} />
+          <mesh ref={blueWaterCylRef} position={[0, 0.65, 0]}>
+            <cylinderGeometry args={[0.94, 0.94, 2.2, 16]} />
             <meshStandardMaterial color="#0ea5e9" transparent opacity={0.85} roughness={0.1} />
           </mesh>
           {/* Metallic Top Dome */}
           <mesh position={[0, 2.4, 0]}>
-            <sphereGeometry args={[1.32, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3]} />
+            <sphereGeometry args={[1.02, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3]} />
+            <meshStandardMaterial color="#64748b" metalness={0.8} />
+          </mesh>
+        </group>
+
+        {/* Red Team Reservoir Tank */}
+        <group position={[3.4, 0.2, 1.6]}>
+          {/* Red Label Badge */}
+          <mesh position={[0, 2.7, 0]}>
+            <boxGeometry args={[1.2, 0.22, 0.05]} />
+            <meshStandardMaterial color="#dc2626" emissive="#b91c1c" emissiveIntensity={0.8} />
+          </mesh>
+          {/* Transparent Glass/Poly Tank Casing */}
+          <mesh position={[0, 1.2, 0]}>
+            <cylinderGeometry args={[1.0, 1.0, 2.4, 16]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.7} transparent opacity={0.32} roughness={0.1} />
+          </mesh>
+          {/* Physical Water Level Inside Tank */}
+          <mesh ref={redWaterCylRef} position={[0, 0.65, 0]}>
+            <cylinderGeometry args={[0.94, 0.94, 2.2, 16]} />
+            <meshStandardMaterial color="#f43f5e" transparent opacity={0.85} roughness={0.1} />
+          </mesh>
+          {/* Metallic Top Dome */}
+          <mesh position={[0, 2.4, 0]}>
+            <sphereGeometry args={[1.02, 16, 8, 0, Math.PI * 2, 0, Math.PI / 3]} />
             <meshStandardMaterial color="#64748b" metalness={0.8} />
           </mesh>
         </group>
       </group>
 
       {/* ============================================================ */}
-      {/* 3. ECO-POWER STATION DISTRICT                                */}
+      {/* 3. ECO-POWER STATION DISTRICT (DUAL SUBSTATION CORONAS)       */}
       {/* ============================================================ */}
       <group position={[18, 0, -10]}>
         {/* Concrete Yard */}
         <mesh position={[0, 0.1, 0]} receiveShadow>
-          <boxGeometry args={[9.5, 0.2, 7.0]} />
+          <boxGeometry args={[10.5, 0.2, 7.0]} />
           <primitive object={CITY_MAT.concrete} attach="material" />
         </mesh>
 
@@ -240,7 +364,7 @@ export function CityDistricts3D() {
           <meshStandardMaterial color="#334155" roughness={0.5} />
         </mesh>
 
-        {/* Hyperbolic Natural-Draft Cooling Tower */}
+        {/* Hyperbolic Natural-Draft Cooling Tower (Steam scales with power!) */}
         <group position={[-2.8, 0.2, 0.8]}>
           <mesh position={[0, 2.2, 0]} castShadow>
             <cylinderGeometry args={[1.1, 1.6, 4.2, 16]} />
@@ -248,8 +372,8 @@ export function CityDistricts3D() {
           </mesh>
           {/* Rising White Steam Clouds */}
           <group ref={steamRef} position={[0, 0, 0]}>
-            {[0, 1, 2].map((idx) => (
-              <mesh key={idx} position={[0, 4.3 + idx * 0.7, 0]} geometry={CITY_GEO.sphere}>
+            {[0, 1, 2, 3].map((idx) => (
+              <mesh key={idx} position={[0, 4.3 + idx * 0.6, 0]} geometry={CITY_GEO.sphere}>
                 <meshStandardMaterial color="#ffffff" transparent opacity={0.45} roughness={0.9} />
               </mesh>
             ))}
@@ -266,15 +390,25 @@ export function CityDistricts3D() {
           ))}
         </group>
 
-        {/* High-Voltage Transmission Substation Pylon */}
+        {/* High-Voltage Substation with Dual Corona Rings */}
         <group position={[3.6, 0.2, 2.0]}>
           <mesh position={[0, 2.8, 0]}>
             <cylinderGeometry args={[0.06, 0.18, 5.6, 4]} />
             <meshStandardMaterial color="#64748b" metalness={0.9} />
           </mesh>
           <mesh position={[0, 4.5, 0]}>
-            <boxGeometry args={[2.2, 0.1, 0.1]} />
+            <boxGeometry args={[2.4, 0.1, 0.1]} />
             <meshStandardMaterial color="#64748b" metalness={0.9} />
+          </mesh>
+          {/* Blue Corona Discharge Ring */}
+          <mesh ref={blueCoronaRef} position={[-0.8, 4.5, 0]}>
+            <torusGeometry args={[0.3, 0.04, 8, 16]} />
+            <meshStandardMaterial color="#38bdf8" emissive="#0284c7" emissiveIntensity={1.0} />
+          </mesh>
+          {/* Red Corona Discharge Ring */}
+          <mesh ref={redCoronaRef} position={[0.8, 4.5, 0]}>
+            <torusGeometry args={[0.3, 0.04, 8, 16]} />
+            <meshStandardMaterial color="#f87171" emissive="#dc2626" emissiveIntensity={1.0} />
           </mesh>
         </group>
       </group>

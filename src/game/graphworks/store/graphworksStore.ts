@@ -131,8 +131,10 @@ export interface CityPowerState {
 
 export interface CityTrainState {
   trainPosition: number;  // 0–1 along track
+  distanceMeters: number; // actual meters plotted
   speed: number;
   atStation: boolean;
+  isStopped: boolean;
   passengerCount: number;
 }
 
@@ -140,6 +142,7 @@ export interface CityParkState {
   visitorCount: number;
   fountainActive: boolean;
   activityLevel: number;  // 0–1
+  fountainHeight: number; // 0.4 to 2.5 meters
 }
 
 export interface CityState {
@@ -149,6 +152,26 @@ export interface CityState {
   power: CityPowerState;
   train: CityTrainState;
   park: CityParkState;
+}
+
+export interface CityLiveTelemetry {
+  team: Team;
+  district: CityDistrict;
+  value: number;
+  prevValue: number;
+  delta: number;
+  trend: 'increasing' | 'constant' | 'decreasing' | 'initial';
+  timestamp: number;
+  dataLabel: string;
+  targetIndex: number;
+}
+
+export interface ActiveDataPulse {
+  id: number;
+  team: Team;
+  district: CityDistrict;
+  value: number;
+  timestamp: number;
 }
 
 export interface GraphworksStore {
@@ -166,6 +189,11 @@ export interface GraphworksStore {
   // City
   blueCity: CityState;
   redCity: CityState;
+
+  // Real-time live control telemetry & data pulses
+  blueTelemetry: CityLiveTelemetry | null;
+  redTelemetry: CityLiveTelemetry | null;
+  activePulses: ActiveDataPulse[];
 
   // City animation
   isRunningGraph: boolean;
@@ -189,6 +217,8 @@ export interface GraphworksStore {
   advanceRound: () => void;
   setGraphRunProgress: (progress: number) => void;
   updateCityFromGraph: (team: Team, values: number[], district: CityDistrict) => void;
+  syncCityFromCurrentGraph: (team: Team, activeIndex?: number) => void;
+  triggerDataPulse: (team: Team, district: CityDistrict, value: number) => void;
   setGamePhase: (phase: GamePhase) => void;
   setShowFeedback: (team: Team, show: boolean) => void;
   restartGame: () => void;
@@ -213,11 +243,11 @@ const defaultPower: CityPowerState = {
 };
 
 const defaultTrain: CityTrainState = {
-  trainPosition: 0, speed: 0, atStation: true, passengerCount: 0,
+  trainPosition: 0, distanceMeters: 0, speed: 0, atStation: true, isStopped: true, passengerCount: 0,
 };
 
 const defaultPark: CityParkState = {
-  visitorCount: 10, fountainActive: false, activityLevel: 0.3,
+  visitorCount: 10, fountainActive: false, activityLevel: 0.3, fountainHeight: 0.8,
 };
 
 const defaultCity: CityState = {
@@ -341,6 +371,10 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   blueCity: { ...defaultCity },
   redCity: { ...defaultCity },
 
+  blueTelemetry: null,
+  redTelemetry: null,
+  activePulses: [],
+
   isRunningGraph: false,
   runningTeam: null,
   graphRunProgress: 0,
@@ -354,68 +388,92 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     red: createDefaultTeam('red'),
     blueCity: { ...defaultCity },
     redCity: { ...defaultCity },
+    blueTelemetry: null,
+    redTelemetry: null,
+    activePulses: [],
   }),
 
-  setMission: (team, mission) => set((s) => ({
-    [team]: {
-      ...s[team],
-      currentMission: mission,
-      graphType: mission.graphType,
-      plottedPoints: [],
-      plottedBars: (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph')
-        ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
-        : [],
-      lastValidation: null,
-      showFeedback: false,
-      interpretationAnswer: '',
-    },
-  })),
+  setMission: (team, mission) => {
+    set((s) => ({
+      [team]: {
+        ...s[team],
+        currentMission: mission,
+        graphType: mission.graphType,
+        plottedPoints: [],
+        plottedBars: (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph')
+          ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+          : [],
+        lastValidation: null,
+        showFeedback: false,
+        interpretationAnswer: '',
+      },
+    }));
+    get().syncCityFromCurrentGraph(team, 0);
+  },
 
   setTool: (team, tool) => set((s) => ({
     [team]: { ...s[team], selectedTool: tool },
   })),
 
-  addPlottedPoint: (team, point) => set((s) => ({
-    [team]: {
-      ...s[team],
-      plottedPoints: [...s[team].plottedPoints, point],
-    },
-  })),
+  addPlottedPoint: (team, point) => {
+    set((s) => ({
+      [team]: {
+        ...s[team],
+        plottedPoints: [...s[team].plottedPoints, point],
+      },
+    }));
+    get().syncCityFromCurrentGraph(team, point.x);
+  },
 
-  updatePlottedPoint: (team, index, updates) => set((s) => {
-    const pts = [...s[team].plottedPoints];
-    if (pts[index]) pts[index] = { ...pts[index], ...updates };
-    return { [team]: { ...s[team], plottedPoints: pts } };
-  }),
+  updatePlottedPoint: (team, index, updates) => {
+    set((s) => {
+      const pts = [...s[team].plottedPoints];
+      if (pts[index]) pts[index] = { ...pts[index], ...updates };
+      return { [team]: { ...s[team], plottedPoints: pts } };
+    });
+    get().syncCityFromCurrentGraph(team, index);
+  },
 
-  removePlottedPoint: (team, index) => set((s) => ({
-    [team]: {
-      ...s[team],
-      plottedPoints: s[team].plottedPoints.filter((_, i) => i !== index),
-    },
-  })),
+  removePlottedPoint: (team, index) => {
+    set((s) => ({
+      [team]: {
+        ...s[team],
+        plottedPoints: s[team].plottedPoints.filter((_, i) => i !== index),
+      },
+    }));
+    get().syncCityFromCurrentGraph(team);
+  },
 
-  setPlottedBars: (team, bars) => set((s) => ({
-    [team]: { ...s[team], plottedBars: bars },
-  })),
+  setPlottedBars: (team, bars) => {
+    set((s) => ({
+      [team]: { ...s[team], plottedBars: bars },
+    }));
+    get().syncCityFromCurrentGraph(team);
+  },
 
-  updateBarHeight: (team, index, height) => set((s) => {
-    const bars = [...s[team].plottedBars];
-    if (bars[index]) bars[index] = { ...bars[index], height };
-    return { [team]: { ...s[team], plottedBars: bars } };
-  }),
+  updateBarHeight: (team, index, height) => {
+    set((s) => {
+      const bars = [...s[team].plottedBars];
+      if (bars[index]) bars[index] = { ...bars[index], height };
+      return { [team]: { ...s[team], plottedBars: bars } };
+    });
+    get().syncCityFromCurrentGraph(team, index);
+  },
 
-  clearGraph: (team) => set((s) => ({
-    [team]: {
-      ...s[team],
-      plottedPoints: [],
-      plottedBars: (s[team].currentMission?.graphType === 'bar' || s[team].currentMission?.graphType === 'pie' || s[team].currentMission?.graphType === 'pictograph')
-        ? (s[team].currentMission?.dataTable.map((d) => ({ label: d.label, height: 0 })) ?? [])
-        : [],
-      lastValidation: null,
-      showFeedback: false,
-    },
-  })),
+  clearGraph: (team) => {
+    set((s) => ({
+      [team]: {
+        ...s[team],
+        plottedPoints: [],
+        plottedBars: (s[team].currentMission?.graphType === 'bar' || s[team].currentMission?.graphType === 'pie' || s[team].currentMission?.graphType === 'pictograph')
+          ? (s[team].currentMission?.dataTable.map((d) => ({ label: d.label, height: 0 })) ?? [])
+          : [],
+        lastValidation: null,
+        showFeedback: false,
+      },
+    }));
+    get().syncCityFromCurrentGraph(team, 0);
+  },
 
   checkGraph: (team) => {
     const state = get();
@@ -613,6 +671,178 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       }
 
       return { [cityKey]: city };
+    });
+  },
+
+  triggerDataPulse: (team, district, value) => {
+    const pulse: ActiveDataPulse = {
+      id: Date.now() + Math.random(),
+      team,
+      district,
+      value,
+      timestamp: Date.now(),
+    };
+    set((s) => ({
+      activePulses: [...s.activePulses.filter((p) => Date.now() - p.timestamp < 1500), pulse],
+    }));
+  },
+
+  syncCityFromCurrentGraph: (team, activeIndex) => {
+    const state = get();
+    const teamState = state[team];
+    const mission = teamState.currentMission;
+    if (!mission) return;
+
+    const district = mission.district;
+    const isBars = mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph';
+
+    let currentVal = 0;
+    let prevVal = 0;
+    let delta = 0;
+    let trend: 'increasing' | 'constant' | 'decreasing' | 'initial' = 'initial';
+    let dataLabel = '';
+    let targetIndex = 0;
+
+    if (isBars) {
+      const bars = teamState.plottedBars;
+      targetIndex = activeIndex !== undefined ? activeIndex : 0;
+      const currentBar = bars[targetIndex];
+      currentVal = currentBar ? currentBar.height : 0;
+      dataLabel = currentBar ? currentBar.label : (mission.xAxis.labels[targetIndex] ?? '');
+
+      if (targetIndex > 0 && bars[targetIndex - 1]) {
+        prevVal = bars[targetIndex - 1].height;
+        delta = currentVal - prevVal;
+        trend = Math.abs(delta) < 0.01 ? 'constant' : delta > 0 ? 'increasing' : 'decreasing';
+      } else {
+        prevVal = currentVal;
+        trend = 'initial';
+      }
+    } else {
+      const pts = [...teamState.plottedPoints].sort((a, b) => a.x - b.x);
+      if (pts.length === 0) {
+        currentVal = 0;
+        prevVal = 0;
+        trend = 'initial';
+        dataLabel = mission.xAxis.labels[0] ?? '';
+      } else if (pts.length === 1) {
+        currentVal = pts[0].y;
+        prevVal = pts[0].y;
+        dataLabel = pts[0].label;
+        targetIndex = pts[0].x;
+        trend = 'initial';
+      } else {
+        targetIndex = activeIndex !== undefined ? activeIndex : pts.length - 1;
+        const curPt = pts[targetIndex] ?? pts[pts.length - 1];
+        currentVal = curPt.y;
+        dataLabel = curPt.label;
+
+        const prevPt = targetIndex > 0 ? pts[targetIndex - 1] : pts[0];
+        prevVal = prevPt.y;
+        delta = currentVal - prevVal;
+        trend = Math.abs(delta) < 0.01 ? 'constant' : delta > 0 ? 'increasing' : 'decreasing';
+      }
+    }
+
+    const cityKey = team === 'blue' ? 'blueCity' : 'redCity';
+    const currentCity = { ...state[cityKey] };
+
+    // Update physical district state directly from live graph data!
+    switch (district) {
+      case 'weather':
+        currentCity.weather = {
+          ...currentCity.weather,
+          temperature: currentVal,
+          sunIntensity: Math.min(1.4, Math.max(0.4, currentVal / 32)),
+          cloudCover: currentVal < 14 ? 0.7 : currentVal < 24 ? 0.3 : 0.05,
+          isRaining: currentVal < 10,
+          windSpeed: 4 + Math.max(0, (currentVal - 10) * 0.45),
+        };
+        break;
+
+      case 'traffic':
+        currentCity.traffic = {
+          ...currentCity.traffic,
+          vehicleCount: Math.round(currentVal),
+          congestionLevel: Math.min(1, currentVal / 40),
+          pedestrianCount: Math.max(6, Math.round(currentVal * 0.75)),
+        };
+        break;
+
+      case 'water':
+        currentCity.water = {
+          ...currentCity.water,
+          reservoirLevel: Math.min(100, Math.max(0, currentVal)),
+          pumpActive: currentVal > 15,
+          flowRate: currentVal * 0.85,
+        };
+        break;
+
+      case 'power':
+        currentCity.power = {
+          ...currentCity.power,
+          generationMW: currentVal,
+          turbineRPM: currentVal * 16,
+          gridActive: currentVal > 10,
+        };
+        break;
+
+      case 'train': {
+        const maxDist = Math.max(60, mission.yAxis.max || 250);
+        const ptsCount = isBars ? teamState.plottedBars.length : teamState.plottedPoints.length;
+        const isStopped = trend === 'constant' || (ptsCount > 1 && Math.abs(delta) < 0.01);
+        currentCity.train = {
+          ...currentCity.train,
+          distanceMeters: currentVal,
+          trainPosition: Math.min(1, Math.max(0, currentVal / maxDist)),
+          speed: isStopped ? 0 : Math.abs(delta) > 15 ? 40 : 20,
+          atStation: currentVal < 5,
+          isStopped,
+          passengerCount: Math.round(currentVal * 1.5),
+        };
+        break;
+      }
+
+      case 'park':
+        currentCity.park = {
+          ...currentCity.park,
+          visitorCount: Math.round(currentVal),
+          activityLevel: Math.min(1, currentVal / 50),
+          fountainActive: currentVal > 5,
+          fountainHeight: Math.min(2.5, Math.max(0.4, (currentVal / 40) * 2.2)),
+        };
+        break;
+    }
+
+    const telemetry: CityLiveTelemetry = {
+      team,
+      district,
+      value: currentVal,
+      prevValue: prevVal,
+      delta,
+      trend,
+      timestamp: Date.now(),
+      dataLabel,
+      targetIndex,
+    };
+
+    const telemetryKey = team === 'blue' ? 'blueTelemetry' : 'redTelemetry';
+
+    // Add subtle data pulse
+    const newPulse: ActiveDataPulse = {
+      id: Date.now() + Math.random(),
+      team,
+      district,
+      value: currentVal,
+      timestamp: Date.now(),
+    };
+
+    const updatedPulses = [...state.activePulses.filter((p) => Date.now() - p.timestamp < 1200), newPulse];
+
+    set({
+      [cityKey]: currentCity,
+      [telemetryKey]: telemetry,
+      activePulses: updatedPulses,
     });
   },
 

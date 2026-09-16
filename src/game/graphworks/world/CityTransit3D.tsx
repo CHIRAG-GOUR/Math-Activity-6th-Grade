@@ -97,24 +97,40 @@ function VehicleModel({
   );
 }
 
+import { useGraphworksStore } from '../store/graphworksStore';
+
 export function CityTransit3D() {
-  const trainRef = useRef<THREE.Group>(null);
+  const blueTrainRef = useRef<THREE.Group>(null);
+  const redTrainRef = useRef<THREE.Group>(null);
   const trafficGroupRef = useRef<THREE.Group>(null);
+
+  const blueCity = useGraphworksStore((s) => s.blueCity);
+  const redCity = useGraphworksStore((s) => s.redCity);
+  const blueMission = useGraphworksStore((s) => s.blue.currentMission);
+  const redMission = useGraphworksStore((s) => s.red.currentMission);
+
+  // Train positions (interpolated smoothly)
+  const blueTrainX = useRef(-12);
+  const redTrainX = useRef(-12);
 
   // Dynamic vehicles with current positions, velocities, and lane directions
   const vehicles = useMemo(
     () => [
-      // Westbound Lane (Z = 4.6, +X travel)
-      { id: 1, x: -28, z: 4.6, baseSpeed: 5.0, currentSpeed: 5.0, type: 'sedan' as const, color: '#2563eb', rotY: Math.PI / 2, isBraking: false },
-      { id: 2, x: -14, z: 4.6, baseSpeed: 4.5, currentSpeed: 4.5, type: 'bus' as const, color: '#0284c7', rotY: Math.PI / 2, isBraking: false },
-      { id: 3, x: 2, z: 4.6, baseSpeed: 5.2, currentSpeed: 5.2, type: 'sedan' as const, color: '#f59e0b', rotY: Math.PI / 2, isBraking: false },
-      { id: 4, x: 18, z: 4.6, baseSpeed: 4.8, currentSpeed: 4.8, type: 'van' as const, color: '#ffffff', rotY: Math.PI / 2, isBraking: false },
+      // Westbound Lane (Z = 4.6, +X travel, Blue Lane)
+      { id: 1, lane: 'blue' as const, slot: 0, x: -28, z: 4.6, baseSpeed: 5.2, currentSpeed: 5.2, type: 'sedan' as const, color: '#2563eb', rotY: Math.PI / 2, isBraking: false },
+      { id: 2, lane: 'blue' as const, slot: 1, x: -16, z: 4.6, baseSpeed: 4.6, currentSpeed: 4.6, type: 'bus' as const, color: '#0284c7', rotY: Math.PI / 2, isBraking: false },
+      { id: 3, lane: 'blue' as const, slot: 2, x: -4, z: 4.6, baseSpeed: 5.0, currentSpeed: 5.0, type: 'sedan' as const, color: '#38bdf8', rotY: Math.PI / 2, isBraking: false },
+      { id: 4, lane: 'blue' as const, slot: 3, x: 8, z: 4.6, baseSpeed: 4.8, currentSpeed: 4.8, type: 'van' as const, color: '#ffffff', rotY: Math.PI / 2, isBraking: false },
+      { id: 5, lane: 'blue' as const, slot: 4, x: 20, z: 4.6, baseSpeed: 5.1, currentSpeed: 5.1, type: 'sedan' as const, color: '#1d4ed8', rotY: Math.PI / 2, isBraking: false },
+      { id: 6, lane: 'blue' as const, slot: 5, x: 32, z: 4.6, baseSpeed: 4.7, currentSpeed: 4.7, type: 'sedan' as const, color: '#60a5fa', rotY: Math.PI / 2, isBraking: false },
 
-      // Eastbound Lane (Z = 6.4, -X travel)
-      { id: 5, x: 28, z: 6.4, baseSpeed: -5.0, currentSpeed: -5.0, type: 'sedan' as const, color: '#dc2626', rotY: -Math.PI / 2, isBraking: false },
-      { id: 6, x: 14, z: 6.4, baseSpeed: -4.3, currentSpeed: -4.3, type: 'bus' as const, color: '#ef4444', rotY: -Math.PI / 2, isBraking: false },
-      { id: 7, x: -2, z: 6.4, baseSpeed: -5.1, currentSpeed: -5.1, type: 'sedan' as const, color: '#ffffff', rotY: -Math.PI / 2, isBraking: false },
-      { id: 8, x: -18, z: 6.4, baseSpeed: -4.7, currentSpeed: -4.7, type: 'sedan' as const, color: '#10b981', rotY: -Math.PI / 2, isBraking: false },
+      // Eastbound Lane (Z = 6.4, -X travel, Red Lane)
+      { id: 7, lane: 'red' as const, slot: 0, x: 28, z: 6.4, baseSpeed: -5.2, currentSpeed: -5.2, type: 'sedan' as const, color: '#dc2626', rotY: -Math.PI / 2, isBraking: false },
+      { id: 8, lane: 'red' as const, slot: 1, x: 16, z: 6.4, baseSpeed: -4.5, currentSpeed: -4.5, type: 'bus' as const, color: '#ef4444', rotY: -Math.PI / 2, isBraking: false },
+      { id: 9, lane: 'red' as const, slot: 2, x: 4, z: 6.4, baseSpeed: -5.0, currentSpeed: -5.0, type: 'sedan' as const, color: '#f87171', rotY: -Math.PI / 2, isBraking: false },
+      { id: 10, lane: 'red' as const, slot: 3, x: -8, z: 6.4, baseSpeed: -4.8, currentSpeed: -4.8, type: 'van' as const, color: '#ffffff', rotY: -Math.PI / 2, isBraking: false },
+      { id: 11, lane: 'red' as const, slot: 4, x: -20, z: 6.4, baseSpeed: -5.1, currentSpeed: -5.1, type: 'sedan' as const, color: '#b91c1c', rotY: -Math.PI / 2, isBraking: false },
+      { id: 12, lane: 'red' as const, slot: 5, x: -32, z: 6.4, baseSpeed: -4.7, currentSpeed: -4.7, type: 'sedan' as const, color: '#fb7185', rotY: -Math.PI / 2, isBraking: false },
     ],
     []
   );
@@ -122,12 +138,28 @@ export function CityTransit3D() {
   useFrame((state, delta) => {
     const t = state.clock.getElapsedTime();
 
-    // ── 1. VEHICLE SIMULATION: SPACING PHYSICS & CROSSWALK BRAKING ──
+    // ── 1. ACTIVE TRAFFIC DENSITY DRIVEN DIRECTLY BY GRAPH PLOTS ──
+    const blueCount = blueCity.traffic.vehicleCount;
+    const redCount = redCity.traffic.vehicleCount;
+
+    // Active slots per lane
+    const blueActiveLimit = blueCount <= 10 ? 2 : blueCount <= 22 ? 4 : 6;
+    const redActiveLimit = redCount <= 10 ? 2 : redCount <= 22 ? 4 : 6;
+
+    // Speed multiplier based on congestion
+    const blueSpeedMult = Math.max(0.55, 1.2 - (blueCount / 50) * 0.5);
+    const redSpeedMult = Math.max(0.55, 1.2 - (redCount / 50) * 0.5);
+
     // Periodic pedestrian crossing window (every 14s for 3.5s)
     const isCrossingCycle = (t % 14) > 10.5;
 
     vehicles.forEach((v, idx) => {
-      let desiredSpeed = v.baseSpeed;
+      const isBlue = v.lane === 'blue';
+      const activeLimit = isBlue ? blueActiveLimit : redActiveLimit;
+      const speedMult = isBlue ? blueSpeedMult : redSpeedMult;
+      const isActive = v.slot < activeLimit;
+
+      let desiredSpeed = v.baseSpeed * speedMult;
       v.isBraking = false;
 
       // Check distance to crosswalks at X = -5 and X = +5
@@ -136,29 +168,25 @@ export function CityTransit3D() {
         const pedCrossing = cityTraffic.isPedestrianInCrosswalk(cwX);
         if (pedCrossing || isCrossingCycle) {
           if (v.baseSpeed > 0 && v.x < cwX && cwX - v.x < 5.0 && cwX - v.x > 0.2) {
-            // Westbound car approaching crosswalk from left: decelerate to complete stop
             desiredSpeed = 0;
             v.isBraking = true;
           } else if (v.baseSpeed < 0 && v.x > cwX && v.x - cwX < 5.0 && v.x - cwX > 0.2) {
-            // Eastbound car approaching crosswalk from right: decelerate to complete stop
             desiredSpeed = 0;
             v.isBraking = true;
           }
         }
       });
 
-      // Check distance to car directly ahead in same lane (car-following spacing physics)
+      // Car-following spacing physics
       vehicles.forEach((otherV, otherIdx) => {
         if (idx === otherIdx || v.z !== otherV.z) return;
         if (v.baseSpeed > 0) {
-          // Moving in +X direction
           const dist = otherV.x - v.x;
           if (dist > 0 && dist < 6.5) {
             desiredSpeed = Math.min(desiredSpeed, Math.max(0, otherV.currentSpeed * 0.9));
             if (dist < 4.5) v.isBraking = true;
           }
         } else {
-          // Moving in -X direction
           const dist = v.x - otherV.x;
           if (dist > 0 && dist < 6.5) {
             desiredSpeed = Math.max(desiredSpeed, Math.min(0, otherV.currentSpeed * 0.9));
@@ -168,7 +196,7 @@ export function CityTransit3D() {
       });
 
       // Smooth acceleration / deceleration
-      v.currentSpeed = THREE.MathUtils.damp(v.currentSpeed, desiredSpeed, 4, delta);
+      v.currentSpeed = THREE.MathUtils.damp(v.currentSpeed, desiredSpeed, 4.5, delta);
       v.x += v.currentSpeed * delta;
 
       // Wrap around road boundaries (-36 to +36)
@@ -180,17 +208,46 @@ export function CityTransit3D() {
 
       // Update Three.js vehicle group transform
       if (trafficGroupRef.current && trafficGroupRef.current.children[idx]) {
-        const carGroup = trafficGroupRef.current.children[idx];
+        const carGroup = trafficGroupRef.current.children[idx] as THREE.Group;
+        carGroup.visible = isActive;
         carGroup.position.x = v.x;
-        // Subtle pitch dip under heavy braking
         carGroup.rotation.z = v.isBraking ? (v.baseSpeed > 0 ? 0.03 : -0.03) : 0;
       }
     });
 
-    // ── 2. BULLET TRAIN CRUISE ──
-    if (trainRef.current) {
-      const trainX = -18 + ((t * 6.5) % 36);
-      trainRef.current.position.x = trainX;
+    // ── 2. BULLET TRAIN PHYSICS DIRECTLY CONTROLLED BY GRAPH PLOTS ──
+    // Blue Train
+    if (blueTrainRef.current) {
+      if (blueMission?.district === 'train') {
+        const targetX = -13 + Math.min(1, Math.max(0, blueCity.train.trainPosition)) * 26;
+        blueTrainX.current = THREE.MathUtils.damp(
+          blueTrainX.current,
+          targetX,
+          blueCity.train.isStopped ? 8.0 : 3.5,
+          delta
+        );
+      } else {
+        // Ambient cruising schedule if not active mission
+        blueTrainX.current = -18 + ((t * 5.0) % 36);
+      }
+      blueTrainRef.current.position.x = blueTrainX.current;
+    }
+
+    // Red Train
+    if (redTrainRef.current) {
+      if (redMission?.district === 'train') {
+        const targetX = -13 + Math.min(1, Math.max(0, redCity.train.trainPosition)) * 26;
+        redTrainX.current = THREE.MathUtils.damp(
+          redTrainX.current,
+          targetX,
+          redCity.train.isStopped ? 8.0 : 3.5,
+          delta
+        );
+      } else {
+        // Ambient cruising schedule if not active mission
+        redTrainX.current = 18 - (((t * 4.8) + 12) % 36);
+      }
+      redTrainRef.current.position.x = redTrainX.current;
     }
   });
 
@@ -256,59 +313,74 @@ export function CityTransit3D() {
         ))}
       </group>
 
-      {/* ── 3. HIGH-SPEED BULLET TRAIN ON ELEVATED TRACK ── */}
-      <group ref={trainRef} position={[0, 1.25, -14]}>
-        {/* Streamlined Bullet Locomotive */}
+      {/* ── 3. DUAL HIGH-SPEED BULLET TRAINS (INDEPENDENT BLUE & RED) ── */}
+      {/* Blue Train on South Rail (Track 1) */}
+      <group ref={blueTrainRef} position={[0, 1.25, -13.5]}>
         <group position={[3.2, 0, 0]}>
           <mesh position={[0, 0.5, 0]} castShadow>
-            <boxGeometry args={[3.2, 0.9, 0.85]} />
+            <boxGeometry args={[3.2, 0.9, 0.78]} />
             <meshStandardMaterial color="#ffffff" roughness={0.2} metalness={0.4} />
           </mesh>
-          {/* Aerodynamic Tapered Nose Cone */}
           <mesh position={[1.8, 0.35, 0]} rotation={[0, 0, -Math.PI / 6]} castShadow>
-            <boxGeometry args={[0.9, 0.65, 0.84]} />
+            <boxGeometry args={[0.9, 0.65, 0.76]} />
             <meshStandardMaterial color="#ffffff" roughness={0.2} metalness={0.4} />
           </mesh>
-          {/* Cyan/Blue High-Speed Livery Stripe */}
           <mesh position={[0.2, 0.55, 0]}>
-            <boxGeometry args={[3.4, 0.16, 0.88]} />
-            <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.4} />
+            <boxGeometry args={[3.4, 0.16, 0.82]} />
+            <meshStandardMaterial color="#2563eb" emissive="#1d4ed8" emissiveIntensity={0.6} />
           </mesh>
-          {/* Panoramic Cabin Glass */}
           <mesh position={[0.4, 0.65, 0]}>
-            <boxGeometry args={[2.2, 0.3, 0.87]} />
+            <boxGeometry args={[2.2, 0.3, 0.8]} />
             <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.7} />
           </mesh>
         </group>
-
-        {/* Passenger Car 1 */}
         <group position={[0, 0, 0]}>
           <mesh position={[0, 0.5, 0]} castShadow>
-            <boxGeometry args={[3.0, 0.9, 0.85]} />
+            <boxGeometry args={[3.0, 0.9, 0.78]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.2} />
           </mesh>
           <mesh position={[0, 0.55, 0]}>
-            <boxGeometry args={[3.05, 0.16, 0.88]} />
-            <meshStandardMaterial color="#0284c7" />
+            <boxGeometry args={[3.05, 0.16, 0.82]} />
+            <meshStandardMaterial color="#2563eb" />
           </mesh>
           <mesh position={[0, 0.65, 0]}>
-            <boxGeometry args={[2.5, 0.3, 0.87]} />
+            <boxGeometry args={[2.5, 0.3, 0.8]} />
             <meshStandardMaterial color="#0f172a" roughness={0.1} />
           </mesh>
         </group>
+      </group>
 
-        {/* Passenger Car 2 */}
-        <group position={[-3.2, 0, 0]}>
+      {/* Red Train on North Rail (Track 2) */}
+      <group ref={redTrainRef} position={[0, 1.25, -14.5]}>
+        <group position={[3.2, 0, 0]}>
           <mesh position={[0, 0.5, 0]} castShadow>
-            <boxGeometry args={[3.0, 0.9, 0.85]} />
+            <boxGeometry args={[3.2, 0.9, 0.78]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.2} metalness={0.4} />
+          </mesh>
+          <mesh position={[1.8, 0.35, 0]} rotation={[0, 0, -Math.PI / 6]} castShadow>
+            <boxGeometry args={[0.9, 0.65, 0.76]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.2} metalness={0.4} />
+          </mesh>
+          <mesh position={[0.2, 0.55, 0]}>
+            <boxGeometry args={[3.4, 0.16, 0.82]} />
+            <meshStandardMaterial color="#dc2626" emissive="#b91c1c" emissiveIntensity={0.6} />
+          </mesh>
+          <mesh position={[0.4, 0.65, 0]}>
+            <boxGeometry args={[2.2, 0.3, 0.8]} />
+            <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.7} />
+          </mesh>
+        </group>
+        <group position={[0, 0, 0]}>
+          <mesh position={[0, 0.5, 0]} castShadow>
+            <boxGeometry args={[3.0, 0.9, 0.78]} />
             <meshStandardMaterial color="#f8fafc" roughness={0.2} />
           </mesh>
           <mesh position={[0, 0.55, 0]}>
-            <boxGeometry args={[3.05, 0.16, 0.88]} />
-            <meshStandardMaterial color="#0284c7" />
+            <boxGeometry args={[3.05, 0.16, 0.82]} />
+            <meshStandardMaterial color="#dc2626" />
           </mesh>
           <mesh position={[0, 0.65, 0]}>
-            <boxGeometry args={[2.5, 0.3, 0.87]} />
+            <boxGeometry args={[2.5, 0.3, 0.8]} />
             <meshStandardMaterial color="#0f172a" roughness={0.1} />
           </mesh>
         </group>

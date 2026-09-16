@@ -12,6 +12,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { cityTraffic } from './CityTrafficState';
+import { useGraphworksStore } from '../store/graphworksStore';
 
 export type CharacterRole =
   | 'city_worker'
@@ -886,6 +887,14 @@ export function CityPedestrians3D() {
     });
   });
 
+  const blueVisitors = useGraphworksStore((s) => s.blueCity.park.visitorCount);
+  const redVisitors = useGraphworksStore((s) => s.redCity.park.visitorCount);
+  const activeVisitors = Math.max(blueVisitors, redVisitors);
+
+  // Dynamic crowd density scaled by plotted park visitors
+  const allowedWalkers = activeVisitors <= 10 ? 4 : activeVisitors <= 20 ? 6 : pedestrians.length;
+  const allowedSitters = activeVisitors <= 10 ? 1 : activeVisitors <= 20 ? 2 : benchSitters.length;
+
   return (
     <group>
       {/* ── 1. ACTIVE PATH-NAVIGATING CITIZENS ── */}
@@ -897,6 +906,7 @@ export function CityPedestrians3D() {
           }}
           position={ped.pos}
           rotation={[0, ped.yaw, 0]}
+          visible={idx < allowedWalkers}
         >
           <StylizedHumanRig
             role={ped.role}
@@ -909,8 +919,13 @@ export function CityPedestrians3D() {
       ))}
 
       {/* ── 2. SEATED PARK BENCH CITIZENS ── */}
-      {benchSitters.map((sitter) => (
-        <group key={sitter.id} position={sitter.pos} rotation={[0, sitter.rotY, 0]}>
+      {benchSitters.map((sitter, idx) => (
+        <group
+          key={sitter.id}
+          position={sitter.pos}
+          rotation={[0, sitter.rotY, 0]}
+          visible={idx < allowedSitters}
+        >
           <StylizedHumanRig
             role={sitter.role}
             isWalking={false}

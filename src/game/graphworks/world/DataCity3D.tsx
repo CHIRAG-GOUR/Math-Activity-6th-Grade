@@ -14,6 +14,7 @@ import { CityArchitecture3D } from './CityArchitecture3D';
 import { CityDistricts3D } from './CityDistricts3D';
 import { CityTransit3D } from './CityTransit3D';
 import { CityPedestrians3D } from './CityPedestrians3D';
+import { DataPulseConduits3D } from './DataPulseConduits3D';
 
 // Cinematic Camera Director with Fluid Mouse Parallax
 function CityCameraDirector() {
@@ -96,6 +97,9 @@ export function DataCity3D() {
 
       {/* ── 5. STYLIZED CITIZEN PEDESTRIANS & CROWD PHYSICS ── */}
       <CityPedestrians3D />
+
+      {/* ── 6. REAL-TIME DATA PULSES & CONDUITS ── */}
+      <DataPulseConduits3D />
     </group>
   );
 }
