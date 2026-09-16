@@ -91,18 +91,17 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
       {/* ── 2. Main Two-Team Layout Container ── */}
       <div className="w-full h-full pt-[72px] pb-3 px-3 sm:px-5 flex items-stretch justify-between gap-3 sm:gap-4">
         
-        {/* ── LEFT CONSOLE: TEAM BLUE (Strictly 320px-340px wide) ── */}
+        {/* ── LEFT CONSOLE: TEAM BLUE ── */}
         {(!isMobileScreen || mobileActiveTab === 'blue') && (
           <motion.aside
             initial={{ x: -140, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              width: isMobileScreen ? '100%' : '330px',
-              maxWidth: isMobileScreen ? '420px' : '340px',
-              minWidth: isMobileScreen ? 'auto' : '300px',
-            }}
-            className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
+            className={`h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0 ${
+              isMobileScreen
+                ? 'w-full max-w-[440px]'
+                : 'w-[320px] md:w-[350px] lg:w-[380px] xl:w-[410px] 2xl:w-[450px] max-w-[calc(50vw-20px)]'
+            }`}
           >
             <TeamConsole teamId="blue" />
           </motion.aside>
@@ -134,18 +133,17 @@ export const TwoTeamLayout: React.FC<{ children?: React.ReactNode }> = ({ childr
           </div>
         )}
 
-        {/* ── RIGHT CONSOLE: TEAM RED (Strictly 320px-340px wide) ── */}
+        {/* ── RIGHT CONSOLE: TEAM RED ── */}
         {(!isMobileScreen || mobileActiveTab === 'red') && (
           <motion.aside
             initial={{ x: 140, opacity: 0 }}
             animate={{ x: 0, opacity: 1 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            style={{
-              width: isMobileScreen ? '100%' : '330px',
-              maxWidth: isMobileScreen ? '420px' : '340px',
-              minWidth: isMobileScreen ? 'auto' : '300px',
-            }}
-            className="h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0"
+            className={`h-full pointer-events-auto shrink-0 flex flex-col mx-auto sm:mx-0 ${
+              isMobileScreen
+                ? 'w-full max-w-[440px]'
+                : 'w-[320px] md:w-[350px] lg:w-[380px] xl:w-[410px] 2xl:w-[450px] max-w-[calc(50vw-20px)]'
+            }`}
           >
             <TeamConsole teamId="red" />
           </motion.aside>

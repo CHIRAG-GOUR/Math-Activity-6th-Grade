@@ -32,10 +32,10 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
         borderRadius: '18px',
         color: '#000000',
       }}
-      className="w-full max-w-xl mx-auto p-3 sm:p-4 text-left flex flex-col gap-2 select-none pointer-events-auto"
+      className="w-full max-w-3xl mx-auto p-3 sm:p-4 text-left flex flex-col gap-2 select-none pointer-events-auto"
     >
       {/* ── Top Strip: Challenge Badge, Timer & Points Stamp ── */}
-      <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1.5">
+      <div className="flex items-center justify-between gap-2 border-b-2 border-black pb-1.5 flex-wrap sm:flex-nowrap">
         <div className="flex items-center gap-2 min-w-0">
           <div
             style={{
@@ -49,7 +49,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
           >
             PROBABILITY MISSION
           </div>
-          <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-black truncate">
+          <span className="text-xs sm:text-sm font-black uppercase tracking-wide text-black">
             {challenge.missionTitle}
           </span>
         </div>
@@ -139,7 +139,7 @@ export const QuestionPanel: React.FC<QuestionPanelProps> = ({ challenge }) => {
         className="flex items-center gap-1.5 px-2 py-1 text-[10px] sm:text-xs font-black text-black"
       >
         <Target className="w-4 h-4 text-[#FF2A6D] shrink-0" />
-        <span className="tracking-tight text-black truncate">
+        <span className="tracking-tight text-black break-words leading-tight">
           Select your prediction on your team console below & lock in!
         </span>
       </div>

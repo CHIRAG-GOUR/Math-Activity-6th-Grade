@@ -67,9 +67,9 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
   const isComebackSurge = !teamState.isLocked && (otherTeamState.roundCorrect - teamState.roundCorrect >= 2 || otherTeamState.score - teamState.score >= 150);
 
   return (
-    <div className="flex flex-col gap-1.5 items-center select-none font-sans">
+    <div className="w-full flex flex-col gap-1.5 items-center select-none font-sans max-h-[82vh] overflow-y-auto">
       <div
-        className="w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden flex flex-col"
+        className="w-full bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden flex flex-col"
         style={{ borderColor: teamBorderColor }}
         onPointerDown={(e) => e.stopPropagation()}
       >
@@ -159,11 +159,11 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
               )}
 
               {/* Compact Question Card */}
-              <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs">
-                <span className="text-[8px] font-black uppercase tracking-wider text-amber-700 block mb-0.5">
+              <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+                <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 block mb-1">
                   QUESTION
                 </span>
-                <h3 className="text-[11px] font-black text-slate-900 leading-snug">
+                <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-snug break-words">
                   {challenge.prompt}
                 </h3>
 
@@ -306,7 +306,7 @@ export const TeamConsole: React.FC<TeamConsoleProps> = ({ team }) => {
       </div>
 
       {/* ── 4. Tactical Power-Up Tray & Digital Scratchpad Dock ── */}
-      <div className="w-[270px] flex items-center justify-between gap-1">
+      <div className="w-full flex items-center justify-between gap-1">
         <PowerUpTray
           teamId={team}
           powerUps={powerUps}

@@ -132,7 +132,7 @@ export const TeamConsolePanel: React.FC<Props> = ({ teamId }) => {
               </div>
             )}
 
-            <p className="text-[11px] font-bold text-slate-700 mt-1 leading-tight">
+            <p className="text-xs sm:text-[13px] font-bold text-slate-800 mt-1 leading-snug break-words">
               {currentQuestion.prompt}
             </p>
           </div>
@@ -165,7 +165,7 @@ export const TeamConsolePanel: React.FC<Props> = ({ teamId }) => {
                   } disabled:cursor-not-allowed`}
                 >
                   <span
-                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border ${
+                    className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black border shrink-0 ${
                       isSelected
                         ? 'bg-white text-slate-950 border-white'
                         : 'bg-slate-100 text-slate-700 border-slate-300'
@@ -173,7 +173,7 @@ export const TeamConsolePanel: React.FC<Props> = ({ teamId }) => {
                   >
                     {opt.id}
                   </span>
-                  <span className="text-sm font-black truncate">{opt.label}</span>
+                  <span className="text-xs sm:text-sm font-black leading-tight break-words">{opt.label}</span>
                 </button>
               );
             })}

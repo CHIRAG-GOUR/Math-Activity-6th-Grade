@@ -160,17 +160,31 @@ const DataCityCanvas = dynamic(
 // ── MAIN GAME COMPONENT ──
 export function GraphworksGame() {
   const [mounted, setMounted] = useState(false);
+  const [mobileActiveTeam, setMobileActiveTeam] = useState<'blue' | 'red'>('blue');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
   useEffect(() => {
     setMounted(true);
+    const checkViewport = () => {
+      setIsMobileViewport(window.innerWidth < 960);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
   }, []);
 
   if (!mounted) return null;
 
   return (
-    <div className="relative w-screen h-screen overflow-hidden select-none bg-sky-100"
-      style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}>
+    <div
+      className="relative w-screen h-screen overflow-hidden select-none bg-sky-100"
+      style={{ fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif" }}
+    >
       {/* Load Inter font */}
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+      <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+        rel="stylesheet"
+      />
 
       {/* ── FULLSCREEN 3D DATA CITY CANVAS ── */}
       <div className="absolute inset-0 z-0">
@@ -195,16 +209,57 @@ export function GraphworksGame() {
       {/* ── MISSION CONTROLLER LOGIC ── */}
       <MissionController />
 
-      {/* ── BOTTOM-LEFT CORNER: BLUE GRAPH STUDIO ── */}
-      <div className="fixed z-30 bottom-2.5 left-2.5 w-[385px] min-w-[385px] max-w-[385px] pointer-events-auto">
-        <GraphStudio team="blue" />
-      </div>
+      {/* ── RESPONSIVE DUAL-STUDIO / MOBILE-TOGGLE LAYOUT ── */}
+      {isMobileViewport ? (
+        /* Mobile / Small Screen: Single active studio with quick team switcher */
+        <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
+          {/* Mobile Team Toggle Bar */}
+          <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
+            <button
+              type="button"
+              onClick={() => setMobileActiveTeam('blue')}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mobileActiveTeam === 'blue'
+                  ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                  : 'text-slate-300 hover:text-white bg-slate-800/60'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-sky-400" />
+              <span>BLUE STUDIO</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setMobileActiveTeam('red')}
+              className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                mobileActiveTeam === 'red'
+                  ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                  : 'text-slate-300 hover:text-white bg-slate-800/60'
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-rose-400" />
+              <span>RED STUDIO</span>
+            </button>
+          </div>
 
-      {/* ── BOTTOM-RIGHT CORNER: RED GRAPH STUDIO ── */}
-      <div className="fixed z-30 bottom-2.5 right-2.5 w-[385px] min-w-[385px] max-w-[385px] pointer-events-auto">
-        <GraphStudio team="red" />
-      </div>
+          {/* Active Mobile Studio Console */}
+          <GraphStudio team={mobileActiveTeam} />
+        </div>
+      ) : (
+        /* Desktop, Laptop, and TV Screens: Dual Side Panels at Bottom Corners */
+        <>
+          {/* ── BOTTOM-LEFT CORNER: BLUE GRAPH STUDIO ── */}
+          <div className="fixed z-30 bottom-3 left-3 w-[360px] md:w-[380px] lg:w-[410px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-24px)] pointer-events-auto">
+            <GraphStudio team="blue" />
+          </div>
+
+          {/* ── BOTTOM-RIGHT CORNER: RED GRAPH STUDIO ── */}
+          <div className="fixed z-30 bottom-3 right-3 w-[360px] md:w-[380px] lg:w-[410px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-24px)] pointer-events-auto">
+            <GraphStudio team="red" />
+          </div>
+        </>
+      )}
     </div>
   );
 }
+
 

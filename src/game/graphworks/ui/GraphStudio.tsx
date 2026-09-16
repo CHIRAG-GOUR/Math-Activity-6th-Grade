@@ -883,24 +883,27 @@ export function GraphStudio({ team }: { team: Team }) {
       </div>
 
       {/* ── 2. BODY CONTENT (COMFORTABLE PADDING & LEGIBLE TYPOGRAPHY) ── */}
-      <div className="p-3 flex flex-col gap-2 relative">
+      <div className="p-3 flex flex-col gap-2 relative max-h-[82vh] overflow-y-auto">
         {/* Feedback Overlay */}
         <FeedbackPanel team={team} />
 
         {/* Mission Title & Instruction */}
-        <div className="flex flex-col gap-1">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-black uppercase tracking-wider" style={{ color: teamColor }}>
+        <div className="flex flex-col gap-1 bg-slate-50/90 p-2 rounded-xl border border-slate-200 shadow-2xs">
+          <div className="flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <span className="text-xs font-black uppercase tracking-wider leading-snug" style={{ color: teamColor }}>
               {currentMission.title}
             </span>
-            <span className="text-[10.5px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
+            <span className="text-[10.5px] font-bold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200 shrink-0">
               {currentMission.graphType === 'pie' ? 'CIRCLE GRAPH' : currentMission.graphType.toUpperCase()}
             </span>
           </div>
-          <p className="text-xs md:text-[13px] font-medium text-slate-700 leading-snug line-clamp-2">
-            {currentMission.instruction}
-          </p>
+          <div className="max-h-24 overflow-y-auto pr-0.5">
+            <p className="text-xs md:text-[13px] font-semibold text-slate-800 leading-snug">
+              {currentMission.instruction}
+            </p>
+          </div>
         </div>
+
 
         {/* Horizontal Clickable Data Strip */}
         <DataStrip

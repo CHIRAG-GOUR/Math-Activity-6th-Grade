@@ -80,7 +80,7 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
         : { word: 'BELT CLEAR', dot: 'bg-slate-300' };
 
   return (
-    <div className={`relative h-full flex flex-col gap-1.5 p-2 bg-slate-50/95 border-4 ${ring} rounded-3xl shadow-xl overflow-hidden`}>
+    <div className={`relative h-full max-h-[85vh] lg:max-h-full overflow-y-auto flex flex-col gap-1.5 p-2 bg-slate-50/95 border-4 ${ring} rounded-3xl shadow-xl`}>
 
       {/* ── HEADER ── */}
       <div className={`${head} rounded-2xl px-3 py-1.5 text-white flex items-center justify-between shadow`}>
@@ -151,9 +151,9 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
                 </React.Fragment>
               ))}
             </div>
-            <p className="mt-1 text-[11px] xl:text-sm font-bold text-slate-700 leading-snug">{order.prompt}</p>
+            <p className="mt-1 text-[12px] xl:text-sm font-bold text-slate-900 leading-snug break-words">{order.prompt}</p>
             {lane.hintShown && (
-              <p className="mt-1 rounded-lg border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] xl:text-xs font-bold text-amber-900">
+              <p className="mt-1 rounded-lg border border-amber-300 bg-amber-100 px-2 py-1 text-[10px] xl:text-xs font-bold text-amber-900 break-words">
                 HINT: {order.explanation.replace(/=\s*[^=]*$/, '= ?')}
               </p>
             )}

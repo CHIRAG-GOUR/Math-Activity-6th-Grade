@@ -34,6 +34,18 @@ export const NumberRailwayGame: React.FC = () => {
   const phase = useRailwayStore((s) => s.phase);
   const showConsoles = phase !== 'title' && phase !== 'network-complete';
 
+  const [mobileActiveTeam, setMobileActiveTeam] = React.useState<'blue' | 'red'>('blue');
+  const [isMobileViewport, setIsMobileViewport] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkViewport = () => {
+      setIsMobileViewport(window.innerWidth < 960);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
   // Ensure game sound isolation: stop 1st activity BGM completely
   useEffect(() => {
     soundManager.stopBgm();
@@ -74,16 +86,55 @@ export const NumberRailwayGame: React.FC = () => {
       <WinnerPlaqueOverlay />
       <NetworkCompleteOverlay />
 
-      {/* ── 5. Floating Symmetrical Team Consoles (Left & Right) ── */}
+      {/* ── 5. Floating Team Consoles / Responsive Layout ── */}
       {showConsoles && (
-        <div className="absolute inset-x-0 top-18 bottom-3 pointer-events-none px-3 flex items-start justify-between z-20">
-          <div className="pointer-events-auto">
-            <TeamConsole team="blue" />
+        isMobileViewport ? (
+          /* Mobile / Small Screen: Single active console with quick team switcher */
+          <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
+            {/* Mobile Team Toggle Bar */}
+            <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('blue')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'blue'
+                    ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span>TEAM BLUE</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('red')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'red'
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span>TEAM RED</span>
+              </button>
+            </div>
+
+            {/* Active Mobile Console */}
+            <div className="w-full">
+              <TeamConsole team={mobileActiveTeam} />
+            </div>
           </div>
-          <div className="pointer-events-auto">
-            <TeamConsole team="red" />
+        ) : (
+          /* Desktop, Laptop, and TV Screens: Dual Symmetrical Consoles */
+          <div className="absolute inset-x-0 top-18 bottom-3 pointer-events-none px-3 flex items-start justify-between z-20">
+            <div className="pointer-events-auto w-[280px] md:w-[320px] lg:w-[360px] xl:w-[400px] 2xl:w-[440px] max-w-[calc(50vw-20px)]">
+              <TeamConsole team="blue" />
+            </div>
+            <div className="pointer-events-auto w-[280px] md:w-[320px] lg:w-[360px] xl:w-[400px] 2xl:w-[440px] max-w-[calc(50vw-20px)]">
+              <TeamConsole team="red" />
+            </div>
           </div>
-        </div>
+        )
       )}
 
       {/* ── 6. Bottom Controls: Zoom (+ & -) & Fullscreen ── */}

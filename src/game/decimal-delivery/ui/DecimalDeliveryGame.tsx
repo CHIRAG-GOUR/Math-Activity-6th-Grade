@@ -93,6 +93,17 @@ export const DecimalDeliveryGame: React.FC = () => {
 
   const mainRef = useRef<HTMLDivElement>(null);
   const [layout, setLayout] = useState<ScreenLayout | null>(null);
+  const [mobileActiveTeam, setMobileActiveTeam] = useState<'blue' | 'red'>('blue');
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+
+  useEffect(() => {
+    const checkViewport = () => {
+      setIsMobileViewport(window.innerWidth < 960);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
 
   // Keep the HTML frames in lock-step with the canvas the station windows are drawn into.
   useEffect(() => {
@@ -122,10 +133,10 @@ export const DecimalDeliveryGame: React.FC = () => {
       <DevAutoplay />
 
       {/* ── TOP BAR ── */}
-      <header className="relative z-30 shrink-0 flex items-center gap-3 px-3 py-1.5 bg-white border-b-4 border-slate-300 shadow">
+      <header className="relative z-30 shrink-0 flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-1.5 bg-white border-b-4 border-slate-300 shadow flex-wrap sm:flex-nowrap">
         <button
           onClick={() => router.push('/')}
-          className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 border-2 border-slate-400 text-slate-800 font-black text-xs uppercase tracking-wider active:scale-95 transition"
+          className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 border-2 border-slate-400 text-slate-800 font-black text-xs uppercase tracking-wider active:scale-95 transition cursor-pointer"
         >
           ← ARCADE
         </button>
@@ -133,7 +144,7 @@ export const DecimalDeliveryGame: React.FC = () => {
           <div className="text-[9px] xl:text-[10px] font-black uppercase tracking-[0.25em] text-slate-500">
             THE DECIMAL DELIVERY NETWORK
           </div>
-          <div className="text-sm xl:text-lg font-black uppercase text-slate-900 leading-tight truncate">
+          <div className="text-xs sm:text-sm xl:text-lg font-black uppercase text-slate-900 leading-tight truncate">
             {phase === 'tie_breaker' ? 'TIE-BREAK — EXPRESS ORDER' : `ROUND ${round} — ${ROUND_TITLES[round]}`}
           </div>
         </div>
@@ -152,22 +163,22 @@ export const DecimalDeliveryGame: React.FC = () => {
             {ROUND_BRIEFS[round]} · {PARCELS_PER_ROUND} parcels each
           </div>
         )}
-        <div className="ml-auto flex items-center gap-3">
+        <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <div className="text-right">
             <div className="text-[9px] font-black uppercase tracking-widest text-blue-600">BLUE</div>
-            <div className="text-sm xl:text-xl font-black tabular-nums text-blue-700 leading-none">₹{blue.balance.toFixed(2)}</div>
+            <div className="text-xs sm:text-sm xl:text-xl font-black tabular-nums text-blue-700 leading-none">₹{blue.balance.toFixed(2)}</div>
           </div>
-          <div className="w-px h-8 bg-slate-300" />
+          <div className="w-px h-7 sm:h-8 bg-slate-300" />
           <div>
             <div className="text-[9px] font-black uppercase tracking-widest text-red-600">RED</div>
-            <div className="text-sm xl:text-xl font-black tabular-nums text-red-700 leading-none">₹{red.balance.toFixed(2)}</div>
+            <div className="text-xs sm:text-sm xl:text-xl font-black tabular-nums text-red-700 leading-none">₹{red.balance.toFixed(2)}</div>
           </div>
           <button onClick={toggleMute}
-            className="px-3 py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 border-2 border-slate-400 text-slate-800 font-black text-xs uppercase active:scale-95 transition">
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-200 hover:bg-slate-300 border-2 border-slate-400 text-slate-800 font-black text-xs uppercase active:scale-95 transition cursor-pointer">
             {muted ? 'SOUND OFF' : 'SOUND ON'}
           </button>
           <button onClick={resetGame}
-            className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-900 text-white font-black text-xs uppercase active:scale-95 transition">
+            className="px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 border-2 border-slate-900 text-white font-black text-xs uppercase active:scale-95 transition cursor-pointer">
             RESTART
           </button>
         </div>
@@ -177,18 +188,59 @@ export const DecimalDeliveryGame: React.FC = () => {
       <main ref={mainRef} className="relative flex-1 min-h-0">
         <DepotScene3D />
 
-        {showConsoles && layout && (
-          <>
-            <aside className="absolute inset-y-0 left-0 z-20 p-2 xl:p-3" style={{ width: layout.rail }}>
-              <TeamConsole team="blue" />
-            </aside>
-            <aside className="absolute inset-y-0 right-0 z-20 p-2 xl:p-3" style={{ width: layout.rail }}>
-              <TeamConsole team="red" />
-            </aside>
-          </>
+        {showConsoles && (
+          isMobileViewport ? (
+            /* Mobile / Small Screen: Single active console with quick team switcher */
+            <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
+              {/* Mobile Team Toggle Bar */}
+              <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setMobileActiveTeam('blue')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileActiveTeam === 'blue'
+                      ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                      : 'text-slate-300 hover:text-white bg-slate-800/60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                  <span>BLUE DEPOT (₹{blue.balance.toFixed(2)})</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileActiveTeam('red')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileActiveTeam === 'red'
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                      : 'text-slate-300 hover:text-white bg-slate-800/60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  <span>RED DEPOT (₹{red.balance.toFixed(2)})</span>
+                </button>
+              </div>
+
+              {/* Active Mobile Team Console */}
+              <div className="w-full">
+                <TeamConsole team={mobileActiveTeam} />
+              </div>
+            </div>
+          ) : (
+            /* Desktop, Laptop, and TV Screens: Dual Side Rails */
+            layout && (
+              <>
+                <aside className="absolute inset-y-0 left-0 z-20 p-2 xl:p-3" style={{ width: layout.rail }}>
+                  <TeamConsole team="blue" />
+                </aside>
+                <aside className="absolute inset-y-0 right-0 z-20 p-2 xl:p-3" style={{ width: layout.rail }}>
+                  <TeamConsole team="red" />
+                </aside>
+              </>
+            )
+          )
         )}
 
-        {playing && layout && (
+        {!isMobileViewport && playing && layout && (
           <>
             <StationFrame team="blue" layout={layout} />
             <StationFrame team="red" layout={layout} />

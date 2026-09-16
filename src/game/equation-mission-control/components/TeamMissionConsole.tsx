@@ -77,7 +77,7 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
 
   return (
     <div
-      className="w-[270px] min-w-[270px] max-w-[270px] bg-white border-2 rounded-2xl shadow-2xl select-none overflow-hidden font-sans flex flex-col pointer-events-auto max-h-[94vh] overflow-y-auto"
+      className="w-full bg-white border-2 rounded-2xl shadow-2xl select-none font-sans flex flex-col pointer-events-auto max-h-[82vh] overflow-y-auto"
       style={{ borderColor: teamBorderColor }}
       onPointerDown={(e) => e.stopPropagation()}
     >
@@ -210,11 +210,11 @@ export const TeamMissionConsole: React.FC<Props> = ({ team }) => {
         {isPlayable && challenge ? (
           <>
             {/* Compact Question Card */}
-            <div className="p-2 bg-white rounded-xl border border-slate-200 shadow-xs">
-              <span className="text-[8px] font-black uppercase tracking-wider text-amber-700 block mb-0.5">
+            <div className="p-2.5 bg-white rounded-xl border border-slate-200 shadow-xs">
+              <span className="text-[9px] font-black uppercase tracking-wider text-amber-700 block mb-1">
                 TELEMETRY DIRECTIVE
               </span>
-              <h3 className="text-[11px] font-black text-slate-900 leading-snug">
+              <h3 className="text-xs sm:text-[13px] font-bold text-slate-900 leading-snug break-words">
                 {challenge.briefingPrompt}
               </h3>
             </div>

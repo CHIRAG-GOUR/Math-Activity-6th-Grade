@@ -64,9 +64,7 @@ export const SolarTeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
 
   return (
     <div
-      className={`fixed z-30 bottom-2.5 ${
-        isBlue ? 'left-2.5' : 'right-2.5'
-      } w-[310px] min-w-[310px] max-w-[310px] bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 ${borderColor} flex flex-col overflow-hidden text-slate-800 transition-all select-none`}
+      className={`w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 ${borderColor} flex flex-col max-h-[82vh] overflow-y-auto text-slate-800 transition-all select-none`}
     >
       {/* ── 1. CONSOLE HEADER & IDENTITY ── */}
       <div className={`px-3 py-2 ${headerBg} flex items-center justify-between shadow-xs text-white`}>
@@ -106,13 +104,14 @@ export const SolarTeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
               {missionNumber} / {totalMissions}
             </span>
           </div>
-          <h3 className="text-xs font-black text-slate-900 tracking-tight leading-snug line-clamp-1">
+          <h3 className="text-xs md:text-sm font-black text-slate-900 tracking-tight leading-snug">
             {cleanMissionTitle}
           </h3>
-          <p className="text-[11px] text-slate-600 font-semibold leading-tight line-clamp-2">
+          <p className="text-[11px] md:text-xs text-slate-600 font-semibold leading-snug">
             {q.scenario}
           </p>
         </div>
+
 
         {/* ── QUESTION DISPLAY: HIGH VISUAL FOCUS ── */}
         <div className={`bg-slate-50 border-l-4 ${accentBorder} border-t border-r border-b border-slate-200 rounded-xl p-2.5 shadow-xs`}>

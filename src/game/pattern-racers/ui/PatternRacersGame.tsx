@@ -38,6 +38,18 @@ export const PatternRacersGame: React.FC = () => {
   const stopSteering = usePatternStore((s) => s.stopSteering);
   const triggerNitro = usePatternStore((s) => s.triggerNitro);
 
+  const [mobileActiveTeam, setMobileActiveTeam] = React.useState<'blue' | 'red'>('blue');
+  const [isMobileViewport, setIsMobileViewport] = React.useState(false);
+
+  React.useEffect(() => {
+    const checkViewport = () => {
+      setIsMobileViewport(window.innerWidth < 960);
+    };
+    checkViewport();
+    window.addEventListener('resize', checkViewport);
+    return () => window.removeEventListener('resize', checkViewport);
+  }, []);
+
   const isRaceActive = phase === 'grand_prix_race';
   const showSidePanels = phase === 'round_active' || phase === 'phase_transition';
 
@@ -51,19 +63,6 @@ export const PatternRacersGame: React.FC = () => {
   }, []);
 
   // Keyboard controls for live Stage 5 Grand Prix Race
-  // ---- KEYBOARD ----
-  //
-  // W/A/S/D and the arrow keys are BOTH live and both drive the player's car,
-  // so a student can use whichever they reach for. In two-player (split) mode
-  // they separate: WASD = blue, arrows = red.
-  //
-  // Notes on what this fixes:
-  //  - Throttle and steering are independent flags. Holding W can never
-  //    produce a heading change; only A/D/Left/Right can.
-  //  - Arrow keys and Space are preventDefault-ed, so the page no longer
-  //    scrolls underneath the race.
-  //  - Boost ignores auto-repeat, which previously re-fired nitro continuously
-  //    while the key was held.
   useEffect(() => {
     const controllable = phase === 'grand_prix_race';
     if (!controllable) {
@@ -75,8 +74,6 @@ export const PatternRacersGame: React.FC = () => {
       'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Space',
     ]);
 
-    // In split (two-player) mode the arrow keys belong to red. Otherwise both
-    // key sets control blue, the car the class is driving.
     const arrowTeam: TeamId = splitViewMode ? 'red' : 'blue';
 
     const apply = (code: string, down: boolean, repeat: boolean) => {
@@ -119,7 +116,6 @@ export const PatternRacersGame: React.FC = () => {
       if (BLOCKED.has(e.code)) e.preventDefault();
       apply(e.code, false, false);
     };
-    // Losing focus mid-corner must not leave a key stuck down.
     const onBlur = () => clearInputs();
 
     window.addEventListener('keydown', onDown);
@@ -133,7 +129,6 @@ export const PatternRacersGame: React.FC = () => {
     };
   }, [phase, splitViewMode, triggerNitro]);
 
-
   const blueLeading = blueScore > redScore;
   const redLeading = redScore > blueScore;
 
@@ -142,11 +137,11 @@ export const PatternRacersGame: React.FC = () => {
       {/* ── 1. TOP MISSION BAR ── */}
       {!isRaceActive && <PatternHeader />}
 
-      {/* ── 2. MAIN BATTLEGROUND (Left Blue Console | Center 3D World | Right Red Console) ── */}
+      {/* ── 2. MAIN BATTLEGROUND ── */}
       <div className="flex-1 w-full flex flex-row overflow-hidden relative">
-        {/* LEFT PANEL: BLUE TEAM CONSOLE */}
-        {showSidePanels && (
-          <aside className="w-[18%] min-w-[250px] max-w-[340px] h-full z-20 shadow-2xl border-r-3 border-slate-900 bg-white">
+        {/* LEFT PANEL: BLUE TEAM CONSOLE (Desktop/TV) */}
+        {showSidePanels && !isMobileViewport && (
+          <aside className="w-[280px] md:w-[320px] lg:w-[350px] xl:w-[380px] 2xl:w-[420px] max-w-[calc(50vw-20px)] h-full z-20 shadow-2xl border-r-3 border-slate-900 bg-white shrink-0">
             <TeamConsolePanel teamId="blue" />
           </aside>
         )}
@@ -162,7 +157,7 @@ export const PatternRacersGame: React.FC = () => {
           <NFSMostWantedRaceHUD />
 
           {/* ── BOTTOM FLOATING ACTION BAR ── */}
-          {!isRaceActive && phase !== 'intro' && (
+          {!isRaceActive && phase !== 'intro' && !isMobileViewport && (
             <div className="absolute bottom-3 inset-x-4 z-20 pointer-events-none flex items-center justify-between">
               <div className="w-0" />
 
@@ -194,13 +189,51 @@ export const PatternRacersGame: React.FC = () => {
             </div>
           )}
 
+          {/* Mobile Single-Console Toggle Layout */}
+          {showSidePanels && isMobileViewport && (
+            <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
+              {/* Mobile Team Toggle Bar */}
+              <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
+                <button
+                  type="button"
+                  onClick={() => setMobileActiveTeam('blue')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileActiveTeam === 'blue'
+                      ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                      : 'text-slate-300 hover:text-white bg-slate-800/60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-sky-400" />
+                  <span>BLUE RACER ({blueScore}P)</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMobileActiveTeam('red')}
+                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                    mobileActiveTeam === 'red'
+                      ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                      : 'text-slate-300 hover:text-white bg-slate-800/60'
+                  }`}
+                >
+                  <span className="w-2 h-2 rounded-full bg-rose-400" />
+                  <span>RED RACER ({redScore}P)</span>
+                </button>
+              </div>
+
+              {/* Active Mobile Console */}
+              <div className="w-full bg-white rounded-2xl shadow-2xl border-2 border-slate-900 overflow-hidden max-h-[75vh]">
+                <TeamConsolePanel teamId={mobileActiveTeam} />
+              </div>
+            </div>
+          )}
+
           {/* Real-time WebGL Performance Diagnostics HUD */}
           <PerformanceMonitorOverlay />
         </main>
 
-        {/* RIGHT PANEL: RED TEAM CONSOLE */}
-        {showSidePanels && (
-          <aside className="w-[18%] min-w-[250px] max-w-[340px] h-full z-20 shadow-2xl border-l-3 border-slate-900 bg-white">
+        {/* RIGHT PANEL: RED TEAM CONSOLE (Desktop/TV) */}
+        {showSidePanels && !isMobileViewport && (
+          <aside className="w-[280px] md:w-[320px] lg:w-[350px] xl:w-[380px] 2xl:w-[420px] max-w-[calc(50vw-20px)] h-full z-20 shadow-2xl border-l-3 border-slate-900 bg-white shrink-0">
             <TeamConsolePanel teamId="red" />
           </aside>
         )}

@@ -127,7 +127,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
         </div>
 
         {/* Clean Math Fraction / Answer Label */}
-        <div className="flex items-center gap-1.5 min-w-0 truncate">
+        <div className="flex items-center gap-1.5 min-w-0 flex-wrap sm:flex-nowrap">
           {choice.fraction && (
             <span
               style={{
@@ -146,7 +146,7 @@ export const AnswerButton: React.FC<AnswerButtonProps> = ({
           )}
 
           <span
-            className={`font-black text-xs sm:text-[13px] truncate ${
+            className={`font-black text-xs sm:text-[13px] leading-tight break-words ${
               showWrong ? 'text-white' : 'text-black'
             }`}
           >
