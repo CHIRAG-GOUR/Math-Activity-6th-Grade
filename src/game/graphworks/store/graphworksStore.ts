@@ -7,7 +7,7 @@
 import { create } from 'zustand';
 
 // ── GRAPH DATA TYPES ──
-export type GraphType = 'line' | 'bar' | 'pictograph' | 'coordinate';
+export type GraphType = 'line' | 'bar' | 'pictograph' | 'coordinate' | 'pie';
 export type RoundPhase = 'read' | 'complete' | 'build' | 'interpret' | 'create';
 export type GamePhase = 'briefing' | 'playing' | 'checking' | 'running' | 'feedback' | 'victory';
 export type CityDistrict = 'weather' | 'traffic' | 'water' | 'power' | 'train' | 'park';
@@ -267,10 +267,10 @@ function validateGraph(team: TeamState): GraphValidation {
   let pointsCorrect = 0;
   const pointsTotal = expected.length;
 
-  if (mission.graphType === 'bar') {
+  if (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph') {
     const bars = team.plottedBars;
     if (bars.length !== expected.length) {
-      feedback.push(`Expected ${expected.length} bars, but you have ${bars.length}.`);
+      feedback.push(`Expected ${expected.length} categories, but you have ${bars.length}.`);
     }
     bars.forEach((bar, i) => {
       if (i < expected.length) {
@@ -279,7 +279,7 @@ function validateGraph(team: TeamState): GraphValidation {
         if (diff <= tolerance) {
           pointsCorrect++;
         } else {
-          feedback.push(`Bar "${bar.label}": expected ${expected[i]}${mission.unit}, got ${Math.round(bar.height)}${mission.unit}.`);
+          feedback.push(`"${bar.label}": expected ${expected[i]}${mission.unit}, got ${Math.round(bar.height)}${mission.unit}.`);
         }
       }
     });
@@ -362,7 +362,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       currentMission: mission,
       graphType: mission.graphType,
       plottedPoints: [],
-      plottedBars: mission.graphType === 'bar'
+      plottedBars: (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph')
         ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
         : [],
       lastValidation: null,
@@ -409,7 +409,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     [team]: {
       ...s[team],
       plottedPoints: [],
-      plottedBars: s[team].currentMission?.graphType === 'bar'
+      plottedBars: (s[team].currentMission?.graphType === 'bar' || s[team].currentMission?.graphType === 'pie' || s[team].currentMission?.graphType === 'pictograph')
         ? (s[team].currentMission?.dataTable.map((d) => ({ label: d.label, height: 0 })) ?? [])
         : [],
       lastValidation: null,

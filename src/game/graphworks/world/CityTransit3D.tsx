@@ -10,6 +10,7 @@ import React, { useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { CITY_MAT } from './CityMaterials';
+import { cityTraffic } from './CityTrafficState';
 
 // Individual procedural vehicle component with wheels and lights
 function VehicleModel({
@@ -131,19 +132,20 @@ export function CityTransit3D() {
 
       // Check distance to crosswalks at X = -5 and X = +5
       const crosswalks = [-5.0, 5.0];
-      if (isCrossingCycle) {
-        crosswalks.forEach((cwX) => {
-          if (v.baseSpeed > 0 && v.x < cwX && cwX - v.x < 4.0 && cwX - v.x > 0.3) {
+      crosswalks.forEach((cwX) => {
+        const pedCrossing = cityTraffic.isPedestrianInCrosswalk(cwX);
+        if (pedCrossing || isCrossingCycle) {
+          if (v.baseSpeed > 0 && v.x < cwX && cwX - v.x < 5.0 && cwX - v.x > 0.2) {
             // Westbound car approaching crosswalk from left: decelerate to complete stop
             desiredSpeed = 0;
             v.isBraking = true;
-          } else if (v.baseSpeed < 0 && v.x > cwX && v.x - cwX < 4.0 && v.x - cwX > 0.3) {
+          } else if (v.baseSpeed < 0 && v.x > cwX && v.x - cwX < 5.0 && v.x - cwX > 0.2) {
             // Eastbound car approaching crosswalk from right: decelerate to complete stop
             desiredSpeed = 0;
             v.isBraking = true;
           }
-        });
-      }
+        }
+      });
 
       // Check distance to car directly ahead in same lane (car-following spacing physics)
       vehicles.forEach((otherV, otherIdx) => {
@@ -172,6 +174,9 @@ export function CityTransit3D() {
       // Wrap around road boundaries (-36 to +36)
       if (v.x > 36) v.x = -36;
       if (v.x < -36) v.x = 36;
+
+      // Update coordinator with live state
+      cityTraffic.updateVehicle(v.id, v.x, v.z, v.currentSpeed, v.isBraking);
 
       // Update Three.js vehicle group transform
       if (trafficGroupRef.current && trafficGroupRef.current.children[idx]) {

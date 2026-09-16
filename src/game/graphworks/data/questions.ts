@@ -842,6 +842,204 @@ const mixedQuestions: QuestionTemplate[] = [
   },
 ];
 
+// ── CIRCLE GRAPH / PIE CHART QUESTIONS (ROUND ONE & BEYOND) ──
+const circleGraphQuestions: QuestionTemplate[] = [
+  // ROUND 1: READ
+  {
+    district: 'power', graphType: 'pie', phase: 'read', difficulty: 1,
+    titleTemplate: 'Clean Energy Grid Share',
+    instructionTemplate: 'The energy grid uses multiple renewable sources. Construct the circle graph showing their percentage shares.',
+    unit: '%',
+    xLabels: ['Solar', 'Wind', 'Hydro', 'Storage'],
+    xTitle: 'Energy Source', yTitle: 'Percentage Share (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [35, 25, 25, 15],
+  },
+  {
+    district: 'water', graphType: 'pie', phase: 'read', difficulty: 1,
+    titleTemplate: 'Reservoir Water Allocation',
+    instructionTemplate: 'City engineers allocate water from the reservoir. Construct the circle graph to balance distribution.',
+    unit: '%',
+    xLabels: ['Homes', 'Industry', 'Parks', 'Schools'],
+    xTitle: 'Sector', yTitle: 'Allocation (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [40, 30, 20, 10],
+  },
+  // ROUND 2: COMPLETE
+  {
+    district: 'traffic', graphType: 'pie', phase: 'complete', difficulty: 2,
+    titleTemplate: 'Daily Commute Mode Split',
+    instructionTemplate: 'Complete the circle graph showing how citizens commute across the data city.',
+    unit: '%',
+    xLabels: ['Metro Train', 'Electric Bus', 'Bicycle', 'Walking'],
+    xTitle: 'Commute Mode', yTitle: 'Commuter Share (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [45, 25, 20, 10],
+  },
+  {
+    district: 'park', graphType: 'pie', phase: 'complete', difficulty: 2,
+    titleTemplate: 'Botanical Park Land Division',
+    instructionTemplate: 'Complete the circle graph dividing the botanical park into recreational zones.',
+    unit: '%',
+    xLabels: ['Forest Grove', 'Flower Gardens', 'Walking Lawns', 'Lotus Pond'],
+    xTitle: 'Zone', yTitle: 'Land Area (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [30, 35, 25, 10],
+  },
+  // ROUND 3: BUILD
+  {
+    district: 'power', graphType: 'pie', phase: 'build', difficulty: 3,
+    titleTemplate: 'Eco-District Power Budget',
+    instructionTemplate: 'Build the circle graph allocating clean energy funds across smart grid sectors.',
+    unit: '%',
+    xLabels: ['Solar Panels', 'Wind Turbines', 'Grid Batteries', 'Smart Meters'],
+    xTitle: 'Grid Sector', yTitle: 'Budget Share (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [35, 30, 20, 15],
+  },
+  {
+    district: 'weather', graphType: 'pie', phase: 'build', difficulty: 3,
+    titleTemplate: 'Sky Condition Breakdown',
+    instructionTemplate: 'The observatory tracked cloud conditions this month. Build the circle graph.',
+    unit: '%',
+    xLabels: ['Clear Sky', 'Scattered Clouds', 'Overcast', 'Rainy'],
+    xTitle: 'Sky Type', yTitle: 'Monthly Days (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [40, 30, 15, 15],
+  },
+  // ROUND 4: INTERPRET
+  {
+    district: 'water', graphType: 'pie', phase: 'interpret', difficulty: 4,
+    titleTemplate: 'City Waste Sorting Distribution',
+    instructionTemplate: 'Analyze and plot the circle graph for city recyclable waste recovery.',
+    unit: '%',
+    xLabels: ['Compost', 'Plastics', 'Paper & Card', 'Metals'],
+    xTitle: 'Recyclable Type', yTitle: 'Weight Ratio (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [40, 25, 20, 15],
+  },
+  {
+    district: 'train', graphType: 'pie', phase: 'interpret', difficulty: 4,
+    titleTemplate: 'Central Station Passenger Demographics',
+    instructionTemplate: 'Plot the circle graph for passenger categories departing Central Terminal.',
+    unit: '%',
+    xLabels: ['Commuters', 'Students', 'Tourists', 'Business'],
+    xTitle: 'Traveler Category', yTitle: 'Traveler Share (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [50, 20, 15, 15],
+  },
+  // ROUND 5: CREATE
+  {
+    district: 'park', graphType: 'pie', phase: 'create', difficulty: 5,
+    titleTemplate: 'Sustainable City Master Plan',
+    instructionTemplate: 'Create a circle graph dividing city greenery where residential and solar together exceed 60%.',
+    unit: '%',
+    xLabels: ['Residential Green', 'Solar Parks', 'Transit Corridors', 'Wetlands'],
+    xTitle: 'Land Sector', yTitle: 'Master Plan Share (%)',
+    yRange: [0, 100], yStep: 5,
+    generateValues: () => [35, 25, 20, 20],
+    createConditions: [
+      'Residential Green + Solar Parks >= 60%',
+      'All sectors have at least 15%',
+      'Total percentage equals 100%',
+    ],
+  },
+];
+
+// ── PICTOGRAPH QUESTIONS (PICTURE GRAPHS) ──
+const pictographQuestions: QuestionTemplate[] = [
+  // ROUND 1: READ
+  {
+    district: 'traffic', graphType: 'pictograph', phase: 'read', difficulty: 1,
+    titleTemplate: 'Morning Cyclists on River Bridge',
+    instructionTemplate: 'Count the bicycle symbols (Key: 1 🚲 = 5 Cyclists) and plot the pictograph.',
+    unit: ' cyclists',
+    xLabels: ['6 AM', '7 AM', '8 AM', '9 AM'],
+    xTitle: 'Morning Hour', yTitle: 'Cyclists (1 🚲 = 5)',
+    yRange: [0, 40], yStep: 5,
+    generateValues: () => [randInt(2, 4) * 5, randInt(4, 7) * 5, randInt(5, 8) * 5, randInt(3, 6) * 5],
+  },
+  {
+    district: 'power', graphType: 'pictograph', phase: 'read', difficulty: 1,
+    titleTemplate: 'Solar Farm Energy Harvest',
+    instructionTemplate: 'Plot the energy output for each solar array (Key: 1 ⚡ = 10 kWh).',
+    unit: ' kWh',
+    xLabels: ['North Array', 'South Array', 'East Array', 'West Array'],
+    xTitle: 'Array Sector', yTitle: 'Energy (1 ⚡ = 10 kWh)',
+    yRange: [0, 60], yStep: 10,
+    generateValues: () => [randInt(2, 5) * 10, randInt(3, 6) * 10, randInt(3, 6) * 10, randInt(1, 4) * 10],
+  },
+  // ROUND 2: COMPLETE
+  {
+    district: 'park', graphType: 'pictograph', phase: 'complete', difficulty: 2,
+    titleTemplate: 'Urban Forest Tree Census',
+    instructionTemplate: 'Complete the pictograph showing trees planted in the city park (Key: 1 🌲 = 5 Trees).',
+    unit: ' trees',
+    xLabels: ['Oak', 'Maple', 'Pine', 'Cedar'],
+    xTitle: 'Tree Species', yTitle: 'Trees Planted (1 🌲 = 5)',
+    yRange: [0, 35], yStep: 5,
+    generateValues: () => [randInt(2, 6) * 5, randInt(3, 7) * 5, randInt(2, 5) * 5, randInt(2, 6) * 5],
+  },
+  {
+    district: 'water', graphType: 'pictograph', phase: 'complete', difficulty: 2,
+    titleTemplate: 'Water Station Purification',
+    instructionTemplate: 'Complete the pictograph for clean water supplied by each plant (Key: 1 💧 = 20 kL).',
+    unit: ' kL',
+    xLabels: ['Plant Alpha', 'Plant Beta', 'Plant Gamma', 'Plant Delta'],
+    xTitle: 'Plant Station', yTitle: 'Water Output (1 💧 = 20 kL)',
+    yRange: [0, 100], yStep: 20,
+    generateValues: () => [randInt(2, 5) * 20, randInt(1, 4) * 20, randInt(3, 5) * 20, randInt(2, 4) * 20],
+  },
+  // ROUND 3: BUILD
+  {
+    district: 'train', graphType: 'pictograph', phase: 'build', difficulty: 3,
+    titleTemplate: 'High-Speed Rail Departures',
+    instructionTemplate: 'Build the pictograph for morning express trains from each platform (Key: 1 🚆 = 5 Trains).',
+    unit: ' trains',
+    xLabels: ['Track 1', 'Track 2', 'Track 3', 'Track 4'],
+    xTitle: 'Track Line', yTitle: 'Departures (1 🚆 = 5)',
+    yRange: [0, 30], yStep: 5,
+    generateValues: () => [randInt(2, 5) * 5, randInt(3, 6) * 5, randInt(1, 4) * 5, randInt(2, 5) * 5],
+  },
+  {
+    district: 'weather', graphType: 'pictograph', phase: 'build', difficulty: 3,
+    titleTemplate: 'Seasonal Rainy Days',
+    instructionTemplate: 'Build the weather pictograph for rainy days recorded per season (Key: 1 🌧️ = 4 Days).',
+    unit: ' days',
+    xLabels: ['Spring', 'Summer', 'Autumn', 'Winter'],
+    xTitle: 'Season', yTitle: 'Rainy Days (1 🌧️ = 4)',
+    yRange: [0, 24], yStep: 4,
+    generateValues: () => [randInt(2, 5) * 4, randInt(1, 3) * 4, randInt(3, 6) * 4, randInt(2, 4) * 4],
+  },
+  // ROUND 4: INTERPRET
+  {
+    district: 'traffic', graphType: 'pictograph', phase: 'interpret', difficulty: 4,
+    titleTemplate: 'EV Fast-Charging Hub Usage',
+    instructionTemplate: 'Plot the pictograph for electric vehicles charged at city hubs (Key: 1 🚗 = 10 Cars).',
+    unit: ' cars',
+    xLabels: ['Central', 'Uptown', 'Harbor', 'Airport'],
+    xTitle: 'Hub Station', yTitle: 'Vehicles (1 🚗 = 10)',
+    yRange: [0, 60], yStep: 10,
+    generateValues: () => [randInt(2, 5) * 10, randInt(1, 4) * 10, randInt(3, 6) * 10, randInt(2, 5) * 10],
+  },
+  // ROUND 5: CREATE
+  {
+    district: 'park', graphType: 'pictograph', phase: 'create', difficulty: 5,
+    titleTemplate: 'Nature Sanctuary Bird Census',
+    instructionTemplate: 'Create a bird census pictograph where Sparrows is the largest flock (Key: 1 🕊️ = 5 Birds).',
+    unit: ' birds',
+    xLabels: ['Sparrows', 'Robins', 'Herons', 'Doves'],
+    xTitle: 'Bird Species', yTitle: 'Flock Size (1 🕊️ = 5)',
+    yRange: [0, 35], yStep: 5,
+    generateValues: () => [25, 20, 15, 10],
+    createConditions: [
+      'Sparrows has the largest flock',
+      'All species have at least 10 birds',
+      'Total count is between 60 and 80 birds',
+    ],
+  },
+];
+
 // ── COMBINE ALL TEMPLATES ──
 const ALL_TEMPLATES: QuestionTemplate[] = [
   ...weatherQuestions,
@@ -851,6 +1049,8 @@ const ALL_TEMPLATES: QuestionTemplate[] = [
   ...trainQuestions,
   ...parkQuestions,
   ...mixedQuestions,
+  ...circleGraphQuestions,
+  ...pictographQuestions,
 ];
 
 // ── QUESTION GENERATOR ──
