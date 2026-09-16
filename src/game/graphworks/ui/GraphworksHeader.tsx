@@ -21,9 +21,19 @@ export function GraphworksHeader() {
   const [displayTimer, setDisplayTimer] = useState(timer);
 
   useEffect(() => {
+    setDisplayTimer(timer);
+  }, [timer]);
+
+  useEffect(() => {
     if (!isTimerRunning) return;
     const interval = setInterval(() => {
-      setDisplayTimer((t) => Math.max(0, t - 1));
+      setDisplayTimer((t) => {
+        if (t <= 1) {
+          useGraphworksStore.getState().setGamePhase('victory');
+          return 0;
+        }
+        return t - 1;
+      });
     }, 1000);
     return () => clearInterval(interval);
   }, [isTimerRunning]);
@@ -32,6 +42,7 @@ export function GraphworksHeader() {
   const seconds = displayTimer % 60;
 
   const roundWins = useGraphworksStore((s) => s.roundWins);
+  const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
   const cityEventState = useGraphworksStore((s) => s.cityEventState);
 
   return (
@@ -121,21 +132,26 @@ export function GraphworksHeader() {
               const isPast = currentPhase > phaseNum;
               const isCurrent = currentPhase === phaseNum;
               const qNum = (cityEventState.eventIndex * 5) + phaseNum;
+              const qWinner = roundWinnersHistory[phaseNum - 1];
 
               return (
                 <div
                   key={phaseNum}
-                  title={`Question ${qNum}: Phase ${phaseNum}`}
+                  title={`Question ${qNum}: Phase ${phaseNum} ${qWinner ? `(${qWinner.toUpperCase()} won)` : ''}`}
                   className={`flex items-center gap-1 px-1.5 py-0.2 rounded-full text-[8.5px] font-black transition-all ${
-                    isPast
+                    qWinner === 'blue'
+                      ? 'bg-blue-600 text-white border border-blue-300 shadow-xs'
+                      : qWinner === 'red'
+                      ? 'bg-red-600 text-white border border-red-300 shadow-xs'
+                      : isPast
                       ? 'bg-emerald-600 text-white border border-emerald-300 shadow-xs'
                       : isCurrent
                       ? 'bg-amber-400 text-slate-950 ring-2 ring-amber-300 animate-pulse font-extrabold shadow-sm'
                       : 'bg-white/10 text-slate-400 border border-white/10'
                   }`}
                 >
-                  <span>{isPast ? '✓' : isCurrent ? '●' : '○'}</span>
-                  <span>{phaseNum}</span>
+                  <span>{qWinner === 'blue' ? '🔵' : qWinner === 'red' ? '🔴' : isPast ? '✓' : isCurrent ? '⚡' : '○'}</span>
+                  <span>Q{phaseNum}</span>
                 </div>
               );
             })}

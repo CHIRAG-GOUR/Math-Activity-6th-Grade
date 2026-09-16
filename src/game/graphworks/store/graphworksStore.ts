@@ -299,6 +299,7 @@ export interface GraphworksStore {
   setGamePhase: (phase: GamePhase) => void;
   setShowFeedback: (team: Team, show: boolean) => void;
   restartGame: () => void;
+  startEvent: (eventIndex: number) => void;
 }
 
 // ── DEFAULT STATES ──
@@ -628,16 +629,25 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
         soundManager.playCorrect(true);
 
-        const isFinalEventQuestion = currentRoundNum % 5 === 0;
         const currentEv = get().cityEventState.currentEvent;
+        const eventPhaseNum = getEventPhaseForQuestion(currentRoundNum);
+        const questionsAnsweredCount = newHistory.length;
+
+        // Match concludes when 5 questions are answered on either side!
+        const isMatchComplete =
+          eventPhaseNum >= 5 ||
+          questionsAnsweredCount >= 5 ||
+          (newWins.blue + newWins.red >= 5) ||
+          (get().blue.completedMissions + (winningTeam === 'blue' ? 1 : 0) >= 5) ||
+          (get().red.completedMissions + (winningTeam === 'red' ? 1 : 0) >= 5);
 
         const banner: RoundWinBannerData = {
           visible: true,
           team: winningTeam,
           title: `⚡ ${winningTeam.toUpperCase()} TEAM ANSWERED FIRST!`,
-          subtitle: isFinalEventQuestion
-            ? `🏆 ${currentEv.completionMessage}! (+100 PTS)`
-            : `ROUND ${currentRoundNum} OF 50 WON (+100 PTS) · NEXT LOADING...`,
+          subtitle: isMatchComplete
+            ? `🏆 5 QUESTIONS COMPLETE! CALCULATING CHAMPIONSHIP RESULTS...`
+            : `QUESTION ${eventPhaseNum} OF 5 WON (+100 PTS) · NEXT QUESTION LOADING...`,
           round: currentRoundNum,
         };
 
@@ -649,9 +659,9 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
           roundTransitionPending: true,
           cityEventState: {
             ...s.cityEventState,
-            eventPhase: getEventPhaseForQuestion(currentRoundNum),
-            eventProgress: (getEventPhaseForQuestion(currentRoundNum) / 5) * 100,
-            completionToast: isFinalEventQuestion ? currentEv.completionMessage : s.cityEventState.completionToast,
+            eventPhase: eventPhaseNum,
+            eventProgress: (eventPhaseNum / 5) * 100,
+            completionToast: eventPhaseNum >= 5 ? currentEv.completionMessage : s.cityEventState.completionToast,
           },
           [winningTeam]: {
             ...s[winningTeam],
@@ -664,10 +674,19 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
         // Trigger dynamic city simulation run for winning team
         get().runGraph(winningTeam);
 
-        // Transition timer to advance to next question or declare victory
+        // Transition timer: after 5 questions answered, the result comes out immediately!
         setTimeout(() => {
           const sNow = get();
-          if (sNow.currentRound >= 50) {
+          const currentPhaseNow = getEventPhaseForQuestion(sNow.currentRound);
+          const isDone =
+            isMatchComplete ||
+            currentPhaseNow >= 5 ||
+            sNow.roundWinnersHistory.length >= 5 ||
+            (sNow.roundWins.blue + sNow.roundWins.red >= 5) ||
+            sNow.blue.completedMissions >= 5 ||
+            sNow.red.completedMissions >= 5;
+
+          if (isDone) {
             set({
               gamePhase: 'victory',
               roundBanner: null,
@@ -676,17 +695,29 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
           } else {
             get().advanceRound();
           }
-        }, 2800);
+        }, 2600);
       } else {
         // Second team to finish correctly
         soundManager.playClick();
+        const updatedMissions = get()[team].completedMissions + 1;
         set((s) => ({
           [team]: {
             ...s[team],
             totalScore: s[team].totalScore + Math.round(validation.accuracy * 0.5),
-            completedMissions: s[team].completedMissions + 1,
+            completedMissions: updatedMissions,
           },
         }));
+
+        // Check if 5 questions answered by this team
+        if (updatedMissions >= 5) {
+          setTimeout(() => {
+            set({
+              gamePhase: 'victory',
+              roundBanner: null,
+              roundTransitionPending: false,
+            });
+          }, 1500);
+        }
       }
     } else {
       // Inaccurate (<80%)
@@ -789,13 +820,22 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
   advanceRound: () => {
     const s = get();
-    const nextRound = s.currentRound + 1;
+    const currentPhase = getEventPhaseForQuestion(s.currentRound);
+    const questionsAnswered = s.roundWinnersHistory.length;
 
-    if (nextRound > 50) {
+    // Conclude match and declare victory when 5 questions are completed on either side!
+    if (
+      currentPhase >= 5 ||
+      questionsAnswered >= 5 ||
+      (s.roundWins.blue + s.roundWins.red >= 5) ||
+      s.blue.completedMissions >= 5 ||
+      s.red.completedMissions >= 5
+    ) {
       set({ gamePhase: 'victory', roundBanner: null, roundTransitionPending: false });
       return;
     }
 
+    const nextRound = s.currentRound + 1;
     const nextMission = getCompetitiveQuestion(nextRound);
     const nextEventState = createDefaultCityEventState(nextRound);
 
@@ -1099,24 +1139,47 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     [team]: { ...s[team], showFeedback: show },
   })),
 
-  restartGame: () => set({
-    gamePhase: 'briefing',
-    currentRound: 1,
-    roundPhase: 'build',
-    timer: 300,
-    isTimerRunning: false,
-    cityEventState: createDefaultCityEventState(1),
-    roundWins: { blue: 0, red: 0 },
-    roundWinner: null,
-    roundWinnersHistory: [],
-    roundBanner: null,
-    roundTransitionPending: false,
-    blue: createDefaultTeam('blue'),
-    red: createDefaultTeam('red'),
-    blueCity: { ...defaultCity },
-    redCity: { ...defaultCity },
-    isRunningGraph: false,
-    runningTeam: null,
-    graphRunProgress: 0,
-  }),
+  startEvent: (eventIndex: number) => {
+    const targetRound = eventIndex * 5 + 1;
+    const mission = getCompetitiveQuestion(targetRound);
+    const blueInitial = createDefaultTeam('blue');
+    const redInitial = createDefaultTeam('red');
+
+    blueInitial.currentMission = mission;
+    blueInitial.graphType = mission.graphType;
+    blueInitial.plottedBars = (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph')
+      ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+      : [];
+
+    redInitial.currentMission = mission;
+    redInitial.graphType = mission.graphType;
+    redInitial.plottedBars = (mission.graphType === 'bar' || mission.graphType === 'pie' || mission.graphType === 'pictograph')
+      ? mission.dataTable.map((d) => ({ label: d.label, height: 0 }))
+      : [];
+
+    set({
+      gamePhase: 'playing',
+      currentRound: targetRound,
+      roundPhase: 'build',
+      timer: 300,
+      isTimerRunning: true,
+      cityEventState: createDefaultCityEventState(targetRound),
+      roundWins: { blue: 0, red: 0 },
+      roundWinner: null,
+      roundWinnersHistory: [],
+      roundBanner: null,
+      roundTransitionPending: false,
+      blue: blueInitial,
+      red: redInitial,
+      activePulses: [],
+    });
+
+    get().syncCityFromCurrentGraph('blue', 0);
+    get().syncCityFromCurrentGraph('red', 0);
+  },
+
+  restartGame: () => {
+    const currentEventIdx = get().cityEventState.eventIndex;
+    get().startEvent(currentEventIdx);
+  },
 }));

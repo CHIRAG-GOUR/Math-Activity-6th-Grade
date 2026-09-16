@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { useGraphworksStore } from '../store/graphworksStore';
+import { FIFTY_EVENT_QUESTIONS } from '../data/questions';
 
 export function GraphworksBriefing() {
   const gamePhase = useGraphworksStore((s) => s.gamePhase);
@@ -132,6 +133,8 @@ export function GraphworksVictory() {
   const roundWins = useGraphworksStore((s) => s.roundWins);
   const roundWinnersHistory = useGraphworksStore((s) => s.roundWinnersHistory);
   const restartGame = useGraphworksStore((s) => s.restartGame);
+  const startEvent = useGraphworksStore((s) => s.startEvent);
+  const cityEventState = useGraphworksStore((s) => s.cityEventState);
 
   if (gamePhase !== 'victory') return null;
 
@@ -141,7 +144,9 @@ export function GraphworksVictory() {
   const winnerColor = winner === 'blue' ? '#38BDF8' : winner === 'red' ? '#F87171' : '#FFC107';
   const winnerName = winner === 'blue' ? 'BLUE TEAM' : winner === 'red' ? 'RED TEAM' : 'TIE MATCH';
 
-  const roundNames = ['Circle Graph (Clean Energy)', 'Bar Graph (Rainfall)', 'Line Graph (Train Journey)', 'Pictograph (Cyclists)', 'Championship (Reservoir)'];
+  const eventIndex = cityEventState?.eventIndex ?? 0;
+  const currentEvent = cityEventState?.currentEvent;
+  const eventQuestions = FIFTY_EVENT_QUESTIONS.slice(eventIndex * 5, eventIndex * 5 + 5);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -173,37 +178,40 @@ export function GraphworksVictory() {
         <h1 className="text-2xl md:text-3xl font-black text-white tracking-tight">
           DATA CITY CHAMPIONSHIP
         </h1>
-        <div className="text-3xl md:text-4xl font-black mb-4 tracking-wider" style={{ color: winnerColor }}>
+        <div className="text-3xl md:text-4xl font-black mb-1 tracking-wider" style={{ color: winnerColor }}>
           {winnerName} WINS!
         </div>
+        <p className="text-xs text-cyan-300 font-bold mb-4 uppercase tracking-widest">
+          {currentEvent ? `✨ ${currentEvent.title} COMPLETED` : '5-QUESTION MATCH COMPLETED'}
+        </p>
 
         {/* Round Scores Pill */}
         <div className="flex justify-center items-center gap-6 mb-5">
           <div className={`px-5 py-3 rounded-2xl border-2 flex flex-col items-center ${winner === 'blue' ? 'border-sky-400 bg-sky-500/20' : 'border-white/10 bg-white/5'}`}>
             <span className="text-sky-300 font-black text-xs uppercase">BLUE TEAM</span>
             <span className="text-3xl font-mono font-black text-white">{blueWins} WINS</span>
-            <span className="text-[10px] text-slate-300 mt-1">{blue.totalScore} pts · {blue.graphAccuracy}% avg</span>
+            <span className="text-[10px] text-slate-300 mt-1">{blue.totalScore} pts · {blue.graphAccuracy}% accuracy</span>
           </div>
           <div className="text-slate-500 font-black text-lg">VS</div>
           <div className={`px-5 py-3 rounded-2xl border-2 flex flex-col items-center ${winner === 'red' ? 'border-rose-400 bg-rose-500/20' : 'border-white/10 bg-white/5'}`}>
             <span className="text-rose-300 font-black text-xs uppercase">RED TEAM</span>
             <span className="text-3xl font-mono font-black text-white">{redWins} WINS</span>
-            <span className="text-[10px] text-slate-300 mt-1">{red.totalScore} pts · {red.graphAccuracy}% avg</span>
+            <span className="text-[10px] text-slate-300 mt-1">{red.totalScore} pts · {red.graphAccuracy}% accuracy</span>
           </div>
         </div>
 
         {/* Round-by-Round Breakdown */}
         <div className="bg-black/50 rounded-2xl border border-white/10 p-3.5 mb-6 text-left">
           <h3 className="text-[11px] font-black text-yellow-300 uppercase tracking-wider mb-2.5 text-center">
-            MATCH RECAP — 5 QUESTIONS
+            5 QUESTIONS MATCH BREAKDOWN
           </h3>
           <div className="space-y-1.5">
-            {roundNames.map((rName, i) => {
+            {eventQuestions.map((q, i) => {
               const rWinner = roundWinnersHistory[i];
               return (
-                <div key={i} className="flex items-center justify-between text-xs py-1 px-2.5 rounded-lg bg-white/5 border border-white/5">
-                  <span className="text-slate-300 font-semibold">
-                    Q{i + 1}: {rName}
+                <div key={i} className="flex items-center justify-between text-xs py-1.5 px-3 rounded-lg bg-white/5 border border-white/5">
+                  <span className="text-slate-300 font-semibold truncate max-w-[340px]">
+                    Q{i + 1}: {q.title}
                   </span>
                   <span className={`font-black px-2 py-0.5 rounded text-[10.5px] ${
                     rWinner === 'blue'
@@ -212,7 +220,7 @@ export function GraphworksVictory() {
                       ? 'bg-red-600 text-white'
                       : 'bg-white/10 text-slate-400'
                   }`}>
-                    {rWinner === 'blue' ? '🔵 BLUE ANSWERED FIRST' : rWinner === 'red' ? '🔴 RED ANSWERED FIRST' : 'DRAW'}
+                    {rWinner === 'blue' ? '🔵 BLUE FIRST' : rWinner === 'red' ? '🔴 RED FIRST' : 'DRAW'}
                   </span>
                 </div>
               );
@@ -220,13 +228,23 @@ export function GraphworksVictory() {
           </div>
         </div>
 
-        {/* Replay */}
-        <button
-          onClick={restartGame}
-          className="px-10 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black text-base tracking-wider shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
-        >
-          ▶ PLAY NEW 5-QUESTION MATCH
-        </button>
+        {/* Buttons */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
+          {eventIndex < 9 && (
+            <button
+              onClick={() => startEvent(eventIndex + 1)}
+              className="px-8 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 rounded-xl text-white font-black text-sm tracking-wider shadow-lg shadow-cyan-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+            >
+              ▶ NEXT CITY EVENT ({eventIndex + 2}/10)
+            </button>
+          )}
+          <button
+            onClick={restartGame}
+            className="px-8 py-3 bg-gradient-to-r from-yellow-400 to-amber-500 rounded-xl text-slate-950 font-black text-sm tracking-wider shadow-lg shadow-yellow-500/30 hover:brightness-110 active:scale-95 transition-all cursor-pointer"
+          >
+            🔄 PLAY AGAIN (REMATCH)
+          </button>
+        </div>
       </div>
     </div>
   );
