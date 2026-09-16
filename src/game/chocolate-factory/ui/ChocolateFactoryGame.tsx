@@ -126,52 +126,51 @@ export const ChocolateFactoryGame: React.FC = () => {
       <main className="relative flex-1 min-h-0">
         <FactoryScene3D />
 
-        {phase !== 'intro' && (
-          isMobileViewport ? (
-            /* Mobile / Small Screen: Single active studio with quick team switcher */
-            <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
-              {/* Mobile Team Toggle Bar */}
-              <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
-                <button
-                  type="button"
-                  onClick={() => setMobileActiveTeam('blue')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    mobileActiveTeam === 'blue'
-                      ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
-                      : 'text-slate-300 hover:text-white bg-slate-800/60'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-sky-400" />
-                  <span>BLUE FACTORY</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMobileActiveTeam('red')}
-                  className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                    mobileActiveTeam === 'red'
-                      ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
-                      : 'text-slate-300 hover:text-white bg-slate-800/60'
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-rose-400" />
-                  <span>RED FACTORY</span>
-                </button>
-              </div>
-
-              {/* Active Mobile Team Console */}
-              <TeamConsole team={mobileActiveTeam} />
+        {/* ── PERMANENT DUAL OPERATOR CONSOLES ── */}
+        {isMobileViewport ? (
+          /* Mobile / Small Screen: Single active studio with quick team switcher */
+          <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
+            {/* Mobile Team Toggle Bar */}
+            <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border border-slate-700/80">
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('blue')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'blue'
+                    ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span>BLUE FACTORY</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('red')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'red'
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span>RED FACTORY</span>
+              </button>
             </div>
-          ) : (
-            /* Desktop, Laptop, and TV Screens: Dual Side Panels at Bottom Corners */
-            <>
-              <div className="pointer-events-none absolute bottom-3 left-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
-                <TeamConsole team="blue" />
-              </div>
-              <div className="pointer-events-none absolute bottom-3 right-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
-                <TeamConsole team="red" />
-              </div>
-            </>
-          )
+
+            {/* Active Mobile Team Console */}
+            <TeamConsole team={mobileActiveTeam} />
+          </div>
+        ) : (
+          /* Desktop, Laptop, and TV Screens: Dual Side Panels at Bottom Corners */
+          <>
+            <div className="pointer-events-none absolute bottom-3 left-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
+              <TeamConsole team="blue" />
+            </div>
+            <div className="pointer-events-none absolute bottom-3 right-3 z-20 w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
+              <TeamConsole team="red" />
+            </div>
+          </>
         )}
 
         <FactoryOverlays />

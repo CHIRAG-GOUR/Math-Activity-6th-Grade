@@ -65,11 +65,12 @@ interface FactoryStore {
   resetGame: () => void;
 }
 
-function makeTeam(): TeamState {
+function makeTeam(team: TeamId = 'blue'): TeamState {
+  const order = makeStepOrder(team, 0, 0);
   return {
     cycle: 0, step: 0, round: 1, stepId: STEPS[0],
     stepLabel: STEP_LABEL[STEPS[0]], stepAction: STEP_ACTION[STEPS[0]],
-    order: null, selected: null, attempt: 1, status: 'answering',
+    order, selected: null, attempt: 1, status: 'answering',
     feedback: null, lastCorrect: null, questionsAnswered: 0,
     ordersCompleted: 0, deliveries: 0, onTime: 0,
     quality: 92, satisfaction: 88, waste: 0, rework: 0, score: 0,
@@ -202,17 +203,20 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     });
   };
 
+  // Bind handlers automatically so listeners are active from the very start
+  bindHandlers();
+
   return {
     phase: 'intro',
     muted: false,
     winner: null,
-    blue: makeTeam(),
-    red: makeTeam(),
+    blue: makeTeam('blue'),
+    red: makeTeam('red'),
 
     startGame: () => {
       resetSim();
       bindHandlers();
-      set({ phase: 'operating', winner: null, blue: makeTeam(), red: makeTeam() });
+      set({ phase: 'operating', winner: null, blue: makeTeam('blue'), red: makeTeam('red') });
       issueQuestion('blue');
       issueQuestion('red');
     },
@@ -268,7 +272,10 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
 
     resetGame: () => {
       resetSim();
-      set({ phase: 'intro', winner: null, blue: makeTeam(), red: makeTeam() });
+      bindHandlers();
+      set({ phase: 'intro', winner: null, blue: makeTeam('blue'), red: makeTeam('red') });
+      issueQuestion('blue');
+      issueQuestion('red');
     },
   };
 });
