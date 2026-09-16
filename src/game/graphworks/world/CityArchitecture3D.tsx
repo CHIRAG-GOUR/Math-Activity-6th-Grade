@@ -109,19 +109,19 @@ function SkyCityProclamation3D({ winner }: { winner: Team | 'tie' }) {
   );
 }
 
-// ── 2. MARKET DISTRICT BUILDING (QUESTION 2 PHYSICAL MILESTONE) ──
+// ── 2. METRO CAFE & BISTRO BUILDING (QUESTION 2 PHYSICAL MILESTONE) ──
 function MarketDistrictBuilding({ stage, winningBlueprint }: { stage: number; winningBlueprint: Team | 'tie' | null }) {
   const isComplete = stage >= 2;
   const isBlueWin = winningBlueprint === 'blue';
   const isRedWin = winningBlueprint === 'red';
 
-  const roofColor = isBlueWin ? '#0284c7' : isRedWin ? '#dc2626' : '#78350f';
+  const roofColor = isBlueWin ? '#0284c7' : isRedWin ? '#dc2626' : '#1e3a8a';
 
   return (
-    <group position={[-11.5, 0, 1.2]}>
+    <group position={[-14.5, 0, -2.5]}>
       {/* Foundation Concrete Base Pad */}
       <mesh position={[0, 0.1, 0]} receiveShadow>
-        <boxGeometry args={[7.2, 0.2, 5.0]} />
+        <boxGeometry args={[7.6, 0.2, 5.4]} />
         <primitive object={CITY_MAT.concrete} attach="material" />
       </mesh>
 
@@ -129,21 +129,21 @@ function MarketDistrictBuilding({ stage, winningBlueprint }: { stage: number; wi
         // ── STAGE 0–1: PREPARED DEVELOPMENT LOT ──
         <group>
           {/* Clean Ground Survey Markings */}
-          {[-3.0, 3.0].map((px) => (
+          {[-3.2, 3.2].map((px) => (
             <mesh key={px} position={[px, 0.22, 0]}>
-              <boxGeometry args={[0.06, 0.02, 4.6]} />
+              <boxGeometry args={[0.06, 0.02, 5.0]} />
               <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
             </mesh>
           ))}
-          {[-2.0, 2.0].map((pz) => (
+          {[-2.2, 2.2].map((pz) => (
             <mesh key={pz} position={[0, 0.22, pz]}>
-              <boxGeometry args={[6.4, 0.02, 0.06]} />
+              <boxGeometry args={[6.8, 0.02, 0.06]} />
               <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
             </mesh>
           ))}
           {/* Corner Stakes */}
-          {[-3.0, 3.0].map((sx) =>
-            [-2.0, 2.0].map((sz) => (
+          {[-3.2, 3.2].map((sx) =>
+            [-2.2, 2.2].map((sz) => (
               <mesh key={`${sx}_${sz}`} position={[sx, 0.4, sz]}>
                 <cylinderGeometry args={[0.03, 0.03, 0.5, 6]} />
                 <meshStandardMaterial color="#94a3b8" metalness={0.7} />
@@ -151,142 +151,251 @@ function MarketDistrictBuilding({ stage, winningBlueprint }: { stage: number; wi
             ))
           )}
           {/* Future Site Information Board */}
-          <group position={[0, 0.6, 2.2]}>
+          <group position={[0, 0.6, 2.3]}>
             <mesh position={[0, 0.35, 0]}>
-              <boxGeometry args={[1.6, 0.7, 0.06]} />
+              <boxGeometry args={[1.8, 0.7, 0.06]} />
               <meshStandardMaterial color="#f1f5f9" roughness={0.5} />
             </mesh>
             <mesh position={[0, 0.52, 0.04]}>
-              <boxGeometry args={[1.4, 0.16, 0.02]} />
-              <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.3} />
+              <boxGeometry args={[1.6, 0.16, 0.02]} />
+              <meshStandardMaterial color="#0284c7" emissive="#0284c7" emissiveIntensity={0.4} />
             </mesh>
           </group>
         </group>
       ) : (
-        // ── STAGE 2+: FULLY COMPLETED MARKET HALL & 4 STALLS ──
+        // ── STAGE 2+: FULLY COMPLETED ARCHITECTURAL CAFE & BISTRO ──
         <group>
-          {/* Timber Columns & Framework */}
-          {[-3.0, -1.0, 1.0, 3.0].map((cx) => (
-            <React.Fragment key={cx}>
-              <mesh position={[cx, 1.4, -2.0]} castShadow>
-                <boxGeometry args={[0.22, 2.6, 0.22]} />
-                <meshStandardMaterial color="#451a03" roughness={0.7} />
-              </mesh>
-              <mesh position={[cx, 1.4, 2.0]} castShadow>
-                <boxGeometry args={[0.22, 2.6, 0.22]} />
-                <meshStandardMaterial color="#451a03" roughness={0.7} />
-              </mesh>
-            </React.Fragment>
-          ))}
+          {/* 1. Main Cafe Building Body */}
+          <group position={[0, 0, -0.6]}>
+            {/* Main Building Walls (Solid Modern Structure) */}
+            <mesh position={[0, 1.4, 0]} castShadow receiveShadow>
+              <boxGeometry args={[6.6, 2.6, 3.4]} />
+              <meshStandardMaterial color="#334155" roughness={0.7} />
+            </mesh>
 
-          {/* Pitched Wooden Roof with Trim */}
-          <mesh position={[0, 3.1, 0]} rotation={[0, 0, 0]} castShadow>
-            <coneGeometry args={[4.4, 1.6, 4]} />
-            <meshStandardMaterial color={roofColor} roughness={0.6} />
-          </mesh>
+            {/* Warm Cedar Wood Accent Facade (Front) */}
+            <mesh position={[0, 1.4, 1.72]}>
+              <boxGeometry args={[6.5, 2.5, 0.04]} />
+              <meshStandardMaterial color="#78350f" roughness={0.8} />
+            </mesh>
 
-          {/* Illuminated Overhead Sign: "★ CITY MARKET ★" */}
-          <group position={[0, 2.8, 2.1]}>
-            <mesh position={[0, 0, 0]} castShadow>
-              <boxGeometry args={[4.2, 0.55, 0.12]} />
-              <meshStandardMaterial color="#1e293b" metalness={0.7} />
-            </mesh>
-            <mesh position={[0, 0, 0.07]}>
-              <boxGeometry args={[4.0, 0.42, 0.04]} />
-              <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={0.8} />
-            </mesh>
-          </group>
-
-          {/* 4 DISTINCT MARKET STALLS */}
-          {/* Stall 1: PRODUCE (Green/White Awnings + Crates) */}
-          <group position={[-2.2, 0.2, 0.8]}>
-            {/* Counter */}
-            <mesh position={[0, 0.45, 0]} castShadow>
-              <boxGeometry args={[1.3, 0.7, 0.9]} />
-              <meshStandardMaterial color="#92400e" roughness={0.8} />
-            </mesh>
-            {/* Striped Awning */}
-            <mesh position={[0, 1.5, 0.5]} rotation={[0.4, 0, 0]}>
-              <boxGeometry args={[1.35, 0.06, 0.9]} />
-              <meshStandardMaterial color="#16a34a" roughness={0.5} />
-            </mesh>
-            {/* Green and Red Produce Crates */}
-            <mesh position={[-0.3, 0.85, 0]}>
-              <boxGeometry args={[0.45, 0.18, 0.35]} />
-              <meshStandardMaterial color="#22c55e" />
-            </mesh>
-            <mesh position={[0.3, 0.85, 0]}>
-              <boxGeometry args={[0.45, 0.18, 0.35]} />
-              <meshStandardMaterial color="#ef4444" />
-            </mesh>
-          </group>
-
-          {/* Stall 2: BAKERY (Golden/White Awnings + Loaves) */}
-          <group position={[-0.7, 0.2, 0.8]}>
-            <mesh position={[0, 0.45, 0]} castShadow>
-              <boxGeometry args={[1.3, 0.7, 0.9]} />
-              <meshStandardMaterial color="#92400e" roughness={0.8} />
-            </mesh>
-            <mesh position={[0, 1.5, 0.5]} rotation={[0.4, 0, 0]}>
-              <boxGeometry args={[1.35, 0.06, 0.9]} />
-              <meshStandardMaterial color="#f59e0b" roughness={0.5} />
-            </mesh>
-            {/* Bread Loaves Display */}
-            <mesh position={[0, 0.85, 0]}>
-              <boxGeometry args={[0.85, 0.16, 0.35]} />
-              <meshStandardMaterial color="#d97706" roughness={0.9} />
-            </mesh>
-          </group>
-
-          {/* Stall 3: CAFE (Cyan/White Awnings + Coffee Cups) */}
-          <group position={[0.8, 0.2, 0.8]}>
-            <mesh position={[0, 0.45, 0]} castShadow>
-              <boxGeometry args={[1.3, 0.7, 0.9]} />
-              <meshStandardMaterial color="#1e293b" roughness={0.5} />
-            </mesh>
-            <mesh position={[0, 1.5, 0.5]} rotation={[0.4, 0, 0]}>
-              <boxGeometry args={[1.35, 0.06, 0.9]} />
-              <meshStandardMaterial color="#0284c7" roughness={0.5} />
-            </mesh>
-            {/* Espresso Machine */}
-            <mesh position={[0.25, 0.92, 0]}>
-              <boxGeometry args={[0.32, 0.28, 0.28]} />
-              <meshStandardMaterial color="#94a3b8" metalness={0.9} />
-            </mesh>
-          </group>
-
-          {/* Stall 4: FLORIST (Rose/Pink Awnings + Flower Buckets) */}
-          <group position={[2.3, 0.2, 0.8]}>
-            <mesh position={[0, 0.45, 0]} castShadow>
-              <boxGeometry args={[1.3, 0.7, 0.9]} />
-              <meshStandardMaterial color="#92400e" roughness={0.8} />
-            </mesh>
-            <mesh position={[0, 1.5, 0.5]} rotation={[0.4, 0, 0]}>
-              <boxGeometry args={[1.35, 0.06, 0.9]} />
-              <meshStandardMaterial color="#ec4899" roughness={0.5} />
-            </mesh>
-            {/* Flower Buckets */}
-            {[-0.3, 0.3].map((bx, bi) => (
-              <mesh key={bi} position={[bx, 0.85, 0]}>
-                <cylinderGeometry args={[0.12, 0.08, 0.22, 8]} />
-                <meshStandardMaterial color={bi === 0 ? '#f43f5e' : '#a855f7'} />
-              </mesh>
+            {/* Floor-to-Ceiling Panoramic Glass Picture Windows with Warm Interior Glow */}
+            {[-2.0, 2.0].map((wx) => (
+              <group key={wx} position={[wx, 1.35, 1.74]}>
+                {/* Glass Pane */}
+                <mesh>
+                  <boxGeometry args={[1.8, 1.6, 0.04]} />
+                  <meshStandardMaterial
+                    color="#fef08a"
+                    emissive="#f59e0b"
+                    emissiveIntensity={0.65}
+                    roughness={0.1}
+                  />
+                </mesh>
+                {/* Black Metal Mullion Window Frame */}
+                <mesh position={[0, 0, 0.02]}>
+                  <boxGeometry args={[1.85, 0.04, 0.02]} />
+                  <meshStandardMaterial color="#0f172a" roughness={0.5} />
+                </mesh>
+                <mesh position={[0, 0, 0.02]}>
+                  <boxGeometry args={[0.04, 1.65, 0.02]} />
+                  <meshStandardMaterial color="#0f172a" roughness={0.5} />
+                </mesh>
+              </group>
             ))}
-          </group>
 
-          {/* Outdoor Cafe Seating Tables */}
-          {[-2.0, 2.0].map((tx) => (
-            <group key={tx} position={[tx, 0.1, 3.2]}>
-              <mesh position={[0, 0.35, 0]}>
-                <cylinderGeometry args={[0.45, 0.45, 0.04, 16]} />
-                <meshStandardMaterial color="#ffffff" roughness={0.4} />
+            {/* Center Entrance Double Glass Doors */}
+            <group position={[0, 1.15, 1.74]}>
+              <mesh>
+                <boxGeometry args={[1.3, 2.1, 0.04]} />
+                <meshStandardMaterial
+                  color="#fef08a"
+                  emissive="#f59e0b"
+                  emissiveIntensity={0.5}
+                  roughness={0.1}
+                />
               </mesh>
-              <mesh position={[0, 0.17, 0]}>
-                <cylinderGeometry args={[0.04, 0.04, 0.35, 8]} />
-                <meshStandardMaterial color="#334155" metalness={0.8} />
+              {/* Door Frame */}
+              <mesh position={[0, 0, 0.02]}>
+                <boxGeometry args={[0.04, 2.1, 0.02]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.5} />
+              </mesh>
+              {/* Brass Handles */}
+              {[-0.08, 0.08].map((hx) => (
+                <mesh key={hx} position={[hx, 0, 0.05]}>
+                  <cylinderGeometry args={[0.015, 0.015, 0.35, 8]} />
+                  <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.2} />
+                </mesh>
+              ))}
+            </group>
+
+            {/* 2. PROPER SHAPED MODERN ARCHITECTURAL PITCHED ROOF */}
+            <group position={[0, 2.7, 0]}>
+              {/* Horizontal Timber Rafter Beam Framework */}
+              <mesh position={[0, 0.1, 0]}>
+                <boxGeometry args={[7.2, 0.16, 3.8]} />
+                <meshStandardMaterial color="#451a03" roughness={0.7} />
+              </mesh>
+
+              {/* Left Sloped Standing-Seam Azure Roof Plane */}
+              <mesh position={[-1.75, 0.65, 0]} rotation={[0, 0, 0.28]} castShadow>
+                <boxGeometry args={[3.8, 0.12, 4.1]} />
+                <meshStandardMaterial color={roofColor} roughness={0.35} metalness={0.3} />
+              </mesh>
+
+              {/* Right Sloped Standing-Seam Azure Roof Plane */}
+              <mesh position={[1.75, 0.65, 0]} rotation={[0, 0, -0.28]} castShadow>
+                <boxGeometry args={[3.8, 0.12, 4.1]} />
+                <meshStandardMaterial color={roofColor} roughness={0.35} metalness={0.3} />
+              </mesh>
+
+              {/* Central Sleek Ridge Cap */}
+              <mesh position={[0, 1.2, 0]} castShadow>
+                <boxGeometry args={[0.22, 0.1, 4.14]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.8} />
+              </mesh>
+
+              {/* Wooden Gable End Walls (Left & Right) */}
+              {[-3.3, 3.3].map((gx) => (
+                <mesh key={gx} position={[gx, 0.6, 0]}>
+                  <cylinderGeometry args={[0, 1.9, 1.1, 3]} />
+                  <meshStandardMaterial color="#78350f" roughness={0.8} />
+                </mesh>
+              ))}
+            </group>
+
+            {/* 3. Illuminated Overhead Cafe Sign: "★ METRO BISTRO & CAFE ★" */}
+            <group position={[0, 2.85, 1.85]}>
+              <mesh castShadow>
+                <boxGeometry args={[4.4, 0.5, 0.1]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0, 0.06]}>
+                <boxGeometry args={[4.2, 0.38, 0.02]} />
+                <meshStandardMaterial color="#fbbf24" emissive="#d97706" emissiveIntensity={0.9} />
               </mesh>
             </group>
-          ))}
+          </group>
+
+          {/* 4. Covered Front Porch & Striped Canvas Awnings */}
+          <group position={[0, 0, 1.3]}>
+            {/* Timber Decking Floor */}
+            <mesh position={[0, 0.12, 0]} receiveShadow>
+              <boxGeometry args={[6.8, 0.08, 1.8]} />
+              <meshStandardMaterial color="#92400e" roughness={0.85} />
+            </mesh>
+
+            {/* Modern Blue/White Striped Overhang Awning */}
+            <mesh position={[0, 2.2, 0.3]} rotation={[0.25, 0, 0]} castShadow>
+              <boxGeometry args={[6.6, 0.05, 1.2]} />
+              <meshStandardMaterial color={roofColor} roughness={0.4} />
+            </mesh>
+
+            {/* Steel Porch Support Columns */}
+            {[-3.2, 3.2].map((px) => (
+              <mesh key={px} position={[px, 1.1, 0.8]} castShadow>
+                <cylinderGeometry args={[0.04, 0.04, 2.2, 8]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.85} />
+              </mesh>
+            ))}
+
+            {/* 5. Outdoor Cafe Bistro Seating & Terrace Props */}
+            {/* Table 1 (Left) */}
+            <group position={[-1.8, 0.12, 0.3]}>
+              {/* Round Table */}
+              <mesh position={[0, 0.42, 0]} castShadow>
+                <cylinderGeometry args={[0.42, 0.42, 0.03, 16]} />
+                <meshStandardMaterial color="#f8fafc" roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0.21, 0]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.42, 8]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.9} />
+              </mesh>
+              {/* Coffee Cups */}
+              <mesh position={[-0.12, 0.46, 0.05]}>
+                <cylinderGeometry args={[0.04, 0.03, 0.06, 8]} />
+                <meshStandardMaterial color="#0284c7" />
+              </mesh>
+              {/* Croissant / Pastry plate */}
+              <mesh position={[0.1, 0.45, -0.05]}>
+                <cylinderGeometry args={[0.08, 0.08, 0.02, 8]} />
+                <meshStandardMaterial color="#d97706" />
+              </mesh>
+              {/* 2 Chairs */}
+              {[-0.55, 0.55].map((cx) => (
+                <group key={cx} position={[cx, 0, 0]}>
+                  <mesh position={[0, 0.28, 0]}>
+                    <boxGeometry args={[0.26, 0.03, 0.26]} />
+                    <meshStandardMaterial color="#451a03" roughness={0.7} />
+                  </mesh>
+                  <mesh position={[0, 0.52, -0.11]}>
+                    <boxGeometry args={[0.26, 0.32, 0.03]} />
+                    <meshStandardMaterial color="#451a03" roughness={0.7} />
+                  </mesh>
+                  {[-0.1, 0.1].map((lx) => (
+                    <mesh key={lx} position={[lx, 0.14, 0]}>
+                      <cylinderGeometry args={[0.015, 0.015, 0.28, 6]} />
+                      <meshStandardMaterial color="#0f172a" />
+                    </mesh>
+                  ))}
+                </group>
+              ))}
+            </group>
+
+            {/* Table 2 (Right) */}
+            <group position={[1.8, 0.12, 0.3]}>
+              <mesh position={[0, 0.42, 0]} castShadow>
+                <cylinderGeometry args={[0.42, 0.42, 0.03, 16]} />
+                <meshStandardMaterial color="#f8fafc" roughness={0.3} />
+              </mesh>
+              <mesh position={[0, 0.21, 0]}>
+                <cylinderGeometry args={[0.03, 0.03, 0.42, 8]} />
+                <meshStandardMaterial color="#0f172a" metalness={0.9} />
+              </mesh>
+              {/* Coffee Cups */}
+              <mesh position={[0.1, 0.46, 0.05]}>
+                <cylinderGeometry args={[0.04, 0.03, 0.06, 8]} />
+                <meshStandardMaterial color="#ef4444" />
+              </mesh>
+              {/* 2 Chairs */}
+              {[-0.55, 0.55].map((cx) => (
+                <group key={cx} position={[cx, 0, 0]}>
+                  <mesh position={[0, 0.28, 0]}>
+                    <boxGeometry args={[0.26, 0.03, 0.26]} />
+                    <meshStandardMaterial color="#451a03" roughness={0.7} />
+                  </mesh>
+                  <mesh position={[0, 0.52, -0.11]}>
+                    <boxGeometry args={[0.26, 0.32, 0.03]} />
+                    <meshStandardMaterial color="#451a03" roughness={0.7} />
+                  </mesh>
+                  {[-0.1, 0.1].map((lx) => (
+                    <mesh key={lx} position={[lx, 0.14, 0]}>
+                      <cylinderGeometry args={[0.015, 0.015, 0.28, 6]} />
+                      <meshStandardMaterial color="#0f172a" />
+                    </mesh>
+                  ))}
+                </group>
+              ))}
+            </group>
+
+            {/* Takeaway Coffee Bar / Counter */}
+            <group position={[0, 0.12, 0.6]}>
+              <mesh position={[0, 0.45, 0]} castShadow>
+                <boxGeometry args={[1.2, 0.7, 0.5]} />
+                <meshStandardMaterial color="#1e293b" roughness={0.6} />
+              </mesh>
+              {/* Espresso Machine on counter */}
+              <mesh position={[0.2, 0.92, 0]}>
+                <boxGeometry args={[0.3, 0.25, 0.25]} />
+                <meshStandardMaterial color="#94a3b8" metalness={0.9} />
+              </mesh>
+              {/* Menu Blackboard */}
+              <mesh position={[-0.3, 0.95, 0]}>
+                <boxGeometry args={[0.26, 0.35, 0.04]} />
+                <meshStandardMaterial color="#0f172a" roughness={0.9} />
+              </mesh>
+            </group>
+          </group>
         </group>
       )}
     </group>
@@ -624,15 +733,15 @@ function SkyscraperTower3D({
 }
 
 const SKYSCRAPERS = [
-  { id: 'west_tower_1', pos: [-6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'blue' as const, minStage: 2, seed: 1 },
-  { id: 'west_tower_2', pos: [-10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'cyan' as const, minStage: 0, seed: 2 },
-  { id: 'west_tower_3', pos: [-8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'blue' as const, minStage: 4, seed: 3 },
-  { id: 'east_tower_1', pos: [6.5, 7, -8] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'red' as const, minStage: 2, seed: 4 },
-  { id: 'east_tower_2', pos: [10.5, 5, -5] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'amber' as const, minStage: 0, seed: 5 },
-  { id: 'east_tower_3', pos: [8, 4, -13] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'red' as const, minStage: 4, seed: 6 },
-  { id: 'west_metro',   pos: [-16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'cyan' as const, minStage: 5, seed: 7 },
-  { id: 'east_metro',   pos: [16, 6, -18] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'amber' as const, minStage: 5, seed: 8 },
-  { id: 'civic_center', pos: [0, 6, -22] as [number, number, number], size: [5.0, 12, 4.0] as [number, number, number], floors: 16, cols: 8, theme: 'corporate' as const, minStage: 5, seed: 9 },
+  { id: 'west_tower_1', pos: [-10.5, 7, -12] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'blue' as const, minStage: 2, seed: 1 },
+  { id: 'west_tower_2', pos: [-15.5, 6, -8] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'cyan' as const, minStage: 0, seed: 2 },
+  { id: 'west_tower_3', pos: [-11.5, 5, -18] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'blue' as const, minStage: 4, seed: 3 },
+  { id: 'east_tower_1', pos: [10.5, 7, -12] as [number, number, number], size: [3.4, 14, 3.4] as [number, number, number], floors: 18, cols: 6, theme: 'red' as const, minStage: 2, seed: 4 },
+  { id: 'east_tower_2', pos: [15.5, 6, -8] as [number, number, number], size: [2.8, 10, 2.8] as [number, number, number], floors: 14, cols: 5, theme: 'amber' as const, minStage: 0, seed: 5 },
+  { id: 'east_tower_3', pos: [11.5, 5, -18] as [number, number, number], size: [3.2, 8, 3.2] as [number, number, number], floors: 11, cols: 6, theme: 'red' as const, minStage: 4, seed: 6 },
+  { id: 'west_metro',   pos: [-21, 7, -24] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'cyan' as const, minStage: 5, seed: 7 },
+  { id: 'east_metro',   pos: [21, 7, -24] as [number, number, number], size: [4.2, 12, 3.8] as [number, number, number], floors: 16, cols: 7, theme: 'amber' as const, minStage: 5, seed: 8 },
+  { id: 'civic_center', pos: [0, 7, -26] as [number, number, number], size: [5.0, 12, 4.0] as [number, number, number], floors: 16, cols: 8, theme: 'corporate' as const, minStage: 5, seed: 9 },
 ];
 
 export function CityArchitecture3D() {

@@ -25,7 +25,7 @@ class TrafficCoordinator {
   private pedestrians: Map<string, LivePedestrian> = new Map();
 
   // Highway crosswalk coordinates along the avenue
-  public readonly crosswalkX = [-5.0, 5.0];
+  public readonly crosswalkX = [-7.0, 7.0];
   public readonly roadZMin = 3.6;
   public readonly roadZMax = 7.4;
 

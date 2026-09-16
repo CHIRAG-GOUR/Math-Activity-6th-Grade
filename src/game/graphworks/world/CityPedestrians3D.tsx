@@ -110,8 +110,8 @@ const ARCHETYPE_STYLES: Record<CharacterRole, CharacterStyle> = {
 const CIRCULAR_OBSTACLES = [
   // Central Data Tower base
   { x: 0, z: 0, radius: 2.3, name: 'tower_base' },
-  // Grand Boulevard Central Fountain Roundabout (Center of Road)
-  { x: 0, z: 5.5, radius: 2.5, name: 'road_central_fountain' },
+  // Grand Botanical Garden Fountain (Center of Park District)
+  { x: 0, z: 11.0, radius: 2.3, name: 'park_botanical_fountain' },
   // 4 Plaza Ornamental Flowerbeds
   { x: 3.25, z: 3.25, radius: 0.9, name: 'flowerbed_ne' },
   { x: -3.25, z: 3.25, radius: 0.9, name: 'flowerbed_nw' },
@@ -137,14 +137,16 @@ const CIRCULAR_OBSTACLES = [
 ];
 
 const BOX_OBSTACLES = [
-  // Commercial Skyscrapers (Footprints)
-  { minX: -8.5, maxX: -4.5, minZ: -10.0, maxZ: -6.0, name: 'bldg_left_1' },
-  { minX: -12.2, maxX: -8.8, minZ: -6.8, maxZ: -3.2, name: 'bldg_left_2' },
-  { minX: 4.5, maxX: 8.5, minZ: -10.0, maxZ: -6.0, name: 'bldg_right_1' },
-  { minX: 8.8, maxX: 12.2, minZ: -6.8, maxZ: -3.2, name: 'bldg_right_2' },
+  // Commercial Skyscrapers (Footprints - Pushed Back)
+  { minX: -12.5, maxX: -8.5, minZ: -14.0, maxZ: -10.0, name: 'bldg_left_1' },
+  { minX: -17.5, maxX: -13.5, minZ: -10.0, maxZ: -6.0, name: 'bldg_left_2' },
+  { minX: 8.5, maxX: 12.5, minZ: -14.0, maxZ: -10.0, name: 'bldg_right_1' },
+  { minX: 13.5, maxX: 17.5, minZ: -10.0, maxZ: -6.0, name: 'bldg_right_2' },
+  // Cafe & Bistro Pavilion (Pushed Back)
+  { minX: -18.5, maxX: -10.5, minZ: -5.5, maxZ: 0.5, name: 'cafe_bistro' },
   // Park Benches (Exact bounds)
-  { minX: -4.1, maxX: -2.9, minZ: 12.0, maxZ: 12.4, name: 'bench_left' },
-  { minX: 2.9, maxX: 4.1, minZ: 12.0, maxZ: 12.4, name: 'bench_right' },
+  { minX: -5.5, maxX: -4.1, minZ: 11.6, maxZ: 12.2, name: 'bench_left' },
+  { minX: 4.1, maxX: 5.5, minZ: 11.6, maxZ: 12.2, name: 'bench_right' },
 ];
 
 // ── HIERARCHICALLY ARTICULATED HUMAN RIG ──
@@ -713,22 +715,22 @@ export function StylizedHumanRig({
 export function CityPedestrians3D() {
   // Carefully planned district-specific routes (linear, purpose-driven, zero circular clustering)
   const pedestrians = useMemo(() => [
-    // 1. City Worker (Lead Surveyor): Inspects West commercial building site & development lot
+    // 1. City Worker (Lead Surveyor): Inspects West commercial building site & Cafe bistro lot
     {
       id: 'worker-1',
       role: 'city_worker' as CharacterRole,
       route: [
-        [-8.5, 0, 1.8],
-        [-12.5, 0, 1.8],
-        [-14.5, 0, -2.0],
-        [-11.5, 0, -5.5],
-        [-8.5, 0, -5.5],
-        [-8.5, 0, -1.5],
+        [-9.5, 0, 1.8],
+        [-13.5, 0, 0.5],
+        [-15.5, 0, -3.5],
+        [-12.5, 0, -6.5],
+        [-9.5, 0, -4.5],
+        [-9.5, 0, -1.0],
       ],
       speed: 0.95,
       currentWp: 0,
-      pos: new THREE.Vector3(-8.5, 0.03, 1.8),
-      lastPos: new THREE.Vector3(-8.5, 0.03, 1.8),
+      pos: new THREE.Vector3(-9.5, 0.03, 1.8),
+      lastPos: new THREE.Vector3(-9.5, 0.03, 1.8),
       stuckTimer: 0,
       yaw: -Math.PI / 2,
       walkPhase: 0,
@@ -741,16 +743,16 @@ export function CityPedestrians3D() {
       id: 'scientist-1',
       role: 'weather_scientist' as CharacterRole,
       route: [
-        [-7.5, 0, -8.5],
-        [-12.5, 0, -9.5],
-        [-16.0, 0, -12.5],
-        [-11.0, 0, -14.2],
-        [-6.5, 0, -11.0],
+        [-10.0, 0, -9.5],
+        [-15.0, 0, -11.5],
+        [-18.0, 0, -14.5],
+        [-13.0, 0, -16.2],
+        [-8.5, 0, -12.0],
       ],
       speed: 0.9,
       currentWp: 0,
-      pos: new THREE.Vector3(-7.5, 0.03, -8.5),
-      lastPos: new THREE.Vector3(-7.5, 0.03, -8.5),
+      pos: new THREE.Vector3(-10.0, 0.03, -9.5),
+      lastPos: new THREE.Vector3(-10.0, 0.03, -9.5),
       stuckTimer: 0,
       yaw: -Math.PI / 2,
       walkPhase: 1.2,
@@ -763,19 +765,19 @@ export function CityPedestrians3D() {
       id: 'passenger-1',
       role: 'train_passenger' as CharacterRole,
       route: [
-        [5.0, 0, 8.2],   // South sidewalk curb
-        [5.0, 0, 2.6],   // Crosses road to North sidewalk
-        [6.5, 0, -3.5],  // Transit concourse
-        [5.5, 0, -9.5],  // Station access ramp
-        [5.5, 0, -12.5], // Train boarding platform
-        [7.5, 0, -12.5], // Platform waiting bench
-        [6.5, 0, -3.5],  // Returns
-        [5.0, 0, 2.6],
+        [7.0, 0, 8.2],   // South sidewalk curb (Crosswalk East)
+        [7.0, 0, 2.6],   // Crosses road to North sidewalk
+        [8.5, 0, -3.5],  // Transit concourse
+        [7.5, 0, -9.5],  // Station access ramp
+        [7.5, 0, -13.5], // Train boarding platform
+        [9.5, 0, -13.5], // Platform waiting bench
+        [8.5, 0, -3.5],  // Returns
+        [7.0, 0, 2.6],
       ],
       speed: 1.1,
       currentWp: 0,
-      pos: new THREE.Vector3(5.0, 0.03, 8.2),
-      lastPos: new THREE.Vector3(5.0, 0.03, 8.2),
+      pos: new THREE.Vector3(7.0, 0.03, 8.2),
+      lastPos: new THREE.Vector3(7.0, 0.03, 8.2),
       stuckTimer: 0,
       yaw: -Math.PI,
       walkPhase: 2.5,
@@ -783,23 +785,23 @@ export function CityPedestrians3D() {
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 4. Park Visitor 1 (Nature Enthusiast): Strolls along South botanical gardens & rose terrace
+    // 4. Park Visitor 1 (Nature Enthusiast): Strolls along South botanical garden promenade around fountain
     {
       id: 'visitor-1',
       role: 'park_visitor' as CharacterRole,
       route: [
-        [-5.5, 0, 9.8],
-        [-2.0, 0, 10.5],
-        [2.5, 0, 10.5],
-        [5.5, 0, 12.8],
-        [1.5, 0, 14.2],
-        [-3.5, 0, 14.2],
-        [-6.0, 0, 12.0],
+        [-5.5, 0, 9.5],
+        [-3.2, 0, 11.0],
+        [0, 0, 13.8],
+        [3.2, 0, 11.0],
+        [5.5, 0, 9.5],
+        [2.0, 0, 9.0],
+        [-2.0, 0, 9.0],
       ],
       speed: 0.85,
       currentWp: 0,
-      pos: new THREE.Vector3(-5.5, 0.03, 9.8),
-      lastPos: new THREE.Vector3(-5.5, 0.03, 9.8),
+      pos: new THREE.Vector3(-5.5, 0.03, 9.5),
+      lastPos: new THREE.Vector3(-5.5, 0.03, 9.5),
       stuckTimer: 0,
       yaw: Math.PI / 2,
       walkPhase: 0.8,
@@ -812,15 +814,15 @@ export function CityPedestrians3D() {
       id: 'officer-1',
       role: 'traffic_officer' as CharacterRole,
       route: [
-        [-5.0, 0, 2.6], // North sidewalk curb
-        [-5.0, 0, 5.5], // Center road median
-        [-5.0, 0, 8.2], // South sidewalk curb
-        [-5.0, 0, 5.5], // Back to median
+        [-7.0, 0, 2.6], // North sidewalk curb (Crosswalk West)
+        [-7.0, 0, 5.5], // Center road median
+        [-7.0, 0, 8.2], // South sidewalk curb
+        [-7.0, 0, 5.5], // Back to median
       ],
       speed: 0.8,
       currentWp: 0,
-      pos: new THREE.Vector3(-5.0, 0.03, 2.6),
-      lastPos: new THREE.Vector3(-5.0, 0.03, 2.6),
+      pos: new THREE.Vector3(-7.0, 0.03, 2.6),
+      lastPos: new THREE.Vector3(-7.0, 0.03, 2.6),
       stuckTimer: 0,
       yaw: 0,
       walkPhase: 1.9,
@@ -833,17 +835,17 @@ export function CityPedestrians3D() {
       id: 'engineer-1',
       role: 'systems_engineer' as CharacterRole,
       route: [
-        [8.5, 0, 1.8],
-        [13.5, 0, 0.0],
-        [15.5, 0, -5.5],
-        [11.5, 0, -9.0],
-        [7.5, 0, -5.0],
-        [8.5, 0, -1.0],
+        [10.5, 0, 1.8],
+        [15.5, 0, 0.0],
+        [17.5, 0, -5.5],
+        [13.5, 0, -9.0],
+        [9.5, 0, -5.0],
+        [10.5, 0, -1.0],
       ],
       speed: 0.95,
       currentWp: 0,
-      pos: new THREE.Vector3(8.5, 0.03, 1.8),
-      lastPos: new THREE.Vector3(8.5, 0.03, 1.8),
+      pos: new THREE.Vector3(10.5, 0.03, 1.8),
+      lastPos: new THREE.Vector3(10.5, 0.03, 1.8),
       stuckTimer: 0,
       yaw: Math.PI / 2,
       walkPhase: 3.1,
@@ -851,22 +853,22 @@ export function CityPedestrians3D() {
       state: 'WALKING',
       stateTimer: 0,
     },
-    // 7. Park Botanist (Botanical Caretaker): Strolls East-West along South Park Promenade
+    // 7. Park Botanist (Botanical Caretaker): Strolls around Grand Fountain floral terrace
     {
       id: 'botanist-1',
       role: 'weather_scientist' as CharacterRole,
       route: [
-        [-7.5, 0, 8.8],
-        [-2.0, 0, 8.8],
-        [3.0, 0, 8.8],
-        [7.5, 0, 8.8],
-        [3.0, 0, 8.8],
-        [-2.0, 0, 8.8],
+        [-3.2, 0, 11.0],
+        [-1.5, 0, 13.5],
+        [1.5, 0, 13.5],
+        [3.2, 0, 11.0],
+        [1.5, 0, 9.2],
+        [-1.5, 0, 9.2],
       ],
       speed: 0.85,
       currentWp: 0,
-      pos: new THREE.Vector3(-7.5, 0.03, 8.8),
-      lastPos: new THREE.Vector3(-7.5, 0.03, 8.8),
+      pos: new THREE.Vector3(-3.2, 0.03, 11.0),
+      lastPos: new THREE.Vector3(-3.2, 0.03, 11.0),
       stuckTimer: 0,
       yaw: Math.PI / 2,
       walkPhase: 0.4,
@@ -963,7 +965,7 @@ export function CityPedestrians3D() {
 
       const atNorthCurb = ped.pos.z >= 2.4 && ped.pos.z <= 3.2;
       const atSouthCurb = ped.pos.z >= 7.8 && ped.pos.z <= 8.6;
-      const isNearCrosswalk = Math.abs(ped.pos.x - (-5.0)) < 1.4 || Math.abs(ped.pos.x - 5.0) < 1.4;
+      const isNearCrosswalk = Math.abs(ped.pos.x - (-7.0)) < 1.4 || Math.abs(ped.pos.x - 7.0) < 1.4;
 
       if (isTargetAcrossRoad && isNearCrosswalk && (atNorthCurb || atSouthCurb)) {
         const safeToCross = cityTraffic.isRoadSafeToCross(ped.pos.x);
