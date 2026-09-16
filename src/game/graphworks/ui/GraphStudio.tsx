@@ -12,9 +12,9 @@ import { useGraphworksStore, type Team, type PlottedPoint, type MissionQuestion 
 import { soundManager } from '@/utils/audio';
 
 // ── COMPACT DIMENSIONS (Designed for bottom-corner arcade consoles) ──
-const GRAPH_W = 290;
-const GRAPH_H = 145;
-const PADDING = { top: 12, right: 10, bottom: 22, left: 30 };
+const GRAPH_W = 360;
+const GRAPH_H = 175;
+const PADDING = { top: 16, right: 14, bottom: 28, left: 38 };
 const PLOT_W = GRAPH_W - PADDING.left - PADDING.right;
 const PLOT_H = GRAPH_H - PADDING.top - PADDING.bottom;
 
@@ -126,7 +126,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
       const closest = plottedPoints.findIndex((p) => {
         const px = indexToX(p.x);
         const py = valueToY(p.y);
-        return Math.hypot(px - coords.x, py - coords.y) < 14;
+        return Math.hypot(px - coords.x, py - coords.y) < 16;
       });
       if (closest >= 0) {
         soundManager.playClick();
@@ -168,7 +168,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
   }
 
   const teamColor = team === 'blue' ? '#2563EB' : '#DC2626';
-  const barWidth = Math.max(12, (PLOT_W / xCount) * 0.72);
+  const barWidth = Math.max(16, (PLOT_W / xCount) * 0.72);
 
   // Line path
   const sortedPoints = [...plottedPoints].sort((a, b) => a.x - b.x);
@@ -184,7 +184,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
     <svg
       ref={svgRef}
       viewBox={`0 0 ${GRAPH_W} ${GRAPH_H}`}
-      className="w-full h-auto bg-white rounded-lg border border-slate-200 select-none shadow-inner"
+      className="w-full h-auto bg-white rounded-xl border border-slate-200 select-none shadow-inner"
       style={{ touchAction: 'none' }}
       onClick={handleGraphInteraction}
       onMouseMove={handleDragMove}
@@ -203,11 +203,11 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
               <g key={v}>
                 <line
                   x1={PADDING.left} y1={y} x2={GRAPH_W - PADDING.right} y2={y}
-                  stroke="#F1F5F9" strokeWidth={0.8}
+                  stroke="#F1F5F9" strokeWidth={1}
                 />
                 <text
-                  x={PADDING.left - 4} y={y + 3} textAnchor="end"
-                  fill="#94A3B8" fontSize={7} fontWeight="600" fontFamily="Inter, sans-serif"
+                  x={PADDING.left - 5} y={y + 3.5} textAnchor="end"
+                  fill="#64748B" fontSize={10} fontWeight="700" fontFamily="Inter, sans-serif"
                 >
                   {v}
                 </text>
@@ -221,10 +221,10 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
             const isSelected = selectedIdx === i;
             return (
               <text
-                key={i} x={x} y={GRAPH_H - 6} textAnchor="middle"
-                fill={isSelected ? teamColor : '#64748B'}
-                fontSize={isSelected ? 8 : 7}
-                fontWeight={isSelected ? '800' : '600'}
+                key={i} x={x} y={GRAPH_H - 8} textAnchor="middle"
+                fill={isSelected ? teamColor : '#475569'}
+                fontSize={isSelected ? 11.5 : 10.5}
+                fontWeight={isSelected ? '900' : '700'}
                 fontFamily="Inter, sans-serif"
               >
                 {label}
@@ -236,12 +236,12 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
           <line
             x1={PADDING.left} y1={PADDING.top}
             x2={PADDING.left} y2={GRAPH_H - PADDING.bottom}
-            stroke="#94A3B8" strokeWidth={1.2}
+            stroke="#64748B" strokeWidth={1.6}
           />
           <line
             x1={PADDING.left} y1={GRAPH_H - PADDING.bottom}
             x2={GRAPH_W - PADDING.right} y2={GRAPH_H - PADDING.bottom}
-            stroke="#94A3B8" strokeWidth={1.2}
+            stroke="#64748B" strokeWidth={1.6}
           />
         </>
       )}
@@ -258,33 +258,33 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
             <rect
               x={x} y={PADDING.top} width={barWidth} height={PLOT_H}
               fill={isSelected ? (team === 'blue' ? '#EFF6FF' : '#FEF2F2') : '#F8FAFC'}
-              rx={2}
+              rx={3}
             />
             <rect
               x={x} y={y} width={barWidth} height={Math.max(0, h)}
               fill={teamColor}
               stroke={isSelected ? '#FBBF24' : 'none'}
-              strokeWidth={isSelected ? 1.8 : 0}
-              opacity={isSelected ? 1 : 0.85}
-              rx={2}
+              strokeWidth={isSelected ? 2.2 : 0}
+              opacity={isSelected ? 1 : 0.88}
+              rx={3}
               style={{ cursor: 'pointer', transition: 'height 0.1s ease' }}
               onMouseDown={(e) => handleDragStart(e, i)}
               onTouchStart={(e) => handleDragStart(e, i)}
             />
             {bar.height > 0 && (
               <text
-                x={x + barWidth / 2} y={Math.max(PADDING.top + 7, y - 3)} textAnchor="middle"
-                fill={isSelected ? '#1E293B' : teamColor}
-                fontSize={7.5} fontWeight="800" fontFamily="Inter, sans-serif"
+                x={x + barWidth / 2} y={Math.max(PADDING.top + 10, y - 4)} textAnchor="middle"
+                fill={isSelected ? '#0F172A' : teamColor}
+                fontSize={10.5} fontWeight="900" fontFamily="Inter, sans-serif"
               >
                 {Math.round(bar.height)}
               </text>
             )}
             {mission.expectedValues[i] !== undefined && (
               <line
-                x1={x - 1} y1={valueToY(mission.expectedValues[i])}
-                x2={x + barWidth + 1} y2={valueToY(mission.expectedValues[i])}
-                stroke={teamColor} strokeWidth={1} strokeDasharray="2,2" opacity={0.3}
+                x1={x - 2} y1={valueToY(mission.expectedValues[i])}
+                x2={x + barWidth + 2} y2={valueToY(mission.expectedValues[i])}
+                stroke={teamColor} strokeWidth={1.2} strokeDasharray="3,3" opacity={0.35}
               />
             )}
           </g>
@@ -299,15 +299,15 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
             const y = valueToY(d.value);
             return (
               <circle
-                key={`guide-${i}`} cx={x} cy={y} r={3}
-                fill="none" stroke={teamColor} strokeWidth={0.6} strokeDasharray="2,2" opacity={0.25}
+                key={`guide-${i}`} cx={x} cy={y} r={3.5}
+                fill="none" stroke={teamColor} strokeWidth={0.8} strokeDasharray="2,2" opacity={0.3}
               />
             );
           })}
           {linePath && (
             <path
-              d={linePath} fill="none" stroke={teamColor} strokeWidth={2}
-              strokeLinecap="round" strokeLinejoin="round" opacity={0.9}
+              d={linePath} fill="none" stroke={teamColor} strokeWidth={2.8}
+              strokeLinecap="round" strokeLinejoin="round" opacity={0.92}
             />
           )}
           {sortedPoints.map((pt, i) => {
@@ -319,19 +319,19 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
             return (
               <g key={i}>
                 <circle
-                  cx={x} cy={y} r={12} fill="transparent"
+                  cx={x} cy={y} r={14} fill="transparent"
                   style={{ cursor: 'pointer' }}
                   onMouseDown={(e) => handleDragStart(e, origIdx)}
                   onTouchStart={(e) => handleDragStart(e, origIdx)}
                 />
                 {isSelected && (
-                  <circle cx={x} cy={y} r={7.5} fill="none" stroke="#FBBF24" strokeWidth={1.8} />
+                  <circle cx={x} cy={y} r={9.5} fill="none" stroke="#FBBF24" strokeWidth={2.2} />
                 )}
-                <circle cx={x} cy={y} r={4.5} fill={teamColor} stroke="#FFF" strokeWidth={1.5} />
+                <circle cx={x} cy={y} r={5.5} fill={teamColor} stroke="#FFF" strokeWidth={2} />
                 <text
-                  x={x} y={Math.max(PADDING.top + 6, y - 6)} textAnchor="middle"
-                  fill={isSelected ? '#1E293B' : teamColor}
-                  fontSize={7.5} fontWeight="800" fontFamily="Inter, sans-serif"
+                  x={x} y={Math.max(PADDING.top + 8, y - 8)} textAnchor="middle"
+                  fill={isSelected ? '#0F172A' : teamColor}
+                  fontSize={10.5} fontWeight="900" fontFamily="Inter, sans-serif"
                 >
                   {Math.round(pt.y)}
                 </text>
@@ -345,8 +345,8 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
       {graphType === 'pie' && (() => {
         const cx = GRAPH_W / 2;
         const cy = GRAPH_H / 2;
-        const outerR = 46;
-        const innerR = 16;
+        const outerR = 56;
+        const innerR = 20;
         const total = plottedBars.reduce((sum, b) => sum + Math.max(0, b.height), 0) || 1;
         let currentAngle = -Math.PI / 2;
 
@@ -363,7 +363,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
               const color = PIE_COLORS[i % PIE_COLORS.length];
 
               const midAngle = startAngle + sliceAngle / 2;
-              const explode = isSelected ? 4 : 0;
+              const explode = isSelected ? 5 : 0;
               const ox = Math.cos(midAngle) * explode;
               const oy = Math.sin(midAngle) * explode;
 
@@ -396,14 +396,14 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
                       d={pathData}
                       fill={color}
                       stroke={isSelected ? '#FBBF24' : '#FFFFFF'}
-                      strokeWidth={isSelected ? 2.2 : 1}
+                      strokeWidth={isSelected ? 2.5 : 1.2}
                       opacity={isSelected ? 1 : 0.88}
                     />
                   )}
-                  {val > 0 && sliceAngle > 0.35 && (
+                  {val > 0 && sliceAngle > 0.32 && (
                     <text
-                      x={lx} y={ly + 2.5} textAnchor="middle"
-                      fill="#FFFFFF" fontSize={7.5} fontWeight="800" fontFamily="Inter, sans-serif"
+                      x={lx} y={ly + 3.5} textAnchor="middle"
+                      fill="#FFFFFF" fontSize={11} fontWeight="900" fontFamily="Inter, sans-serif"
                     >
                       {pct}%
                     </text>
@@ -411,10 +411,10 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
                 </g>
               );
             })}
-            <circle cx={cx} cy={cy} r={innerR - 1} fill="#FFFFFF" stroke="#E2E8F0" strokeWidth={1} />
+            <circle cx={cx} cy={cy} r={innerR - 1} fill="#FFFFFF" stroke="#CBD5E1" strokeWidth={1.2} />
             <text
-              x={cx} y={cy + 2.5} textAnchor="middle"
-              fill="#475569" fontSize={6.5} fontWeight="900" fontFamily="Inter, sans-serif"
+              x={cx} y={cy + 3.5} textAnchor="middle"
+              fill="#334155" fontSize={9} fontWeight="900" fontFamily="Inter, sans-serif"
             >
               CIRCLE
             </text>
@@ -429,16 +429,16 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
 
         return (
           <g>
-            <rect x={PADDING.left} y={6} width={PLOT_W} height={14} fill="#F8FAFC" rx={3} stroke="#E2E8F0" strokeWidth={0.8} />
+            <rect x={PADDING.left} y={6} width={PLOT_W} height={16} fill="#F8FAFC" rx={4} stroke="#CBD5E1" strokeWidth={1} />
             <text
-              x={GRAPH_W / 2} y={16} textAnchor="middle"
-              fill="#0F172A" fontSize={8} fontWeight="700" fontFamily="Inter, sans-serif"
+              x={GRAPH_W / 2} y={18} textAnchor="middle"
+              fill="#0F172A" fontSize={11.5} fontWeight="800" fontFamily="Inter, sans-serif"
             >
               KEY: 1 {icon} = {step} {mission.unit}
             </text>
 
             {plottedBars.map((bar, i) => {
-              const rowY = 25 + i * 21;
+              const rowY = 28 + i * 26;
               const isSelected = selectedIdx === i;
               const count = Math.max(0, bar.height);
               const fullIcons = Math.floor(count / step);
@@ -447,40 +447,40 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
               return (
                 <g key={i} onClick={() => onSelectIdx(i)} style={{ cursor: 'pointer' }}>
                   <rect
-                    x={PADDING.left} y={rowY} width={PLOT_W} height={18}
+                    x={PADDING.left} y={rowY} width={PLOT_W} height={22}
                     fill={isSelected ? (team === 'blue' ? '#EFF6FF' : '#FEF2F2') : '#FFFFFF'}
-                    stroke={isSelected ? teamColor : '#F1F5F9'}
-                    strokeWidth={isSelected ? 1.5 : 0.8}
-                    rx={4}
+                    stroke={isSelected ? teamColor : '#E2E8F0'}
+                    strokeWidth={isSelected ? 1.8 : 1}
+                    rx={5}
                   />
                   <text
-                    x={PADDING.left + 5} y={rowY + 12}
-                    fill={isSelected ? teamColor : '#334155'}
-                    fontSize={7.5} fontWeight={isSelected ? '800' : '600'} fontFamily="Inter, sans-serif"
+                    x={PADDING.left + 6} y={rowY + 15}
+                    fill={isSelected ? teamColor : '#1E293B'}
+                    fontSize={10.5} fontWeight={isSelected ? '900' : '700'} fontFamily="Inter, sans-serif"
                   >
                     {bar.label}
                   </text>
                   {Array.from({ length: Math.min(8, fullIcons) }).map((_, iconIdx) => (
                     <text
                       key={iconIdx}
-                      x={PADDING.left + 58 + iconIdx * 14} y={rowY + 13}
-                      fontSize={9} textAnchor="middle"
+                      x={PADDING.left + 72 + iconIdx * 18} y={rowY + 16}
+                      fontSize={13} textAnchor="middle"
                     >
                       {icon}
                     </text>
                   ))}
                   {hasHalf && fullIcons < 8 && (
                     <text
-                      x={PADDING.left + 58 + fullIcons * 14} y={rowY + 13}
-                      fontSize={8} textAnchor="middle" opacity={0.65}
+                      x={PADDING.left + 72 + fullIcons * 18} y={rowY + 15}
+                      fontSize={10.5} textAnchor="middle" opacity={0.7} fontWeight="900"
                     >
                       ½
                     </text>
                   )}
                   <text
-                    x={GRAPH_W - PADDING.right - 5} y={rowY + 12} textAnchor="end"
-                    fill={isSelected ? teamColor : '#64748B'}
-                    fontSize={8} fontWeight="800" fontFamily="Inter, sans-serif"
+                    x={GRAPH_W - PADDING.right - 6} y={rowY + 15} textAnchor="end"
+                    fill={isSelected ? teamColor : '#475569'}
+                    fontSize={11} fontWeight="900" fontFamily="Inter, sans-serif"
                   >
                     {Math.round(count)}
                   </text>
@@ -495,7 +495,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
       {plottedPoints.length === 0 && plottedBars.every((b) => b.height === 0) && (
         <text
           x={GRAPH_W / 2} y={GRAPH_H / 2} textAnchor="middle"
-          fill="#94A3B8" fontSize={9} fontWeight="600" fontFamily="Inter, sans-serif"
+          fill="#94A3B8" fontSize={12} fontWeight="700" fontFamily="Inter, sans-serif"
         >
           Tap or use ± buttons to plot data
         </text>
@@ -503,6 +503,7 @@ function GraphCanvas({ team, mission, selectedIdx, onSelectIdx }: GraphCanvasPro
     </svg>
   );
 }
+
 
 // ── COMPACT HORIZONTAL DATA STRIP ──
 function DataStrip({
@@ -520,7 +521,7 @@ function DataStrip({
   const teamBg = team === 'blue' ? '#EFF6FF' : '#FEF2F2';
 
   return (
-    <div className="flex items-center gap-1 overflow-x-auto py-0.5 px-0.5 no-scrollbar">
+    <div className="flex items-center gap-1.5 overflow-x-auto py-1 px-0.5 no-scrollbar">
       {mission.dataTable.map((row, i) => {
         const isSelected = selectedIdx === i;
         const isMissing = mission.phase === 'complete' && mission.partialGraphData?.[i] === -1;
@@ -532,7 +533,7 @@ function DataStrip({
               soundManager.playClick();
               onSelectIdx(i);
             }}
-            className={`flex-1 min-w-[42px] px-1 py-0.5 rounded text-center transition-all cursor-pointer border ${
+            className={`flex-1 min-w-[52px] px-2 py-1 rounded-lg text-center transition-all cursor-pointer border ${
               isSelected
                 ? 'ring-2 font-black shadow-xs'
                 : 'border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700'
@@ -544,8 +545,8 @@ function DataStrip({
               boxShadow: isSelected ? `0 0 0 1px ${teamColor}` : undefined,
             }}
           >
-            <div className="text-[8.5px] font-bold truncate leading-tight opacity-75">{row.label}</div>
-            <div className="text-[10.5px] font-mono font-black leading-tight tabular-nums">
+            <div className="text-[10.5px] font-bold truncate leading-tight opacity-80">{row.label}</div>
+            <div className="text-xs md:text-[13px] font-mono font-black leading-tight tabular-nums mt-0.5">
               {isMissing ? '?' : `${row.value}${mission.unit}`}
             </div>
           </button>
@@ -561,11 +562,11 @@ function LiveSimulationPill({ team }: { team: Team }) {
 
   if (!telemetry) {
     return (
-      <div className="flex items-center justify-between px-2 py-0.5 rounded bg-slate-100/90 text-[8.5px] font-bold text-slate-500 border border-slate-200">
+      <div className="flex items-center justify-between px-2.5 py-1 rounded-lg bg-slate-100/90 text-[10px] font-bold text-slate-500 border border-slate-200">
         <span>City System Connected</span>
-        <span className="flex items-center gap-1">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-          Live Physical Control Active
+        <span className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          Live Control Active
         </span>
       </div>
     );
@@ -593,13 +594,13 @@ function LiveSimulationPill({ team }: { team: Team }) {
 
   return (
     <div
-      className={`flex items-center justify-between px-2 py-0.5 rounded border text-[9px] font-bold shadow-2xs transition-all ${trendClass}`}
+      className={`flex items-center justify-between px-2.5 py-1 rounded-lg border text-[10.5px] font-bold shadow-2xs transition-all ${trendClass}`}
     >
-      <div className="flex items-center gap-1 truncate">
-        <span className="font-black text-[11px] leading-none">{trendIcon}</span>
+      <div className="flex items-center gap-1.5 truncate">
+        <span className="font-black text-sm leading-none">{trendIcon}</span>
         <span className="truncate">{trendText}</span>
       </div>
-      <div className="flex items-center gap-1 font-mono font-black shrink-0 text-[9.5px]">
+      <div className="flex items-center gap-1 font-mono font-black shrink-0 text-xs">
         <span>{dataLabel}:</span>
         <span className="underline">{Math.round(value)}</span>
       </div>
@@ -626,20 +627,20 @@ function PrecisionControls({
   const badgeBg = isBlue ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200';
 
   return (
-    <div className="flex items-center justify-between bg-slate-50/95 rounded-lg px-2 py-1 border border-slate-200 shadow-2xs">
-      <div className="flex items-center gap-1 min-w-0 pr-1">
-        <span className="text-[9.5px] font-bold text-slate-500 uppercase truncate">
+    <div className="flex items-center justify-between bg-slate-50/95 rounded-xl px-2.5 py-1.5 border border-slate-200 shadow-2xs">
+      <div className="flex items-center gap-1.5 min-w-0 pr-1">
+        <span className="text-xs font-bold text-slate-500 uppercase truncate">
           {label}:
         </span>
-        <span className={`text-xs font-black font-mono px-1 py-0.2 rounded border ${badgeBg} ${accentColor} tabular-nums`}>
+        <span className={`text-sm font-black font-mono px-1.5 py-0.5 rounded border ${badgeBg} ${accentColor} tabular-nums`}>
           {Math.round(value)}{unit}
         </span>
       </div>
-      <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-1 shrink-0">
         <button
           type="button"
           onClick={() => onNudge(-10)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Subtract 10"
         >
           -10
@@ -647,7 +648,7 @@ function PrecisionControls({
         <button
           type="button"
           onClick={() => onNudge(-5)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Subtract 5"
         >
           -5
@@ -655,7 +656,7 @@ function PrecisionControls({
         <button
           type="button"
           onClick={() => onNudge(-1)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-white hover:bg-slate-200 border border-slate-300 text-slate-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Subtract 1"
         >
           -1
@@ -663,7 +664,7 @@ function PrecisionControls({
         <button
           type="button"
           onClick={() => onNudge(1)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Add 1"
         >
           +1
@@ -671,7 +672,7 @@ function PrecisionControls({
         <button
           type="button"
           onClick={() => onNudge(5)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Add 5"
         >
           +5
@@ -679,7 +680,7 @@ function PrecisionControls({
         <button
           type="button"
           onClick={() => onNudge(10)}
-          className="px-1.5 py-1 text-[9.5px] font-black rounded bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
+          className="px-2 py-1 text-xs font-black rounded-lg bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 text-emerald-700 active:scale-95 shadow-2xs leading-none cursor-pointer"
           title="Add 10"
         >
           +10
@@ -707,15 +708,15 @@ function GraphTools({
     : 'bg-red-600 text-white font-black shadow-xs';
 
   return (
-    <div className="flex items-center justify-between text-[10px]">
-      <div className="flex items-center gap-1">
+    <div className="flex items-center justify-between text-xs">
+      <div className="flex items-center gap-1.5">
         <button
           type="button"
           onClick={() => {
             soundManager.playClick();
             onSelectTool('addPoint');
           }}
-          className={`px-2 py-0.5 rounded border transition-all cursor-pointer font-bold ${
+          className={`px-3 py-1 rounded-lg border transition-all cursor-pointer font-bold ${
             selectedTool === 'addPoint'
               ? activeClass
               : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
@@ -729,7 +730,7 @@ function GraphTools({
             soundManager.playClick();
             onSelectTool('erase');
           }}
-          className={`px-2 py-0.5 rounded border transition-all cursor-pointer font-bold ${
+          className={`px-3 py-1 rounded-lg border transition-all cursor-pointer font-bold ${
             selectedTool === 'erase'
               ? activeClass
               : 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
@@ -744,7 +745,7 @@ function GraphTools({
           soundManager.playClick();
           onReset();
         }}
-        className="text-[9.5px] font-bold text-slate-500 hover:text-slate-800 transition-colors px-1 py-0.5 cursor-pointer"
+        className="text-xs font-bold text-slate-500 hover:text-slate-800 transition-colors px-2 py-1 cursor-pointer"
       >
         ↺ Reset
       </button>
@@ -761,17 +762,17 @@ function FeedbackPanel({ team }: { team: Team }) {
   if (!showFeedback || !lastValidation) return null;
 
   return (
-    <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm rounded-xl p-3 flex flex-col justify-between shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
+    <div className="absolute inset-0 z-30 bg-white/95 backdrop-blur-sm rounded-2xl p-4 flex flex-col justify-between shadow-xl border border-slate-200 animate-in fade-in zoom-in-95 duration-150">
       <div>
-        <div className="flex items-center justify-between mb-1.5">
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm">{lastValidation.isCorrect ? '🌟' : '💡'}</span>
-            <span className="font-black text-xs text-slate-800">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-2">
+            <span className="text-base">{lastValidation.isCorrect ? '🌟' : '💡'}</span>
+            <span className="font-black text-sm text-slate-800">
               {lastValidation.isCorrect ? 'Mission Completed!' : 'Check Your Graph'}
             </span>
           </div>
           <span
-            className="text-[11px] font-mono font-black px-1.5 py-0.2 rounded"
+            className="text-xs font-mono font-black px-2 py-0.5 rounded-full"
             style={{
               background: lastValidation.accuracy >= 80 ? '#DCFCE7' : '#FEE2E2',
               color: lastValidation.accuracy >= 80 ? '#15803D' : '#B91C1C',
@@ -780,9 +781,9 @@ function FeedbackPanel({ team }: { team: Team }) {
             {lastValidation.accuracy}%
           </span>
         </div>
-        <div className="space-y-0.5 max-h-20 overflow-y-auto mb-2">
+        <div className="space-y-1 max-h-24 overflow-y-auto mb-3">
           {lastValidation.feedback.map((fb, i) => (
-            <p key={i} className="text-[10.5px] text-slate-600 leading-tight">· {fb}</p>
+            <p key={i} className="text-xs text-slate-600 leading-snug">· {fb}</p>
           ))}
         </div>
         <button
@@ -790,7 +791,7 @@ function FeedbackPanel({ team }: { team: Team }) {
             soundManager.playClick();
             setShowFeedback(team, false);
           }}
-          className="w-full py-1.5 rounded-lg font-bold text-xs text-white transition-all cursor-pointer shadow-xs"
+          className="w-full py-2 rounded-xl font-bold text-xs text-white transition-all cursor-pointer shadow-xs"
           style={{ background: team === 'blue' ? '#2563EB' : '#DC2626' }}
         >
           Continue
@@ -800,7 +801,7 @@ function FeedbackPanel({ team }: { team: Team }) {
   );
 }
 
-// ── MAIN GRAPH STUDIO (BOTTOM-CORNER COMPACT CONSOLE) ──
+// ── MAIN GRAPH STUDIO (BOTTOM-CORNER ARCADE CONSOLE) ──
 export function GraphStudio({ team }: { team: Team }) {
   const teamState = useGraphworksStore((s) => s[team]);
   const currentMission = teamState.currentMission;
@@ -827,8 +828,8 @@ export function GraphStudio({ team }: { team: Team }) {
 
   if (!currentMission) {
     return (
-      <div className="w-full h-44 bg-white/90 backdrop-blur rounded-2xl flex items-center justify-center border border-slate-200 shadow-lg">
-        <span className="text-xs font-bold text-slate-400">Loading {teamName} Mission...</span>
+      <div className="w-full h-48 bg-white/90 backdrop-blur rounded-2xl flex items-center justify-center border border-slate-200 shadow-lg">
+        <span className="text-sm font-bold text-slate-400">Loading {teamName} Mission...</span>
       </div>
     );
   }
@@ -868,35 +869,35 @@ export function GraphStudio({ team }: { team: Team }) {
       className={`w-full bg-white/95 backdrop-blur-md rounded-2xl shadow-2xl border-2 ${borderColor} flex flex-col overflow-hidden text-slate-800 select-none`}
     >
       {/* ── 1. HEADER ── */}
-      <div className={`px-2.5 py-1.5 ${headerBg} flex items-center justify-between text-white shadow-2xs`}>
-        <div className="flex items-center gap-1.5">
-          <span className="w-2 h-2 rounded-full bg-white animate-pulse" />
-          <span className="font-black text-xs tracking-wider uppercase">{teamName} STUDIO</span>
+      <div className={`px-3.5 py-2 ${headerBg} flex items-center justify-between text-white shadow-2xs`}>
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+          <span className="font-black text-sm tracking-wider uppercase">{teamName} STUDIO</span>
         </div>
-        <div className="flex items-center gap-2 text-[10px]">
+        <div className="flex items-center gap-2.5 text-xs">
           <span className="font-bold opacity-90">ROUND {currentMission.round}/5</span>
-          <span className="font-black bg-white/20 px-1.5 py-0.2 rounded font-mono">
+          <span className="font-black bg-white/20 px-2 py-0.5 rounded-full font-mono">
             ⭐ {roundWins[team]} {roundWins[team] === 1 ? 'WIN' : 'WINS'}
           </span>
         </div>
       </div>
 
-      {/* ── 2. BODY CONTENT (COMPACT PADDING) ── */}
-      <div className="p-2 flex flex-col gap-1.5 relative">
+      {/* ── 2. BODY CONTENT (COMFORTABLE PADDING & LEGIBLE TYPOGRAPHY) ── */}
+      <div className="p-3 flex flex-col gap-2 relative">
         {/* Feedback Overlay */}
         <FeedbackPanel team={team} />
 
         {/* Mission Title & Instruction */}
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-1">
           <div className="flex items-center justify-between">
-            <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: teamColor }}>
+            <span className="text-xs font-black uppercase tracking-wider" style={{ color: teamColor }}>
               {currentMission.title}
             </span>
-            <span className="text-[8.5px] font-bold text-slate-400 bg-slate-100 px-1 py-0.2 rounded">
+            <span className="text-[10.5px] font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md border border-slate-200">
               {currentMission.graphType === 'pie' ? 'CIRCLE GRAPH' : currentMission.graphType.toUpperCase()}
             </span>
           </div>
-          <p className="text-[10px] text-slate-600 line-clamp-1 leading-snug">
+          <p className="text-xs md:text-[13px] font-medium text-slate-700 leading-snug line-clamp-2">
             {currentMission.instruction}
           </p>
         </div>
@@ -939,11 +940,11 @@ export function GraphStudio({ team }: { team: Team }) {
 
         {/* Check Graph Action Button or Round Claimed Status */}
         {roundWinner && roundWinner !== team && roundTransitionPending ? (
-          <div className="w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-slate-700/90 flex items-center justify-center gap-1.5 opacity-90 border border-slate-600">
+          <div className="w-full py-2.5 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-slate-700/90 flex items-center justify-center gap-2 opacity-90 border border-slate-600">
             <span>⚡ ROUND CLAIMED BY {roundWinner.toUpperCase()}!</span>
           </div>
         ) : roundWinner === team && roundTransitionPending ? (
-          <div className="w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-emerald-600 flex items-center justify-center gap-1.5 shadow-md shadow-emerald-500/30 animate-pulse">
+          <div className="w-full py-2.5 rounded-xl font-black text-xs text-white uppercase tracking-wider bg-emerald-600 flex items-center justify-center gap-2 shadow-md shadow-emerald-500/30 animate-pulse">
             <span>🎉 ROUND {currentMission.round} WON! (+100 PTS)</span>
           </div>
         ) : (
@@ -953,7 +954,7 @@ export function GraphStudio({ team }: { team: Team }) {
               soundManager.playClick();
               checkGraph(team);
             }}
-            className={`w-full py-2 rounded-xl font-black text-xs text-white uppercase tracking-wider shadow-md hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            className={`w-full py-2.5 rounded-xl font-black text-sm text-white uppercase tracking-wider shadow-md hover:brightness-110 active:scale-98 transition-all flex items-center justify-center gap-2 cursor-pointer ${
               isBlue
                 ? 'bg-gradient-to-r from-blue-600 to-sky-600 shadow-blue-500/25'
                 : 'bg-gradient-to-r from-red-600 to-rose-600 shadow-red-500/25'
@@ -967,3 +968,4 @@ export function GraphStudio({ team }: { team: Team }) {
     </div>
   );
 }
+

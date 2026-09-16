@@ -196,14 +196,15 @@ export function GraphworksGame() {
       <MissionController />
 
       {/* ── BOTTOM-LEFT CORNER: BLUE GRAPH STUDIO ── */}
-      <div className="fixed z-30 bottom-2.5 left-2.5 w-[310px] min-w-[310px] max-w-[310px] pointer-events-auto">
+      <div className="fixed z-30 bottom-2.5 left-2.5 w-[385px] min-w-[385px] max-w-[385px] pointer-events-auto">
         <GraphStudio team="blue" />
       </div>
 
       {/* ── BOTTOM-RIGHT CORNER: RED GRAPH STUDIO ── */}
-      <div className="fixed z-30 bottom-2.5 right-2.5 w-[310px] min-w-[310px] max-w-[310px] pointer-events-auto">
+      <div className="fixed z-30 bottom-2.5 right-2.5 w-[385px] min-w-[385px] max-w-[385px] pointer-events-auto">
         <GraphStudio team="red" />
       </div>
     </div>
   );
 }
+

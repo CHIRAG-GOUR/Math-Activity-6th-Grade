@@ -65,7 +65,7 @@ export const MAX_BOXES = 5;
 
 const REWORK_FLASH = 1.5;
 const TRUCK_SPEED = 9.5;
-const WALK_SPEED = 2.6;
+const WALK_SPEED = 3.1;
 const FORK_SPEED = 4.4;
 const UNLOAD_PAUSE = 1.4;
 
@@ -79,6 +79,8 @@ export type Logistics =
 interface Mover {
   pos: Vec3; heading: number; task: string; path: Vec3[]; travel: number;
   carrying: boolean; phase: number;
+  /** How much of this sack has already gone into the tank. */
+  poured: number;
 }
 
 export interface SideSim {
@@ -153,7 +155,7 @@ let handlers: FactoryHandlers = {};
 export function setFactoryHandlers(h: FactoryHandlers) { handlers = h; }
 
 function mover(home: Vec3): Mover {
-  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6 };
+  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6, poured: 0 };
 }
 
 function makeSide(team: TeamId): SideSim {
@@ -297,13 +299,18 @@ function stepSide(side: SideSim, dt: number) {
 function runStep(side: SideSim, dt: number) {
   const step = STEPS[side.stepIndex];
   const dur = STEP_TIME[step];
-  const t = Math.min(1, (sim.elapsed - side.stepStartAt) / dur);
-  side.stepT = t;
+  let t = Math.min(1, (sim.elapsed - side.stepStartAt) / dur);
 
   switch (step) {
-    case 'ingredients':
-      // The tank fills as the handlers tip each sack in (see stepHandlers).
+    case 'ingredients': {
+      // This step is finished by the WORK, not by a stopwatch: it ends when
+      // the handlers have actually tipped the answered amount into the tank.
+      const filled = side.cocoaFill > 0 ? side.tankFill / side.cocoaFill : 1;
+      t = Math.min(1, filled);
+      // Safety valve, so a stuck carrier can never freeze a team's console.
+      if (sim.elapsed - side.stepStartAt > dur * 4) t = 1;
       break;
+    }
     case 'mixing':
       side.mixerSpin += dt * 4.2;
       side.tankFill = side.cocoaFill * (1 - smooth(Math.max(0, t - 0.2) / 0.8));
@@ -322,6 +329,7 @@ function runStep(side: SideSim, dt: number) {
       break;
   }
 
+  side.stepT = t;
   if (t < 1) return;
 
   // Step complete.
@@ -365,7 +373,8 @@ function follow(mv: Mover, speed: number, dt: number): boolean {
 
 function stepHandlers(side: SideSim, dt: number) {
   const active = side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients';
-  const trips = 2;
+  // One trip each: two handlers, two sacks, and the tank holds the answer.
+  const trips = 1;
 
   side.handlers.forEach((h, i) => {
     h.phase += dt * (h.task.startsWith('to_') ? 7 : 1.6);
@@ -387,17 +396,21 @@ function stepHandlers(side: SideSim, dt: number) {
         break;
       }
       case 'to_tank': {
-        if (follow(h, WALK_SPEED * 0.9, dt)) { h.task = 'tipping'; h.travel = 0; h.phase = 0; }
+        if (follow(h, WALK_SPEED * 0.9, dt)) { h.task = 'tipping'; h.travel = 0; h.phase = 0; h.poured = 0; }
         break;
       }
       case 'tipping': {
-        // Tip the sack over the tank mouth: the level actually rises.
-        h.phase += dt;
+        // The sack empties into the tank at a steady rate, and the tip only
+        // ends when the whole share is actually in — not on a timer.
         side.tipPour = 1;
-        const share = side.cocoaFill / (trips * side.handlers.length);
-        side.tankFill = Math.min(side.cocoaFill, side.tankFill + share * dt / 0.9);
-        if (h.phase > 1.1) {
+        const share = side.cocoaFill / side.handlers.length;
+        const rate = share / 1.15;
+        const give = Math.min(rate * dt, share - h.poured);
+        h.poured += give;
+        side.tankFill = Math.min(side.cocoaFill, side.tankFill + give);
+        if (h.poured >= share - 1e-4) {
           h.carrying = false;
+          h.poured = 0;
           side.tipPour = 0;
           h.task = 'back';
           h.path = handlerToPallet(side.team, h.pos, i);
@@ -406,21 +419,18 @@ function stepHandlers(side: SideSim, dt: number) {
         }
         break;
       }
+
       case 'back': {
         if (follow(h, WALK_SPEED, dt)) {
-          const done = !active || side.tankFill >= side.cocoaFill - 0.02;
-          if (done) { h.task = 'ambient'; h.travel = 0; }
-          else { h.task = 'to_pallet'; h.path = handlerToPallet(side.team, h.pos, i); h.travel = 0; }
+          const stillNeeded = active && side.tankFill < side.cocoaFill - 0.02;
+          if (stillNeeded) { h.task = 'to_pallet'; h.path = handlerToPallet(side.team, h.pos, i); h.travel = 0; }
+          else { h.task = 'ambient'; h.travel = 0; h.path = []; }
         }
         break;
       }
     }
   });
 
-  // The tank has to reach the answered level before the step can finish.
-  if (active && side.stepT >= 1 && side.tankFill < side.cocoaFill - 0.02) {
-    side.stepStartAt = sim.elapsed - STEP_TIME.ingredients * 0.9;
-  }
 }
 
 /** Slow work-loop so no member of staff is ever just standing about. */
