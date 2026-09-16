@@ -32,12 +32,19 @@ const AudioBridge: React.FC = () => {
       // Keep the running-machine sounds in step with the two factories.
       const b = sim.blue;
       const r = sim.red;
+      const forkActive =
+        b.logistics.startsWith('fork') ||
+        r.logistics.startsWith('fork') ||
+        b.forklift.task !== 'idle' ||
+        r.forklift.task !== 'idle';
+
+      factoryAudio.setForkliftActivity(forkActive ? 1 : 0);
       factoryAudio.setMachines({
         conveyor: b.phase === 'running' || r.phase === 'running',
         mixer: runningStep('blue') === 'mixing' || runningStep('red') === 'mixing',
         truck: b.logistics === 'truck_out' || b.logistics === 'truck_back'
           || r.logistics === 'truck_out' || r.logistics === 'truck_back',
-        forklift: b.logistics.startsWith('fork') || r.logistics.startsWith('fork'),
+        forklift: forkActive,
       });
       raf = requestAnimationFrame(pump);
     };
@@ -68,7 +75,10 @@ export const ChocolateFactoryGame: React.FC = () => {
     return () => window.removeEventListener('resize', checkViewport);
   }, []);
 
-  useEffect(() => () => factoryAudio.shutdown(), []);
+  useEffect(() => {
+    factoryAudio.startBgm();
+    return () => factoryAudio.shutdown();
+  }, []);
   useEffect(() => { factoryAudio.setMuted(muted); }, [muted]);
 
   return (
