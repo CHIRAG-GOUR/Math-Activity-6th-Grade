@@ -5,14 +5,20 @@
 // ============================================================
 
 import { create } from 'zustand';
-import { getCompetitiveQuestion } from '../data/questions';
+import {
+  getCompetitiveQuestion,
+  getEventForQuestion,
+  getEventPhaseForQuestion,
+  CITY_EVENT_DEFINITIONS,
+  type CityEventDefinition,
+} from '../data/questions';
 import { soundManager } from '@/utils/audio';
 
 // ── GRAPH DATA TYPES ──
 export type GraphType = 'line' | 'bar' | 'pictograph' | 'coordinate' | 'pie';
 export type RoundPhase = 'read' | 'complete' | 'build' | 'interpret' | 'create';
 export type GamePhase = 'briefing' | 'playing' | 'checking' | 'running' | 'feedback' | 'victory';
-export type CityDistrict = 'weather' | 'traffic' | 'water' | 'power' | 'train' | 'park';
+export type CityDistrict = 'weather' | 'traffic' | 'water' | 'power' | 'train' | 'park' | 'city' | 'construction';
 export type Team = 'blue' | 'red';
 
 export interface DataPoint {
@@ -184,13 +190,66 @@ export interface RoundWinBannerData {
   round: number;
 }
 
+// ── 5-QUESTION CITY EVENT SYSTEM INTERFACES ──
+export interface CityPersistentState {
+  buildingFloorsBuilt: number; // For Event 8 (Q36-40), increases up to 5 floors and remains standing!
+  waterReservoirFilled: boolean;
+  powerGridStabilized: boolean;
+  trainNetworkActive: boolean;
+  morningAwake: boolean;
+  crisisResolved: boolean;
+}
+
+export interface CityEventState {
+  currentEvent: CityEventDefinition;
+  eventIndex: number;     // 0–9
+  eventPhase: number;     // 1–5
+  eventProgress: number;  // 0–100%
+  phaseDescription: string;
+  activeDistrict: CityDistrict | 'city' | 'construction';
+  completionToast: string | null;
+  persistentState: CityPersistentState;
+}
+
+export function createDefaultCityEventState(round: number): CityEventState {
+  const currentEvent = getEventForQuestion(round);
+  const eventPhase = getEventPhaseForQuestion(round);
+  const eventIndex = Math.floor((Math.max(1, round) - 1) / 5) % CITY_EVENT_DEFINITIONS.length;
+  const phaseDescription = currentEvent.phases[eventPhase - 1] ?? currentEvent.phases[0];
+
+  // Compute persistent unlocks based on round progression
+  const buildingFloors = round >= 40 ? 5 : round >= 36 ? round - 35 : 0;
+
+  return {
+    currentEvent,
+    eventIndex,
+    eventPhase,
+    eventProgress: ((eventPhase - 1) / 5) * 100,
+    phaseDescription,
+    activeDistrict: currentEvent.activeDistrict,
+    completionToast: null,
+    persistentState: {
+      buildingFloorsBuilt: buildingFloors,
+      waterReservoirFilled: round > 20,
+      powerGridStabilized: round > 25,
+      trainNetworkActive: round > 30,
+      morningAwake: round > 5,
+      crisisResolved: round >= 50,
+    },
+  };
+}
+
 export interface GraphworksStore {
   // Game phase
   gamePhase: GamePhase;
-  currentRound: number;       // 1–5
+  currentRound: number;       // 1–50
   roundPhase: RoundPhase;
   timer: number;              // seconds remaining
   isTimerRunning: boolean;
+
+  // 5-Question City Event System
+  cityEventState: CityEventState;
+  clearEventToast: () => void;
 
   // Teams
   blue: TeamState;
@@ -383,6 +442,12 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
   timer: 300,
   isTimerRunning: false,
 
+  // 5-Question City Event System
+  cityEventState: createDefaultCityEventState(1),
+  clearEventToast: () => set((s) => ({
+    cityEventState: { ...s.cityEventState, completionToast: null },
+  })),
+
   // 5-Question First-to-Answer Race State
   roundWins: { blue: 0, red: 0 },
   roundWinner: null,
@@ -429,6 +494,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       roundPhase: 'build',
       timer: 300,
       isTimerRunning: true,
+      cityEventState: createDefaultCityEventState(1),
       roundWins: { blue: 0, red: 0 },
       roundWinner: null,
       roundWinnersHistory: [],
@@ -562,13 +628,16 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
 
         soundManager.playCorrect(true);
 
+        const isFinalEventQuestion = currentRoundNum % 5 === 0;
+        const currentEv = get().cityEventState.currentEvent;
+
         const banner: RoundWinBannerData = {
           visible: true,
           team: winningTeam,
           title: `⚡ ${winningTeam.toUpperCase()} TEAM ANSWERED FIRST!`,
-          subtitle: `ROUND ${currentRoundNum} OF 5 WON (+100 PTS) · ${
-            currentRoundNum >= 5 ? 'CHAMPIONSHIP CONCLUDED!' : `ROUND ${currentRoundNum + 1} LOADING...`
-          }`,
+          subtitle: isFinalEventQuestion
+            ? `🏆 ${currentEv.completionMessage}! (+100 PTS)`
+            : `ROUND ${currentRoundNum} OF 50 WON (+100 PTS) · NEXT LOADING...`,
           round: currentRoundNum,
         };
 
@@ -578,6 +647,12 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
           roundWinnersHistory: newHistory,
           roundBanner: banner,
           roundTransitionPending: true,
+          cityEventState: {
+            ...s.cityEventState,
+            eventPhase: getEventPhaseForQuestion(currentRoundNum),
+            eventProgress: (getEventPhaseForQuestion(currentRoundNum) / 5) * 100,
+            completionToast: isFinalEventQuestion ? currentEv.completionMessage : s.cityEventState.completionToast,
+          },
           [winningTeam]: {
             ...s[winningTeam],
             totalScore: s[winningTeam].totalScore + 100 + validation.accuracy,
@@ -592,7 +667,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
         // Transition timer to advance to next question or declare victory
         setTimeout(() => {
           const sNow = get();
-          if (sNow.currentRound >= 5) {
+          if (sNow.currentRound >= 50) {
             set({
               gamePhase: 'victory',
               roundBanner: null,
@@ -716,12 +791,13 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     const s = get();
     const nextRound = s.currentRound + 1;
 
-    if (nextRound > 5) {
+    if (nextRound > 50) {
       set({ gamePhase: 'victory', roundBanner: null, roundTransitionPending: false });
       return;
     }
 
     const nextMission = getCompetitiveQuestion(nextRound);
+    const nextEventState = createDefaultCityEventState(nextRound);
 
     set({
       currentRound: nextRound,
@@ -730,6 +806,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
       roundBanner: null,
       roundTransitionPending: false,
       gamePhase: 'playing',
+      cityEventState: nextEventState,
       blue: {
         ...s.blue,
         currentMission: nextMission,
@@ -819,6 +896,14 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
             activityLevel: Math.min(1, latest / 80),
             fountainActive: latest > 30,
           };
+          break;
+        case 'city':
+          city.power.generationMW = Math.max(city.power.generationMW, latest);
+          city.traffic.pedestrianCount = Math.max(city.traffic.pedestrianCount, Math.round(latest * 0.8));
+          break;
+        case 'construction':
+          city.power.generationMW = Math.max(city.power.generationMW, 30);
+          city.traffic.vehicleCount = Math.max(city.traffic.vehicleCount, 25);
           break;
       }
 
@@ -964,6 +1049,16 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
           fountainHeight: Math.min(2.5, Math.max(0.4, (currentVal / 40) * 2.2)),
         };
         break;
+
+      case 'city':
+        currentCity.power.generationMW = Math.max(20, Math.min(100, currentVal));
+        currentCity.traffic.pedestrianCount = Math.max(12, Math.round(currentVal * 0.9));
+        break;
+
+      case 'construction':
+        currentCity.power.generationMW = Math.max(30, Math.min(100, currentVal));
+        currentCity.traffic.vehicleCount = Math.max(20, Math.round(currentVal * 0.6));
+        break;
     }
 
     const telemetry: CityLiveTelemetry = {
@@ -1010,6 +1105,7 @@ export const useGraphworksStore = create<GraphworksStore>((set, get) => ({
     roundPhase: 'build',
     timer: 300,
     isTimerRunning: false,
+    cityEventState: createDefaultCityEventState(1),
     roundWins: { blue: 0, red: 0 },
     roundWinner: null,
     roundWinnersHistory: [],

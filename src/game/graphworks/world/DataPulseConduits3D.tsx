@@ -18,6 +18,8 @@ const DISTRICT_COORDS: Record<CityDistrict, [number, number, number]> = {
   train: [0, 1.0, -14],
   traffic: [0, 0.3, 5.5],
   park: [0, 0.4, 11],
+  city: [0, 6.5, -4],
+  construction: [18, 1.2, -10],
 };
 
 const BLUE_CONSOLE_ORIGIN: [number, number, number] = [-15, 0.1, 16];
