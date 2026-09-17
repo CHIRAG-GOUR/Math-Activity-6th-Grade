@@ -10,6 +10,7 @@ import { TeamId } from '../types';
 import { useParkStore } from '../store/parkStore';
 import { CoordinateWorkspace } from './CoordinateWorkspace';
 import { formatCoord } from '../engine/coordinateMath';
+import { DigitalScratchpad } from '@/components/shared/DigitalScratchpad';
 
 interface TeamParkConsoleProps {
   teamId: TeamId;
@@ -41,22 +42,29 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
       }`}
       onClick={() => setTeamPreview(teamId)}
     >
-      {/* Console Header Banner */}
+      {/* Console Header Banner with Rough Work Tab */}
       <div
-        className={`px-4 py-2.5 flex items-center justify-between text-white ${
+        className={`px-3 py-2 flex items-center justify-between text-white ${
           isBlue
             ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
             : 'bg-gradient-to-r from-rose-600 to-red-600'
         }`}
       >
-        <div className="flex items-center gap-2">
-          <div className="w-3 h-3 rounded-full bg-white animate-pulse" />
-          <span className="font-extrabold text-sm tracking-wide uppercase">
+        <div className="flex items-center gap-1.5">
+          <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+          <span className="font-extrabold text-xs tracking-wide uppercase">
             {team.teamName}
           </span>
         </div>
-        <div className="text-xs bg-black/20 font-bold px-2 py-0.5 rounded-full">
-          Round {team.currentRound} / {totalRounds}
+        <div className="flex items-center gap-1.5">
+          <div className="text-[10px] bg-black/20 font-bold px-2 py-0.5 rounded-full">
+            R{team.currentRound}/{totalRounds}
+          </div>
+          <DigitalScratchpad
+            teamId={teamId}
+            teamName={isBlue ? 'BLUE' : 'RED'}
+            position={isBlue ? 'left' : 'right'}
+          />
         </div>
       </div>
 

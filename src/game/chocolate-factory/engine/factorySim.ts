@@ -221,9 +221,9 @@ function makeSide(team: TeamId): SideSim {
   const s = sideOf(team);
   const loaderA = makeWorker(team, `${team}-1`, 'INGREDIENT WORKER A', 'loader', 'STORE_A');
   const loaderB = makeWorker(team, `${team}-2`, 'INGREDIENT WORKER B', 'loader', 'W_DOOR');
-  const operator = makeWorker(team, `${team}-3`, 'PRODUCTION WORKER', 'operator', 'MIX_W');
+  const operator = makeWorker(team, `${team}-3`, 'PRODUCTION WORKER', 'operator', 'OP_LOG');
   const inspector = makeWorker(team, `${team}-4`, 'QUALITY WORKER', 'inspector', 'QC_W');
-  const packer = makeWorker(team, `${team}-5`, 'PACKAGING WORKER', 'packer', 'PACK_W');
+  const packer = makeWorker(team, `${team}-5`, 'PACKAGING WORKER', 'packer', 'BOX_SUPPLY');
   const hauler = makeWorker(team, `${team}-6`, 'LOADING WORKER', 'hauler', 'CART_BAY');
   loaderB.routine = 1;
   const bay = stationPos(team, 'CART_BAY');
@@ -695,18 +695,21 @@ function routineFor(side: SideSim, w: Worker): CrewTask | null {
         : makeTask('STAND_BY', store, { anim: 'inspect', duration: 2.6 + (w === side.handlers[0] ? 0 : 1.2) });
     }
     case 'operator':
+      // Logs readings at the lectern and checks the tank gauge between batches.
       return r % 2 === 0
-        ? makeTask('MACHINE_ROUNDS', 'MIX_W', { anim: 'operate', duration: 4.5 })
-        : makeTask('MACHINE_ROUNDS', 'MOLD_W', { anim: 'inspect', duration: 3.5 });
-    case 'inspector': {
-      const stops = ['QC_W', 'COOL_W', 'CUT_W'] as const;
-      return makeTask('CHECK_BATCH', stops[r % 3], { anim: 'inspect', duration: 3.4 });
-    }
+        ? makeTask('MACHINE_ROUNDS', 'OP_LOG', { anim: 'operate', duration: 4.5 })
+        : makeTask('MACHINE_ROUNDS', 'OP_TANK', { anim: 'inspect', duration: 3.5 });
+    case 'inspector':
+      // Samples bars at the QC table and tests them at the lab bench.
+      return r % 2 === 0
+        ? makeTask('CHECK_BATCH', 'QC_W', { anim: 'inspect', duration: 3.6 })
+        : makeTask('CHECK_BATCH', 'QC_LAB', { anim: 'pack', duration: 3.4 });
     case 'packer': {
-      // Keep off the box stack while a forklift or cart is working it.
+      // Folds flat boxes at the supply shelf and squares up the box stack —
+      // keeping off the stack while a forklift or cart is working it.
       const stackBusy = side.logistics !== 'idle' && !side.logistics.startsWith('truck') && !side.logistics.startsWith('at_');
-      if (r % 2 === 1 && !stackBusy) return makeTask('PREP_BOXES', 'STACK_W', { anim: 'pack', duration: 2.6 });
-      return makeTask('PREP_BOXES', 'PACK_W', { anim: 'pack', duration: 4.5 });
+      if (r % 2 === 1 && !stackBusy) return makeTask('PREP_BOXES', 'STACK_W', { anim: 'pickup', duration: 2.6 });
+      return makeTask('PREP_BOXES', 'BOX_SUPPLY', { anim: 'pack', duration: 4.2 });
     }
     case 'hauler': {
       if (w.pushingCart) return makeTask('RETURN_CART', 'CART_BAY', { anim: 'idle', pace: 'push', duration: 0.6 });

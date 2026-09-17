@@ -23,7 +23,9 @@ export type StationId =
   | 'W_DOOR' | 'STORE_A' | 'STORE_B' | 'BACK_MID' | 'TANK_L' | 'TANK_R'
   | 'TIP_A' | 'TIP_B' | 'IN_A' | 'MIX_W' | 'IN_C' | 'MOLD_W' | 'IN_D' | 'COOL_W'
   | 'IN_E' | 'CUT_W' | 'IN_F' | 'QC_W' | 'IN_G' | 'PACK_W' | 'STACK_W' | 'FRONT'
-  | 'CART_BAY' | 'TRUCK_W' | 'LIFT_W';
+  | 'CART_BAY' | 'TRUCK_W' | 'LIFT_W'
+  // routine-only spots, away from the production stations
+  | 'OP_LOG' | 'OP_TANK' | 'QC_LAB' | 'BOX_SUPPLY';
 
 interface NodeDef {
   pos: Vec3;
@@ -59,6 +61,11 @@ const BLUE_NODES: Record<StationId, NodeDef> = {
   CART_BAY: { pos: v(-19.5, 0, 31.4), face: v(-19.5, 0, 34) },
   TRUCK_W: { pos: v(-16.2, 0, 37.6), face: v(-13.5, 0, 37.6) },
   LIFT_W: { pos: v(-15.6, 0, 36.6), face: v(-14.2, 0, 35.6) },
+  // Routine duties happen here, so a worker called to a machine always walks to it.
+  OP_LOG: { pos: v(-11.6, 0, -3.2), face: v(-9.5, 0, -3.2) },
+  OP_TANK: { pos: v(-15.2, 0, -12.6), face: v(-19.5, 0, -13) },
+  QC_LAB: { pos: v(-11.8, 0, 19.4), face: v(-9.6, 0, 19.4) },
+  BOX_SUPPLY: { pos: v(-11.8, 0, 24.2), face: v(-9.6, 0, 24.2) },
 };
 
 const EDGES: [StationId, StationId][] = [
@@ -74,6 +81,8 @@ const EDGES: [StationId, StationId][] = [
   ['IN_F', 'IN_G'], ['IN_G', 'PACK_W'], ['IN_G', 'STACK_W'], ['IN_G', 'FRONT'],
   ['STACK_W', 'FRONT'], ['FRONT', 'CART_BAY'], ['FRONT', 'TRUCK_W'], ['FRONT', 'LIFT_W'],
   ['TRUCK_W', 'LIFT_W'],
+  ['OP_LOG', 'MIX_W'], ['OP_LOG', 'IN_C'], ['OP_TANK', 'TANK_R'], ['OP_TANK', 'IN_A'],
+  ['QC_LAB', 'IN_E'], ['QC_LAB', 'IN_F'], ['BOX_SUPPLY', 'IN_F'], ['BOX_SUPPLY', 'IN_G'],
 ];
 
 export const STATION_IDS = Object.keys(BLUE_NODES) as StationId[];
