@@ -235,11 +235,15 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
                   farmAudio.playGridPop();
                   nextQuestion(teamId);
                 }}
-                className={`flex items-center justify-center gap-2 px-5 sm:px-7 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm md:text-base uppercase tracking-wider text-white shadow-md active:scale-95 transition cursor-pointer ${
-                  isBlue ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/30' : 'bg-red-600 hover:bg-red-500 shadow-red-500/30'
+                className={`flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-3 rounded-xl font-black text-xs sm:text-sm md:text-base uppercase tracking-wider text-white shadow-md active:scale-95 transition cursor-pointer ${
+                  team.currentRound >= matchQuestionCount
+                    ? 'bg-gradient-to-r from-amber-500 to-yellow-400 hover:from-amber-400 hover:to-yellow-300 text-slate-950 shadow-amber-500/30'
+                    : isBlue
+                    ? 'bg-blue-600 hover:bg-blue-500 shadow-blue-500/30'
+                    : 'bg-red-600 hover:bg-red-500 shadow-red-500/30'
                 }`}
               >
-                <span>NEXT</span>
+                <span>{team.currentRound >= matchQuestionCount ? 'COMPLETE MATCH 🏆' : 'NEXT'}</span>
                 <ArrowRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             )}

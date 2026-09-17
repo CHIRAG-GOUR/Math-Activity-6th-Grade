@@ -400,30 +400,28 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
         },
       });
 
-      // Check if both are complete
+      // Calculate final winner and trigger victory awards overlay
       const checkState = get();
-      if (checkState.blue.isMatchComplete && checkState.red.isMatchComplete && !checkState.matchCompleted) {
-        const blueScore = checkState.blue.totalProfit + checkState.blue.totalHarvestKg * 10 + checkState.blue.accuracy * 20 - checkState.blue.wasteKg * 15;
-        const redScore = checkState.red.totalProfit + checkState.red.totalHarvestKg * 10 + checkState.red.accuracy * 20 - checkState.red.wasteKg * 15;
+      const blueScore = checkState.blue.totalProfit + checkState.blue.totalHarvestKg * 10 + checkState.blue.accuracy * 20 - checkState.blue.wasteKg * 15;
+      const redScore = checkState.red.totalProfit + checkState.red.totalHarvestKg * 10 + checkState.red.accuracy * 20 - checkState.red.wasteKg * 15;
 
-        let winner: 'blue' | 'red' | 'tie' = 'tie';
-        let reason = 'Both farms operated with outstanding agricultural efficiency!';
-        if (blueScore > redScore) {
-          winner = 'blue';
-          reason = `Blue Farm generated ₹${checkState.blue.totalRevenue.toLocaleString()} with ${checkState.blue.accuracy}% accuracy!`;
-        } else if (redScore > blueScore) {
-          winner = 'red';
-          reason = `Red Farm generated ₹${checkState.red.totalRevenue.toLocaleString()} with ${checkState.red.accuracy}% accuracy!`;
-        }
-
-        farmAudio.playVictoryFanfare();
-        set({
-          matchCompleted: true,
-          winner,
-          winnerSummary: { blueScore, redScore, reason },
-          showVictory: true,
-        });
+      let winner: 'blue' | 'red' | 'tie' = 'tie';
+      let reason = 'Both farms operated with outstanding agricultural efficiency!';
+      if (blueScore > redScore) {
+        winner = 'blue';
+        reason = `Blue Farm generated ₹${checkState.blue.totalRevenue.toLocaleString()} with ${checkState.blue.accuracy}% accuracy!`;
+      } else if (redScore > blueScore) {
+        winner = 'red';
+        reason = `Red Farm generated ₹${checkState.red.totalRevenue.toLocaleString()} with ${checkState.red.accuracy}% accuracy!`;
       }
+
+      farmAudio.playVictoryFanfare();
+      set({
+        matchCompleted: true,
+        winner,
+        winnerSummary: { blueScore, redScore, reason },
+        showVictory: true,
+      });
       return;
     }
 
