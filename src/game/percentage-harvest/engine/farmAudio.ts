@@ -1213,6 +1213,29 @@ class FarmAudioEngine {
     osc.stop(now + 0.35);
   }
 
+  /** Wooden Produce Crate Loading / Stacking Thud */
+  public playCrateStack() {
+    if (this.muted) return;
+    this.initContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    // Low wooden knock
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(220, now);
+    osc.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.12);
+  }
+
   /** Grand Victory Match Celebration Fanfare */
   public playVictoryFanfare() {
     if (this.muted) return;
@@ -1286,6 +1309,7 @@ class FarmAudioEngine {
         this.playTruckDelivery();
         break;
       case 'scale_weigh':
+        this.playCrateStack();
         this.playWeighStationBeep();
         break;
       case 'market_sell':

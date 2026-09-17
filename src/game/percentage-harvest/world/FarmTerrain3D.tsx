@@ -16,7 +16,7 @@ export const FarmTerrain3D: React.FC = () => {
   const windmillRotor2Ref = useRef<THREE.Group>(null);
   const waterMillWheelRef = useRef<THREE.Group>(null);
   const waterRef = useRef<THREE.Mesh>(null);
-  const fountainWaterRef = useRef<THREE.Mesh>(null);
+  const wellBucketRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     if (windmillRotor1Ref.current) windmillRotor1Ref.current.rotation.z += delta * 1.5;
@@ -25,9 +25,8 @@ export const FarmTerrain3D: React.FC = () => {
     if (waterRef.current) {
       waterRef.current.position.y = 0.04 + Math.sin(state.clock.getElapsedTime() * 1.5) * 0.01;
     }
-    if (fountainWaterRef.current) {
-      fountainWaterRef.current.rotation.y += delta * 0.8;
-      fountainWaterRef.current.scale.y = 1.0 + Math.sin(state.clock.getElapsedTime() * 4.0) * 0.1;
+    if (wellBucketRef.current) {
+      wellBucketRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 2.0) * 0.04;
     }
   });
 
@@ -132,28 +131,107 @@ export const FarmTerrain3D: React.FC = () => {
           <cylinderGeometry args={[3.25, 3.25, 0.12, 32]} />
         </mesh>
 
-        {/* ── CENTRAL TIERED STONE FOUNTAIN / WATER WELL ── */}
+        {/* ── TRADITIONAL VILLAGE WATER WELL (गाँव का कुआँ) ── */}
         <group position={[0, 0, 0]}>
-          <mesh position={[0, 0.35, 0]} castShadow material={mats.stoneBridge}>
-            <cylinderGeometry args={[1.1, 1.2, 0.6, 16]} />
+          {/* Cobblestone Circular Well Platform Base */}
+          <mesh position={[0, 0.04, 0]} receiveShadow material={mats.stoneBridge}>
+            <cylinderGeometry args={[2.0, 2.1, 0.08, 24]} />
           </mesh>
-          <mesh position={[0, 0.6, 0]} material={mats.darkMud}>
-            <cylinderGeometry args={[0.95, 0.95, 0.1, 16]} />
+          <mesh position={[0, 0.08, 0]} material={mats.darkMud}>
+            <cylinderGeometry args={[1.7, 1.7, 0.02, 24]} />
           </mesh>
-          <mesh position={[0, 0.62, 0]} material={mats.waterRiver}>
-            <cylinderGeometry args={[0.9, 0.9, 0.05, 16]} />
+
+          {/* Main Cylindrical Stone Well Wall */}
+          <mesh position={[0, 0.48, 0]} castShadow receiveShadow material={mats.stoneBridge}>
+            <cylinderGeometry args={[1.1, 1.18, 0.8, 24]} />
           </mesh>
-          {/* Fountain Center Spire */}
-          <mesh position={[0, 0.9, 0]} castShadow material={mats.stoneBridge}>
-            <cylinderGeometry args={[0.2, 0.25, 0.7, 8]} />
+          {/* Stone Coping Top Rim */}
+          <mesh position={[0, 0.88, 0]} castShadow material={mats.roadCurb}>
+            <cylinderGeometry args={[1.22, 1.15, 0.1, 24]} />
           </mesh>
-          <mesh position={[0, 1.3, 0]} castShadow material={mats.stoneBridge}>
-            <cylinderGeometry args={[0.55, 0.4, 0.2, 12]} />
+
+          {/* Deep Dark Well Cavity & Still Water Surface inside */}
+          <mesh position={[0, 0.82, 0]} material={mats.darkMud}>
+            <cylinderGeometry args={[0.92, 0.92, 0.02, 24]} />
           </mesh>
-          {/* Water Spray */}
-          <mesh ref={fountainWaterRef} position={[0, 1.5, 0]} material={mats.waterRiver}>
-            <coneGeometry args={[0.25, 0.45, 8]} />
+          <mesh position={[0, 0.35, 0]} material={mats.waterRiver}>
+            <cylinderGeometry args={[0.88, 0.88, 0.05, 24]} />
           </mesh>
+
+          {/* Left & Right Vertical Wooden Timber Pillars */}
+          {[-0.92, 0.92].map((px) => (
+            <group key={`well-post-${px}`} position={[px, 1.25, 0]}>
+              <mesh castShadow material={mats.woodTimber}>
+                <boxGeometry args={[0.16, 1.8, 0.16]} />
+              </mesh>
+              {/* Stone Post Base Footing */}
+              <mesh position={[0, -0.85, 0]} material={mats.stoneBridge}>
+                <boxGeometry args={[0.22, 0.18, 0.22]} />
+              </mesh>
+              {/* Diagonal Support Strut to Roof */}
+              <mesh position={[px > 0 ? -0.16 : 0.16, 0.6, 0]} rotation={[0, 0, px > 0 ? -Math.PI / 4 : Math.PI / 4]} material={mats.woodTimber}>
+                <boxGeometry args={[0.08, 0.45, 0.08]} />
+              </mesh>
+            </group>
+          ))}
+
+          {/* Top Horizontal Wooden Crossbeam Log */}
+          <mesh position={[0, 2.1, 0]} castShadow material={mats.woodTimber}>
+            <boxGeometry args={[2.2, 0.15, 0.15]} />
+          </mesh>
+
+          {/* Center Wooden Pulley Wheel (Ghirni) */}
+          <group position={[0, 1.88, 0]}>
+            <mesh rotation={[0, 0, Math.PI / 2]} material={mats.woodPlanks}>
+              <cylinderGeometry args={[0.18, 0.18, 0.06, 16]} />
+            </mesh>
+            <mesh rotation={[0, 0, Math.PI / 2]} material={mats.scalePadSteel}>
+              <cylinderGeometry args={[0.04, 0.04, 0.2, 8]} />
+            </mesh>
+            {/* Hanging Rope from Pulley down to Bucket */}
+            <mesh position={[0.1, -0.4, 0]} material={mats.strawHat}>
+              <cylinderGeometry args={[0.015, 0.015, 0.8, 6]} />
+            </mesh>
+          </group>
+
+          {/* Village Suspended Water Bucket (Balti) */}
+          <group ref={wellBucketRef} position={[0.1, 1.15, 0]}>
+            {/* Wooden Bucket Body */}
+            <mesh castShadow material={mats.crateWood}>
+              <cylinderGeometry args={[0.16, 0.12, 0.26, 12]} />
+            </mesh>
+            {/* Metal Hoops around Bucket */}
+            <mesh position={[0, 0.06, 0]} material={mats.scalePadSteel}>
+              <cylinderGeometry args={[0.165, 0.155, 0.02, 12]} />
+            </mesh>
+            <mesh position={[0, -0.06, 0]} material={mats.scalePadSteel}>
+              <cylinderGeometry args={[0.145, 0.135, 0.02, 12]} />
+            </mesh>
+            {/* Bucket Metal Handle Arch */}
+            <mesh position={[0, 0.14, 0]} rotation={[0, 0, 0]} material={mats.scalePadSteel}>
+              <torusGeometry args={[0.13, 0.015, 6, 12, Math.PI]} />
+            </mesh>
+            {/* Water Inside Bucket */}
+            <mesh position={[0, 0.1, 0]} material={mats.waterRiver}>
+              <cylinderGeometry args={[0.14, 0.14, 0.02, 12]} />
+            </mesh>
+          </group>
+
+          {/* Traditional Pitched Thatched / Clay Shingle Gable Roof Canopy */}
+          <group position={[0, 2.38, 0]}>
+            {/* Left Slanted Roof Pitch */}
+            <mesh position={[-0.55, 0.18, 0]} rotation={[0, 0, Math.PI / 6]} castShadow material={mats.roofShingles}>
+              <boxGeometry args={[1.3, 0.08, 1.4]} />
+            </mesh>
+            {/* Right Slanted Roof Pitch */}
+            <mesh position={[0.55, 0.18, 0]} rotation={[0, 0, -Math.PI / 6]} castShadow material={mats.roofShingles}>
+              <boxGeometry args={[1.3, 0.08, 1.4]} />
+            </mesh>
+            {/* Ridge Cap on Top */}
+            <mesh position={[0, 0.52, 0]} rotation={[Math.PI / 2, 0, 0]} material={mats.woodTimber}>
+              <cylinderGeometry args={[0.08, 0.08, 1.45, 6]} />
+            </mesh>
+          </group>
         </group>
 
         {/* ── 4 COLORFUL FLOWER BEDS (Sunflowers, Roses, Tulips, Blossoms) ── */}

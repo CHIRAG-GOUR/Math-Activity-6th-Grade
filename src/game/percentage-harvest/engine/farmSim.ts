@@ -17,6 +17,7 @@ export interface FarmerSimState {
   isSpraying: boolean;
   isFertilizing: boolean;
   isCarryingCrate: boolean;
+  hasDepositedThisCycle?: boolean;
 }
 
 export interface VehicleSimState {
@@ -335,23 +336,51 @@ export class FarmSimulation {
       }
 
       case 'loading_crates': {
-        farmer.progress += delta * 0.2;
-        farmer.isCarryingCrate = farmer.progress > 0.3 && farmer.progress < 0.7;
+        // Farmer walks from tractor trailer (0.0) -> truck flatbed (0.5) -> back to tractor (1.0)
+        farmer.progress += delta * 0.28;
+
+        // Farmer carries crate while walking from tractor to truck (progress 0.05 to 0.52)
+        farmer.isCarryingCrate = farmer.progress > 0.05 && farmer.progress < 0.52;
+
+        const pt = getInterpolatedWaypoint(routes.farmerLoadCrate, Math.min(1.0, farmer.progress));
+        farmer.position = pt.position;
+        farmer.rotationY = pt.rotationY;
+
+        // Keep tractor parked in center beside the truck during transfer
+        vehicle.position = team.teamId === 'blue' ? [-3.8, 0, 5.0] : [3.8, 0, 5.0];
+        vehicle.rotationY = team.teamId === 'blue' ? Math.PI / 2 : -Math.PI / 2;
+
+        // Keep truck positioned at loading spot
+        truck.position = team.teamId === 'blue' ? [-1.8, 0, 6.8] : [1.8, 0, 6.8];
+        truck.rotationY = 0;
+
+        // At midpoint (0.5), crate is loaded onto truck flatbed and removed from tractor trailer
+        if (farmer.progress >= 0.5 && !farmer.hasDepositedThisCycle) {
+          farmer.hasDepositedThisCycle = true;
+          truck.cratesLoaded = Math.min(5, truck.cratesLoaded + 1);
+          vehicle.trailerFill = Math.max(0, 100 - truck.cratesLoaded * 20);
+          emitSimEvent({ type: 'scale_weigh', teamId: team.teamId });
+        }
+
         if (farmer.progress >= 1.0) {
+          farmer.hasDepositedThisCycle = false;
           farmer.progress = 0;
-          truck.cratesLoaded = Math.min(6, truck.cratesLoaded + 2);
-          if (truck.cratesLoaded >= 6) {
+
+          // When 5 crates are loaded, truck departs and tractor returns home!
+          if (truck.cratesLoaded >= 5) {
             farmer.task = 'idle';
             farmer.isCarryingCrate = false;
+            team.workerCheerTimer = 3.5;
+
+            // Tractor empties and returns to home shed
+            vehicle.trailerFill = 0;
+            vehicle.task = 'idle';
+
             // Delivery truck departs for market!
             truck.task = 'delivering';
             truck.progress = 0;
             emitSimEvent({ type: 'truck_depart', teamId: team.teamId });
           }
-        } else {
-          const pt = getInterpolatedWaypoint(routes.farmerLoadCrate, farmer.progress);
-          farmer.position = pt.position;
-          farmer.rotationY = pt.rotationY;
         }
         break;
       }
@@ -389,12 +418,21 @@ export class FarmSimulation {
         team.fieldHarvestProgress = Math.min(1.0, vehicle.progress * 1.15);
 
         if (vehicle.progress >= 1.0) {
-          // Harvesting complete -> Harvester parks, farmer starts loading crates onto delivery truck!
+          // Harvesting complete -> Tractor parks in central loading bay, truck positions beside it, farmer transfers crates!
           vehicle.task = 'idle';
+          vehicle.position = team.teamId === 'blue' ? [-3.8, 0, 5.0] : [3.8, 0, 5.0];
+          vehicle.rotationY = team.teamId === 'blue' ? Math.PI / 2 : -Math.PI / 2;
+          vehicle.trailerFill = 100;
           vehicle.progress = 0;
+
+          truck.task = 'loading';
+          truck.position = team.teamId === 'blue' ? [-1.8, 0, 6.8] : [1.8, 0, 6.8];
+          truck.rotationY = 0;
+          truck.cratesLoaded = 0;
+
           farmer.task = 'loading_crates';
           farmer.progress = 0;
-          truck.cratesLoaded = 1;
+          farmer.hasDepositedThisCycle = false;
         } else {
           const pt = getInterpolatedWaypoint(routes.harvesting, vehicle.progress);
           vehicle.position = pt.position;
@@ -412,6 +450,13 @@ export class FarmSimulation {
         const home: [number, number, number] = team.teamId === 'blue' ? [-12.0, 0, -3.0] : [12.0, 0, -3.0];
         truck.position = home;
         truck.rotationY = team.teamId === 'blue' ? 0 : 0;
+        break;
+      }
+
+      case 'loading': {
+        // Truck is parked at central loading spot beside the tractor
+        truck.position = team.teamId === 'blue' ? [-1.8, 0, 6.8] : [1.8, 0, 6.8];
+        truck.rotationY = 0;
         break;
       }
 
