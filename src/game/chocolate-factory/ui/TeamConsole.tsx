@@ -53,6 +53,7 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   cocoa_to_tank: 'CARRYING COCOA TO THE TANK',
   cocoa_pour: 'TIPPING THE PALLET INTO THE TANK',
   cocoa_return: 'FORKLIFT RETURNING',
+  packer_loading: 'PACKER CARRYING BOXES TO THE TRUCK',
 };
 
 interface Live {
