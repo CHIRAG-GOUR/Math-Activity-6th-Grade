@@ -388,29 +388,7 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
         </Html>
       </group>
 
-      {/* ============================================================ */}
-      {/* 7. QUADRANT SECONDARY ACCESS PATHS */}
-      {/* ============================================================ */}
-      {/* QI Active Play Access Path */}
-      <mesh position={[UNIT_SIZE * 2.2, 0.025, -UNIT_SIZE * 2.2]} rotation={[0, Math.PI / 4, 0]}>
-        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
-        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
-      </mesh>
-      {/* QII Botanical Garden Access Path */}
-      <mesh position={[-UNIT_SIZE * 2.2, 0.025, -UNIT_SIZE * 2.2]} rotation={[0, -Math.PI / 4, 0]}>
-        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
-        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
-      </mesh>
-      {/* QIII Sports Complex Access Path */}
-      <mesh position={[-UNIT_SIZE * 2.2, 0.025, UNIT_SIZE * 2.2]} rotation={[0, Math.PI / 4, 0]}>
-        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
-        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
-      </mesh>
-      {/* QIV Picnic Grove Access Path */}
-      <mesh position={[UNIT_SIZE * 2.2, 0.025, UNIT_SIZE * 2.2]} rotation={[0, -Math.PI / 4, 0]}>
-        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
-        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
-      </mesh>
+
 
       {/* ============================================================ */}
       {/* 8. AXES COORDINATE NUMBER STONES (-5 to +5) */}

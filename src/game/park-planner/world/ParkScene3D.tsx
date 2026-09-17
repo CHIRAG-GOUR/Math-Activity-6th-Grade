@@ -67,15 +67,16 @@ const CursorParallaxRig: React.FC<{
 // ------------------------------------------------------------
 // SIMULATION & NPC TICKER COMPONENT
 // ------------------------------------------------------------
-const LiveParkSimManager: React.FC<{ grandOpeningActive?: boolean }> = ({ grandOpeningActive }) => {
+const LiveParkSimManager: React.FC<{ currentRound: number; grandOpeningActive?: boolean }> = ({
+  currentRound,
+  grandOpeningActive,
+}) => {
   const tickTransform = useParkStore((s) => s.tickTransformProgress);
   const [, setFrame] = useState(0);
 
   useEffect(() => {
-    if (grandOpeningActive) {
-      globalParkSim.triggerGrandOpening();
-    }
-  }, [grandOpeningActive]);
+    globalParkSim.updateRoundCrowd(currentRound, !!grandOpeningActive);
+  }, [currentRound, grandOpeningActive]);
 
   useFrame((_, delta) => {
     tickTransform(delta);
@@ -111,8 +112,8 @@ const LiveParkSimManager: React.FC<{ grandOpeningActive?: boolean }> = ({ grandO
             skinColor={c.skinColor}
             isJogging={c.state === 'jogging'}
             isWalking={c.state === 'walking'}
-            isSeated={c.state === 'resting'}
-            hasHeadband={c.type === 'jogger'}
+            isSeated={c.state === 'resting' && (c.restTimer > 0 && c.restTimer < 1000)}
+            hasHeadband={c.type === 'jogger' || c.hasHeadband}
           />
         );
       })}
@@ -250,7 +251,10 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
           ))}
 
           {/* Living Park Citizens & Grand Opening Traffic Simulation */}
-          <LiveParkSimManager grandOpeningActive={qb?.grandOpeningActive} />
+          <LiveParkSimManager
+            currentRound={activeTeam.currentRound}
+            grandOpeningActive={qb?.grandOpeningActive}
+          />
         </CursorParallaxRig>
       </Canvas>
     </div>

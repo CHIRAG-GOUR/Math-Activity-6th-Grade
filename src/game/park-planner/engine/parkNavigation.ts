@@ -71,16 +71,20 @@ export const PARK_NAV_NODES: Record<string, NavNode> = {
   'fp_nw_corner': { id: 'fp_nw_corner', pos: [-R_FOOTPATH, 0.02, -R_FOOTPATH], type: 'outer_footpath', neighbors: ['fp_west_mid', 'fp_north_mid'] },
 
   // ------------------------------------------------------------
-  // 5. DEDICATED CYCLING TRACK (Smooth continuous ring)
+  // 5. DEDICATED CYCLING TRACK (Smooth continuous ring outside perimeter fence)
   // ------------------------------------------------------------
-  'cycle_north_mid': { id: 'cycle_north_mid', pos: [0, 0.02, -R_CYCLE], type: 'cycle_lane', neighbors: ['cycle_ne', 'cycle_nw'] },
-  'cycle_ne': { id: 'cycle_ne', pos: [R_CYCLE * 0.75, 0.02, -R_CYCLE * 0.75], type: 'cycle_lane', neighbors: ['cycle_north_mid', 'cycle_east_mid'] },
-  'cycle_east_mid': { id: 'cycle_east_mid', pos: [R_CYCLE, 0.02, 0], type: 'cycle_lane', neighbors: ['cycle_ne', 'cycle_se'] },
-  'cycle_se': { id: 'cycle_se', pos: [R_CYCLE * 0.75, 0.02, R_CYCLE * 0.75], type: 'cycle_lane', neighbors: ['cycle_east_mid', 'cycle_south_mid'] },
-  'cycle_south_mid': { id: 'cycle_south_mid', pos: [0, 0.02, R_CYCLE], type: 'cycle_lane', neighbors: ['cycle_se', 'cycle_sw'] },
-  'cycle_sw': { id: 'cycle_sw', pos: [-R_CYCLE * 0.75, 0.02, R_CYCLE * 0.75], type: 'cycle_lane', neighbors: ['cycle_south_mid', 'cycle_west_mid'] },
-  'cycle_west_mid': { id: 'cycle_west_mid', pos: [-R_CYCLE, 0.02, 0], type: 'cycle_lane', neighbors: ['cycle_sw', 'cycle_nw'] },
-  'cycle_nw': { id: 'cycle_nw', pos: [-R_CYCLE * 0.75, 0.02, -R_CYCLE * 0.75], type: 'cycle_lane', neighbors: ['cycle_west_mid', 'cycle_north_mid'] },
+  'cycle_north_mid': { id: 'cycle_north_mid', pos: [0, 0.02, -13.2], type: 'cycle_lane', neighbors: ['cycle_ne_1', 'cycle_nw_2'] },
+  'cycle_ne_1': { id: 'cycle_ne_1', pos: [12.0, 0.02, -13.2], type: 'cycle_lane', neighbors: ['cycle_north_mid', 'cycle_ne_2'] },
+  'cycle_ne_2': { id: 'cycle_ne_2', pos: [13.2, 0.02, -12.0], type: 'cycle_lane', neighbors: ['cycle_ne_1', 'cycle_east_mid'] },
+  'cycle_east_mid': { id: 'cycle_east_mid', pos: [13.2, 0.02, 0], type: 'cycle_lane', neighbors: ['cycle_ne_2', 'cycle_se_1'] },
+  'cycle_se_1': { id: 'cycle_se_1', pos: [13.2, 0.02, 12.0], type: 'cycle_lane', neighbors: ['cycle_east_mid', 'cycle_se_2'] },
+  'cycle_se_2': { id: 'cycle_se_2', pos: [12.0, 0.02, 13.2], type: 'cycle_lane', neighbors: ['cycle_se_1', 'cycle_south_mid'] },
+  'cycle_south_mid': { id: 'cycle_south_mid', pos: [0, 0.02, 13.2], type: 'cycle_lane', neighbors: ['cycle_se_2', 'cycle_sw_1'] },
+  'cycle_sw_1': { id: 'cycle_sw_1', pos: [-12.0, 0.02, 13.2], type: 'cycle_lane', neighbors: ['cycle_south_mid', 'cycle_sw_2'] },
+  'cycle_sw_2': { id: 'cycle_sw_2', pos: [-13.2, 0.02, 12.0], type: 'cycle_lane', neighbors: ['cycle_sw_1', 'cycle_west_mid'] },
+  'cycle_west_mid': { id: 'cycle_west_mid', pos: [-13.2, 0.02, 0], type: 'cycle_lane', neighbors: ['cycle_sw_2', 'cycle_nw_1'] },
+  'cycle_nw_1': { id: 'cycle_nw_1', pos: [-13.2, 0.02, -12.0], type: 'cycle_lane', neighbors: ['cycle_west_mid', 'cycle_nw_2'] },
+  'cycle_nw_2': { id: 'cycle_nw_2', pos: [-12.0, 0.02, -13.2], type: 'cycle_lane', neighbors: ['cycle_nw_1', 'cycle_north_mid'] },
 
   // ------------------------------------------------------------
   // 6. QUADRANT I: ACTIVE PLAYGROUND INTERNAL PATHS
