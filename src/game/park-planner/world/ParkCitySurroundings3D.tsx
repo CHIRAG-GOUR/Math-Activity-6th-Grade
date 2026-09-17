@@ -13,7 +13,7 @@ import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
-import { StylizedHuman3D } from './ParkCharacters3D';
+import { StylizedHuman3D, RealisticCyclist3D } from './ParkCharacters3D';
 
 // ------------------------------------------------------------
 // 1. RADIANT 3D SUN & DRIFTING CLOUDS
@@ -623,6 +623,174 @@ export const CityVehicle3D: React.FC<{
 };
 
 // ------------------------------------------------------------
+// 6B. MOVING CITY VEHICLES & TRAFFIC
+// ------------------------------------------------------------
+export const MovingCityCar3D: React.FC<{
+  type?: 'taxi' | 'sedan' | 'suv';
+  color?: string;
+  speed?: number; // m/s
+  radius?: number; // Distance from center
+  initialOffset?: number;
+  reverseDirection?: boolean;
+}> = ({
+  type = 'taxi',
+  color = '#eab308',
+  speed = 6.0,
+  radius = 21.0,
+  initialOffset = 0,
+  reverseDirection = false,
+}) => {
+  const rootRef = useRef<THREE.Group>(null);
+  const sideLength = radius * 2;
+  const totalPerimeter = sideLength * 4;
+
+  useFrame((state) => {
+    if (!rootRef.current) return;
+    const t = state.clock.getElapsedTime();
+    let dist = (t * speed + initialOffset) % totalPerimeter;
+    if (dist < 0) dist += totalPerimeter;
+
+    if (reverseDirection) {
+      // Counter-clockwise
+      const ccwDist = totalPerimeter - dist;
+      const seg = Math.floor(ccwDist / sideLength);
+      const frac = (ccwDist % sideLength) / sideLength;
+
+      let x = 0, z = 0, rotY = 0;
+      if (seg === 0) { // North road going West
+        x = radius - frac * sideLength;
+        z = -radius;
+        rotY = -Math.PI / 2;
+      } else if (seg === 1) { // West road going South
+        x = -radius;
+        z = -radius + frac * sideLength;
+        rotY = 0;
+      } else if (seg === 2) { // South road going East
+        x = -radius + frac * sideLength;
+        z = radius;
+        rotY = Math.PI / 2;
+      } else { // East road going North
+        x = radius;
+        z = radius - frac * sideLength;
+        rotY = Math.PI;
+      }
+
+      rootRef.current.position.set(x, 0, z);
+      rootRef.current.rotation.y = rotY;
+    } else {
+      // Clockwise
+      const seg = Math.floor(dist / sideLength);
+      const frac = (dist % sideLength) / sideLength;
+
+      let x = 0, z = 0, rotY = 0;
+      if (seg === 0) { // North road going East
+        x = -radius + frac * sideLength;
+        z = -radius;
+        rotY = Math.PI / 2;
+      } else if (seg === 1) { // East road going South
+        x = radius;
+        z = -radius + frac * sideLength;
+        rotY = 0;
+      } else if (seg === 2) { // South road going West
+        x = radius - frac * sideLength;
+        z = radius;
+        rotY = -Math.PI / 2;
+      } else { // West road going North
+        x = -radius;
+        z = radius - frac * sideLength;
+        rotY = Math.PI;
+      }
+
+      rootRef.current.position.set(x, 0, z);
+      rootRef.current.rotation.y = rotY;
+    }
+  });
+
+  return (
+    <group ref={rootRef}>
+      <CityVehicle3D position={[0, 0, 0]} rotationY={0} type={type} color={color} />
+    </group>
+  );
+};
+
+export const MovingCityCyclist3D: React.FC<{
+  speed?: number;
+  radius?: number;
+  initialOffset?: number;
+  reverseDirection?: boolean;
+}> = ({ speed = 2.4, radius = 17.5, initialOffset = 0, reverseDirection = false }) => {
+  const rootRef = useRef<THREE.Group>(null);
+  const sideLength = radius * 2;
+  const totalPerimeter = sideLength * 4;
+
+  useFrame((state) => {
+    if (!rootRef.current) return;
+    const t = state.clock.getElapsedTime();
+    let dist = (t * speed + initialOffset) % totalPerimeter;
+    if (dist < 0) dist += totalPerimeter;
+
+    if (reverseDirection) {
+      const ccwDist = totalPerimeter - dist;
+      const seg = Math.floor(ccwDist / sideLength);
+      const frac = (ccwDist % sideLength) / sideLength;
+
+      let x = 0, z = 0, rotY = 0;
+      if (seg === 0) {
+        x = radius - frac * sideLength;
+        z = -radius;
+        rotY = -Math.PI / 2;
+      } else if (seg === 1) {
+        x = -radius;
+        z = -radius + frac * sideLength;
+        rotY = 0;
+      } else if (seg === 2) {
+        x = -radius + frac * sideLength;
+        z = radius;
+        rotY = Math.PI / 2;
+      } else {
+        x = radius;
+        z = radius - frac * sideLength;
+        rotY = Math.PI;
+      }
+
+      rootRef.current.position.set(x, 0, z);
+      rootRef.current.rotation.y = rotY;
+    } else {
+      const seg = Math.floor(dist / sideLength);
+      const frac = (dist % sideLength) / sideLength;
+
+      let x = 0, z = 0, rotY = 0;
+      if (seg === 0) {
+        x = -radius + frac * sideLength;
+        z = -radius;
+        rotY = Math.PI / 2;
+      } else if (seg === 1) {
+        x = radius;
+        z = -radius + frac * sideLength;
+        rotY = 0;
+      } else if (seg === 2) {
+        x = radius - frac * sideLength;
+        z = radius;
+        rotY = -Math.PI / 2;
+      } else {
+        x = -radius;
+        z = radius - frac * sideLength;
+        rotY = Math.PI;
+      }
+
+      rootRef.current.position.set(x, 0, z);
+      rootRef.current.rotation.y = rotY;
+    }
+  });
+
+  return (
+    <group ref={rootRef}>
+      <RealisticCyclist3D position={[0, 0, 0]} rotationY={0} speed={1.0} />
+    </group>
+  );
+};
+
+// ------------------------------------------------------------
 // 7. STREET FURNITURE (Streetlights, Bus Shelter, Fire Hydrants)
 // ------------------------------------------------------------
 export const StreetLamp3D: React.FC<{ position: [number, number, number]; rotationY?: number }> = ({
@@ -757,9 +925,6 @@ export const ParkCitySurroundings3D: React.FC = () => {
       <StreetFoodStall3D position={[-2.8, 0, -17.5]} rotationY={0} type="hotdog" />
       <RoadsideBalloonSeller3D position={[3.2, 0, -17.5]} rotationY={0} />
 
-      {/* North Parked Yellow Taxi */}
-      <CityVehicle3D position={[12, 0, -16.2]} rotationY={0} type="taxi" />
-
       {/* ============================================================ */}
       {/* 3. SOUTH CITY BLOCK (Z = +22m to +32m) */}
       {/* ============================================================ */}
@@ -816,9 +981,8 @@ export const ParkCitySurroundings3D: React.FC = () => {
         shopType="icecream"
       />
 
-      {/* South Fruit Stall & Parked Blue Sedan */}
+      {/* South Fruit Stall */}
       <StreetFoodStall3D position={[2.8, 0, 17.5]} rotationY={Math.PI} type="fruit" />
-      <CityVehicle3D position={[-11, 0, 16.2]} rotationY={Math.PI} type="sedan" color="#0284c7" />
 
       {/* ============================================================ */}
       {/* 4. WEST CITY BLOCK (X = -22m to -32m) */}
@@ -851,9 +1015,8 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
 
-      {/* West Bus Stop & Red Hatchback */}
+      {/* West Bus Stop */}
       <BusStopShelter3D position={[-17.8, 0, 3.5]} rotationY={Math.PI / 2} />
-      <CityVehicle3D position={[-16.2, 0, -5.5]} rotationY={Math.PI / 2} type="sedan" color="#ef4444" />
 
       {/* ============================================================ */}
       {/* 5. EAST CITY BLOCK (X = +22m to +32m) */}
@@ -886,15 +1049,30 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
 
-      {/* East Taxi & Street Lamp */}
-      <CityVehicle3D position={[16.2, 0, 4.5]} rotationY={-Math.PI / 2} type="taxi" />
-      <StreetLamp3D position={[17.2, 0, -4.5]} rotationY={-Math.PI / 2} />
-
       {/* 4 Perimeter Streetlights at Corner Crosswalks */}
       <StreetLamp3D position={[-17.2, 0, -17.2]} rotationY={Math.PI / 4} />
       <StreetLamp3D position={[17.2, 0, -17.2]} rotationY={-Math.PI / 4} />
       <StreetLamp3D position={[-17.2, 0, 17.2]} rotationY={(3 * Math.PI) / 4} />
       <StreetLamp3D position={[17.2, 0, 17.2]} rotationY={(-3 * Math.PI) / 4} />
+
+      {/* ============================================================ */}
+      {/* 6. DYNAMIC MOVING CITY TRAFFIC (Cars & Cyclists in Motion) */}
+      {/* ============================================================ */}
+      {/* 1. Yellow NYC Taxi (Inner Lane, Clockwise) */}
+      <MovingCityCar3D type="taxi" speed={6.2} radius={21.0} initialOffset={0} />
+
+      {/* 2. Cherry Red Sports Coupe (Inner Lane, Clockwise) */}
+      <MovingCityCar3D type="sedan" color="#dc2626" speed={7.2} radius={21.0} initialOffset={84} />
+
+      {/* 3. Electric Blue Sedan (Outer Lane, Counter-Clockwise) */}
+      <MovingCityCar3D type="sedan" color="#0284c7" speed={5.8} radius={23.5} initialOffset={42} reverseDirection={true} />
+
+      {/* 4. White Express Delivery Van (Outer Lane, Counter-Clockwise) */}
+      <MovingCityCar3D type="suv" color="#f8fafc" speed={5.2} radius={23.5} initialOffset={126} reverseDirection={true} />
+
+      {/* 5. Extra Commuter City Cyclist along South Street */}
+      <MovingCityCyclist3D speed={2.2} radius={18.0} initialOffset={20} />
+      <MovingCityCyclist3D speed={2.5} radius={18.0} initialOffset={100} reverseDirection={true} />
     </group>
   );
 };

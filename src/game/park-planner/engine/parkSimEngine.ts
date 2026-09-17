@@ -26,6 +26,8 @@ export interface SimCitizen {
   skinColor: string;
   hasHelmet?: boolean;
   hasHeadband?: boolean;
+  hasGuardUniform?: boolean;
+  hasGuardCap?: boolean;
   waitingOriginPos?: [number, number, number];
   waitingRotationY?: number;
   targetActivity?: string;
@@ -432,7 +434,7 @@ export class ParkSimulationEngine {
       type: 'cyclist',
       pos: [...PARK_NAV_NODES['cycle_north_mid'].pos],
       rotationY: Math.PI / 2,
-      speed: 3.6,
+      speed: 1.8,
       currentPath: [...cycleLoop],
       pathIndex: 0,
       segmentProgress: 0,
@@ -464,7 +466,7 @@ export class ParkSimulationEngine {
       type: 'jogger',
       pos: [...PARK_NAV_NODES['fp_north_mid'].pos],
       rotationY: -Math.PI / 2,
-      speed: 2.2,
+      speed: 2.0,
       currentPath: [...joggerPath],
       pathIndex: 0,
       segmentProgress: 0,
@@ -475,6 +477,60 @@ export class ParkSimulationEngine {
       hairColor: '#78350f',
       skinColor: '#fcd34d',
       hasHeadband: true,
+    });
+
+    // 3. Dedicated Park Ranger / Security Guard taking care of all quadrants & Origin Plaza
+    const guardPatrolRoute = [
+      'gate_north',
+      'axis_y_n2',
+      'axis_y_n1',
+      'qi_play_mid',
+      'axis_y_n1',
+      'plaza_n',
+      'plaza_center',
+      'plaza_e',
+      'axis_x_e1',
+      'qiv_picnic_mid',
+      'axis_x_e1',
+      'plaza_e',
+      'plaza_center',
+      'plaza_s',
+      'axis_y_s1',
+      'qiii_sports_mid',
+      'axis_y_s1',
+      'plaza_s',
+      'plaza_center',
+      'plaza_w',
+      'axis_x_w1',
+      'qii_garden_mid',
+      'axis_x_w1',
+      'plaza_w',
+      'plaza_center',
+      'plaza_n',
+      'axis_y_n1',
+      'axis_y_n2',
+      'gate_north',
+    ];
+
+    this.citizens.push({
+      id: 'park_guard_1',
+      name: 'Officer Davis (Park Ranger)',
+      type: 'worker',
+      pos: [...PARK_NAV_NODES['gate_north'].pos],
+      rotationY: Math.PI,
+      speed: 1.1,
+      currentPath: [...guardPatrolRoute],
+      pathIndex: 0,
+      segmentProgress: 0,
+      state: 'walking',
+      restTimer: 0,
+      shirtColor: '#166534',
+      pantsColor: '#1e293b',
+      shoesColor: '#0f172a',
+      hairColor: '#1e293b',
+      skinColor: '#fed7aa',
+      hasGuardUniform: true,
+      hasGuardCap: true,
     });
   }
 

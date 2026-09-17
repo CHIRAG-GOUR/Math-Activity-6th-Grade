@@ -360,28 +360,28 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* ============================================================ */}
       {/* 6. CENTRAL ORIGIN PLAZA & GRAND TIERED FOUNTAIN (0, 0) */}
       {/* ============================================================ */}
-      <group position={[0, 0.04, 0]}>
-        {/* Radial Plaza Cobblestone */}
-        <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[UNIT_SIZE * 1.35, 32]} />
+      <group position={[0, 0, 0]}>
+        {/* Raised Solid 3D Stone Dais Pavilion (eliminates any flat-plane z-fighting) */}
+        <mesh receiveShadow position={[0, 0.045, 0]}>
+          <cylinderGeometry args={[UNIT_SIZE * 1.35, UNIT_SIZE * 1.42, 0.08, 32]} />
           <meshStandardMaterial color="#f5f0e6" roughness={0.5} />
         </mesh>
-        {/* Outer Plaza Trim Ring */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[UNIT_SIZE * 1.25, UNIT_SIZE * 1.35, 32]} />
+        {/* Carved Granite Outer Trim Ring */}
+        <mesh receiveShadow position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[UNIT_SIZE * 1.42, UNIT_SIZE * 1.46, 0.09, 32]} />
           <meshStandardMaterial color="#78716c" roughness={0.6} />
         </mesh>
-        {/* Brass Compass Rose */}
-        <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
-          <planeGeometry args={[1.2, 1.2]} />
-          <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
+        {/* Embedded Polished Brass Compass Medallion */}
+        <mesh position={[0, 0.096, 0]}>
+          <cylinderGeometry args={[0.7, 0.7, 0.01, 16]} />
+          <meshStandardMaterial color="#d97706" metalness={0.85} roughness={0.2} />
         </mesh>
 
         {/* Central Major Tiered Fountain (Activates upon Question 4) */}
-        <TieredFountain3D position={[0, 0, 0]} isFlowing={fountainActive} />
+        <TieredFountain3D position={[0, 0.06, 0]} isFlowing={fountainActive} />
 
         {/* Origin Label Plaque */}
-        <Html position={[0, 2.3, 0]} center distanceFactor={16}>
+        <Html position={[0, 3.4, 0]} center distanceFactor={16}>
           <div className="bg-slate-900/95 text-amber-300 font-black text-xs px-2.5 py-1 rounded-full border border-amber-400 shadow-xl backdrop-blur-sm pointer-events-none select-none whitespace-nowrap">
             ORIGIN (0, 0) {fountainActive ? '• GRAND FOUNTAIN' : ''}
           </div>

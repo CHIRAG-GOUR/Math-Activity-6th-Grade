@@ -108,12 +108,15 @@ const LiveParkSimManager: React.FC<{ currentRound: number; grandOpeningActive?: 
             scale={c.type === 'child' ? 0.65 : 0.95}
             shirtColor={c.shirtColor}
             pantsColor={c.pantsColor}
+            shoesColor={c.shoesColor}
             hairColor={c.hairColor}
             skinColor={c.skinColor}
             isJogging={c.state === 'jogging'}
             isWalking={c.state === 'walking'}
             isSeated={c.state === 'resting' && (c.restTimer > 0 && c.restTimer < 1000)}
             hasHeadband={c.type === 'jogger' || c.hasHeadband}
+            hasGuardUniform={c.hasGuardUniform}
+            hasGuardCap={c.hasGuardCap}
           />
         );
       })}

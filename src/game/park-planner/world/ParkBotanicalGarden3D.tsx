@@ -18,108 +18,212 @@ import { ParkBench3D, ShadyTree3D } from './ParkPicnicGrove3D';
 import { ConstructionWorker3D, ConstructionCart3D } from './ParkWorkers3D';
 
 // ------------------------------------------------------------
-// 1. TIERED MARBLE FOUNTAIN WITH ACTIVE JETS & WATER SHADER
+// 1. GRAND 3-TIER MARBLE FOUNTAIN WITH 6 SPRINKLERS & LED LIGHTS
 // ------------------------------------------------------------
 export const TieredFountain3D: React.FC<{
   position?: [number, number, number];
   isFlowing?: boolean;
 }> = ({ position = [0, 0, 0], isFlowing = true }) => {
-  const waterJetRef = useRef<THREE.Group>(null);
-  const rippleRef = useRef<THREE.Mesh>(null);
+  const centralGeyserRef = useRef<THREE.Group>(null);
+  const ripple1Ref = useRef<THREE.Mesh>(null);
+  const ripple2Ref = useRef<THREE.Mesh>(null);
+  const lightsGroupRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (isFlowing) {
-      if (waterJetRef.current) {
-        waterJetRef.current.scale.y = 0.95 + Math.sin(t * 8) * 0.12;
+      if (centralGeyserRef.current) {
+        const pulse = 1.0 + Math.sin(t * 6) * 0.15 + Math.sin(t * 11) * 0.08;
+        centralGeyserRef.current.scale.set(1.0 + Math.sin(t * 4) * 0.08, pulse, 1.0 + Math.cos(t * 4) * 0.08);
       }
-      if (rippleRef.current) {
-        const s = 1 + ((t * 1.5) % 1) * 0.35;
-        rippleRef.current.scale.set(s, 1, s);
-        (rippleRef.current.material as THREE.MeshStandardMaterial).opacity =
-          0.7 * (1 - ((t * 1.5) % 1));
+      if (ripple1Ref.current) {
+        const s = 1 + ((t * 1.2) % 1) * 0.6;
+        ripple1Ref.current.scale.set(s, s, 1);
+        (ripple1Ref.current.material as THREE.MeshStandardMaterial).opacity =
+          0.8 * (1 - ((t * 1.2) % 1));
+      }
+      if (ripple2Ref.current) {
+        const s = 1 + (((t * 1.2) + 0.5) % 1) * 0.6;
+        ripple2Ref.current.scale.set(s, s, 1);
+        (ripple2Ref.current.material as THREE.MeshStandardMaterial).opacity =
+          0.8 * (1 - (((t * 1.2) + 0.5) % 1));
+      }
+      if (lightsGroupRef.current) {
+        lightsGroupRef.current.rotation.y = t * 0.3;
       }
     }
   });
 
   return (
     <group position={position}>
-      {/* Octagonal Stepped Plaza Base */}
-      <mesh receiveShadow position={[0, 0.04, 0]}>
-        <cylinderGeometry args={[1.7, 1.8, 0.08, 8]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
+      {/* 1. Octagonal Carved Granite Dais Foundation */}
+      <mesh receiveShadow position={[0, 0.06, 0]}>
+        <cylinderGeometry args={[2.3, 2.45, 0.12, 8]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
+      </mesh>
+      {/* Decorative Beveled Curb Trim */}
+      <mesh position={[0, 0.13, 0]}>
+        <cylinderGeometry args={[2.22, 2.3, 0.04, 8]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.4} />
       </mesh>
 
-      {/* Main Basin Wall */}
-      <mesh castShadow receiveShadow position={[0, 0.28, 0]}>
-        <cylinderGeometry args={[1.4, 1.45, 0.48, 24, 1, true]} />
-        <meshStandardMaterial color="#f8fafc" roughness={0.2} metalness={0.1} />
+      {/* 2. Main Grand Lower Basin (Radius 2.05m) */}
+      <mesh castShadow receiveShadow position={[0, 0.38, 0]}>
+        <cylinderGeometry args={[1.95, 2.05, 0.52, 32, 1, true]} />
+        <meshStandardMaterial color="#f8fafc" roughness={0.15} metalness={0.1} />
       </mesh>
-      {/* Molded Marble Rim */}
-      <mesh position={[0, 0.52, 0]}>
-        <torusGeometry args={[1.42, 0.06, 8, 24]} />
-        <meshStandardMaterial color="#f1f5f9" roughness={0.2} metalness={0.1} />
+      {/* Molded Marble Outer Coping Lip */}
+      <mesh position={[0, 0.64, 0]}>
+        <torusGeometry args={[2.0, 0.08, 12, 32]} />
+        <meshStandardMaterial color="#ffffff" roughness={0.15} metalness={0.15} />
       </mesh>
 
-      {/* Basin Glistening Water Surface */}
-      <mesh position={[0, 0.42, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[1.38, 24]} />
+      {/* Lower Basin Deep Glistening Water Surface */}
+      <mesh position={[0, 0.52, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.94, 32]} />
         <meshStandardMaterial
           color="#0284c7"
-          roughness={0.05}
-          metalness={0.4}
+          roughness={0.03}
+          metalness={0.5}
           transparent
-          opacity={0.88}
+          opacity={0.92}
         />
       </mesh>
 
-      {/* Animated Ripple */}
+      {/* Animated Water Ripples */}
       {isFlowing && (
-        <mesh ref={rippleRef} position={[0, 0.43, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[0.5, 0.65, 24]} />
-          <meshStandardMaterial color="#bae6fd" transparent opacity={0.6} />
-        </mesh>
+        <>
+          <mesh ref={ripple1Ref} position={[0, 0.53, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.6, 0.8, 32]} />
+            <meshStandardMaterial color="#bae6fd" transparent opacity={0.7} />
+          </mesh>
+          <mesh ref={ripple2Ref} position={[0, 0.535, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <ringGeometry args={[0.6, 0.8, 32]} />
+            <meshStandardMaterial color="#7dd3fc" transparent opacity={0.7} />
+          </mesh>
+        </>
       )}
 
-      {/* Center Fluted Column */}
-      <mesh castShadow position={[0, 0.75, 0]}>
-        <cylinderGeometry args={[0.22, 0.32, 0.9, 16]} />
+      {/* 3. 6 Underwater Submersible LED Light Fixtures */}
+      <group position={[0, 0.45, 0]} ref={lightsGroupRef}>
+        {[0, 1, 2, 3, 4, 5].map((i) => {
+          const angle = (i * Math.PI) / 3;
+          const lx = Math.cos(angle) * 1.45;
+          const lz = Math.sin(angle) * 1.45;
+          const lightColor = ['#38bdf8', '#22d3ee', '#34d399', '#38bdf8', '#60a5fa', '#a78bfa'][i];
+
+          return (
+            <group key={`fountain_led_${i}`} position={[lx, 0, lz]}>
+              {/* Brass Submersible Light Housing */}
+              <mesh position={[0, -0.04, 0]}>
+                <cylinderGeometry args={[0.07, 0.08, 0.08, 12]} />
+                <meshStandardMaterial color="#d97706" metalness={0.8} />
+              </mesh>
+              {/* Glowing LED Lens */}
+              <mesh position={[0, 0.01, 0]}>
+                <cylinderGeometry args={[0.06, 0.06, 0.02, 12]} />
+                <meshStandardMaterial color={lightColor} emissive={lightColor} emissiveIntensity={isFlowing ? 1.8 : 0.2} />
+              </mesh>
+            </group>
+          );
+        })}
+      </group>
+
+      {/* 4. Center Fluted Classical Pedestal */}
+      <mesh castShadow position={[0, 0.95, 0]}>
+        <cylinderGeometry args={[0.34, 0.48, 1.1, 20]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.2} />
       </mesh>
 
-      {/* Upper Marble Basin Tier */}
-      <mesh castShadow position={[0, 1.18, 0]}>
-        <cylinderGeometry args={[0.75, 0.35, 0.28, 20]} />
+      {/* 5. Middle Floating Marble Basin (Radius 1.2m) */}
+      <group position={[0, 1.5, 0]}>
+        <mesh castShadow position={[0, 0, 0]}>
+          <cylinderGeometry args={[1.2, 0.5, 0.35, 24]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.15} />
+        </mesh>
+        {/* Middle Basin Rim */}
+        <mesh position={[0, 0.18, 0]}>
+          <torusGeometry args={[1.22, 0.05, 8, 24]} />
+          <meshStandardMaterial color="#ffffff" roughness={0.15} />
+        </mesh>
+        {/* Middle Basin Water */}
+        <mesh position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[1.18, 24]} />
+          <meshStandardMaterial color="#38bdf8" roughness={0.04} transparent opacity={0.9} />
+        </mesh>
+      </group>
+
+      {/* 6. Upper Spire Column & Top Urn Bowl (Radius 0.65m) */}
+      <mesh castShadow position={[0, 2.0, 0]}>
+        <cylinderGeometry args={[0.2, 0.28, 0.8, 16]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.2} />
       </mesh>
-      <mesh position={[0, 1.3, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[0.7, 20]} />
-        <meshStandardMaterial color="#38bdf8" roughness={0.05} transparent opacity={0.9} />
-      </mesh>
+      <group position={[0, 2.45, 0]}>
+        <mesh castShadow>
+          <cylinderGeometry args={[0.65, 0.25, 0.25, 20]} />
+          <meshStandardMaterial color="#f8fafc" roughness={0.15} />
+        </mesh>
+        <mesh position={[0, 0.12, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+          <circleGeometry args={[0.62, 20]} />
+          <meshStandardMaterial color="#67e8f9" roughness={0.02} transparent opacity={0.95} />
+        </mesh>
+        {/* Golden Crown Finial Spout */}
+        <mesh position={[0, 0.22, 0]}>
+          <sphereGeometry args={[0.16, 16, 16]} />
+          <meshStandardMaterial color="#fbbf24" metalness={0.9} roughness={0.15} />
+        </mesh>
+      </group>
 
-      {/* Top Spout Finial */}
-      <mesh position={[0, 1.5, 0]}>
-        <sphereGeometry args={[0.15, 12, 12]} />
-        <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
-      </mesh>
-
-      {/* Water Jets */}
+      {/* 7. ANIMATED WATER JETS & 6 PERIMETER SPRINKLERS */}
       {isFlowing && (
-        <group position={[0, 1.6, 0]} ref={waterJetRef}>
-          {/* Main Central Jet */}
-          <mesh position={[0, 0.3, 0]}>
-            <cylinderGeometry args={[0.04, 0.08, 0.6, 8]} />
-            <meshStandardMaterial color="#e0f2fe" transparent opacity={0.75} roughness={0.1} />
-          </mesh>
-          {/* 4 Cascading Water Arcs */}
+        <group>
+          {/* Main High-Pressure Vertical Geyser (Top Spout) */}
+          <group position={[0, 2.7, 0]} ref={centralGeyserRef}>
+            {/* Core Water Column */}
+            <mesh position={[0, 0.6, 0]}>
+              <cylinderGeometry args={[0.05, 0.12, 1.2, 10]} />
+              <meshStandardMaterial color="#e0f2fe" transparent opacity={0.8} roughness={0.05} />
+            </mesh>
+            {/* Foaming Water Plume Top */}
+            <mesh position={[0, 1.2, 0]}>
+              <sphereGeometry args={[0.22, 10, 10]} />
+              <meshStandardMaterial color="#ffffff" transparent opacity={0.85} roughness={0.1} />
+            </mesh>
+          </group>
+
+          {/* 6 Perimeter Arched Sprinklers Shooting Inward */}
+          {[0, 1, 2, 3, 4, 5].map((i) => {
+            const angle = (i * Math.PI) / 3;
+            const sx = Math.cos(angle) * 1.45;
+            const sz = Math.sin(angle) * 1.45;
+            const tiltX = -Math.sin(angle) * 0.45;
+            const tiltZ = -Math.cos(angle) * 0.45;
+
+            return (
+              <group key={`sprinkler_${i}`} position={[sx, 0.52, sz]} rotation={[tiltX, 0, tiltZ]}>
+                {/* Sprinkler Brass Nozzle */}
+                <mesh position={[0, 0.02, 0]}>
+                  <cylinderGeometry args={[0.02, 0.03, 0.06, 8]} />
+                  <meshStandardMaterial color="#d97706" metalness={0.8} />
+                </mesh>
+                {/* Arced Crystal Water Spray Jet */}
+                <mesh position={[0, 0.45, 0.15]} rotation={[0.4, 0, 0]}>
+                  <cylinderGeometry args={[0.02, 0.05, 0.95, 8]} />
+                  <meshStandardMaterial color="#e0f2fe" transparent opacity={0.72} roughness={0.08} />
+                </mesh>
+              </group>
+            );
+          })}
+
+          {/* Upper Tier 4 Overflow Water Curtains */}
           {[0, Math.PI / 2, Math.PI, (Math.PI * 3) / 2].map((angle, idx) => (
             <mesh
-              key={`jet_arc_${idx}`}
-              position={[Math.cos(angle) * 0.3, -0.2, Math.sin(angle) * 0.3]}
-              rotation={[0.35 * Math.sin(angle), 0, -0.35 * Math.cos(angle)]}
+              key={`cascade_${idx}`}
+              position={[Math.cos(angle) * 0.95, 1.2, Math.sin(angle) * 0.95]}
+              rotation={[0.25 * Math.sin(angle), 0, -0.25 * Math.cos(angle)]}
             >
-              <cylinderGeometry args={[0.02, 0.04, 0.45, 6]} />
-              <meshStandardMaterial color="#e0f2fe" transparent opacity={0.65} />
+              <cylinderGeometry args={[0.03, 0.08, 0.65, 8]} />
+              <meshStandardMaterial color="#e0f2fe" transparent opacity={0.68} />
             </mesh>
           ))}
         </group>
