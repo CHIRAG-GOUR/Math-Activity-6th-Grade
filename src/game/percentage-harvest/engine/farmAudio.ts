@@ -1,28 +1,24 @@
 // ============================================================
-// PERCENTAGE HARVEST — AUDIO SYNTHESIZER & SOUND ENGINE
-// Realistic farm sound effects (Cows, Goats, Chickens, Knapsack Sprayer,
-// Manure Spreading, Sowing, Harvester, Delivery Truck V8 & Air-Horn)
-// + Uplifting Pastoral Countryside Game BGM (Web Audio Polyphonic Synthesizer)
+// PERCENTAGE HARVEST — AUDIO SOUND ENGINE
+// - Farm Game BGM: /audio/Farm game bgm.mp3 background soundtrack
+// - Realistic Farm SFX: Knapsack Sprayer, Manure Spreading,
+//   Seed Sowing, Tractor Diesel Engine, Delivery Truck V8 & Horn,
+//   Crate Stacking, Weigh Scale, and Golden Harvest Fanfare
 // ============================================================
 
 'use client';
 
 import { SimEvent } from '../types';
 
-/** Musical note frequencies in Hz */
-const NOTE_FREQS: Record<string, number> = {
-  C2: 65.41, D2: 73.42, E2: 82.41, F2: 87.31, G2: 98.0, A2: 110.0, B2: 123.47,
-  C3: 130.81, D3: 146.83, E3: 164.81, F3: 174.61, G3: 196.0, A3: 220.0, B3: 246.94,
-  C4: 261.63, D4: 293.66, E4: 329.63, F4: 349.23, G4: 392.0, A4: 440.0, B4: 493.88,
-  C5: 523.25, D5: 587.33, E5: 659.25, F5: 698.46, G5: 783.99, A5: 880.0, B5: 987.77,
-  C6: 1046.5, D6: 1174.66, E6: 1318.51, G6: 1567.98,
-};
-
 class FarmAudioEngine {
   private ctx: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private sfxGain: GainNode | null = null;
-  private bgmGain: GainNode | null = null;
+
+  // Dedicated HTML5 Audio element for Farm game bgm.mp3
+  private bgmAudio: HTMLAudioElement | null = null;
+  private readonly bgmVolume = 0.40;
+  private isBgmPlaying = false;
 
   // Tractor engine nodes
   private tractorGain: GainNode | null = null;
@@ -40,14 +36,6 @@ class FarmAudioEngine {
 
   // Ambient animal & nature loop timer
   private ambientInterval: any = null;
-
-  // BGM Synthesizer Scheduler State
-  private isBgmPlaying = false;
-  private bgmTimer: any = null;
-  private nextNoteTime = 0;
-  private current16thStep = 0;
-  private readonly tempo = 104; // BPM (pastoral cozy pace)
-  private readonly secondsPerStep = 60 / (104 * 4); // 16th note duration
 
   private muted = false;
   private userUnlocked = false;
@@ -67,7 +55,7 @@ class FarmAudioEngine {
     }
 
     if (this.ctx && !this.masterGain) {
-      // Dynamic master compression for warm punchy acoustic sound
+      // Master dynamics compressor for warm, clear sound
       const comp = this.ctx.createDynamicsCompressor();
       comp.threshold.setValueAtTime(-12, this.ctx.currentTime);
       comp.knee.setValueAtTime(30, this.ctx.currentTime);
@@ -84,27 +72,35 @@ class FarmAudioEngine {
       this.sfxGain = this.ctx.createGain();
       this.sfxGain.gain.setValueAtTime(1.0, this.ctx.currentTime);
       this.sfxGain.connect(this.masterGain);
-
-      // BGM Bus (with warm low-pass filter)
-      const bgmFilter = this.ctx.createBiquadFilter();
-      bgmFilter.type = 'lowpass';
-      bgmFilter.frequency.setValueAtTime(4200, this.ctx.currentTime);
-
-      this.bgmGain = this.ctx.createGain();
-      this.bgmGain.gain.setValueAtTime(0.22, this.ctx.currentTime);
-      this.bgmGain.connect(bgmFilter);
-      bgmFilter.connect(this.masterGain);
     }
   }
 
-  /** Unlocks browser audio policy on user interaction and kicks off music */
+  private initBgmAudio() {
+    if (typeof window === 'undefined') return;
+    if (!this.bgmAudio) {
+      try {
+        this.bgmAudio = new Audio('/audio/Farm game bgm.mp3');
+        this.bgmAudio.loop = true;
+        this.bgmAudio.volume = this.muted ? 0 : this.bgmVolume;
+        this.bgmAudio.preload = 'auto';
+      } catch (err) {
+        console.warn('Unable to initialize Farm game bgm audio:', err);
+      }
+    }
+  }
+
+  /** Unlocks browser audio policy on user interaction and kicks off music & ambient layers */
   public unlock() {
     this.userUnlocked = true;
     this.initContext();
     if (this.ctx && this.ctx.state === 'suspended') {
       void this.ctx.resume();
     }
-    this.startBgm();
+    this.initBgmAudio();
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.muted ? 0 : this.bgmVolume;
+      this.bgmAudio.play().catch(() => {});
+    }
     this.startAmbience();
   }
 
@@ -113,6 +109,9 @@ class FarmAudioEngine {
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(muted ? 0 : 0.85, this.ctx.currentTime, 0.03);
     }
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = muted ? 0 : this.bgmVolume;
+    }
   }
 
   public isMuted(): boolean {
@@ -120,248 +119,26 @@ class FarmAudioEngine {
   }
 
   // ─────────────────────────────────────────────────────────────
-  // 2. PASTORAL COUNTRYSIDE GAME BGM SYNTHESIZER
-  // 16-Bar continuous loop in C / G Major pentatonic with
-  // Acoustic Guitar arpeggios, Marimba melody, Upright Bass & Shakers
+  // 2. FARM GAME BGM CONTROLS (/audio/Farm game bgm.mp3)
   // ─────────────────────────────────────────────────────────────
   public startBgm() {
-    if (this.isBgmPlaying) return;
-    this.initContext();
-    if (!this.ctx) return;
-
     this.isBgmPlaying = true;
-    this.nextNoteTime = this.ctx.currentTime + 0.1;
-    this.current16thStep = 0;
-
-    if (this.bgmTimer) clearInterval(this.bgmTimer);
-    this.bgmTimer = setInterval(() => {
-      this.scheduleBgmSteps();
-    }, 25);
+    this.initBgmAudio();
+    if (this.bgmAudio) {
+      this.bgmAudio.volume = this.muted ? 0 : this.bgmVolume;
+      this.bgmAudio.play().catch(() => {
+        // Autoplay may wait for user interaction gesture
+      });
+    }
   }
 
   public stopBgm() {
     this.isBgmPlaying = false;
-    if (this.bgmTimer) {
-      clearInterval(this.bgmTimer);
-      this.bgmTimer = null;
+    if (this.bgmAudio) {
+      try {
+        this.bgmAudio.pause();
+      } catch (e) {}
     }
-  }
-
-  /** Schedules upcoming 16th note steps up to 100ms in advance */
-  private scheduleBgmSteps() {
-    if (!this.ctx || !this.isBgmPlaying || this.muted) return;
-    const scheduleAheadTime = 0.12; // 120ms lookahead
-
-    while (this.nextNoteTime < this.ctx.currentTime + scheduleAheadTime) {
-      this.playBgmStep(this.current16thStep, this.nextNoteTime);
-      this.nextNoteTime += this.secondsPerStep;
-      this.current16thStep = (this.current16thStep + 1) % 256; // 16 bars * 16 steps = 256
-    }
-  }
-
-  /** Plays individual notes for a 16th note subdivision */
-  private playBgmStep(step: number, time: number) {
-    if (!this.ctx || !this.bgmGain) return;
-
-    const bar = Math.floor(step / 16);
-    const stepInBar = step % 16;
-    const beatInBar = Math.floor(stepInBar / 4); // 0, 1, 2, 3
-    const subBeat = stepInBar % 4; // 0, 1, 2, 3
-
-    // 16-Bar Chord Progression:
-    // Bars 0-3:   Cmaj -> Gmaj -> Amin -> Fmaj
-    // Bars 4-7:   Cmaj -> Emin -> Fmaj -> Gmaj
-    // Bars 8-11:  Amin -> Emin -> Fmaj -> Cmaj
-    // Bars 12-15: Dmin -> G7   -> Cmaj -> Gmaj
-    const chordRoots = [
-      { root: 'C3', chord: ['C4', 'E4', 'G4', 'C5'], bass: ['C2', 'G2'] },
-      { root: 'G2', chord: ['B3', 'D4', 'G4', 'B4'], bass: ['G2', 'D3'] },
-      { root: 'A2', chord: ['A3', 'C4', 'E4', 'A4'], bass: ['A2', 'E2'] },
-      { root: 'F2', chord: ['A3', 'C4', 'F4', 'A4'], bass: ['F2', 'C3'] },
-
-      { root: 'C3', chord: ['C4', 'E4', 'G4', 'C5'], bass: ['C2', 'G2'] },
-      { root: 'E2', chord: ['G3', 'B3', 'E4', 'G4'], bass: ['E2', 'B2'] },
-      { root: 'F2', chord: ['A3', 'C4', 'F4', 'A4'], bass: ['F2', 'C3'] },
-      { root: 'G2', chord: ['B3', 'D4', 'G4', 'D5'], bass: ['G2', 'D3'] },
-
-      { root: 'A2', chord: ['A3', 'C4', 'E4', 'C5'], bass: ['A2', 'E2'] },
-      { root: 'E2', chord: ['G3', 'B3', 'E4', 'B4'], bass: ['E2', 'B2'] },
-      { root: 'F2', chord: ['A3', 'C4', 'F4', 'C5'], bass: ['F2', 'C3'] },
-      { root: 'C3', chord: ['C4', 'E4', 'G4', 'E5'], bass: ['C2', 'G2'] },
-
-      { root: 'D2', chord: ['F3', 'A3', 'D4', 'F4'], bass: ['D2', 'A2'] },
-      { root: 'G2', chord: ['F3', 'G3', 'B3', 'D4'], bass: ['G2', 'D3'] },
-      { root: 'C3', chord: ['E3', 'G3', 'C4', 'E4'], bass: ['C2', 'G2'] },
-      { root: 'G2', chord: ['D3', 'G3', 'B3', 'G4'], bass: ['G2', 'D3'] },
-    ];
-
-    const cur = chordRoots[bar % 16];
-
-    // ── 1. UPRIGHT ACOUSTIC BASS (Beats 0 and 2) ──
-    if (subBeat === 0) {
-      if (beatInBar === 0 || beatInBar === 2) {
-        const bassNote = beatInBar === 0 ? cur.bass[0] : cur.bass[1];
-        this.synthBassNote(bassNote, time, 0.38);
-      }
-    }
-
-    // ── 2. ACOUSTIC GUITAR FINGERPICK ARPEGGIO (Every 8th note) ──
-    if (subBeat === 0 || subBeat === 2) {
-      const pickIdx = (beatInBar * 2 + (subBeat === 2 ? 1 : 0)) % cur.chord.length;
-      const guitarNote = cur.chord[pickIdx];
-      this.synthAcousticPluck(guitarNote, time, 0.18);
-    }
-
-    // ── 3. MARIMBA / KALIMBA LEAD MELODY ──
-    // Whimsical pastoral melody note map (step -> note)
-    const melodyMap: Record<number, string> = {
-      0: 'E5', 4: 'G5', 8: 'A5', 12: 'G5',
-      16: 'D5', 20: 'B4', 24: 'D5', 28: 'E5',
-      32: 'C5', 36: 'E5', 40: 'G5', 44: 'A5',
-      48: 'G5', 52: 'F5', 56: 'E5', 60: 'D5',
-
-      64: 'E5', 68: 'G5', 72: 'C6', 76: 'B5',
-      80: 'G5', 84: 'E5', 88: 'G5', 92: 'A5',
-      96: 'F5', 100: 'A5', 104: 'C6', 108: 'A5',
-      112: 'G5', 116: 'E5', 120: 'D5', 124: 'C5',
-
-      128: 'A5', 132: 'C6', 136: 'B5', 140: 'A5',
-      144: 'G5', 148: 'E5', 152: 'D5', 156: 'E5',
-      160: 'F5', 164: 'A5', 168: 'G5', 172: 'F5',
-      176: 'E5', 180: 'G5', 184: 'C6', 188: 'D6',
-
-      192: 'F5', 196: 'A5', 200: 'D6', 204: 'C6',
-      208: 'B5', 212: 'G5', 216: 'A5', 220: 'B5',
-      224: 'C6', 228: 'G5', 232: 'E5', 236: 'C5',
-      240: 'D5', 244: 'E5', 248: 'D5', 252: 'C5',
-    };
-
-    if (melodyMap[step]) {
-      this.synthMarimbaNote(melodyMap[step], time, 0.45);
-    }
-
-    // ── 4. SOFT MEADOW PERCUSSION & SHAKER ──
-    if (subBeat === 0 || subBeat === 2) {
-      const isAccent = beatInBar === 1 || beatInBar === 3;
-      this.synthShakerHit(time, isAccent ? 0.05 : 0.025);
-    }
-  }
-
-  /** Synthesizes warm wooden marimba tone */
-  private synthMarimbaNote(note: string, time: number, duration: number) {
-    if (!this.ctx || !this.bgmGain) return;
-    const freq = NOTE_FREQS[note] || 440;
-
-    // Fundamental + 4th harmonic for wooden bar chime
-    const osc1 = this.ctx.createOscillator();
-    const osc2 = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-
-    osc1.type = 'sine';
-    osc1.frequency.setValueAtTime(freq, time);
-
-    osc2.type = 'triangle';
-    osc2.frequency.setValueAtTime(freq * 3.85, time); // acoustic wooden overtone
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(freq * 3, time);
-
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.14, time + 0.008);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-    osc1.connect(filter);
-    osc2.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.bgmGain);
-
-    osc1.start(time);
-    osc2.start(time);
-    osc1.stop(time + duration + 0.05);
-    osc2.stop(time + duration + 0.05);
-  }
-
-  /** Synthesizes acoustic guitar/ukulele plucked string */
-  private synthAcousticPluck(note: string, time: number, duration: number) {
-    if (!this.ctx || !this.bgmGain) return;
-    const freq = NOTE_FREQS[note] || 330;
-
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = 'triangle';
-    osc.frequency.setValueAtTime(freq, time);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(2400, time);
-    filter.frequency.exponentialRampToValueAtTime(600, time + duration);
-
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.09, time + 0.004);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.bgmGain);
-
-    osc.start(time);
-    osc.stop(time + duration + 0.02);
-  }
-
-  /** Synthesizes warm upright acoustic bass */
-  private synthBassNote(note: string, time: number, duration: number) {
-    if (!this.ctx || !this.bgmGain) return;
-    const freq = NOTE_FREQS[note] || 110;
-
-    const osc = this.ctx.createOscillator();
-    const gain = this.ctx.createGain();
-    const filter = this.ctx.createBiquadFilter();
-
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, time);
-
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(280, time);
-
-    gain.gain.setValueAtTime(0, time);
-    gain.gain.linearRampToValueAtTime(0.18, time + 0.015);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + duration);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.bgmGain);
-
-    osc.start(time);
-    osc.stop(time + duration + 0.03);
-  }
-
-  /** Synthesizes gentle rhythmic country shaker */
-  private synthShakerHit(time: number, vol: number) {
-    if (!this.ctx || !this.bgmGain) return;
-    const bufferSize = Math.floor(this.ctx.sampleRate * 0.04);
-    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
-    const data = buffer.getChannelData(0);
-    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
-
-    const noise = this.ctx.createBufferSource();
-    noise.buffer = buffer;
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.setValueAtTime(6500, time);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(vol, time);
-    gain.gain.exponentialRampToValueAtTime(0.001, time + 0.038);
-
-    noise.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.bgmGain);
-
-    noise.start(time);
-    noise.stop(time + 0.04);
   }
 
   // ─────────────────────────────────────────────────────────────
@@ -1332,8 +1109,16 @@ class FarmAudioEngine {
 
   public shutdown() {
     this.stopBgm();
+    if (this.bgmAudio) {
+      try {
+        this.bgmAudio.pause();
+        this.bgmAudio.currentTime = 0;
+      } catch (e) {}
+      this.bgmAudio = null;
+    }
     if (this.ambientInterval) clearInterval(this.ambientInterval);
     this.stopTractorEngine();
+    this.stopTruckDrive();
     if (this.ctx && this.ctx.state !== 'closed') {
       try {
         this.ctx.close();
@@ -1342,7 +1127,6 @@ class FarmAudioEngine {
     this.ctx = null;
     this.masterGain = null;
     this.sfxGain = null;
-    this.bgmGain = null;
   }
 }
 
