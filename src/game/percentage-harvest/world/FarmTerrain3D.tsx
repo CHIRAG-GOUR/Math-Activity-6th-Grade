@@ -123,39 +123,65 @@ export const FarmTerrain3D: React.FC = () => {
           1. CENTRAL LUSH FLOWER GARDEN & FOUNTAIN PLAZA (CENTER)
           ───────────────────────────────────────────────────────────── */}
       <group position={[0, 0, 1.2]}>
-        {/* Cobblestone Garden Plaza Base */}
+        {/* Cobblestone Garden Plaza Base with cutout for central well shaft */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, 0]} receiveShadow material={mats.pastureGrass}>
-          <circleGeometry args={[3.2, 32]} />
+          <ringGeometry args={[0.9, 3.2, 32]} />
         </mesh>
-        <mesh position={[0, 0.08, 0]} material={mats.roadCurb}>
-          <cylinderGeometry args={[3.25, 3.25, 0.12, 32]} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]} material={mats.roadCurb}>
+          <ringGeometry args={[1.9, 3.25, 32]} />
         </mesh>
 
-        {/* ── TRADITIONAL VILLAGE WATER WELL (गाँव का कुआँ) ── */}
+        {/* ── TRADITIONAL VILLAGE WATER WELL (गाँव का गहरा कुआँ) ── */}
         <group position={[0, 0, 0]}>
-          {/* Cobblestone Circular Well Platform Base */}
+          {/* Circular Stepped Stone Well Platform Base */}
           <mesh position={[0, 0.04, 0]} receiveShadow material={mats.stoneBridge}>
-            <cylinderGeometry args={[2.0, 2.1, 0.08, 24]} />
+            <cylinderGeometry args={[2.0, 2.1, 0.08, 24, 1, true]} />
           </mesh>
-          <mesh position={[0, 0.08, 0]} material={mats.darkMud}>
-            <cylinderGeometry args={[1.7, 1.7, 0.02, 24]} />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.08, 0]} material={mats.stoneBridge}>
+            <ringGeometry args={[1.15, 2.0, 24]} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.082, 0]} material={mats.darkMud}>
+            <ringGeometry args={[1.15, 1.6, 24]} />
           </mesh>
 
-          {/* Main Cylindrical Stone Well Wall */}
+          {/* ── MAIN CYLINDRICAL OUTER STONE WELL WALL ── */}
           <mesh position={[0, 0.48, 0]} castShadow receiveShadow material={mats.stoneBridge}>
-            <cylinderGeometry args={[1.1, 1.18, 0.8, 24]} />
+            <cylinderGeometry args={[1.15, 1.2, 0.8, 24, 1, true]} />
           </mesh>
-          {/* Stone Coping Top Rim */}
-          <mesh position={[0, 0.88, 0]} castShadow material={mats.roadCurb}>
-            <cylinderGeometry args={[1.22, 1.15, 0.1, 24]} />
+          {/* Decorative Stone Masonry Relief Bands */}
+          <mesh position={[0, 0.28, 0]} material={mats.roadCurb}>
+            <cylinderGeometry args={[1.17, 1.18, 0.06, 24, 1, true]} />
+          </mesh>
+          <mesh position={[0, 0.62, 0]} material={mats.roadCurb}>
+            <cylinderGeometry args={[1.16, 1.16, 0.06, 24, 1, true]} />
           </mesh>
 
-          {/* Deep Dark Well Cavity & Still Water Surface inside */}
-          <mesh position={[0, 0.82, 0]} material={mats.darkMud}>
-            <cylinderGeometry args={[0.92, 0.92, 0.02, 24]} />
+          {/* ── ROUNDED STONE COPING TOP RIM (कुएँ की मुंडेर) ── */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.88, 0]} castShadow material={mats.roadCurb}>
+            <torusGeometry args={[1.0, 0.16, 12, 32]} />
           </mesh>
-          <mesh position={[0, 0.35, 0]} material={mats.waterRiver}>
-            <cylinderGeometry args={[0.88, 0.88, 0.05, 24]} />
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.89, 0]} material={mats.stoneBridge}>
+            <ringGeometry args={[0.85, 1.16, 24]} />
+          </mesh>
+
+          {/* ── DEEP HOLLOW WELL SHAFT HOLE GOING DOWN INTO THE EARTH (कुएँ का गहरा भीतरी गड्ढा) ── */}
+          <mesh position={[0, -0.36, 0]} material={mats.darkMud}>
+            <cylinderGeometry args={[0.85, 0.85, 2.48, 24, 1, true]} />
+          </mesh>
+          {/* Interior Stone Brick Lining Rings down the shaft */}
+          {[-0.1, -0.35, -0.6, -0.85].map((sy, i) => (
+            <mesh key={`inner-shaft-stone-${i}`} position={[0, sy, 0]} material={mats.stoneBridge}>
+              <cylinderGeometry args={[0.845, 0.845, 0.06, 24, 1, true]} />
+            </mesh>
+          ))}
+
+          {/* Deep Dark Reflective Water Surface at Well Bottom */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.95, 0]} material={mats.waterRiver}>
+            <circleGeometry args={[0.84, 24]} />
+          </mesh>
+          {/* Deep Dark Bottom Void */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.25, 0]} material={mats.darkMud}>
+            <circleGeometry args={[0.84, 24]} />
           </mesh>
 
           {/* Left & Right Vertical Wooden Timber Pillars */}
@@ -188,14 +214,14 @@ export const FarmTerrain3D: React.FC = () => {
             <mesh rotation={[0, 0, Math.PI / 2]} material={mats.scalePadSteel}>
               <cylinderGeometry args={[0.04, 0.04, 0.2, 8]} />
             </mesh>
-            {/* Hanging Rope from Pulley down to Bucket */}
-            <mesh position={[0.1, -0.4, 0]} material={mats.strawHat}>
-              <cylinderGeometry args={[0.015, 0.015, 0.8, 6]} />
+            {/* Hanging Rope from Pulley down into Well Hole */}
+            <mesh position={[0.1, -0.55, 0]} material={mats.strawHat}>
+              <cylinderGeometry args={[0.015, 0.015, 1.1, 6]} />
             </mesh>
           </group>
 
-          {/* Village Suspended Water Bucket (Balti) */}
-          <group ref={wellBucketRef} position={[0.1, 1.15, 0]}>
+          {/* Village Suspended Water Bucket (Balti) Hanging over Well Mouth */}
+          <group ref={wellBucketRef} position={[0.1, 0.95, 0]}>
             {/* Wooden Bucket Body */}
             <mesh castShadow material={mats.crateWood}>
               <cylinderGeometry args={[0.16, 0.12, 0.26, 12]} />
