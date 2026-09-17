@@ -137,15 +137,17 @@ export const DeliveryTruck3D: React.FC<{ team: TeamId }> = ({ team }) => {
       cargo.current.children.forEach((c, i) => { c.visible = i < s.boxesInTruck; });
     }
     if (lights.current) {
-      const driving = s.logistics === 'truck_out' || s.logistics === 'truck_back';
+      // Lit up any time the truck is part of the action, not only mid-drive —
+      // much easier to spot sitting at the dock being loaded.
+      const active = s.logistics !== 'idle';
       lights.current.children.forEach((l) => {
-        (l as THREE.Mesh).material = driving ? MAT.lampAmber : MAT.lampOff;
+        (l as THREE.Mesh).material = active ? MAT.lampAmber : MAT.lampOff;
       });
     }
   });
 
   return (
-    <group ref={root}>
+    <group ref={root} scale={[1.3, 1.3, 1.3]}>
       {/* cab */}
       <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 1.35, -2.5]} scale={[2.3, 1.7, 2.0]} castShadow receiveShadow />
       <mesh geometry={GEO.box} material={MAT.glass} position={[0, 1.75, -3.45]} scale={[2.0, 0.9, 0.16]} />

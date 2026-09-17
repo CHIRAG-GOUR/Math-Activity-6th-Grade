@@ -94,7 +94,7 @@ function anchorFor(team: TeamId, kind: ShotKind): { x: number; z: number } {
     case 'molding': return s.moldingMachine;
     case 'cooling': return { x: s.cutter.x, z: (s.coolingEntry.z + s.cutter.z) / 2 };
     case 'packaging': return s.packagingMachine;
-    case 'loading': return s.loadingDock;
+    case 'loading': return s.truckHome;
   }
 }
 
