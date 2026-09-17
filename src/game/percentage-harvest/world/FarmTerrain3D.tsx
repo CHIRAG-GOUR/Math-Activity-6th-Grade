@@ -168,27 +168,33 @@ export const FarmTerrain3D: React.FC = () => {
             <ringGeometry args={[0.85, 1.16, 24]} />
           </mesh>
 
-          {/* ── DEEP HOLLOW WELL SHAFT HOLE (कुएँ का गहरा भीतरी गड्ढा) ── */}
-          {/* Inner Dark Stone Wall Lining from rim down to water level */}
-          <mesh position={[0, 0.64, 0]} material={mats.darkMud}>
-            <cylinderGeometry args={[0.85, 0.85, 0.48, 24, 1, true]} />
+          {/* ── SOLID DARK INNER WELL FOUNDATION BASE (Blocks all ground grass completely) ── */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.35, 0]} material={mats.darkMud}>
+            <circleGeometry args={[1.0, 32]} />
           </mesh>
-          <mesh position={[0, 0.64, 0]} material={mats.stoneBridge}>
-            <cylinderGeometry args={[0.845, 0.845, 0.12, 24, 1, true]} />
+          {/* Inner Dark Stone Wall Lining from rim down to water level */}
+          <mesh position={[0, 0.62, 0]} material={mats.darkMud}>
+            <cylinderGeometry args={[0.92, 0.92, 0.54, 24, 1, true]} />
+          </mesh>
+          <mesh position={[0, 0.62, 0]} material={mats.stoneBridge}>
+            <cylinderGeometry args={[0.915, 0.915, 0.2, 24, 1, true]} />
           </mesh>
 
-          {/* ── VIBRANT DEEP CRYSTAL BLUE WELL WATER SURFACE (नीला स्वच्छ जल) ── */}
-          <group ref={wellWaterRef} position={[0, 0.42, 0]}>
-            {/* Deep Blue Water Disk */}
+          {/* ── VIBRANT DEEP CRYSTAL BLUE WELL WATER SURFACE (स्वच्छ गहरा नीला पानी) ── */}
+          <group ref={wellWaterRef} position={[0, 0.50, 0]}>
+            {/* Deep Glowing Blue Water Disk filling the entire well interior */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={mats.wellWater}>
-              <circleGeometry args={[0.84, 32]} />
+              <circleGeometry args={[0.92, 32]} />
             </mesh>
-            {/* Concentric Light Blue Ripple Rings */}
+            {/* Sparkling Concentric Water Ripple Rings */}
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
-              <ringGeometry args={[0.25, 0.32, 24]} />
+              <ringGeometry args={[0.22, 0.32, 24]} />
             </mesh>
             <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
-              <ringGeometry args={[0.55, 0.63, 24]} />
+              <ringGeometry args={[0.52, 0.64, 24]} />
+            </mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
+              <ringGeometry args={[0.76, 0.86, 24]} />
             </mesh>
           </group>
 
@@ -222,14 +228,14 @@ export const FarmTerrain3D: React.FC = () => {
             <mesh rotation={[0, 0, Math.PI / 2]} material={mats.scalePadSteel}>
               <cylinderGeometry args={[0.04, 0.04, 0.2, 8]} />
             </mesh>
-            {/* Hanging Rope from Pulley down into Well Hole */}
-            <mesh position={[0.1, -0.55, 0]} material={mats.strawHat}>
-              <cylinderGeometry args={[0.015, 0.015, 1.1, 6]} />
+            {/* Hanging Rope from Pulley down to Suspended Bucket */}
+            <mesh position={[0, -0.32, 0]} material={mats.strawHat}>
+              <cylinderGeometry args={[0.015, 0.015, 0.64, 6]} />
             </mesh>
           </group>
 
-          {/* Village Suspended Water Bucket (Balti) Hanging over Well Mouth */}
-          <group ref={wellBucketRef} position={[0.1, 0.95, 0]}>
+          {/* Village Suspended Wooden Bucket (Balti) Hanging from Pulley */}
+          <group ref={wellBucketRef} position={[0, 1.38, 0]}>
             {/* Wooden Bucket Body */}
             <mesh castShadow material={mats.crateWood}>
               <cylinderGeometry args={[0.16, 0.12, 0.26, 12]} />
