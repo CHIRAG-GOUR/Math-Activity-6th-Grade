@@ -24,7 +24,7 @@ import type {
 } from '../types';
 import { toDecimal } from './fractionMath';
 import {
-  CARGO_SLOTS, forkliftCocoaRoute, forkliftCocoaToTank, patrolMarks,
+  CARGO_SLOTS, forkliftCocoaRoute, forkliftCocoaToTank,
   forkliftPalletRoute, forkliftToTruck, handlerToHome, handlerToPallet, handlerToTank,
   sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute,
 } from './factoryLayout';
@@ -87,8 +87,6 @@ interface Mover {
   carrying: boolean; phase: number;
   /** True on any frame this person actually covered ground (drives the walk cycle). */
   moving: boolean;
-  /** Which end of their patrol they are heading for while unoccupied. */
-  patrolLeg: number;
   /** How much of this sack has already gone into the tank. */
   poured: number;
 }
@@ -169,7 +167,7 @@ let handlers: FactoryHandlers = {};
 export function setFactoryHandlers(h: FactoryHandlers) { handlers = h; }
 
 function mover(home: Vec3): Mover {
-  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6, poured: 0, moving: false, patrolLeg: 0 };
+  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6, poured: 0, moving: false };
 }
 
 function makeSide(team: TeamId): SideSim {
@@ -399,13 +397,26 @@ function stepHandlers(side: SideSim, dt: number) {
   const active = side.phase === 'running' && STEPS[side.stepIndex] === 'ingredients';
 
   side.handlers.forEach((h, i) => {
-    h.phase += dt * (h.task.startsWith('to_') ? 9 : 2.5);
+    h.phase += dt * (h.task.startsWith('to_') ? 9 : 1.4);
 
     switch (h.task) {
       case 'idle':
       case 'ambient': {
-        // Never frozen: between batches they pace their corner of the store.
-        patrolStep(side.team, h, sideOf(side.team).handlerHome[i % 2], WALK_SPEED * 0.42, dt);
+        // Posted at their workstation, facing the job: sorting the sacks in
+        // front of them with a small shift of weight, exactly like the rest of
+        // the crew at their machines. They only cross the floor when there is
+        // actually a sack to fetch.
+        const s = sideOf(side.team);
+        const home = s.handlerHome[i % 2];
+        h.pos = {
+          x: home.x + Math.sin(h.phase * 1.7) * 0.22,
+          y: 0,
+          z: home.z + Math.cos(h.phase * 1.2) * 0.14,
+        };
+        h.heading = headingTowards(h.pos, i === 0 ? s.palletStack : s.measuringTank);
+        h.path = [];
+        h.travel = 0;
+        h.moving = false;
         break;
       }
       case 'to_pallet': {
@@ -454,21 +465,6 @@ function stepHandlers(side: SideSim, dt: number) {
   });
 }
 
-/**
- * Walks a crew member back and forth between two marks near their station, so
- * the factory floor always has people moving on it rather than statues.
- */
-function patrolStep(team: TeamId, m: Mover, home: Vec3, speed: number, dt: number) {
-  const marks = patrolMarks(team, home);
-  if (!m.path.length || m.travel >= polylineLength(m.path) - 0.02) {
-    const target = marks[m.patrolLeg % 2];
-    m.patrolLeg = (m.patrolLeg + 1) % 2;
-    m.path = [m.pos, target];
-    m.travel = 0;
-  }
-  follow(m, speed, dt);
-}
-
 function headingTowards(from: Vec3, to: Vec3) {
   return Math.atan2(-(to.x - from.x), -(to.z - from.z));
 }
@@ -478,27 +474,25 @@ function headingTowards(from: Vec3, to: Vec3) {
 function stepStationCrew(side: SideSim, dt: number) {
   const step = STEPS[side.stepIndex];
   const running = side.phase === 'running';
-  const s = sideOf(side.team);
-  side.operator.phase += dt;
-  side.inspector.phase += dt;
-  side.packer.phase += dt;
+  side.operator.phase += dt * (running ? 2.5 : 1.2);
+  side.inspector.phase += dt * (running ? 2.5 : 1.2);
+  side.packer.phase += dt * (running ? 2.5 : 1.2);
 
-  // While their own step runs they hold their post and work it; the rest of
-  // the time they walk their patrol, so nobody is ever standing frozen.
-  const hold = (m: Mover, post: Vec3, atWork: boolean) => {
-    if (atWork) {
-      m.path = [];
-      m.travel = 0;
-      m.moving = false;
-      m.pos = { x: post.x, y: 0, z: post.z };
-      return;
-    }
-    patrolStep(side.team, m, post, WALK_SPEED * 0.4, dt);
+  // Each of them works their own station: a small shift of weight on the spot,
+  // wider while their step is running. They never walk off their post, so the
+  // floor reads as people doing a job rather than pacing back and forth.
+  const work = (m: Mover, base: Vec3, amount: number, rate: number) => {
+    m.moving = false;
+    m.pos = {
+      x: base.x + Math.sin(m.phase * rate) * amount,
+      y: 0,
+      z: base.z + Math.cos(m.phase * rate * 0.7) * amount * 0.6,
+    };
   };
-
-  hold(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding'));
-  hold(side.inspector, s.inspectorHome, running && step === 'cooling');
-  hold(side.packer, s.packerHome, running && step === 'packaging');
+  const s = sideOf(side.team);
+  work(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding') ? 0.6 : 0.25, 1.8);
+  work(side.inspector, s.inspectorHome, running && step === 'cooling' ? 0.65 : 0.25, 1.6);
+  work(side.packer, s.packerHome, running && step === 'packaging' ? 0.6 : 0.25, 2.0);
 }
 
 // ── LOGISTICS: forklift pallet run, then the truck ──────────────────────

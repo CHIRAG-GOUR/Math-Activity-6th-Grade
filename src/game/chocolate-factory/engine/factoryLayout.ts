@@ -217,12 +217,6 @@ export function forkliftCocoaToTank(team: TeamId, from: Vec3): Vec3[] {
   return [from, v(stand.x + sign * 1.5, 0, (from.z + stand.z) / 2), stand];
 }
 
-/** Two marks a crew member paces between when their step is not running. */
-export function patrolMarks(team: TeamId, home: Vec3): [Vec3, Vec3] {
-  const sign = sideSign(team);
-  return [home, v(home.x + sign * 2.4, 0, home.z + 1.8)];
-}
-
 /** Forklift: packaging pallet of boxes -> alongside the truck bed -> back. */
 export function forkliftPalletRoute(team: TeamId, from: Vec3): Vec3[] {
   const s = sideOf(team);
