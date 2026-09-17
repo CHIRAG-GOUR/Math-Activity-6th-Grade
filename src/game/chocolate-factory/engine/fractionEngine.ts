@@ -49,7 +49,13 @@ export function customerFor(i: number) {
 interface Candidate { label: string; value: Fraction; }
 
 /** Builds four shuffled, de-duplicated options from a correct candidate and distractors. */
-function assemble(rng: () => number, correct: Candidate, distractors: Candidate[], properOnly = false) {
+function assemble(
+  rng: () => number,
+  correct: Candidate,
+  distractors: Candidate[],
+  properOnly = false,
+  labelFor: (f: Fraction) => string = formatFraction,
+) {
   const valueKey = (f: Fraction) => { const v = simplify(f); return `${v.num}/${v.den}`; };
   const seenValues = new Set<string>([valueKey(correct.value)]);
   const seenLabels = new Set<string>([correct.label]);
@@ -65,12 +71,20 @@ function assemble(rng: () => number, correct: Candidate, distractors: Candidate[
   while (pool.length < 3 && guard < 20) {
     guard++;
     const bump = 1 + Math.floor(rng() * 3);
-    const cand = rng() < 0.5
+    let cand = rng() < 0.5
       ? frac(correct.value.num + bump, correct.value.den)
       : frac(correct.value.num, correct.value.den + bump);
     const key = valueKey(cand);
-    const label = formatFraction(cand);
+    const label = labelFor(cand);
     if (seenValues.has(key) || seenLabels.has(label) || cand.num <= 0) continue;
+    // A padded option must mean what it says: if the label is a plain count,
+    // the value has to be that count out of the same whole.
+    if (labelFor !== formatFraction && /^\d+$/.test(label)) {
+      const shown = Number(label);
+      if (!Number.isFinite(shown) || shown <= 0) continue;
+      cand = frac(shown, correct.value.den);
+      if (seenValues.has(valueKey(cand))) continue;
+    }
     if (properOnly && cand.num >= cand.den) continue;
     seenValues.add(key); seenLabels.add(label);
     pool.push({ label, value: cand });
@@ -343,15 +357,33 @@ function questionOfQuantity(round: RoundNumber, i: number, rng: () => number): F
   const seed = pick(OFQ_SEEDS, i);
   const cust = customerFor(i);
   const f = frac(seed.frac[0], seed.frac[1]);
-  const correctCount = (seed.qty / f.den) * f.num;
-  const correctVal = frac(correctCount, seed.qty);
-  const distractors: Candidate[] = [
-    { label: `${(seed.qty / f.den) * (f.num + 1)}`, value: frac((seed.qty / f.den) * (f.num + 1), seed.qty) },
-    { label: `${Math.round(seed.qty * (f.den - f.num) / f.den)}`, value: frac(seed.qty - correctCount, seed.qty) },
-    { label: `${Math.round(seed.qty / f.den)}`, value: frac(seed.qty / f.den, seed.qty) },
+  const part = seed.qty / f.den;
+  const correctCount = part * f.num;
+
+  // Plausible miscounts: one part too many or too few, the leftover instead of
+  // the share, a single part, and half the order. Anything that lands on the
+  // right answer is dropped, so the four choices are always distinct counts.
+  const candidates = [
+    part * (f.num + 1),          // one part too many
+    seed.qty - correctCount,     // the leftover instead of the share
+    part * (f.num - 1),          // one part too few
+    part,                        // a single part
+    part * (f.num + 2),
+    part * f.den,                // the whole order
+    Math.round(seed.qty / 2),
   ];
-  const correctCand: Candidate = { label: `${correctCount}`, value: correctVal };
-  const { options, optionValues, correctIndex } = assemble(rng, correctCand, distractors);
+  const distractors: Candidate[] = [];
+  const used = new Set<number>([correctCount]);
+  for (const c of candidates) {
+    const n = Math.round(c);
+    if (n <= 0 || n > seed.qty || used.has(n)) continue;
+    used.add(n);
+    distractors.push({ label: `${n}`, value: frac(n, seed.qty) });
+  }
+
+  const correctCand: Candidate = { label: `${correctCount}`, value: frac(correctCount, seed.qty) };
+  const asCount = (x: Fraction) => `${Math.max(1, Math.round((x.num / x.den) * seed.qty))}`;
+  const { options, optionValues, correctIndex } = assemble(rng, correctCand, distractors, false, asCount);
   return {
     id: nextId(), round, kind: 'of_quantity',
     context: `${cust.name} order · production count`,
@@ -406,15 +438,29 @@ function questionWordProblem(round: RoundNumber, i: number, rng: () => number): 
   const seed = pick(WORD_SEEDS, i);
   const cust = customerFor(i);
   const f = frac(seed.frac[0], seed.frac[1]);
-  const correctCount = Math.round((seed.qty / f.den) * f.num);
-  const correctVal = frac(correctCount, seed.qty);
-  const distractors: Candidate[] = [
-    { label: `${seed.qty - correctCount}`, value: frac(seed.qty - correctCount, seed.qty) },
-    { label: `${Math.round(correctCount * 0.8)}`, value: frac(Math.round(correctCount * 0.8), seed.qty) },
-    { label: `${Math.round(seed.qty / f.den)}`, value: frac(Math.round(seed.qty / f.den), seed.qty) },
+  const part = seed.qty / f.den;
+  const correctCount = Math.round(part * f.num);
+
+  const candidates = [
+    Math.round(seed.qty - correctCount),
+    Math.round(part * (f.num + 1)),
+    Math.round(part * (f.num - 1)),
+    Math.round(part),
+    Math.round(part * (f.num + 2)),
+    seed.qty,
+    Math.round(correctCount / 2),
   ];
-  const correctCand: Candidate = { label: `${correctCount}`, value: correctVal };
-  const { options, optionValues, correctIndex } = assemble(rng, correctCand, distractors);
+  const distractors: Candidate[] = [];
+  const used = new Set<number>([correctCount]);
+  for (const c of candidates) {
+    if (c <= 0 || c > seed.qty || used.has(c)) continue;
+    used.add(c);
+    distractors.push({ label: `${c}`, value: frac(c, seed.qty) });
+  }
+
+  const correctCand: Candidate = { label: `${correctCount}`, value: frac(correctCount, seed.qty) };
+  const asCount = (x: Fraction) => `${Math.max(1, Math.round((x.num / x.den) * seed.qty))}`;
+  const { options, optionValues, correctIndex } = assemble(rng, correctCand, distractors, false, asCount);
   const line = seed.theme === 'recipe'
     ? `The recipe book lists ${seed.qty} cocoa units in storage, and this batch needs ${formatFraction(f)} of it`
     : seed.theme === 'inventory'

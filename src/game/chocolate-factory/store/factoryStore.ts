@@ -244,7 +244,9 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
             status: 'retry',
             lastCorrect: false,
             feedback: 'INCORRECT FRACTION — LINE IS HOLDING. PLEASE SELECT THE CORRECT ANSWER TO PROCEED.',
-            rework: s[team].rework + 1,
+            // The simulation owns the rework tally; mirror it rather than
+            // counting the same miss twice.
+            rework: sim[team].reworkCount,
           },
         } as Partial<FactoryStore>));
         return;

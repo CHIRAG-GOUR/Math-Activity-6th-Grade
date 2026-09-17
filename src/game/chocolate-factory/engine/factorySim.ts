@@ -303,7 +303,7 @@ function runStep(side: SideSim, dt: number) {
       // This step is finished by the WORK, not by a stopwatch: it ends when
       // the handlers have actually tipped the answered amount into the tank.
       const filled = side.cocoaFill > 0 ? side.tankFill / side.cocoaFill : 1;
-      t = Math.min(1, filled);
+      t = filled >= 0.999 ? 1 : filled;
       // Safety valve, so a stuck carrier can never freeze a team's console.
       if (sim.elapsed - side.stepStartAt > dur * 4) t = 1;
       break;
@@ -407,6 +407,7 @@ function stepHandlers(side: SideSim, dt: number) {
         const give = Math.min(rate * dt, share - h.poured);
         h.poured += give;
         side.tankFill = Math.min(side.cocoaFill, side.tankFill + give);
+        if (side.cocoaFill - side.tankFill < 1e-4) side.tankFill = side.cocoaFill;
         if (h.poured >= share - 1e-4) {
           h.carrying = false;
           h.poured = 0;
