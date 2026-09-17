@@ -24,7 +24,8 @@ import type {
 } from '../types';
 import { toDecimal } from './fractionMath';
 import {
-  CARGO_SLOTS, forkliftPalletRoute, forkliftToTruck, handlerToHome, handlerToPallet, handlerToTank,
+  CARGO_SLOTS, forkliftCocoaRoute, forkliftCocoaToTank, patrolMarks,
+  forkliftPalletRoute, forkliftToTruck, handlerToHome, handlerToPallet, handlerToTank,
   sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute,
 } from './factoryLayout';
 import { angleDelta, polylineLength, samplePolyline, smooth, type Vec3 } from '../world/geom';
@@ -74,11 +75,20 @@ const UNLOAD_PAUSE = 0.8;
 export type StepPhase = 'awaiting' | 'running';
 export type Logistics =
   | 'idle' | 'fork_to_pallet' | 'fork_lift' | 'fork_to_truck' | 'fork_unload'
-  | 'fork_return' | 'truck_out' | 'at_customer' | 'truck_back';
+  | 'fork_return' | 'truck_out' | 'at_customer' | 'truck_back'
+  // A big cocoa load is brought over on the forklift instead of by hand.
+  | 'cocoa_to_stack' | 'cocoa_lift' | 'cocoa_to_tank' | 'cocoa_pour' | 'cocoa_return';
+
+/** Anything above this much of a tank is too heavy to carry by hand. */
+export const FORKLIFT_LOAD_THRESHOLD = 0.5;
 
 interface Mover {
   pos: Vec3; heading: number; task: string; path: Vec3[]; travel: number;
   carrying: boolean; phase: number;
+  /** True on any frame this person actually covered ground (drives the walk cycle). */
+  moving: boolean;
+  /** Which end of their patrol they are heading for while unoccupied. */
+  patrolLeg: number;
   /** How much of this sack has already gone into the tank. */
   poured: number;
 }
@@ -99,6 +109,10 @@ export interface SideSim {
 
   // ── quantities, each one set by the fraction answered at that step ──
   cocoaFill: number;
+  /** True when this batch's cocoa was heavy enough to need the forklift. */
+  cocoaByForklift: boolean;
+  /** What the forklift is carrying, for the renderer. */
+  forkliftLoad: 'none' | 'cocoa' | 'boxes';
   mixAmount: number;
   moldCount: number;
   barCount: number;
@@ -155,7 +169,7 @@ let handlers: FactoryHandlers = {};
 export function setFactoryHandlers(h: FactoryHandlers) { handlers = h; }
 
 function mover(home: Vec3): Mover {
-  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6, poured: 0 };
+  return { pos: { ...home }, heading: 0, task: 'idle', path: [], travel: 0, carrying: false, phase: Math.random() * 6, poured: 0, moving: false, patrolLeg: 0 };
 }
 
 function makeSide(team: TeamId): SideSim {
@@ -164,7 +178,7 @@ function makeSide(team: TeamId): SideSim {
     team,
     cycle: 0, stepIndex: 0, phase: 'awaiting', stepT: 0, stepStartAt: 0,
     order: null, attemptUsed: 1, lastCorrect: true, wrongFlashT: 0,
-    cocoaFill: 0, mixAmount: 0, moldCount: 0, barCount: 0, boxCount: 0,
+    cocoaFill: 0, cocoaByForklift: false, forkliftLoad: 'none', mixAmount: 0, moldCount: 0, barCount: 0, boxCount: 0,
     tankFill: 0, mixerSpin: 0, moldFill: 0, coolT: 0, cutT: 0, packT: 0, tipPour: 0,
     stepQuality: [], quality: 92, wasteUnits: 0, reworkCount: 0,
     logistics: 'idle', boxesOnPallet: 0, boxesInTruck: 0, forkLift: 0.2,
@@ -232,13 +246,24 @@ export function submitAnswer(
 
   const step = STEPS[side.stepIndex];
   switch (step) {
-    case 'ingredients':
+    case 'ingredients': {
       side.cocoaFill = Math.min(1, value);
       side.tankFill = 0;
       side.tipPour = 0;
-      dispatchHandlers(side);
+      // A small load the crew can carry; a big one needs the forklift.
+      side.cocoaByForklift = side.cocoaFill >= FORKLIFT_LOAD_THRESHOLD;
+      if (side.cocoaByForklift) {
+        side.logistics = 'cocoa_to_stack';
+        side.forklift.task = 'to_cocoa';
+        side.forklift.path = forkliftCocoaRoute(side.team, side.forklift.pos);
+        side.forklift.travel = 0;
+        emit(side, 'forklift_beep');
+      } else {
+        dispatchHandlers(side);
+      }
       emit(side, 'valve_open');
       break;
+    }
     case 'mixing':
       side.mixAmount = Math.min(1, value);
       side.mixerSpin = 0;
@@ -363,6 +388,8 @@ function follow(mv: Mover, speed: number, dt: number): boolean {
   const next = mv.travel + speed * dt;
   const r = samplePolyline(mv.path, next, 0);
   mv.travel = Math.min(next, polylineLength(mv.path));
+  const moved = Math.hypot(r.pos.x - mv.pos.x, r.pos.z - mv.pos.z);
+  mv.moving = moved > 1e-4;
   mv.pos = r.pos;
   mv.heading += angleDelta(mv.heading, r.heading) * (1 - Math.exp(-7 * dt));
   return r.done;
@@ -377,13 +404,8 @@ function stepHandlers(side: SideSim, dt: number) {
     switch (h.task) {
       case 'idle':
       case 'ambient': {
-        // Stationed at their ingredient prep workstations (pallet stack & measuring intake)
-        const s = sideOf(side.team);
-        const home = s.handlerHome[i % 2];
-        h.pos = { ...home };
-        h.heading = headingTowards(h.pos, i === 0 ? s.palletStack : s.measuringTank);
-        h.path = [];
-        h.travel = 0;
+        // Never frozen: between batches they pace their corner of the store.
+        patrolStep(side.team, h, sideOf(side.team).handlerHome[i % 2], WALK_SPEED * 0.42, dt);
         break;
       }
       case 'to_pallet': {
@@ -432,6 +454,21 @@ function stepHandlers(side: SideSim, dt: number) {
   });
 }
 
+/**
+ * Walks a crew member back and forth between two marks near their station, so
+ * the factory floor always has people moving on it rather than statues.
+ */
+function patrolStep(team: TeamId, m: Mover, home: Vec3, speed: number, dt: number) {
+  const marks = patrolMarks(team, home);
+  if (!m.path.length || m.travel >= polylineLength(m.path) - 0.02) {
+    const target = marks[m.patrolLeg % 2];
+    m.patrolLeg = (m.patrolLeg + 1) % 2;
+    m.path = [m.pos, target];
+    m.travel = 0;
+  }
+  follow(m, speed, dt);
+}
+
 function headingTowards(from: Vec3, to: Vec3) {
   return Math.atan2(-(to.x - from.x), -(to.z - from.z));
 }
@@ -441,22 +478,27 @@ function headingTowards(from: Vec3, to: Vec3) {
 function stepStationCrew(side: SideSim, dt: number) {
   const step = STEPS[side.stepIndex];
   const running = side.phase === 'running';
-  side.operator.phase += dt * (running ? 2.5 : 1.2);
-  side.inspector.phase += dt * (running ? 2.5 : 1.2);
-  side.packer.phase += dt * (running ? 2.5 : 1.2);
-
-  // Each of them shifts around their station dynamically so the floor looks alive.
-  const bob = (m: Mover, base: Vec3, amount: number, rate: number) => {
-    m.pos = {
-      x: base.x + Math.sin(m.phase * rate) * amount,
-      y: 0,
-      z: base.z + Math.cos(m.phase * rate * 0.7) * amount * 0.6,
-    };
-  };
   const s = sideOf(side.team);
-  bob(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding') ? 0.6 : 0.25, 1.8);
-  bob(side.inspector, s.inspectorHome, running && step === 'cooling' ? 0.65 : 0.25, 1.6);
-  bob(side.packer, s.packerHome, running && step === 'packaging' ? 0.6 : 0.25, 2.0);
+  side.operator.phase += dt;
+  side.inspector.phase += dt;
+  side.packer.phase += dt;
+
+  // While their own step runs they hold their post and work it; the rest of
+  // the time they walk their patrol, so nobody is ever standing frozen.
+  const hold = (m: Mover, post: Vec3, atWork: boolean) => {
+    if (atWork) {
+      m.path = [];
+      m.travel = 0;
+      m.moving = false;
+      m.pos = { x: post.x, y: 0, z: post.z };
+      return;
+    }
+    patrolStep(side.team, m, post, WALK_SPEED * 0.4, dt);
+  };
+
+  hold(side.operator, s.operatorHome, running && (step === 'mixing' || step === 'molding'));
+  hold(side.inspector, s.inspectorHome, running && step === 'cooling');
+  hold(side.packer, s.packerHome, running && step === 'packaging');
 }
 
 // ── LOGISTICS: forklift pallet run, then the truck ──────────────────────
@@ -483,6 +525,62 @@ function stepLogistics(side: SideSim, dt: number) {
       break;
     }
 
+    case 'cocoa_to_stack': {
+      if (follow(f, FORK_SPEED, dt)) {
+        side.logistics = 'cocoa_lift';
+        f.task = 'lifting';
+        side.forkLift = 0.2;
+      }
+      break;
+    }
+
+    case 'cocoa_lift': {
+      side.forkLift = Math.min(1.0, side.forkLift + dt * 1.3);
+      if (side.forkLift >= 0.95) {
+        f.carrying = true;
+        side.forkliftLoad = 'cocoa';
+        side.logistics = 'cocoa_to_tank';
+        f.task = 'hauling';
+        f.path = forkliftCocoaToTank(side.team, f.pos);
+        f.travel = 0;
+      }
+      break;
+    }
+
+    case 'cocoa_to_tank': {
+      if (follow(f, FORK_SPEED * 0.85, dt)) {
+        side.logistics = 'cocoa_pour';
+        f.task = 'pouring';
+        t.pauseT = 0;
+      }
+      break;
+    }
+
+    case 'cocoa_pour': {
+      // Forks raise over the tank mouth and the whole pallet goes in.
+      t.pauseT += dt;
+      side.forkLift = Math.min(1.9, side.forkLift + dt * 0.7);
+      side.tipPour = 1;
+      side.tankFill = Math.min(side.cocoaFill, side.tankFill + (side.cocoaFill / 2.4) * dt);
+      if (side.cocoaFill - side.tankFill < 1e-4) side.tankFill = side.cocoaFill;
+      if (side.tankFill >= side.cocoaFill - 1e-4) {
+        side.tipPour = 0;
+        f.carrying = false;
+        side.forkliftLoad = 'none';
+        side.forkLift = 0.2;
+        side.logistics = 'cocoa_return';
+        f.task = 'returning';
+        f.path = [f.pos, sideOf(side.team).forkliftHome];
+        f.travel = 0;
+      }
+      break;
+    }
+
+    case 'cocoa_return': {
+      if (follow(f, FORK_SPEED, dt)) { f.task = 'idle'; side.logistics = 'idle'; }
+      break;
+    }
+
     case 'fork_to_pallet': {
       if (follow(f, FORK_SPEED, dt)) {
         side.logistics = 'fork_lift';
@@ -497,6 +595,7 @@ function stepLogistics(side: SideSim, dt: number) {
       side.forkLift = Math.min(1.1, side.forkLift + dt * 2.4);
       if (side.forkLift >= 1.05) {
         f.carrying = true;
+        side.forkliftLoad = 'boxes';
         side.logistics = 'fork_to_truck';
         f.task = 'hauling';
         f.path = forkliftToTruck(side.team, f.pos);
@@ -524,6 +623,7 @@ function stepLogistics(side: SideSim, dt: number) {
       }
       if (t.pauseT > side.boxCount * 0.16 + 0.25) {
         f.carrying = false;
+        side.forkliftLoad = 'none';
         side.boxesOnPallet = 0;
         side.forkLift = 0.2;
         side.logistics = 'fork_return';

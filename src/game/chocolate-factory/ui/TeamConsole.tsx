@@ -47,6 +47,12 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   truck_out: 'TRUCK OUT FOR DELIVERY',
   at_customer: 'DELIVERING TO THE CUSTOMER',
   truck_back: 'TRUCK RETURNING',
+  // A heavy cocoa load comes over on the forklift instead of by hand.
+  cocoa_to_stack: 'FORKLIFT FETCHING THE COCOA PALLET',
+  cocoa_lift: 'LIFTING THE COCOA PALLET',
+  cocoa_to_tank: 'CARRYING COCOA TO THE TANK',
+  cocoa_pour: 'TIPPING THE PALLET INTO THE TANK',
+  cocoa_return: 'FORKLIFT RETURNING',
 };
 
 interface Live {

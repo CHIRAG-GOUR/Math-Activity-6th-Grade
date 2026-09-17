@@ -64,7 +64,9 @@ const BLUE: SideLayout = {
   operatorHome: v(-24.5, 0, -7.5),
   inspectorHome: v(-24.5, 0, 21.5),
   loaderHome: v(-10.5, 0, 28),
-  tipPoint: v(-19.5, 0, -15.6),
+  // In FRONT of the tank (nearer the camera) so the pour is never hidden
+  // behind the tank body from the playing view.
+  tipPoint: v(-19.5, 0, -10.2),
   handlerHome: [v(-25.5, 0, -18), v(-23, 0, -20.5)],
   packerHome: v(-23.5, 0, 26.5),
   palletOut: v(-14.5, 0, 29.5),
@@ -197,6 +199,28 @@ export function handlerToHome(team: TeamId, from: Vec3, index: number): Vec3[] {
   const sign = sideSign(team);
   const home = s.handlerHome[index % 2];
   return [from, v(s.palletStack.x + sign * 2.2, 0, (from.z + home.z) / 2), home];
+}
+
+/** Forklift: home -> the cocoa pallet stack (for a big ingredient load). */
+export function forkliftCocoaRoute(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  const stand = v(s.palletStack.x + sign * 2.6, 0, s.palletStack.z + 1.2);
+  return [from, v(stand.x, 0, stand.z - 3), stand];
+}
+
+/** Forklift: the loaded pallet -> alongside the measuring tank to tip it in. */
+export function forkliftCocoaToTank(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  const stand = v(s.measuringTank.x + sign * 3.6, 0, s.tipPoint.z + 0.6);
+  return [from, v(stand.x + sign * 1.5, 0, (from.z + stand.z) / 2), stand];
+}
+
+/** Two marks a crew member paces between when their step is not running. */
+export function patrolMarks(team: TeamId, home: Vec3): [Vec3, Vec3] {
+  const sign = sideSign(team);
+  return [home, v(home.x + sign * 2.4, 0, home.z + 1.8)];
 }
 
 /** Forklift: packaging pallet of boxes -> alongside the truck bed -> back. */
