@@ -83,7 +83,7 @@ export const PercentageHarvestGame: React.FC = () => {
       <FarmScene3D />
 
       {/* ── TOP HEADER & FLOATING MATH CHALLENGE BANNER ── */}
-      <FarmHeader />
+      <FarmHeader activeMobileTab={isMobile ? mobileTab : undefined} />
 
       {/* ── CENTER AREA: DUAL FARM STATIONS (LEFT & RIGHT) ── */}
       <main className="relative flex-1 w-full max-w-[1920px] mx-auto px-4 flex items-center justify-between pointer-events-none z-20">

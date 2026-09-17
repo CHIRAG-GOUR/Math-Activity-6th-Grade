@@ -18,7 +18,11 @@ import {
 import { useFarmStore } from '../store/farmStore';
 import { formatCurrency } from '../engine/percentageMath';
 
-export const FarmHeader: React.FC = () => {
+interface FarmHeaderProps {
+  activeMobileTab?: 'blue' | 'red';
+}
+
+export const FarmHeader: React.FC<FarmHeaderProps> = ({ activeMobileTab }) => {
   const router = useRouter();
   const muted = useFarmStore((s) => s.muted);
   const toggleMute = useFarmStore((s) => s.toggleMute);
@@ -41,7 +45,15 @@ export const FarmHeader: React.FC = () => {
   const matchQuestionCount = useFarmStore((s) => s.matchQuestionCount);
   const setMatchQuestionCount = useFarmStore((s) => s.setMatchQuestionCount);
 
-  const activeQuestion = blue.currentQuestion || red.currentQuestion;
+  // If mobile tab is explicitly chosen, use that team's question; otherwise follow the active advancing team
+  const activeQuestion = activeMobileTab === 'red'
+    ? red.currentQuestion
+    : activeMobileTab === 'blue'
+    ? blue.currentQuestion
+    : blue.currentRound >= red.currentRound
+    ? blue.currentQuestion
+    : red.currentQuestion;
+
   const currentRound = Math.max(blue.currentRound, red.currentRound);
   const totalQ = matchQuestionCount;
   const stageIdx = Math.min(5, Math.floor(((currentRound - 1) / totalQ) * 5) + 1);

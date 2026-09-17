@@ -141,9 +141,19 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
             isBlue ? 'bg-blue-600' : 'bg-red-600'
           }`}
         >
-          <div className="flex items-center gap-1.5">
-            <Wheat className="w-3.5 h-3.5" />
-            <span>{isBlue ? 'BLUE FARM' : 'RED FARM'} — Question {team.currentRound}/{matchQuestionCount}</span>
+          <div className="flex items-center gap-1.5 min-w-0 truncate">
+            <Wheat className="w-3.5 h-3.5 shrink-0" />
+            <span className="truncate">{isBlue ? 'BLUE FARM' : 'RED FARM'} — Question {team.currentRound}/{matchQuestionCount}</span>
+          </div>
+        </div>
+
+        {/* ── QUESTION PROMPT & SCENARIO CARD ── */}
+        <div className="p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 shadow-2xs">
+          <div className="text-[10px] font-bold text-slate-500 leading-tight">
+            {q.scenario}
+          </div>
+          <div className="text-xs sm:text-[12.5px] font-black text-slate-900 leading-snug tracking-tight mt-0.5">
+            {q.prompt}
           </div>
         </div>
 
@@ -152,8 +162,8 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
 
         {/* ── ANSWER & ACTION BUTTON ── */}
         <div className="flex flex-col gap-1.5">
-          {/* Multiple choice options selector */}
-          {q.mode !== 'grid100' && (
+          {/* Multiple choice options selector (always available for easy clicking) */}
+          {q.options && q.options.length > 0 && (
             <div className="grid grid-cols-4 gap-1">
               {q.options.map((opt, idx) => {
                 const isSelected = String(team.selectedAnswer) === String(opt);
