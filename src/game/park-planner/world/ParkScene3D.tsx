@@ -205,6 +205,10 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
             onPointClick={onCoordinateClick}
             gateOpenAngle={qb?.gateOpenAngle || 0}
             fountainActive={qb?.fountainActive || false}
+            q1Built={qb?.q1Built || false}
+            q2Built={qb?.q2Built || false}
+            q3Built={qb?.q3Built || false}
+            q4Built={qb?.q4Built || false}
           />
 
           {/* 3. QUADRANT I: CHILDREN'S PLAYGROUND (+x, +y -> world [+6, 0, -6]) */}

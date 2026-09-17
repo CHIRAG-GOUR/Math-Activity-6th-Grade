@@ -135,8 +135,9 @@ export const CUSTOMER_ZONES: Record<CustomerType, { pos: Vec3; label: string }> 
 export const BOULEVARD_Z = 44;
 
 /**
- * Dock -> gate -> out onto the boulevard -> along it -> turn in at the
- * customer. Every leg is a real drive; nothing is teleported.
+ * Gate -> out onto the boulevard -> along it -> turn in at the customer.
+ * The truck already sits facing the gate (see `truckHome`), so this whole
+ * route runs in one direction — no reversing, no turning on the spot.
  */
 export function truckRoute(team: TeamId, customer: CustomerType): Vec3[] {
   const s = sideOf(team);
@@ -144,7 +145,6 @@ export function truckRoute(team: TeamId, customer: CustomerType): Vec3[] {
   const approach = v(dest.x, 0, dest.z - 7);
   return [
     s.truckHome,
-    s.loadingDock,
     s.truckExitGate,
     v(s.truckExitGate.x, 0, BOULEVARD_Z),
     v(dest.x, 0, BOULEVARD_Z),
@@ -160,8 +160,25 @@ export function truckReturnRoute(team: TeamId, customer: CustomerType): Vec3[] {
     v(dest.x, 0, BOULEVARD_Z),
     v(s.truckExitGate.x, 0, BOULEVARD_Z),
     s.truckExitGate,
-    s.loadingDock,
     s.truckHome,
+  ];
+}
+
+/**
+ * The victory lap: straight out the gate, onto the boulevard, and away down
+ * the highway toward the horizon — no customer, no way back. The last leg
+ * angles further out so the truck visibly recedes into the distance rather
+ * than just stopping on the road.
+ */
+export function victoryRoute(team: TeamId): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  return [
+    s.truckHome,
+    s.truckExitGate,
+    v(s.truckExitGate.x, 0, BOULEVARD_Z),
+    v(sign * 74, 0, BOULEVARD_Z + 3),
+    v(sign * 105, 0, BOULEVARD_Z + 26),
   ];
 }
 

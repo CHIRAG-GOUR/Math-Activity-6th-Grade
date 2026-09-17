@@ -33,7 +33,7 @@ import { toDecimal } from './fractionMath';
 import {
   CARGO_SLOTS, forkliftCocoaRoute, forkliftCocoaToTank, forkliftHomeRoute,
   forkliftPalletRoute, forkliftToTruck,
-  sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute,
+  sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute, victoryRoute,
 } from './factoryLayout';
 import {
   assignTasks, hasTask, isOnProduction, makeTask, makeWorker, stepWorker,
@@ -105,6 +105,8 @@ export type StepPhase = 'awaiting' | 'running';
 export type Logistics =
   | 'idle' | 'fork_to_pallet' | 'fork_lift' | 'fork_to_truck' | 'fork_unload'
   | 'fork_return' | 'truck_out' | 'at_customer' | 'truck_back'
+  // The winner's truck has driven off down the highway — the shift is over.
+  | 'victory_departed'
   // A big cocoa load is brought over on the forklift instead of by hand.
   | 'cocoa_to_stack' | 'cocoa_lift' | 'cocoa_to_tank' | 'cocoa_pour' | 'cocoa_return'
   // A small load of boxes goes out on the hauler's cart.
@@ -209,6 +211,8 @@ export interface FactoryHandlers {
   onStepReady?: (team: TeamId) => void;
   /** A full five-step order was delivered to its customer. */
   onCycleDelivered?: (team: TeamId, order: CustomerOrder, satisfaction: number) => void;
+  /** The winner's truck has driven all the way out and off down the highway. */
+  onVictoryComplete?: (team: TeamId) => void;
 }
 let handlers: FactoryHandlers = {};
 export function setFactoryHandlers(h: FactoryHandlers) { handlers = h; }
@@ -236,7 +240,9 @@ function makeSide(team: TeamId): SideSim {
     tankFill: 0, mixerSpin: 0, moldFill: 0, coolT: 0, cutT: 0, packT: 0, tipPour: 0,
     stepQuality: [], quality: 92, wasteUnits: 0, reworkCount: 0,
     logistics: 'idle', logisticsSince: 0, boxesOnPallet: 0, boxesInTruck: 0, forkLift: 0.2,
-    truck: { ...mover(s.truckHome), customer: null, pauseT: 0 },
+    // Parked already facing the exit gate, so a departure pulls straight out
+    // instead of turning on the spot.
+    truck: { ...mover(s.truckHome), heading: headingTo(s.truckHome, s.truckExitGate), customer: null, pauseT: 0 },
     forklift: mover(s.forkliftHome),
     cart: { pos: { x: bay.x, y: 0, z: bay.z + 1.2 }, heading: Math.PI, boxes: 0 },
     crew: [loaderA, loaderB, operator, inspector, packer, hauler],
@@ -509,8 +515,8 @@ function foreman(side: SideSim) {
 }
 
 /** After boxing: the cart for a small load, the forklift for a big one. */
-function beginLoading(side: SideSim) {
-  if (side.boxCount <= 2) {
+function beginLoading(side: SideSim, forceCart = false) {
+  if (forceCart || side.boxCount <= 2) {
     setLogistics(side, 'cart_to_stack');
     const tasks: CrewTask[] = [];
     if (!side.hauler.pushingCart) tasks.push(makeTask('FETCH_CART', 'CART_BAY', { anim: 'pickup', production: true }));
@@ -890,6 +896,12 @@ function stepLogistics(side: SideSim, dt: number) {
     // ── the truck ──
     case 'truck_out': {
       if (follow(t, TRUCK_SPEED, dt)) {
+        if (side.celebrating) {
+          // The victory lap has nowhere further to go — it just made it.
+          setLogistics(side, 'victory_departed');
+          handlers.onVictoryComplete?.(side.team);
+          break;
+        }
         t.pauseT = 0;
         setLogistics(side, 'at_customer');
         emit(side, 'truck_arrive');
@@ -897,6 +909,8 @@ function stepLogistics(side: SideSim, dt: number) {
       }
       break;
     }
+    case 'victory_departed':
+      break;
     case 'at_customer': {
       t.pauseT += dt;
       if (t.pauseT > UNLOAD_PAUSE) {
@@ -910,6 +924,8 @@ function stepLogistics(side: SideSim, dt: number) {
     case 'truck_back': {
       if (follow(t, TRUCK_SPEED, dt)) {
         t.customer = null;
+        // Re-park facing out, ready for the next order's straight departure.
+        t.heading = headingTo(sideOf(side.team).truckHome, sideOf(side.team).truckExitGate);
         setLogistics(side, 'idle');
         // Ready for the next level's first question.
         side.cycle++;
@@ -931,6 +947,19 @@ function startDelivery(side: SideSim) {
   if (side.logistics === 'truck_out') return;
   // Any cart work still queued for this load is finished.
   side.hauler.queue = side.hauler.queue.filter((q) => q.type === 'RETURN_CART');
+
+  if (side.celebrating) {
+    // The victory lap: straight out the gate and off down the highway —
+    // no customer to stop at, no trip back.
+    side.truck.customer = null;
+    side.truck.path = victoryRoute(side.team);
+    side.truck.travel = 0;
+    setLogistics(side, 'truck_out');
+    side.cyclesDone++;
+    emit(side, 'truck_depart');
+    return;
+  }
+
   const order = side.order;
   const customer: CustomerType = order?.customer ?? 'shop';
   side.truck.customer = customer;
@@ -972,17 +1001,23 @@ function resolveDelivery(side: SideSim) {
 
 export function setCelebrating(team: TeamId, on: boolean) { sim[team].celebrating = on; }
 
-/** Sends the winner's truck out on a victory delivery, loaded with its boxes. */
+/**
+ * The winning factory's last job: box up a small victory load, have the crew
+ * physically load it (cart or forklift, exactly like any other delivery),
+ * then send the truck straight out the gate and off down the highway. No
+ * customer stop, no trip back — `onVictoryComplete` fires once it's gone.
+ */
 export function victoryRun(team: TeamId) {
   const side = sim[team];
+  if (side.celebrating) return;
   side.celebrating = true;
-  if (side.logistics !== 'idle') return;
-  side.boxesInTruck = Math.min(CARGO_SLOTS.length, Math.max(4, side.boxCount || 4));
-  side.truck.customer = side.order?.customer ?? 'festival';
-  side.truck.path = truckRoute(team, side.truck.customer);
-  side.truck.travel = 0;
-  setLogistics(side, 'truck_out');
-  emit(side, 'truck_depart');
+  side.boxCount = 3;
+  side.boxesOnPallet = 3;
+  side.boxesInTruck = 0;
+  side.forkliftLoad = 'none';
+  side.packT = 1;
+  emit(side, 'box_seal');
+  beginLoading(side);
 }
 
 // ── QUERIES ──────────────────────────────────────────────────────────────

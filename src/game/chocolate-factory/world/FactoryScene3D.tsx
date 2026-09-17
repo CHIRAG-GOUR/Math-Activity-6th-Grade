@@ -68,7 +68,23 @@ const EASE_IN_RATE = 3.2;
 const EASE_OUT_RATE = 1.3;
 
 type ShotKind = 'ingredients' | 'mixing' | 'molding' | 'cooling' | 'packaging' | 'loading';
-interface CamShot { team: TeamId; pos: THREE.Vector3; look: THREE.Vector3; }
+interface CamShot { team: TeamId; pos: THREE.Vector3; look: THREE.Vector3; chase?: boolean; }
+
+/** How long the chase-cam keeps renewing itself while the victory truck is
+ *  still actually driving — a rolling window, not a fixed hold. */
+const CHASE_RENEW = 2;
+
+/** Trails behind the winner's truck as it pulls out and heads for the
+ *  highway — recomputed every frame from the truck's own live heading. */
+function chaseShot(team: TeamId): CamShot {
+  const t = sim[team].truck;
+  const back = { x: Math.sin(t.heading) * 11, z: Math.cos(t.heading) * 11 };
+  return {
+    team, chase: true,
+    pos: new THREE.Vector3(t.pos.x + back.x, 4.6, t.pos.z + back.z),
+    look: new THREE.Vector3(t.pos.x, 1.6, t.pos.z),
+  };
+}
 
 function anchorFor(team: TeamId, kind: ShotKind): { x: number; z: number } {
   const s = sideOf(team);
@@ -140,6 +156,14 @@ const CameraDirector: React.FC = () => {
         offer(team, 'loading', now);
       }
       prevLog.current[team] = log;
+
+      // The winner's victory lap is the whole point of the finale — it takes
+      // the spotlight outright and keeps it for as long as the truck is
+      // actually moving, however long that ends up taking.
+      if (side.celebrating && log === 'truck_out') {
+        current.current = { shot: chaseShot(team), until: now + CHASE_RENEW };
+        queued.current = null;
+      }
     }
 
     // Advance the queue once the current close-up has had its time.

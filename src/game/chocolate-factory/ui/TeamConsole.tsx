@@ -58,6 +58,7 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   cart_loading: 'LOADING BOXES ONTO THE CART',
   cart_to_truck: 'PUSHING THE CART TO THE TRUCK',
   truck_loading: 'LOADING BOXES INTO THE TRUCK',
+  victory_departed: 'DELIVERY COMPLETED • VICTORY!',
 };
 
 const PLACE: Partial<Record<StationId, string>> = {

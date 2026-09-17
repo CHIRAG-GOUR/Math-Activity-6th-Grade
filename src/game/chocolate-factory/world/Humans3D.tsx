@@ -186,10 +186,15 @@ export const ArticulatedHuman3D: React.FC<HumanoidRigProps> = ({
           break;
         }
         case 'load': {
-          // Lift a box and swing it across into the bed / onto the cart.
-          const c = Math.sin(t * 11.4);
-          ls = [-1.2 - 0.45 * c, 0.3, 0.2]; rs = [-1.2 - 0.45 * c, -0.3, -0.2];
-          le = 0.7; re = 0.7; torso = 0.18 + 0.25 * (0.5 + 0.5 * c); hx = 0.3; hy = 0;
+          // A steady two-handed lift-and-set: both arms rise together with a
+          // box, and the elbows bend FURTHER as the shoulders raise, so the
+          // forearms keep tracking toward the chest instead of the box
+          // reading as glued to a stiff, backward-bent wrist at the top of
+          // the lift.
+          const lift = 0.5 + 0.5 * Math.sin(t * 4.2); // 0..1, an unhurried cycle
+          ls = [-1.1 - 0.3 * lift, 0.22, 0.14]; rs = [-1.1 - 0.3 * lift, -0.22, -0.14];
+          le = 0.55 + 0.35 * lift; re = 0.55 + 0.35 * lift;
+          torso = 0.14 + 0.16 * lift; hx = 0.3; hy = 0;
           break;
         }
         case 'push':

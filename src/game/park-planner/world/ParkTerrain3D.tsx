@@ -12,6 +12,10 @@ interface ParkTerrain3DProps {
   onPointClick?: (coord: Coordinate2D) => void;
   gateOpenAngle?: number;
   fountainActive?: boolean;
+  q1Built?: boolean;
+  q2Built?: boolean;
+  q3Built?: boolean;
+  q4Built?: boolean;
 }
 
 export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
@@ -21,6 +25,10 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
   onPointClick,
   gateOpenAngle = 0,
   fountainActive = false,
+  q1Built = false,
+  q2Built = false,
+  q3Built = false,
+  q4Built = false,
 }) => {
   const parkInnerSize = (GRID_EXTENT * 2 + 0.6) * UNIT_SIZE; // 25.44m inner park
   const cycleTrackRadius = UNIT_SIZE * 5.4; // 12.96m
@@ -429,28 +437,36 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       })}
 
       {/* ============================================================ */}
-      {/* 9. QUADRANT EDUCATIONAL TITLES */}
+      {/* 9. QUADRANT EDUCATIONAL TITLES (Removed one by one as built) */}
       {/* ============================================================ */}
-      <Html position={[UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
-        <div className="text-emerald-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-emerald-400 shadow-md select-none pointer-events-none">
-          Quadrant I (+, +) • Active Playground
-        </div>
-      </Html>
-      <Html position={[-UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
-        <div className="text-teal-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-teal-400 shadow-md select-none pointer-events-none">
-          Quadrant II (-, +) • Botanical Gardens
-        </div>
-      </Html>
-      <Html position={[-UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
-        <div className="text-blue-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-blue-400 shadow-md select-none pointer-events-none">
-          Quadrant III (-, -) • Sports Complex
-        </div>
-      </Html>
-      <Html position={[UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
-        <div className="text-amber-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-amber-400 shadow-md select-none pointer-events-none">
-          Quadrant IV (+, -) • Picnic Grove
-        </div>
-      </Html>
+      {!q1Built && (
+        <Html position={[UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
+          <div className="text-emerald-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-emerald-400 shadow-md select-none pointer-events-none">
+            Quadrant I (+, +) • Active Playground
+          </div>
+        </Html>
+      )}
+      {!q2Built && (
+        <Html position={[-UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
+          <div className="text-teal-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-teal-400 shadow-md select-none pointer-events-none">
+            Quadrant II (-, +) • Botanical Gardens
+          </div>
+        </Html>
+      )}
+      {!q3Built && (
+        <Html position={[-UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
+          <div className="text-blue-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-blue-400 shadow-md select-none pointer-events-none">
+            Quadrant III (-, -) • Sports Complex
+          </div>
+        </Html>
+      )}
+      {!q4Built && (
+        <Html position={[UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
+          <div className="text-amber-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-amber-400 shadow-md select-none pointer-events-none">
+            Quadrant IV (+, -) • Picnic Grove
+          </div>
+        </Html>
+      )}
 
       {/* ============================================================ */}
       {/* 10. INTERACTIVE COORDINATE CLICK NODES */}

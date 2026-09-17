@@ -139,8 +139,12 @@ export const ChocolateFactoryGame: React.FC = () => {
       <main className="relative flex-1 min-h-0">
         <FactoryScene3D />
 
-        {/* ── PERMANENT DUAL OPERATOR CONSOLES ── */}
-        {isMobileViewport ? (
+        {/* ── PERMANENT DUAL OPERATOR CONSOLES ──
+            "Permanent" until the finale: once a winner is decided the panels
+            step aside for the few seconds it takes the winning truck to box
+            up, pull out and clear the gate, so the victory lap fills the
+            screen. They're back the moment the result card appears. */}
+        {phase !== 'grand_finale' && (isMobileViewport ? (
           /* Mobile / Small Screen: Single active studio with quick team switcher */
           <div className="fixed z-30 bottom-2 left-2 right-2 max-w-lg mx-auto pointer-events-auto flex flex-col gap-1.5">
             {/* Mobile Team Toggle Bar */}
@@ -184,7 +188,7 @@ export const ChocolateFactoryGame: React.FC = () => {
               <TeamConsole team="red" />
             </div>
           </>
-        )}
+        ))}
 
         <FactoryOverlays />
         {showNpcDebug && <CrewDebugPanel />}

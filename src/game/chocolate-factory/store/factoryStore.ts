@@ -128,6 +128,8 @@ function makeStepOrder(team: TeamId, cycle: number, step: number): CustomerOrder
 }
 
 let handlersBound = false;
+/** Guards the finale sequence against firing twice once a winner is picked. */
+let winnerDecided = false;
 
 export const useFactoryStore = create<FactoryStore>((set, get) => {
   /** Hands the team the question for whatever step its factory is now on. */
@@ -161,9 +163,15 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     } as Partial<FactoryStore>));
   };
 
+  /**
+   * The finale is a short cinematic, not an instant cut: panels come down,
+   * the winner's crew boxes up one last load, the truck pulls straight out
+   * and drives off down the highway — THEN the result card appears. A tie
+   * has no truck to send, so it settles for a shorter beat of its own.
+   */
   const maybeFinish = () => {
     const s = get();
-    if (s.phase === 'final_results') return;
+    if (winnerDecided || s.phase === 'final_results') return;
     const done = (team: TeamId) => sim[team].cycle >= TOTAL_CYCLES;
     if (!done('blue') || !done('red')) return;
     if (!isTeamQuiet('blue') || !isTeamQuiet('red')) {
@@ -171,17 +179,23 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
       setTimeout(maybeFinish, 900);
       return;
     }
+    winnerDecided = true;
     const blueScore = scoreOf(s.blue);
     const redScore = scoreOf(s.red);
     const winner: TeamId | 'tie' = blueScore === redScore ? 'tie' : blueScore > redScore ? 'blue' : 'red';
-    // The factory that ran best sends its truck out on the victory delivery.
-    if (winner !== 'tie') victoryRun(winner);
     set((st) => ({
-      phase: 'final_results',
+      phase: 'grand_finale',
       winner,
       blue: { ...st.blue, score: blueScore },
       red: { ...st.red, score: redScore },
     }));
+    if (winner === 'tie') {
+      setTimeout(() => set({ phase: 'final_results' }), 1400);
+    } else {
+      // The factory that ran best sends its truck out on the victory
+      // delivery; the result card waits for onVictoryComplete below.
+      victoryRun(winner);
+    }
   };
 
   const bindHandlers = () => {
@@ -189,6 +203,10 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     handlersBound = true;
     setFactoryHandlers({
       onStepReady: (team) => issueQuestion(team),
+      onVictoryComplete: () => {
+        // Hold on the highway a beat before the result card comes up.
+        setTimeout(() => set({ phase: 'final_results' }), 3500);
+      },
       onCycleDelivered: (team) => {
         const side = sim[team];
         set((s) => {
@@ -228,6 +246,7 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     startGame: () => {
       resetSim();
       bindHandlers();
+      winnerDecided = false;
       set({ phase: 'operating', winner: null, blue: makeTeam('blue'), red: makeTeam('red') });
       issueQuestion('blue');
       issueQuestion('red');
@@ -287,6 +306,7 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     resetGame: () => {
       resetSim();
       bindHandlers();
+      winnerDecided = false;
       set({ phase: 'intro', winner: null, blue: makeTeam('blue'), red: makeTeam('red') });
       issueQuestion('blue');
       issueQuestion('red');
