@@ -41,7 +41,7 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
   const stageIdx = Math.min(5, Math.floor(((team.currentRound - 1) / matchQuestionCount) * 5) + 1);
 
   return (
-    <aside className="w-[330px] sm:w-[370px] md:w-[420px] lg:w-[460px] xl:w-[500px] 2xl:w-[540px] max-w-full max-h-[calc(100vh-130px)] overflow-y-auto flex flex-col gap-2.5 sm:gap-3 select-none pointer-events-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <aside className="w-[320px] sm:w-[360px] md:w-[400px] lg:w-[440px] xl:w-[480px] 2xl:w-[510px] max-w-full max-h-[calc(100vh-140px)] overflow-y-auto flex flex-col gap-2 sm:gap-2.5 select-none pointer-events-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden mb-1">
       {/* ─────────────────────────────────────────────────────────────
           1. TOP MINI CARD: LIGHT-COLORED FARM STATUS
           ───────────────────────────────────────────────────────────── */}

@@ -86,8 +86,8 @@ export const PercentageHarvestGame: React.FC = () => {
       {/* ── TOP HEADER & FLOATING MATH CHALLENGE BANNER ── */}
       <FarmHeader activeMobileTab={isMobile ? mobileTab : undefined} />
 
-      {/* ── CENTER AREA: DUAL FARM STATIONS (LEFT & RIGHT) ── */}
-      <main className="relative flex-1 w-full max-w-[2400px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between pointer-events-none z-20">
+      {/* ── LOWER CORNER AREA: DUAL FARM STATIONS (LEFT & RIGHT) ── */}
+      <main className="relative flex-1 w-full max-w-[2560px] mx-auto px-3 sm:px-5 md:px-7 lg:px-9 xl:px-12 pb-2 sm:pb-3 md:pb-4 flex items-end justify-between pointer-events-none z-20">
         {/* Mobile Viewport Team Switcher (< 1080px) */}
         {isMobile && (
           <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 flex p-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-white/20 shadow-xl pointer-events-auto">
