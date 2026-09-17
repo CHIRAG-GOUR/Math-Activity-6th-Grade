@@ -78,8 +78,8 @@ const createInitialTeamState = (teamId: TeamId, firstQuestion: PercentageQuestio
   totalProfit: 0,
 });
 
-const initialBlueQuestions = getMatchQuestions(5, 0);
-const initialRedQuestions = getMatchQuestions(5, 1);
+const initialBlueQuestions = getMatchQuestions(5, Math.floor(Math.random() * 10000));
+const initialRedQuestions = getMatchQuestions(5, Math.floor(Math.random() * 10000) + 1);
 
 export const useFarmStore = create<FarmStoreState>((set, get) => ({
   blue: createInitialTeamState('blue', initialBlueQuestions[0]),
@@ -96,8 +96,8 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
   showVictory: false,
 
   setMatchQuestionCount: (count: 5 | 10 | 15) => {
-    const newBlue = getMatchQuestions(count, 0);
-    const newRed = getMatchQuestions(count, 1);
+    const newBlue = getMatchQuestions(count, Math.floor(Math.random() * 10000));
+    const newRed = getMatchQuestions(count, Math.floor(Math.random() * 10000) + 1);
     farmSim.reset();
     set({
       matchQuestionCount: count,
@@ -454,8 +454,8 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
 
   resetMatch: () => {
     const totalQ = get().matchQuestionCount;
-    const newBlueQ = getMatchQuestions(totalQ, Math.floor(Math.random() * 5));
-    const newRedQ = getMatchQuestions(totalQ, Math.floor(Math.random() * 5) + 5);
+    const newBlueQ = getMatchQuestions(totalQ, Math.floor(Math.random() * 10000));
+    const newRedQ = getMatchQuestions(totalQ, Math.floor(Math.random() * 10000) + 1);
     farmSim.reset();
     set({
       blue: createInitialTeamState('blue', newBlueQ[0]),

@@ -49,6 +49,7 @@ export const PercentageHarvestGame: React.FC = () => {
   }, []);
 
   useEffect(() => {
+    useFarmStore.getState().resetMatch();
     farmAudio.startAmbience();
     farmAudio.startBgm();
 

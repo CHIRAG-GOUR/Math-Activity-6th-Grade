@@ -39,7 +39,10 @@ export type QuestionCategory =
   | 'multi_step'
   | 'fraction_decimal'
   | 'ratio_comparison'
-  | 'profit_discount';
+  | 'profit_discount'
+  | 'part_whole'
+  | 'conversion'
+  | 'discount';
 
 export interface PercentageQuestion {
   id: string;
