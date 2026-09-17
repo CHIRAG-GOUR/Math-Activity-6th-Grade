@@ -186,20 +186,20 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
           <div className="flex items-center gap-1.5">
             <div className="flex-1 px-2.5 py-1.5 rounded-xl bg-slate-100 border border-slate-300 text-center font-mono font-black text-sm sm:text-base text-slate-900">
               {team.selectedAnswer !== null && team.selectedAnswer !== undefined
-                ? team.selectedAnswer
+                ? `${team.selectedAnswer} ${q.unit && q.mode !== 'grid100' ? q.unit : ''}`
                 : '—'}
             </div>
 
             {!team.hasAnsweredCurrent ? (
               <button
                 type="button"
-                disabled={team.selectedAnswer === null || team.selectedAnswer === undefined}
+                disabled={team.selectedAnswer === null && team.selectedCells.filter(Boolean).length === 0}
                 onClick={() => {
                   farmAudio.unlock();
                   submitAnswer(teamId);
                 }}
                 className={`flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-sm active:scale-95 transition cursor-pointer ${
-                  team.selectedAnswer !== null && team.selectedAnswer !== undefined
+                  team.selectedAnswer !== null || team.selectedCells.filter(Boolean).length > 0
                     ? 'bg-gradient-to-r from-emerald-500 to-green-500 hover:from-emerald-400 hover:to-green-400 text-white shadow-emerald-500/30'
                     : 'bg-slate-200 text-slate-400 cursor-not-allowed'
                 }`}

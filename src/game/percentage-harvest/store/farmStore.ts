@@ -125,10 +125,22 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
     set((state) => {
       const team = state[teamId];
       if (team.hasAnsweredCurrent) return state;
+      const q = team.currentQuestion;
+
+      let newCells = team.selectedCells;
+      if (q && typeof answer === 'number' && q.baseQuantity && q.baseQuantity > 0) {
+        // Auto-paint grid to match selected quantity percentage
+        const pct = Math.max(0, Math.min(100, Math.round((answer / q.baseQuantity) * 100)));
+        newCells = new Array(100).fill(false).map((_, i) => i < pct);
+      } else if (q && q.targetPercentage && String(answer) === String(q.targetPercentage)) {
+        newCells = new Array(100).fill(false).map((_, i) => i < q.targetPercentage);
+      }
+
       return {
         [teamId]: {
           ...team,
           selectedAnswer: answer,
+          selectedCells: newCells,
         },
       };
     });
@@ -141,11 +153,17 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
       const newCells = [...team.selectedCells];
       newCells[cellIndex] = !newCells[cellIndex];
       const count = newCells.filter(Boolean).length;
+      const q = team.currentQuestion;
+      const baseQty = q?.baseQuantity || 100;
+      const calculatedAnswer = (q?.mode === 'grid100' || q?.unit === '%')
+        ? count
+        : Math.round((count / 100) * baseQty);
+
       return {
         [teamId]: {
           ...team,
           selectedCells: newCells,
-          selectedAnswer: count, // Grid count directly maps to percentage
+          selectedAnswer: calculatedAnswer,
         },
       };
     });
@@ -159,11 +177,17 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
       const newCells = [...team.selectedCells];
       newCells[cellIndex] = value;
       const count = newCells.filter(Boolean).length;
+      const q = team.currentQuestion;
+      const baseQty = q?.baseQuantity || 100;
+      const calculatedAnswer = (q?.mode === 'grid100' || q?.unit === '%')
+        ? count
+        : Math.round((count / 100) * baseQty);
+
       return {
         [teamId]: {
           ...team,
           selectedCells: newCells,
-          selectedAnswer: count,
+          selectedAnswer: calculatedAnswer,
         },
       };
     });
@@ -175,11 +199,17 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
       if (team.hasAnsweredCurrent) return state;
       const clamped = Math.max(0, Math.min(100, Math.round(percent)));
       const newCells = new Array(100).fill(false).map((_, i) => i < clamped);
+      const q = team.currentQuestion;
+      const baseQty = q?.baseQuantity || 100;
+      const calculatedAnswer = (q?.mode === 'grid100' || q?.unit === '%')
+        ? clamped
+        : Math.round((clamped / 100) * baseQty);
+
       return {
         [teamId]: {
           ...team,
           selectedCells: newCells,
-          selectedAnswer: clamped,
+          selectedAnswer: calculatedAnswer,
         },
       };
     });
@@ -193,7 +223,7 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
         [teamId]: {
           ...team,
           selectedCells: new Array(100).fill(false),
-          selectedAnswer: 0,
+          selectedAnswer: null,
         },
       };
     });
@@ -206,9 +236,34 @@ export const useFarmStore = create<FarmStoreState>((set, get) => ({
     if (!q || team.hasAnsweredCurrent) return;
 
     const userAnswer = team.selectedAnswer;
-    if (userAnswer === null || userAnswer === undefined) return;
+    const selectedCellCount = team.selectedCells.filter(Boolean).length;
+    const baseQty = q.baseQuantity || 100;
+    const gridCalculatedQty = Math.round((selectedCellCount / 100) * baseQty);
 
-    const isCorrect = String(userAnswer).trim() === String(q.correctAnswer).trim();
+    if (userAnswer === null && selectedCellCount === 0) return;
+
+    // Comprehensive mathematical equivalence check
+    let isCorrect = false;
+    if (userAnswer !== null && userAnswer !== undefined) {
+      if (String(userAnswer).trim() === String(q.correctAnswer).trim()) {
+        isCorrect = true;
+      } else if (typeof q.correctAnswer === 'number' && Number(userAnswer) === Number(q.correctAnswer)) {
+        isCorrect = true;
+      } else if (typeof q.targetPercentage === 'number' && Number(userAnswer) === Number(q.targetPercentage)) {
+        isCorrect = true;
+      }
+    }
+
+    if (!isCorrect && selectedCellCount > 0) {
+      if (typeof q.correctAnswer === 'number' && gridCalculatedQty === Number(q.correctAnswer)) {
+        isCorrect = true;
+      } else if (selectedCellCount === Number(q.targetPercentage)) {
+        isCorrect = true;
+      } else if (selectedCellCount === Number(q.correctAnswer)) {
+        isCorrect = true;
+      }
+    }
+
     const cropCfg = CROP_CATALOG[q.cropType];
     const totalQ = state.matchQuestionCount;
     const stageIndex = Math.min(5, Math.floor(((team.currentRound - 1) / totalQ) * 5) + 1);
