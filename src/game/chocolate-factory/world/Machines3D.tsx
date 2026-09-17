@@ -485,10 +485,29 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
   return (
     <group>
       <group position={[p.x, 0, p.z]}>
-        {/* machine body */}
-        <mesh geometry={GEO.box} material={MAT.steelLight} position={[0, 1.4, 0]} scale={[4.6, 2.8, 3.8]} castShadow receiveShadow />
+        {/* mechanism deck — motor and gearing, stays solid */}
+        <mesh geometry={GEO.box} material={MAT.steelDark} position={[0, 0.5, 0]} scale={[4.6, 1.0, 3.8]} castShadow receiveShadow />
+        {/* corner posts holding up the glazed cabin */}
+        {[[-2.24, -1.84], [2.24, -1.84], [-2.24, 1.84], [2.24, 1.84]].map(([x, z], i) => (
+          <mesh key={i} geometry={GEO.box} material={MAT.steel} position={[x, 1.9, z]} scale={[0.14, 1.8, 0.14]} castShadow />
+        ))}
+        {/* glazed cabin — the wrap-and-seal is meant to be watched, so every
+            wall above the mechanism deck is glass, not just a peep-window. */}
+        <mesh geometry={GEO.box} material={MAT.glass} position={[sign * 2.26, 1.9, 0]} scale={[0.1, 1.7, 3.5]} />
+        <mesh geometry={GEO.box} material={MAT.glass} position={[0, 1.9, -1.72]} scale={[4.3, 1.7, 0.1]} />
+        <mesh geometry={GEO.box} material={MAT.glass} position={[0, 1.9, 1.72]} scale={[4.3, 1.7, 0.1]} />
+        <mesh geometry={GEO.box} material={MAT.glass} position={[0, 2.76, 0]} scale={[4.4, 0.12, 3.6]} />
+        {/* the packer's side: glazed above and below, but a real gap at hand
+            height — he reaches INTO the machine through an actual opening
+            instead of his arms clipping through a solid wall. */}
+        <mesh geometry={GEO.box} material={MAT.glass} position={[-sign * 2.26, 2.38, 0]} scale={[0.1, 0.62, 3.5]} />
+        <mesh geometry={GEO.box} material={MAT.glass} position={[-sign * 2.26, 1.05, 0]} scale={[0.1, 0.3, 3.5]} />
+        <mesh geometry={GEO.box} material={MAT.steel} position={[-sign * 2.3, 1.22, 0]} scale={[0.16, 0.05, 1.5]} />
+        <mesh geometry={GEO.box} material={MAT.steel} position={[-sign * 2.3, 2.07, 0]} scale={[0.16, 0.05, 1.5]} />
+        {[-0.68, 0.68].map((zz) => (
+          <mesh key={zz} geometry={GEO.box} material={MAT.steel} position={[-sign * 2.3, 1.64, zz]} scale={[0.16, 0.9, 0.05]} />
+        ))}
         <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 2.85, 0]} scale={[4.7, 0.2, 3.9]} />
-        <mesh geometry={GEO.box} material={MAT.glass} position={[sign * 2.32, 1.6, 0]} scale={[0.08, 1.5, 2.6]} />
         {/* internal belt carrying bars under the wrap arm */}
         <mesh geometry={GEO.box} material={MAT.steelDark} position={[0, 1.12, 0]} scale={[1.7, 0.3, 3.6]} />
         <mesh geometry={GEO.box} material={MAT.belt} position={[0, 1.3, 0]} scale={[1.4, 0.08, 3.6]} receiveShadow />
