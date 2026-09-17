@@ -46,25 +46,69 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* 1. SURROUNDING CITY STREET / ROAD */}
       {/* ============================================================ */}
       <mesh receiveShadow position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[roadSize, roadSize]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.9} />
+        <planeGeometry args={[75, 75]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.9} />
       </mesh>
 
-      {/* Road White Dash Markings */}
-      {[-roadSize * 0.42, roadSize * 0.42].map((offset, idx) => (
-        <React.Fragment key={`road_lines_${idx}`}>
-          {/* North/South Roads */}
-          <mesh position={[0, -0.04, offset]}>
-            <boxGeometry args={[roadSize - 2, 0.01, 0.15]} />
+      {/* Surrounding City Sidewalks underneath Buildings */}
+      {/* North Sidewalk */}
+      <mesh receiveShadow position={[0, -0.02, -24]}>
+        <boxGeometry args={[72, 0.08, 12]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+      {/* South Sidewalk */}
+      <mesh receiveShadow position={[0, -0.02, 24]}>
+        <boxGeometry args={[72, 0.08, 12]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+      {/* West Sidewalk */}
+      <mesh receiveShadow position={[-24, -0.02, 0]}>
+        <boxGeometry args={[12, 0.08, 36]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+      {/* East Sidewalk */}
+      <mesh receiveShadow position={[24, -0.02, 0]}>
+        <boxGeometry args={[12, 0.08, 36]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+
+      {/* 4 Pedestrian Zebra Crossings connecting City Sidewalk to Park Gates */}
+      {/* North Gate Crosswalk */}
+      <group position={[0, -0.03, -16.5]}>
+        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
+          <mesh key={`crosswalk_n_${ci}`} position={[cx, 0, 0]}>
+            <boxGeometry args={[0.4, 0.01, 2.2]} />
             <meshBasicMaterial color="#ffffff" />
           </mesh>
-          {/* East/West Roads */}
-          <mesh position={[offset, -0.04, 0]}>
-            <boxGeometry args={[0.15, 0.01, roadSize - 2]} />
+        ))}
+      </group>
+      {/* South Gate Crosswalk */}
+      <group position={[0, -0.03, 16.5]}>
+        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
+          <mesh key={`crosswalk_s_${ci}`} position={[cx, 0, 0]}>
+            <boxGeometry args={[0.4, 0.01, 2.2]} />
             <meshBasicMaterial color="#ffffff" />
           </mesh>
-        </React.Fragment>
-      ))}
+        ))}
+      </group>
+      {/* East Gate Crosswalk */}
+      <group position={[16.5, -0.03, 0]} rotation={[0, Math.PI / 2, 0]}>
+        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
+          <mesh key={`crosswalk_e_${ci}`} position={[cx, 0, 0]}>
+            <boxGeometry args={[0.4, 0.01, 2.2]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+        ))}
+      </group>
+      {/* West Gate Crosswalk */}
+      <group position={[-16.5, -0.03, 0]} rotation={[0, Math.PI / 2, 0]}>
+        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
+          <mesh key={`crosswalk_w_${ci}`} position={[cx, 0, 0]}>
+            <boxGeometry args={[0.4, 0.01, 2.2]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+        ))}
+      </group>
 
       {/* ============================================================ */}
       {/* 2. OUTER SIDEWALK / PEDESTRIAN FOOTPATH */}
