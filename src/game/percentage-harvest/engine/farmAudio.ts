@@ -31,6 +31,13 @@ class FarmAudioEngine {
   private tractorLfo: OscillatorNode | null = null;
   private isTractorRunning = false;
 
+  // Delivery truck driving nodes
+  private truckGain: GainNode | null = null;
+  private truckOsc1: OscillatorNode | null = null;
+  private truckOsc2: OscillatorNode | null = null;
+  private truckNoise: AudioBufferSourceNode | null = null;
+  private isTruckRunning = false;
+
   // Ambient animal & nature loop timer
   private ambientInterval: any = null;
 
@@ -741,6 +748,156 @@ class FarmAudioEngine {
     });
   }
 
+  /** Air brake release hiss ("Psssshh-t") */
+  public playAirBrakeHiss() {
+    if (this.muted) return;
+    this.initContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    const now = this.ctx.currentTime;
+    const dur = 0.35;
+    const bufferSize = Math.floor(this.ctx.sampleRate * dur);
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+    const noise = this.ctx.createBufferSource();
+    noise.buffer = buffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(3200, now);
+    filter.frequency.exponentialRampToValueAtTime(1400, now + dur);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.18, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    noise.start(now);
+    noise.stop(now + dur + 0.02);
+  }
+
+  /** Continuous Truck Driving Sound (Heavy Diesel V8 Rumble + Turbo + Road Tread) */
+  public playTruckDrive(active: boolean) {
+    if (this.muted) {
+      this.stopTruckDrive();
+      return;
+    }
+    this.initContext();
+    if (!this.ctx || !this.sfxGain) return;
+
+    if (active && !this.isTruckRunning) {
+      this.isTruckRunning = true;
+      const now = this.ctx.currentTime;
+
+      // Air brake release hiss on departure
+      this.playAirBrakeHiss();
+
+      // 1. Heavy Diesel Engine V8 rumble (twin detuned oscillators)
+      this.truckOsc1 = this.ctx.createOscillator();
+      this.truckOsc1.type = 'sawtooth';
+      this.truckOsc1.frequency.setValueAtTime(58, now);
+      this.truckOsc1.frequency.linearRampToValueAtTime(96, now + 1.5);
+      this.truckOsc1.frequency.linearRampToValueAtTime(76, now + 3.0);
+
+      this.truckOsc2 = this.ctx.createOscillator();
+      this.truckOsc2.type = 'triangle';
+      this.truckOsc2.frequency.setValueAtTime(116, now);
+      this.truckOsc2.frequency.linearRampToValueAtTime(192, now + 1.5);
+      this.truckOsc2.frequency.linearRampToValueAtTime(152, now + 3.0);
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(280, now);
+      filter.frequency.linearRampToValueAtTime(520, now + 1.5);
+
+      // 2. Rolling tire road surface noise
+      const buffer = this.ctx.createBuffer(1, Math.floor(this.ctx.sampleRate * 2.0), this.ctx.sampleRate);
+      const data = buffer.getChannelData(0);
+      for (let j = 0; j < data.length; j++) data[j] = Math.random() * 2 - 1;
+
+      this.truckNoise = this.ctx.createBufferSource();
+      this.truckNoise.buffer = buffer;
+      this.truckNoise.loop = true;
+
+      const noiseFilter = this.ctx.createBiquadFilter();
+      noiseFilter.type = 'bandpass';
+      noiseFilter.frequency.setValueAtTime(750, now);
+      noiseFilter.Q.setValueAtTime(1.8, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.06, now);
+
+      // 3. High turbocharger whistle
+      const turboOsc = this.ctx.createOscillator();
+      turboOsc.type = 'sine';
+      turboOsc.frequency.setValueAtTime(1600, now);
+      turboOsc.frequency.linearRampToValueAtTime(2400, now + 1.5);
+      turboOsc.frequency.linearRampToValueAtTime(1800, now + 3.0);
+
+      const turboGain = this.ctx.createGain();
+      turboGain.gain.setValueAtTime(0.02, now);
+
+      this.truckGain = this.ctx.createGain();
+      this.truckGain.gain.setValueAtTime(0, now);
+      this.truckGain.gain.linearRampToValueAtTime(0.18, now + 0.25);
+
+      this.truckOsc1.connect(filter);
+      this.truckOsc2.connect(filter);
+      filter.connect(this.truckGain);
+
+      this.truckNoise.connect(noiseFilter);
+      noiseFilter.connect(noiseGain);
+      noiseGain.connect(this.truckGain);
+
+      turboOsc.connect(turboGain);
+      turboGain.connect(this.truckGain);
+
+      this.truckGain.connect(this.sfxGain);
+
+      this.truckOsc1.start(now);
+      this.truckOsc2.start(now);
+      this.truckNoise.start(now);
+      turboOsc.start(now);
+
+      // Store turbo on osc reference for cleanup
+      (this.truckGain as any).turboOsc = turboOsc;
+    } else if (!active && this.isTruckRunning) {
+      this.stopTruckDrive();
+    }
+  }
+
+  private stopTruckDrive() {
+    if (this.truckGain && this.ctx) {
+      const now = this.ctx.currentTime;
+      this.truckGain.gain.linearRampToValueAtTime(0.001, now + 0.35);
+      const turbo = (this.truckGain as any)?.turboOsc;
+      setTimeout(() => {
+        try {
+          this.truckOsc1?.stop();
+          this.truckOsc2?.stop();
+          this.truckNoise?.stop();
+          turbo?.stop();
+          this.truckOsc1?.disconnect();
+          this.truckOsc2?.disconnect();
+          this.truckNoise?.disconnect();
+          turbo?.disconnect();
+        } catch (e) {}
+        this.truckOsc1 = null;
+        this.truckOsc2 = null;
+        this.truckNoise = null;
+        this.truckGain = null;
+        this.isTruckRunning = false;
+      }, 400);
+    } else {
+      this.isTruckRunning = false;
+    }
+  }
+
   /** Delivery Truck Diesel Engine Acceleration Roar */
   public playTruckDelivery() {
     if (this.muted) return;
@@ -748,33 +905,9 @@ class FarmAudioEngine {
     if (!this.ctx || !this.sfxGain) return;
 
     this.playTruckHorn();
-
-    const now = this.ctx.currentTime;
-    const dur = 2.2;
-
-    const osc = this.ctx.createOscillator();
-    osc.type = 'sawtooth';
-    osc.frequency.setValueAtTime(65, now);
-    osc.frequency.linearRampToValueAtTime(110, now + 1.2);
-    osc.frequency.linearRampToValueAtTime(80, now + dur);
-
-    const filter = this.ctx.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(220, now);
-    filter.frequency.linearRampToValueAtTime(380, now + 1.2);
-
-    const gain = this.ctx.createGain();
-    gain.gain.setValueAtTime(0.02, now);
-    gain.gain.linearRampToValueAtTime(0.14, now + 0.4);
-    gain.gain.setValueAtTime(0.12, now + 1.4);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + dur);
-
-    osc.connect(filter);
-    filter.connect(gain);
-    gain.connect(this.sfxGain);
-
-    osc.start(now);
-    osc.stop(now + dur + 0.05);
+    this.playAirBrakeHiss();
+    this.playTruckDrive(true);
+    setTimeout(() => this.playTruckDrive(false), 3500);
   }
 
   /** Tractor Diesel Engine Idle & Driving */

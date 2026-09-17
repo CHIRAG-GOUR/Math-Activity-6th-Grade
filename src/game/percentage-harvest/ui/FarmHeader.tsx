@@ -172,25 +172,25 @@ export const FarmHeader: React.FC = () => {
 
       {/* ── FLOATING OVERHEAD MATH CHALLENGE BANNER ── */}
       {activeQuestion && (
-        <div className="mt-2 flex items-center justify-between gap-4 px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 border-2 border-sky-500/50 text-white shadow-2xl max-w-2xl pointer-events-auto backdrop-blur-md">
+        <div className="mt-2 flex items-center justify-between gap-3 sm:gap-4 px-3 sm:px-4 py-2 rounded-2xl bg-gradient-to-r from-blue-950 via-slate-900 to-blue-950 border-2 border-sky-500/50 text-white shadow-2xl max-w-2xl w-full pointer-events-auto backdrop-blur-md">
           {/* Green Plant Icon Square */}
-          <div className="w-10 h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 border border-emerald-300 flex items-center justify-center shadow-md">
-            <Sprout className="w-6 h-6 text-white" />
+          <div className="w-9 h-9 sm:w-10 sm:h-10 shrink-0 rounded-xl bg-gradient-to-br from-emerald-500 to-green-600 border border-emerald-300 flex items-center justify-center shadow-md">
+            <Sprout className="w-5 h-5 sm:w-6 sm:h-6 text-white" />
           </div>
 
           {/* Math Scenario & Prompt */}
           <div className="flex-1 min-w-0 text-left">
-            <div className="text-[11px] font-semibold text-slate-300 leading-tight">
+            <div className="text-[10px] sm:text-[11px] font-semibold text-slate-300 leading-tight truncate">
               {activeQuestion.scenario}
             </div>
-            <div className="text-xs sm:text-sm font-black text-white leading-snug tracking-tight">
+            <div className="text-xs sm:text-sm font-black text-white leading-snug tracking-tight line-clamp-2">
               {activeQuestion.prompt}
             </div>
           </div>
 
           {/* Mini 10x10 Yellow Field Preview Diagram */}
-          <div className="flex items-center gap-2.5 pl-3 border-l border-white/20 shrink-0">
-            <div className="w-8 h-8 rounded grid grid-cols-5 gap-0.5 p-0.5 bg-slate-800 border border-slate-600">
+          <div className="flex items-center gap-2 pl-2.5 sm:pl-3 border-l border-white/20 shrink-0">
+            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded grid grid-cols-5 gap-0.5 p-0.5 bg-slate-800 border border-slate-600">
               {new Array(25).fill(0).map((_, i) => (
                 <div
                   key={`mini-dot-${i}`}
@@ -202,8 +202,8 @@ export const FarmHeader: React.FC = () => {
                 />
               ))}
             </div>
-            <div className="text-xs font-black font-mono text-amber-300">
-              {activeQuestion.targetPercentage}% = {activeQuestion.correctAnswer} {activeQuestion.unit}
+            <div className="text-[11px] sm:text-xs font-black font-mono text-amber-300">
+              {activeQuestion.targetPercentage}%
             </div>
           </div>
         </div>

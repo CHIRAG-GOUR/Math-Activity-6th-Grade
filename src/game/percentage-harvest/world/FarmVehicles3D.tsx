@@ -9,6 +9,7 @@ import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import { FarmMaterialsCache } from './FarmMaterials';
 import { farmSim } from '../engine/farmSim';
+import { farmAudio } from '../engine/farmAudio';
 import { TeamId } from '../types';
 
 interface VehicleProps {
@@ -275,6 +276,23 @@ const DeliveryTruckModel: React.FC<VehicleProps> = ({ teamId }) => {
 };
 
 export const FarmVehicles3D: React.FC = () => {
+  useFrame(() => {
+    const isTruckMoving =
+      farmSim.blue.truck.task === 'delivering' ||
+      farmSim.blue.truck.task === 'returning' ||
+      farmSim.red.truck.task === 'delivering' ||
+      farmSim.red.truck.task === 'returning';
+
+    const isTractorMoving =
+      farmSim.blue.vehicle.task === 'planting' ||
+      farmSim.blue.vehicle.task === 'harvesting' ||
+      farmSim.red.vehicle.task === 'planting' ||
+      farmSim.red.vehicle.task === 'harvesting';
+
+    farmAudio.playTruckDrive(isTruckMoving);
+    farmAudio.playTractorEngine(isTractorMoving);
+  });
+
   return (
     <group>
       {/* ── BLUE FARM FLEET (Left) ── */}

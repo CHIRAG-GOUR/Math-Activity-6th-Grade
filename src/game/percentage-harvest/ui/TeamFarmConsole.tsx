@@ -41,89 +41,89 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
   const stageIdx = Math.min(5, Math.floor(((team.currentRound - 1) / matchQuestionCount) * 5) + 1);
 
   return (
-    <aside className="w-[310px] sm:w-[335px] xl:w-[350px] flex flex-col gap-2 overflow-hidden select-none pointer-events-auto">
+    <aside className="w-[290px] sm:w-[320px] md:w-[340px] xl:w-[355px] max-w-full flex flex-col gap-2 overflow-hidden select-none pointer-events-auto">
       {/* ─────────────────────────────────────────────────────────────
           1. TOP MINI CARD: LIGHT-COLORED FARM STATUS
           ───────────────────────────────────────────────────────────── */}
       <div className="rounded-2xl p-2.5 bg-white/95 dark:bg-white/95 shadow-md backdrop-blur-md border-2 border-slate-200 text-slate-800">
         {/* Header */}
         <div className="flex items-center justify-between pb-1.5 border-b border-slate-100">
-          <div className="flex items-center gap-1.5">
-            <div className={`p-1 rounded-lg ${isBlue ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}>
+          <div className="flex items-center gap-1.5 min-w-0">
+            <div className={`p-1 rounded-lg shrink-0 ${isBlue ? 'bg-blue-600 text-white' : 'bg-red-600 text-white'}`}>
               <Sprout className="w-3.5 h-3.5" />
             </div>
-            <span className={`text-xs font-black uppercase tracking-wider ${isBlue ? 'text-blue-700' : 'text-red-700'}`}>
+            <span className={`text-xs font-black uppercase tracking-wider truncate ${isBlue ? 'text-blue-700' : 'text-red-700'}`}>
               {isBlue ? 'BLUE FARM' : 'RED FARM'}
             </span>
           </div>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 shrink-0">
             Farm Status
           </span>
         </div>
 
         {/* 6 Metrics Grid */}
-        <div className="grid grid-cols-2 gap-x-2 gap-y-1 pt-1.5 text-[11px]">
+        <div className="grid grid-cols-2 gap-1.5 pt-1.5 text-[10.5px]">
           {/* Crops Harvested */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <Wheat className="w-3 h-3 text-amber-500" />
-              <span>Harvested</span>
-            </span>
-            <span className="font-mono font-black text-slate-800">
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <Wheat className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+              <span className="truncate text-slate-600 font-semibold">Harvested</span>
+            </div>
+            <span className="font-mono font-black text-slate-800 shrink-0 whitespace-nowrap pl-1">
               {formatWeight(team.totalHarvestKg)}
             </span>
           </div>
 
           {/* Revenue */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <Coins className="w-3 h-3 text-amber-500" />
-              <span>Revenue</span>
-            </span>
-            <span className="font-mono font-black text-amber-600">
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <Coins className="w-3.5 h-3.5 shrink-0 text-amber-500" />
+              <span className="truncate text-slate-600 font-semibold">Revenue</span>
+            </div>
+            <span className="font-mono font-black text-amber-600 shrink-0 whitespace-nowrap pl-1">
               {formatCurrency(team.totalRevenue)}
             </span>
           </div>
 
           {/* Profit */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <TrendingUp className="w-3 h-3 text-emerald-500" />
-              <span>Profit</span>
-            </span>
-            <span className="font-mono font-black text-emerald-600">
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <TrendingUp className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
+              <span className="truncate text-slate-600 font-semibold">Profit</span>
+            </div>
+            <span className="font-mono font-black text-emerald-600 shrink-0 whitespace-nowrap pl-1">
               {formatCurrency(team.totalProfit)}
             </span>
           </div>
 
           {/* Fields Planted */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <Grid3X3 className="w-3 h-3 text-sky-500" />
-              <span>Planted</span>
-            </span>
-            <span className="font-mono font-black text-sky-600">
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <Grid3X3 className="w-3.5 h-3.5 shrink-0 text-sky-500" />
+              <span className="truncate text-slate-600 font-semibold">Planted</span>
+            </div>
+            <span className="font-mono font-black text-sky-600 shrink-0 whitespace-nowrap pl-1">
               {stageIdx * 20}%
             </span>
           </div>
 
           {/* Tractors */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <span>🚜</span>
-              <span>Tractors</span>
-            </span>
-            <span className="font-mono font-black text-slate-800">1 / 2</span>
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <span className="shrink-0 text-xs">🚜</span>
+              <span className="truncate text-slate-600 font-semibold">Tractors</span>
+            </div>
+            <span className="font-mono font-black text-slate-800 shrink-0 whitespace-nowrap pl-1">1 / 2</span>
           </div>
 
           {/* Deliveries */}
-          <div className="flex items-center justify-between">
-            <span className="flex items-center gap-1 text-slate-500 font-medium">
-              <Truck className="w-3 h-3 text-purple-500" />
-              <span>Deliveries</span>
-            </span>
-            <span className="font-mono font-black text-purple-600">
-              {team.deliveriesCount} / {matchQuestionCount}
+          <div className="flex items-center justify-between gap-1 p-1.5 rounded-xl bg-slate-50 border border-slate-200/80 min-w-0 overflow-hidden shadow-2xs">
+            <div className="flex items-center gap-1 min-w-0 truncate">
+              <Truck className="w-3.5 h-3.5 shrink-0 text-purple-500" />
+              <span className="truncate text-slate-600 font-semibold">Deliveries</span>
+            </div>
+            <span className="font-mono font-black text-purple-600 shrink-0 whitespace-nowrap pl-1">
+              {team.deliveriesCount}/{matchQuestionCount}
             </span>
           </div>
         </div>

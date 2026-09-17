@@ -86,13 +86,10 @@ export function formatCurrency(amount: number): string {
   return '₹' + rounded.toLocaleString('en-IN');
 }
 
-/** Formats standard weight in kg or tons */
+/** Formats standard weight cleanly in kg */
 export function formatWeight(kg: number): string {
   const rounded = Math.round(kg);
-  if (rounded >= 1000) {
-    return `${(rounded / 1000).toFixed(1)} tons (${rounded.toLocaleString()} kg)`;
-  }
-  return `${rounded.toLocaleString()} kg`;
+  return `${rounded.toLocaleString('en-IN')} kg`;
 }
 
 /** Calculates percentage of a quantity: (P / 100) * Q */
