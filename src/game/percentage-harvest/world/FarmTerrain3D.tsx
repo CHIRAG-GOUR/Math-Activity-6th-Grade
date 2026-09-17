@@ -17,6 +17,7 @@ export const FarmTerrain3D: React.FC = () => {
   const waterMillWheelRef = useRef<THREE.Group>(null);
   const waterRef = useRef<THREE.Mesh>(null);
   const wellBucketRef = useRef<THREE.Group>(null);
+  const wellWaterRef = useRef<THREE.Group>(null);
 
   useFrame((state, delta) => {
     if (windmillRotor1Ref.current) windmillRotor1Ref.current.rotation.z += delta * 1.5;
@@ -27,6 +28,9 @@ export const FarmTerrain3D: React.FC = () => {
     }
     if (wellBucketRef.current) {
       wellBucketRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 2.0) * 0.04;
+    }
+    if (wellWaterRef.current) {
+      wellWaterRef.current.rotation.z += delta * 0.3;
     }
   });
 
@@ -164,25 +168,29 @@ export const FarmTerrain3D: React.FC = () => {
             <ringGeometry args={[0.85, 1.16, 24]} />
           </mesh>
 
-          {/* ── DEEP HOLLOW WELL SHAFT HOLE GOING DOWN INTO THE EARTH (कुएँ का गहरा भीतरी गड्ढा) ── */}
-          <mesh position={[0, -0.36, 0]} material={mats.darkMud}>
-            <cylinderGeometry args={[0.85, 0.85, 2.48, 24, 1, true]} />
+          {/* ── DEEP HOLLOW WELL SHAFT HOLE (कुएँ का गहरा भीतरी गड्ढा) ── */}
+          {/* Inner Dark Stone Wall Lining from rim down to water level */}
+          <mesh position={[0, 0.64, 0]} material={mats.darkMud}>
+            <cylinderGeometry args={[0.85, 0.85, 0.48, 24, 1, true]} />
           </mesh>
-          {/* Interior Stone Brick Lining Rings down the shaft */}
-          {[-0.1, -0.35, -0.6, -0.85].map((sy, i) => (
-            <mesh key={`inner-shaft-stone-${i}`} position={[0, sy, 0]} material={mats.stoneBridge}>
-              <cylinderGeometry args={[0.845, 0.845, 0.06, 24, 1, true]} />
-            </mesh>
-          ))}
+          <mesh position={[0, 0.64, 0]} material={mats.stoneBridge}>
+            <cylinderGeometry args={[0.845, 0.845, 0.12, 24, 1, true]} />
+          </mesh>
 
-          {/* Deep Dark Reflective Water Surface at Well Bottom */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.95, 0]} material={mats.waterRiver}>
-            <circleGeometry args={[0.84, 24]} />
-          </mesh>
-          {/* Deep Dark Bottom Void */}
-          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.25, 0]} material={mats.darkMud}>
-            <circleGeometry args={[0.84, 24]} />
-          </mesh>
+          {/* ── VIBRANT DEEP CRYSTAL BLUE WELL WATER SURFACE (नीला स्वच्छ जल) ── */}
+          <group ref={wellWaterRef} position={[0, 0.42, 0]}>
+            {/* Deep Blue Water Disk */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={mats.wellWater}>
+              <circleGeometry args={[0.84, 32]} />
+            </mesh>
+            {/* Concentric Light Blue Ripple Rings */}
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
+              <ringGeometry args={[0.25, 0.32, 24]} />
+            </mesh>
+            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
+              <ringGeometry args={[0.55, 0.63, 24]} />
+            </mesh>
+          </group>
 
           {/* Left & Right Vertical Wooden Timber Pillars */}
           {[-0.92, 0.92].map((px) => (
@@ -238,7 +246,7 @@ export const FarmTerrain3D: React.FC = () => {
               <torusGeometry args={[0.13, 0.015, 6, 12, Math.PI]} />
             </mesh>
             {/* Water Inside Bucket */}
-            <mesh position={[0, 0.1, 0]} material={mats.waterRiver}>
+            <mesh position={[0, 0.1, 0]} material={mats.wellWater}>
               <cylinderGeometry args={[0.14, 0.14, 0.02, 12]} />
             </mesh>
           </group>

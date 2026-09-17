@@ -19,6 +19,8 @@ export class FarmMaterialsCache {
   public roadLine: THREE.MeshBasicMaterial;
   public roadCurb: THREE.MeshStandardMaterial;
   public waterRiver: THREE.MeshStandardMaterial;
+  public wellWater: THREE.MeshStandardMaterial;
+  public wellWaterRipple: THREE.MeshStandardMaterial;
   public stoneBridge: THREE.MeshStandardMaterial;
   public riverRock: THREE.MeshStandardMaterial;
 
@@ -141,6 +143,22 @@ export class FarmMaterialsCache {
       metalness: 0.85,
       transparent: true,
       opacity: 0.9,
+    });
+    this.wellWater = new THREE.MeshStandardMaterial({
+      color: 0x0284c7, // Vibrant deep crystal blue well water (not green)
+      roughness: 0.05,
+      metalness: 0.5,
+      emissive: 0x0369a1,
+      emissiveIntensity: 0.35,
+    });
+    this.wellWaterRipple = new THREE.MeshStandardMaterial({
+      color: 0x7dd3fc, // Bright cyan-blue surface ripple highlight
+      roughness: 0.1,
+      metalness: 0.2,
+      emissive: 0x38bdf8,
+      emissiveIntensity: 0.4,
+      transparent: true,
+      opacity: 0.85,
     });
     this.stoneBridge = new THREE.MeshStandardMaterial({
       color: 0x94a3b8, // Classic stone arch bridge
