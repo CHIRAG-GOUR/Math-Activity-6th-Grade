@@ -41,7 +41,7 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
   const stageIdx = Math.min(5, Math.floor(((team.currentRound - 1) / matchQuestionCount) * 5) + 1);
 
   return (
-    <aside className="w-[290px] sm:w-[320px] md:w-[340px] xl:w-[355px] max-w-full flex flex-col gap-2 overflow-hidden select-none pointer-events-auto">
+    <aside className="w-[290px] sm:w-[320px] md:w-[340px] xl:w-[355px] max-w-full max-h-[calc(100vh-80px)] overflow-y-auto flex flex-col gap-2 select-none pointer-events-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {/* ─────────────────────────────────────────────────────────────
           1. TOP MINI CARD: LIGHT-COLORED FARM STATUS
           ───────────────────────────────────────────────────────────── */}
@@ -217,7 +217,7 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
                 <Check className="w-3.5 h-3.5 stroke-[3]" />
                 <span>
                   {stageIdx === 1
-                    ? 'SOW SEED ROWS'
+                    ? 'SOW ROWS'
                     : stageIdx === 2
                     ? 'SPREAD MANURE'
                     : stageIdx === 3
@@ -262,50 +262,6 @@ export const TeamFarmConsole: React.FC<TeamFarmConsoleProps> = ({ teamId }) => {
               <span className="leading-tight">{team.feedbackMessage}</span>
             </div>
           )}
-        </div>
-
-        {/* ── CROP ALLOCATION BREAKDOWN ── */}
-        <div className="flex flex-col gap-1 pt-1 border-t border-slate-100">
-          <span className="text-[10px] font-bold text-slate-500">
-            Crop Allocation:
-          </span>
-
-          <div className="grid grid-cols-5 gap-0.5 text-[9px] font-bold">
-            <div className="p-0.5 rounded bg-amber-50 border border-amber-200 text-center">
-              <div>🌾 Wheat</div>
-              <div className="font-mono font-black text-amber-700">
-                {q.cropType === 'wheat' ? `${q.targetPercentage}%` : '0%'}
-              </div>
-            </div>
-
-            <div className="p-0.5 rounded bg-green-50 border border-green-200 text-center">
-              <div>🌽 Corn</div>
-              <div className="font-mono font-black text-green-700">
-                {q.cropType === 'corn' ? `${q.targetPercentage}%` : '0%'}
-              </div>
-            </div>
-
-            <div className="p-0.5 rounded bg-rose-50 border border-rose-200 text-center">
-              <div>🍅 Tomato</div>
-              <div className="font-mono font-black text-rose-700">
-                {q.cropType === 'tomatoes' ? `${q.targetPercentage}%` : '0%'}
-              </div>
-            </div>
-
-            <div className="p-0.5 rounded bg-emerald-50 border border-emerald-200 text-center">
-              <div>🥦 Veg</div>
-              <div className="font-mono font-black text-emerald-700">
-                {q.cropType === 'vegetables' ? `${q.targetPercentage}%` : '0%'}
-              </div>
-            </div>
-
-            <div className="p-0.5 rounded bg-pink-50 border border-pink-200 text-center">
-              <div>🌸 Flowers</div>
-              <div className="font-mono font-black text-pink-700">
-                {q.cropType === 'sunflowers' ? `${q.targetPercentage}%` : '0%'}
-              </div>
-            </div>
-          </div>
         </div>
       </div>
     </aside>

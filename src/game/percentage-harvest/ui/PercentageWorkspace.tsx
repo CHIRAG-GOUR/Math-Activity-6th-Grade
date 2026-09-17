@@ -1,11 +1,11 @@
 // ============================================================
 // PERCENTAGE HARVEST — INTERACTIVE PERCENTAGE & HECTARE WORKSPACE
-// Continuous Drag-to-Paint & Drag-to-Erase Hectare Grid (Touch/Mouse/Stylus),
-// Live Target / Selected / Remaining Counter & Real-Time Mathematical Conversions
+// Compact 10x10 Drag-to-Paint Grid for Grid Questions
+// + Sleek Visual Percentage & Benchmark Helper for Standard Quiz Questions
 // ============================================================
 
 import React, { useRef, useCallback } from 'react';
-import { CheckCircle2, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, Sparkles, BarChart2 } from 'lucide-react';
 import { useFarmStore } from '../store/farmStore';
 import { TeamId } from '../types';
 import { percentToDecimalStr } from '../engine/percentageMath';
@@ -20,6 +20,7 @@ export const PercentageWorkspace: React.FC<PercentageWorkspaceProps> = ({ teamId
   const setGridCellState = useFarmStore((s) => s.setGridCellState);
   const setQuickGridPercentage = useFarmStore((s) => s.setQuickGridPercentage);
   const clearGrid = useFarmStore((s) => s.clearGrid);
+  const selectAnswer = useFarmStore((s) => s.selectAnswer);
 
   const gridContainerRef = useRef<HTMLDivElement>(null);
   const isDraggingRef = useRef(false);
@@ -40,9 +41,10 @@ export const PercentageWorkspace: React.FC<PercentageWorkspaceProps> = ({ teamId
   const isOverTarget = selectedQty > targetQty;
 
   const isBlue = teamId === 'blue';
+  const isGridMode = q.mode === 'grid100' || q.category === 'grid100';
 
   // ─────────────────────────────────────────────────────────────
-  // CONTINUOUS DRAG-TO-PAINT & DRAG-TO-ERASE HANDLERS
+  // CONTINUOUS DRAG-TO-PAINT & DRAG-TO-ERASE HANDLERS (Grid Mode)
   // ─────────────────────────────────────────────────────────────
   const getCellIndexFromPointer = useCallback((clientX: number, clientY: number): number | null => {
     if (!gridContainerRef.current) return null;
@@ -103,32 +105,93 @@ export const PercentageWorkspace: React.FC<PercentageWorkspaceProps> = ({ teamId
     }
   };
 
+  // ─────────────────────────────────────────────────────────────
+  // 1. STANDARD 6TH GRADE QUIZ MODE (Compact Visual Helper)
+  // ─────────────────────────────────────────────────────────────
+  if (!isGridMode) {
+    return (
+      <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 select-none">
+        {/* Visual Benchmark Bar Header */}
+        <div className="flex items-center justify-between text-[10px] font-bold">
+          <div className="flex items-center gap-1 text-slate-600">
+            <BarChart2 className="w-3.5 h-3.5 text-sky-500 shrink-0" />
+            <span className="uppercase tracking-wider">Percentage Helper</span>
+          </div>
+          <span className="font-mono font-black text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+            Target: {targetPct > 0 ? `${targetPct}%` : `${q.correctAnswer}`}
+          </span>
+        </div>
+
+        {/* Visual 0 - 100% Progress Strip */}
+        <div className="relative w-full h-3 rounded-full bg-slate-200 overflow-hidden border border-slate-300">
+          <div
+            className={`h-full rounded-full transition-all duration-300 ${
+              isBlue ? 'bg-gradient-to-r from-blue-500 to-sky-400' : 'bg-gradient-to-r from-red-500 to-amber-400'
+            }`}
+            style={{ width: `${Math.min(100, targetPct || 50)}%` }}
+          />
+          {/* 25%, 50%, 75% tick marks */}
+          <div className="absolute inset-0 flex justify-between px-1 pointer-events-none text-[7.5px] font-mono font-black text-slate-600">
+            <span>0%</span>
+            <span>25%</span>
+            <span>50%</span>
+            <span>75%</span>
+            <span>100%</span>
+          </div>
+        </div>
+
+        {/* 4 Quick Grade 6 Benchmark Badges */}
+        <div className="grid grid-cols-4 gap-1 pt-0.5 text-[8.5px] font-bold">
+          <div className="p-0.5 text-center rounded bg-white border border-slate-200">
+            <span className="text-slate-500">1/4 = </span>
+            <span className="font-mono font-black text-slate-800">25%</span>
+          </div>
+          <div className="p-0.5 text-center rounded bg-white border border-slate-200">
+            <span className="text-slate-500">1/2 = </span>
+            <span className="font-mono font-black text-slate-800">50%</span>
+          </div>
+          <div className="p-0.5 text-center rounded bg-white border border-slate-200">
+            <span className="text-slate-500">3/4 = </span>
+            <span className="font-mono font-black text-slate-800">75%</span>
+          </div>
+          <div className="p-0.5 text-center rounded bg-white border border-slate-200">
+            <span className="text-slate-500">1/10 = </span>
+            <span className="font-mono font-black text-slate-800">10%</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────
+  // 2. 100-CELL HECTARE GRID WORKSPACE (When Question Asks for Grid Modeling)
+  // ─────────────────────────────────────────────────────────────
   return (
     <div className="flex flex-col gap-1.5 p-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-800 select-none">
       {/* ── WORKSPACE HEADER & LIVE STATUS BADGE ── */}
       <div className="flex items-center justify-between pb-1 border-b border-slate-200">
         <div className="flex items-center gap-1">
-          <span className="text-[11px] font-black uppercase tracking-wider text-slate-700">
-            Hectare Planner
+          <span className="text-[10.5px] font-black uppercase tracking-wider text-slate-700">
+            100-Cell Hectare Grid
           </span>
-          <span className="text-[9px] text-slate-400 font-bold">
+          <span className="text-[8.5px] text-slate-400 font-bold">
             (Drag to Paint)
           </span>
         </div>
 
         {/* Live Target Status Pill */}
         {isExactTarget ? (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 text-[9px] font-black uppercase shadow-xs">
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-300 text-[8.5px] font-black uppercase shadow-xs">
             <CheckCircle2 className="w-2.5 h-2.5" />
             <span>Target ({selectedQty} {q.unit})</span>
           </span>
         ) : isOverTarget ? (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[9px] font-black uppercase">
+          <span className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-800 border border-amber-300 text-[8.5px] font-black uppercase">
             <AlertTriangle className="w-2.5 h-2.5 text-amber-600" />
-            <span>{selectedQty - targetQty} {q.unit} Over</span>
+            <span>{selectedQty - targetQty} Over</span>
           </span>
         ) : (
-          <span className="px-1.5 py-0.5 rounded-full bg-white text-slate-600 border border-slate-300 text-[9px] font-bold">
+          <span className="px-1.5 py-0.5 rounded-full bg-white text-slate-600 border border-slate-300 text-[8.5px] font-bold">
             Need {remainingQty} {q.unit}
           </span>
         )}
@@ -198,37 +261,37 @@ export const PercentageWorkspace: React.FC<PercentageWorkspaceProps> = ({ teamId
         </div>
 
         {/* Right: Live Hectare & Percentage Mathematical Readout */}
-        <div className="flex flex-col gap-1 font-mono text-[11px]">
+        <div className="flex flex-col gap-1 font-mono text-[10px]">
           <div className="flex items-center justify-between pb-0.5 border-b border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 font-sans">Target</span>
+            <span className="text-[9px] font-bold text-slate-500 font-sans">Target</span>
             <span className="font-black text-amber-700">
               {targetQty} {q.unit} ({targetPct}%)
             </span>
           </div>
 
           <div className="flex items-center justify-between pb-0.5 border-b border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 font-sans">Selected</span>
+            <span className="text-[9px] font-bold text-slate-500 font-sans">Selected</span>
             <span className="font-black text-slate-900">
               {selectedQty} / {totalBaseQty} {q.unit}
             </span>
           </div>
 
           <div className="flex items-center justify-between pb-0.5 border-b border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 font-sans">Percentage</span>
+            <span className="text-[9px] font-bold text-slate-500 font-sans">Percentage</span>
             <span className={`font-black ${isExactTarget ? 'text-emerald-600' : 'text-slate-900'}`}>
               {selectedCellCount}%
             </span>
           </div>
 
           <div className="flex items-center justify-between pb-0.5 border-b border-slate-200">
-            <span className="text-[10px] font-bold text-slate-500 font-sans">Fraction</span>
+            <span className="text-[9px] font-bold text-slate-500 font-sans">Fraction</span>
             <span className="font-bold text-slate-700">
               {selectedCellCount}/100
             </span>
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-slate-500 font-sans">Decimal</span>
+            <span className="text-[9px] font-bold text-slate-500 font-sans">Decimal</span>
             <span className="font-bold text-slate-700">
               {percentToDecimalStr(selectedCellCount)}
             </span>

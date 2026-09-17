@@ -54,7 +54,7 @@ export interface PercentageQuestion {
   correctAnswer: number | string;
   options: (number | string)[];
   stepExplanation: string[];
-  mode: 'quantity' | 'grid100' | 'increase_decrease' | 'finding_whole' | 'multi_step';
+  mode: 'quantity' | 'grid100' | 'increase_decrease' | 'finding_whole' | 'multi_step' | 'conversion' | 'part_whole' | 'discount';
   weatherEffect?: WeatherType;
   // Specific params for physical consequence
   physicalOutcome: {

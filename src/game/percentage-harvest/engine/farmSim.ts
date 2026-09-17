@@ -179,13 +179,17 @@ export class FarmSimulation {
     emitSimEvent({ type: 'farmer_sow', teamId, payload: { cropType } });
   }
 
-  /** Fertilizer stage: Farmer spreads granular nutrients across crop rows */
+  /** Fertilizer stage: Tractor & Farmer spread granular nutrients across crop rows */
   public startFertilizerSequence(teamId: TeamId) {
     const sim = teamId === 'blue' ? this.blue : this.red;
     sim.farmer.task = 'fertilizing';
     sim.farmer.progress = 0;
     sim.farmer.isFertilizing = true;
     sim.farmer.isSpraying = false;
+
+    // Dispatch agricultural tractor to drive along field spreading nutrients
+    sim.vehicle.task = 'planting';
+    sim.vehicle.progress = 0;
 
     // Crops grow taller into stage 3 & 4
     sim.cropGrowth = 0.55;

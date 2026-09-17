@@ -1255,18 +1255,12 @@ class FarmAudioEngine {
     if (this.ambientInterval) clearInterval(this.ambientInterval);
     this.ambientInterval = setInterval(() => {
       if (!this.muted) {
-        const rand = Math.random();
-        if (rand < 0.35) {
+        // Only gentle wild sky meadow bird chirping in peaceful background BGM
+        if (Math.random() < 0.4) {
           this.playBirdChirp();
-        } else if (rand < 0.48) {
-          this.playChickenCluck();
-        } else if (rand < 0.60) {
-          this.playGoatBleat();
-        } else if (rand < 0.72) {
-          this.playCowMoo();
         }
       }
-    }, 5500);
+    }, 7000);
   }
 
   public onSimEvent(event: SimEvent) {
@@ -1274,9 +1268,13 @@ class FarmAudioEngine {
       case 'farmer_sow':
       case 'tractor_plant':
         this.playSowingSeeds();
+        this.playTractorEngine(true);
+        setTimeout(() => this.playTractorEngine(false), 4000);
         break;
       case 'fertilizer_spread':
         this.playManureScatter();
+        this.playTractorEngine(true);
+        setTimeout(() => this.playTractorEngine(false), 4500);
         break;
       case 'pesticide_spray':
         this.playKnapsackSpray();
