@@ -11,6 +11,7 @@ import {
   InstalledParkObject,
   Coordinate2D,
   SimEvent,
+  QuadrantBuildProgress,
 } from '../types';
 import { generateParkQuestions } from '../data/questions';
 import {
@@ -48,6 +49,28 @@ export interface ParkStoreState {
   setTeamPreview: (teamId: TeamId) => void;
 }
 
+function createInitialQuadrantBuild(): QuadrantBuildProgress {
+  return {
+    q1Building: false,
+    q1Built: false,
+    q1Progress: 0,
+    q2Building: false,
+    q2Built: false,
+    q2Progress: 0,
+    q3Building: false,
+    q3Built: false,
+    q3Progress: 0,
+    q4Building: false,
+    q4Built: false,
+    q4Progress: 0,
+    fountainActive: false,
+    gateUnlocked: false,
+    gateOpenAngle: 0,
+    grandOpeningActive: false,
+    grandOpeningTimer: 0,
+  };
+}
+
 function createInitialTeamState(teamId: TeamId, teamName: string, firstQuestion: ParkQuestion): TeamParkState {
   return {
     teamId,
@@ -62,6 +85,7 @@ function createInitialTeamState(teamId: TeamId, teamName: string, firstQuestion:
     isCurrentCorrect: null,
     feedbackMessage: null,
     installedObjects: [],
+    quadrantBuild: createInitialQuadrantBuild(),
     citizenHappiness: 20,
     parkRating: 1,
     totalPointsPlaced: 0,
@@ -242,6 +266,28 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
           updatedObjects.push(newObject);
         }
 
+        // Trigger Quadrant Build State progression based on round number
+        const updatedQuadrantBuild: QuadrantBuildProgress = { ...team.quadrantBuild };
+        if (team.currentRound === 1) {
+          updatedQuadrantBuild.q1Building = true;
+          updatedQuadrantBuild.q1Progress = 0;
+        } else if (team.currentRound === 2) {
+          updatedQuadrantBuild.q2Building = true;
+          updatedQuadrantBuild.q2Progress = 0;
+        } else if (team.currentRound === 3) {
+          updatedQuadrantBuild.q3Building = true;
+          updatedQuadrantBuild.q3Progress = 0;
+        } else if (team.currentRound === 4) {
+          updatedQuadrantBuild.q4Building = true;
+          updatedQuadrantBuild.q4Progress = 0;
+          updatedQuadrantBuild.fountainActive = true;
+        } else if (team.currentRound === 5) {
+          updatedQuadrantBuild.gateUnlocked = true;
+          updatedQuadrantBuild.grandOpeningActive = true;
+          updatedQuadrantBuild.grandOpeningTimer = 15;
+          parkAudio.playVictoryFanfare();
+        }
+
         const newHappiness = Math.min(100, team.citizenHappiness + q.physicalOutcome.happinessGain);
         const newRating = Number((1 + (newHappiness / 100) * 4).toFixed(1));
         const totalAnswered = team.totalAnswered + 1;
@@ -254,6 +300,7 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
             isCurrentCorrect: true,
             feedbackMessage: `Correct! ${q.physicalOutcome.description}`,
             installedObjects: updatedObjects,
+            quadrantBuild: updatedQuadrantBuild,
             citizenHappiness: newHappiness,
             parkRating: newRating,
             totalPointsPlaced: team.totalPointsPlaced + (q.targetPoints ? q.targetPoints.length : 1),
@@ -335,6 +382,72 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
     tickTransformProgress: (delta: number) => {
       set((state) => {
         let changed = false;
+
+        const updateQuadrantBuild = (qb: QuadrantBuildProgress): QuadrantBuildProgress => {
+          const updated = { ...qb };
+          // 8-10s construction duration: rate = delta / 8.5
+          const buildRate = delta / 8.5;
+
+          if (updated.q1Building) {
+            changed = true;
+            const p = updated.q1Progress + buildRate;
+            if (p >= 1) {
+              updated.q1Progress = 1;
+              updated.q1Building = false;
+              updated.q1Built = true;
+            } else {
+              updated.q1Progress = p;
+            }
+          }
+          if (updated.q2Building) {
+            changed = true;
+            const p = updated.q2Progress + buildRate;
+            if (p >= 1) {
+              updated.q2Progress = 1;
+              updated.q2Building = false;
+              updated.q2Built = true;
+            } else {
+              updated.q2Progress = p;
+            }
+          }
+          if (updated.q3Building) {
+            changed = true;
+            const p = updated.q3Progress + buildRate;
+            if (p >= 1) {
+              updated.q3Progress = 1;
+              updated.q3Building = false;
+              updated.q3Built = true;
+            } else {
+              updated.q3Progress = p;
+            }
+          }
+          if (updated.q4Building) {
+            changed = true;
+            const p = updated.q4Progress + buildRate;
+            if (p >= 1) {
+              updated.q4Progress = 1;
+              updated.q4Building = false;
+              updated.q4Built = true;
+            } else {
+              updated.q4Progress = p;
+            }
+          }
+
+          // Gate opening angle interpolation (0 to PI/2 over ~2.5s)
+          if (updated.gateUnlocked && updated.gateOpenAngle < Math.PI / 2) {
+            changed = true;
+            updated.gateOpenAngle = Math.min(Math.PI / 2, updated.gateOpenAngle + delta * 0.7);
+          }
+
+          // Grand opening timer countdown (15s sequence)
+          if (updated.grandOpeningActive && updated.grandOpeningTimer > 0) {
+            changed = true;
+            updated.grandOpeningTimer = Math.max(0, updated.grandOpeningTimer - delta);
+          }
+
+          return updated;
+        };
+
         const updateObjects = (objs: InstalledParkObject[]) => {
           return objs.map((obj) => {
             if (obj.isTransforming) {
@@ -359,14 +472,24 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
           });
         };
 
+        const updatedBlueQb = updateQuadrantBuild(state.blueTeam.quadrantBuild);
+        const updatedRedQb = updateQuadrantBuild(state.redTeam.quadrantBuild);
         const updatedBlueObjects = updateObjects(state.blueTeam.installedObjects);
         const updatedRedObjects = updateObjects(state.redTeam.installedObjects);
 
         if (!changed) return state;
 
         return {
-          blueTeam: { ...state.blueTeam, installedObjects: updatedBlueObjects },
-          redTeam: { ...state.redTeam, installedObjects: updatedRedObjects },
+          blueTeam: {
+            ...state.blueTeam,
+            quadrantBuild: updatedBlueQb,
+            installedObjects: updatedBlueObjects,
+          },
+          redTeam: {
+            ...state.redTeam,
+            quadrantBuild: updatedRedQb,
+            installedObjects: updatedRedObjects,
+          },
         };
       });
     },
@@ -388,3 +511,4 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
     },
   };
 });
+

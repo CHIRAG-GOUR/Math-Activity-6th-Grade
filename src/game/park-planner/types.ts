@@ -134,6 +134,31 @@ export interface CitizenNPCState {
   pathIndex: number;
 }
 
+export interface QuadrantBuildProgress {
+  q1Building: boolean;
+  q1Built: boolean;
+  q1Progress: number; // 0 to 1 (takes ~9s)
+
+  q2Building: boolean;
+  q2Built: boolean;
+  q2Progress: number; // 0 to 1 (takes ~9s)
+
+  q3Building: boolean;
+  q3Built: boolean;
+  q3Progress: number; // 0 to 1 (takes ~9s)
+
+  q4Building: boolean;
+  q4Built: boolean;
+  q4Progress: number; // 0 to 1 (takes ~9s)
+
+  fountainActive: boolean;
+
+  gateUnlocked: boolean;
+  gateOpenAngle: number; // 0 to Math.PI / 2
+  grandOpeningActive: boolean;
+  grandOpeningTimer: number; // 0 to 15s
+}
+
 export interface TeamParkState {
   teamId: TeamId;
   teamName: string;
@@ -147,6 +172,7 @@ export interface TeamParkState {
   isCurrentCorrect: boolean | null;
   feedbackMessage: string | null;
   installedObjects: InstalledParkObject[];
+  quadrantBuild: QuadrantBuildProgress;
   citizenHappiness: number; // 0 to 100%
   parkRating: number; // 0 to 5 stars
   totalPointsPlaced: number;
@@ -164,6 +190,7 @@ export type SimEventType =
   | 'fountain_start'
   | 'swings_activate'
   | 'citizen_enter'
+  | 'grand_opening'
   | 'celebration';
 
 export interface SimEvent {
@@ -171,3 +198,4 @@ export interface SimEvent {
   teamId: TeamId;
   payload?: any;
 }
+

@@ -1,20 +1,17 @@
-// ============================================================
-// PARK PLANNER — Master Urban Park Terrain & Infrastructure
-// City street, outer sidewalk footpath, cycle track, perimeter fence with gates,
-// Cartesian promenades, Origin Plaza, and quadrant landscaping zones.
-// ============================================================
-
 import React, { useMemo } from 'react';
 import * as THREE from 'three';
 import { Html } from '@react-three/drei';
 import { UNIT_SIZE, GRID_EXTENT, coordToWorld } from '../engine/coordinateMath';
 import { Coordinate2D } from '../types';
+import { TieredFountain3D } from './ParkBotanicalGarden3D';
 
 interface ParkTerrain3DProps {
   selectedPoint?: Coordinate2D | null;
   selectedPoints?: Coordinate2D[];
   hoveredPoint?: Coordinate2D | null;
   onPointClick?: (coord: Coordinate2D) => void;
+  gateOpenAngle?: number;
+  fountainActive?: boolean;
 }
 
 export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
@@ -22,6 +19,8 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
   selectedPoints = [],
   hoveredPoint,
   onPointClick,
+  gateOpenAngle = 0,
+  fountainActive = false,
 }) => {
   const parkInnerSize = (GRID_EXTENT * 2 + 0.6) * UNIT_SIZE; // 25.44m inner park
   const cycleTrackRadius = UNIT_SIZE * 5.4; // 12.96m
@@ -119,7 +118,7 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
           <boxGeometry args={[10, 0.7, 0.06]} />
           <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
         </mesh>
-        {/* North Entrance Arch Gate */}
+        {/* North Entrance Arch Gate & Animated Gate Doors */}
         <group position={[0, 0.4, 0]}>
           <mesh position={[-1.2, 0, 0]}>
             <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
@@ -133,9 +132,26 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             <boxGeometry args={[2.6, 0.18, 0.1]} />
             <meshStandardMaterial color="#047857" />
           </mesh>
+
+          {/* Left Swinging Gate Door */}
+          <group position={[-1.2, 0, 0]} rotation={[0, -gateOpenAngle, 0]}>
+            <mesh position={[0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
+
+          {/* Right Swinging Gate Door */}
+          <group position={[1.2, 0, 0]} rotation={[0, gateOpenAngle, 0]}>
+            <mesh position={[-0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
+
           <Html position={[0, 1.3, 0]} center distanceFactor={18}>
             <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
-              NORTH GATE
+              {gateOpenAngle > 0.2 ? 'PARK OPEN' : 'MAIN ENTRANCE GATE'}
             </div>
           </Html>
         </group>
@@ -165,6 +181,19 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             <boxGeometry args={[2.6, 0.18, 0.1]} />
             <meshStandardMaterial color="#047857" />
           </mesh>
+          {/* South Swinging Doors */}
+          <group position={[-1.2, 0, 0]} rotation={[0, -gateOpenAngle, 0]}>
+            <mesh position={[0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
+          <group position={[1.2, 0, 0]} rotation={[0, gateOpenAngle, 0]}>
+            <mesh position={[-0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
           <Html position={[0, 1.3, 0]} center distanceFactor={18}>
             <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
               SOUTH GATE
@@ -197,6 +226,18 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             <boxGeometry args={[2.6, 0.18, 0.1]} />
             <meshStandardMaterial color="#047857" />
           </mesh>
+          <group position={[-1.2, 0, 0]} rotation={[0, -gateOpenAngle, 0]}>
+            <mesh position={[0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
+          <group position={[1.2, 0, 0]} rotation={[0, gateOpenAngle, 0]}>
+            <mesh position={[-0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
         </group>
       </group>
 
@@ -224,6 +265,18 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             <boxGeometry args={[2.6, 0.18, 0.1]} />
             <meshStandardMaterial color="#047857" />
           </mesh>
+          <group position={[-1.2, 0, 0]} rotation={[0, -gateOpenAngle, 0]}>
+            <mesh position={[0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
+          <group position={[1.2, 0, 0]} rotation={[0, gateOpenAngle, 0]}>
+            <mesh position={[-0.55, 0, 0]}>
+              <boxGeometry args={[1.1, 1.1, 0.04]} />
+              <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+            </mesh>
+          </group>
         </group>
       </group>
 
@@ -261,28 +314,32 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       </mesh>
 
       {/* ============================================================ */}
-      {/* 6. CENTRAL ORIGIN PLAZA (0, 0) */}
+      {/* 6. CENTRAL ORIGIN PLAZA & GRAND TIERED FOUNTAIN (0, 0) */}
       {/* ============================================================ */}
       <group position={[0, 0.04, 0]}>
         {/* Radial Plaza Cobblestone */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[UNIT_SIZE * 1.15, 32]} />
+          <circleGeometry args={[UNIT_SIZE * 1.35, 32]} />
           <meshStandardMaterial color="#f5f0e6" roughness={0.5} />
         </mesh>
         {/* Outer Plaza Trim Ring */}
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[UNIT_SIZE * 1.05, UNIT_SIZE * 1.15, 32]} />
+          <ringGeometry args={[UNIT_SIZE * 1.25, UNIT_SIZE * 1.35, 32]} />
           <meshStandardMaterial color="#78716c" roughness={0.6} />
         </mesh>
         {/* Brass Compass Rose */}
         <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
-          <planeGeometry args={[0.8, 0.8]} />
+          <planeGeometry args={[1.2, 1.2]} />
           <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
         </mesh>
+
+        {/* Central Major Tiered Fountain (Activates upon Question 4) */}
+        <TieredFountain3D position={[0, 0, 0]} isFlowing={fountainActive} />
+
         {/* Origin Label Plaque */}
-        <Html position={[0, 0.35, 0]} center distanceFactor={16}>
+        <Html position={[0, 2.3, 0]} center distanceFactor={16}>
           <div className="bg-slate-900/95 text-amber-300 font-black text-xs px-2.5 py-1 rounded-full border border-amber-400 shadow-xl backdrop-blur-sm pointer-events-none select-none whitespace-nowrap">
-            ORIGIN (0, 0)
+            ORIGIN (0, 0) {fountainActive ? '• GRAND FOUNTAIN' : ''}
           </div>
         </Html>
       </group>

@@ -172,6 +172,120 @@ export class ParkSimulationEngine {
     });
   }
 
+  public triggerGrandOpening() {
+    // Check if grand opening cohort is already spawned
+    if (this.citizens.some((c) => c.id.startsWith('go_'))) return;
+
+    // Grand Opening Influx: Diverse citizens streaming in from North and South gates
+    const goPath1 = [
+      'gate_north',
+      'axis_y_n2',
+      'axis_y_n1',
+      'plaza_n',
+      'plaza_center',
+      'axis_x_e1',
+      'axis_x_e2',
+      'qiv_picnic_tables',
+    ];
+    const goPath2 = [
+      'gate_north',
+      'axis_y_n2',
+      'qi_play_mid',
+      'qi_play_slide',
+      'qi_play_mid',
+      'plaza_n',
+      'plaza_center',
+    ];
+    const goPath3 = [
+      'gate_south',
+      'axis_y_s2',
+      'axis_y_s1',
+      'plaza_s',
+      'plaza_center',
+      'axis_x_w1',
+      'qiii_sports_center',
+    ];
+    const goPath4 = [
+      'gate_south',
+      'axis_y_s2',
+      'qiv_picnic_mid',
+      'qiv_picnic_tables',
+      'plaza_e',
+      'plaza_center',
+    ];
+
+    this.citizens.push(
+      {
+        id: 'go_teen_1',
+        name: 'Jordan (Teenager)',
+        type: 'jogger',
+        pos: [...PARK_NAV_NODES['gate_north'].pos],
+        rotationY: Math.PI,
+        speed: 2.1,
+        currentPath: [...goPath1],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'jogging',
+        restTimer: 0,
+        shirtColor: '#f97316',
+        pantsColor: '#0f172a',
+        hairColor: '#000000',
+        skinColor: '#fcd34d',
+      },
+      {
+        id: 'go_child_2',
+        name: 'Zoe (Child)',
+        type: 'child',
+        pos: [PARK_NAV_NODES['gate_north'].pos[0] - 0.5, 0.02, PARK_NAV_NODES['gate_north'].pos[2] + 0.5],
+        rotationY: Math.PI,
+        speed: 1.4,
+        currentPath: [...goPath2],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#a855f7',
+        pantsColor: '#1e3a8a',
+        hairColor: '#ca8a04',
+        skinColor: '#fed7aa',
+      },
+      {
+        id: 'go_parent_2',
+        name: 'Carlos (Parent)',
+        type: 'parent',
+        pos: [...PARK_NAV_NODES['gate_south'].pos],
+        rotationY: 0,
+        speed: 1.2,
+        currentPath: [...goPath3],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#0284c7',
+        pantsColor: '#334155',
+        hairColor: '#451a03',
+        skinColor: '#d97706',
+      },
+      {
+        id: 'go_elder_2',
+        name: 'Grace (Elderly)',
+        type: 'elderly',
+        pos: [PARK_NAV_NODES['gate_south'].pos[0] + 0.4, 0.02, PARK_NAV_NODES['gate_south'].pos[2] - 0.3],
+        rotationY: 0,
+        speed: 0.85,
+        currentPath: [...goPath4],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#10b981',
+        pantsColor: '#475569',
+        hairColor: '#e2e8f0',
+        skinColor: '#fde047',
+      }
+    );
+  }
+
   public getCitizens(): SimCitizen[] {
     return this.citizens;
   }
