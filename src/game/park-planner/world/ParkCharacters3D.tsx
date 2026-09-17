@@ -63,57 +63,99 @@ export const StylizedHuman3D: React.FC<HumanCharacterProps> = ({
     const t = state.clock.getElapsedTime() * (isJogging ? 10 : isWalking ? 6 : isCycling ? 8 : 1) * speed;
 
     if (isCycling) {
-      // Dynamic pedaling legs in opposition & arms grasping handlebars
+      // Forward athletic cycling posture:
+      // Torso leans forward towards handlebars
+      if (rootRef.current) {
+        rootRef.current.position.y = position[1];
+        rootRef.current.rotation.x = -0.22;
+      }
+      // Head tilts up slightly so gaze is straight ahead on the road
+      if (headRef.current) {
+        headRef.current.rotation.x = 0.22;
+      }
+      // Dynamic pedaling legs in alternating cadence (extending down & forward to pedals)
+      const pedalCycle = Math.sin(t);
       if (leftLegRef.current) {
-        leftLegRef.current.rotation.x = 0.65 + Math.sin(t) * 0.38;
+        leftLegRef.current.rotation.x = -0.65 + pedalCycle * 0.35;
       }
       if (rightLegRef.current) {
-        rightLegRef.current.rotation.x = 0.65 - Math.sin(t) * 0.38;
+        rightLegRef.current.rotation.x = -0.65 - pedalCycle * 0.35;
       }
-      if (leftArmRef.current) leftArmRef.current.rotation.x = 0.62;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = 0.62;
-      if (headRef.current) headRef.current.rotation.x = 0.08;
-      if (rootRef.current) rootRef.current.position.y = position[1] - 0.22;
+      // Arms reach forward & inward to firmly grip handlebars
+      if (leftArmRef.current) {
+        leftArmRef.current.rotation.x = -0.82;
+        leftArmRef.current.rotation.z = 0.08;
+      }
+      if (rightArmRef.current) {
+        rightArmRef.current.rotation.x = -0.82;
+        rightArmRef.current.rotation.z = -0.08;
+      }
       return;
     }
 
     if (isSeated) {
-      // Fixed seated pose
-      if (leftLegRef.current) leftLegRef.current.rotation.x = Math.PI / 2;
-      if (rightLegRef.current) rightLegRef.current.rotation.x = Math.PI / 2;
-      if (leftArmRef.current) leftArmRef.current.rotation.x = 0.3;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = 0.3;
-      if (rootRef.current) rootRef.current.position.y = position[1] - 0.25;
+      // Thighs extend forward horizontal over seat, arms rest forward in lap
+      if (rootRef.current) {
+        rootRef.current.position.y = position[1] - 0.22;
+        rootRef.current.rotation.x = 0;
+      }
+      if (leftLegRef.current) leftLegRef.current.rotation.x = -Math.PI / 2.2;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = -Math.PI / 2.2;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = -0.22;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = -0.22;
+      if (headRef.current) headRef.current.rotation.x = 0;
       return;
     }
 
     if (isHammering) {
+      if (rootRef.current) {
+        rootRef.current.position.y = position[1];
+        rootRef.current.rotation.x = 0;
+      }
       if (rightArmRef.current) {
         rightArmRef.current.rotation.x = -Math.PI / 3 + Math.sin(t * 2) * 0.6;
       }
-      if (leftArmRef.current) leftArmRef.current.rotation.x = 0.2;
+      if (leftArmRef.current) leftArmRef.current.rotation.x = -0.2;
+      if (leftLegRef.current) leftLegRef.current.rotation.x = 0;
+      if (rightLegRef.current) rightLegRef.current.rotation.x = 0;
+      if (headRef.current) headRef.current.rotation.x = 0;
       return;
     }
 
     if (isWalking || isJogging) {
-      const legAmp = isJogging ? 0.65 : 0.45;
-      const armAmp = isJogging ? 0.55 : 0.35;
+      const legAmp = isJogging ? 0.65 : 0.42;
+      const armAmp = isJogging ? 0.55 : 0.32;
       const swing = Math.sin(t);
 
-      // Legs swing in opposition
+      // Natural forward/backward leg stride
       if (leftLegRef.current) leftLegRef.current.rotation.x = swing * legAmp;
       if (rightLegRef.current) rightLegRef.current.rotation.x = -swing * legAmp;
 
-      // Arms counter-swing
-      if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * armAmp;
-      if (rightArmRef.current) rightArmRef.current.rotation.x = swing * armAmp;
+      // Natural contralateral arm counter-swing
+      if (leftArmRef.current) leftArmRef.current.rotation.x = -swing * armAmp - (isJogging ? 0.25 : 0);
+      if (rightArmRef.current) rightArmRef.current.rotation.x = swing * armAmp - (isJogging ? 0.25 : 0);
 
-      // Subtle vertical bounce & torso tilt
+      if (headRef.current) headRef.current.rotation.x = 0;
+
+      // Subtle vertical bounce & slight forward lean for jogger
       if (rootRef.current) {
-        const bounce = Math.abs(Math.sin(t)) * (isJogging ? 0.06 : 0.03);
+        const bounce = Math.abs(Math.sin(t)) * (isJogging ? 0.05 : 0.025);
         rootRef.current.position.y = position[1] + bounce;
+        rootRef.current.rotation.x = isJogging ? -0.08 : 0;
       }
+      return;
     }
+
+    // Default Clean Idle Standing Posture
+    if (rootRef.current) {
+      rootRef.current.position.y = position[1];
+      rootRef.current.rotation.x = 0;
+    }
+    if (leftLegRef.current) leftLegRef.current.rotation.set(0, 0, 0);
+    if (rightLegRef.current) rightLegRef.current.rotation.set(0, 0, 0);
+    if (leftArmRef.current) leftArmRef.current.rotation.set(0, 0, 0);
+    if (rightArmRef.current) rightArmRef.current.rotation.set(0, 0, 0);
+    if (headRef.current) headRef.current.rotation.set(0, 0, 0);
   });
 
   return (
@@ -455,10 +497,10 @@ export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
       {/* ============================================================ */}
       {/* CYCLIST RIDER MODEL */}
       {/* ============================================================ */}
-      <group position={[0, 0.15, -0.1]}>
+      <group position={[0, 0.2, -0.22]}>
         <StylizedHuman3D
           position={[0, 0, 0]}
-          scale={0.88}
+          scale={0.86}
           shirtColor="#0284c7"
           pantsColor="#0f172a"
           hasHelmet={true}

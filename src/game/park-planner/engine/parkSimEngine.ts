@@ -31,7 +31,7 @@ export class ParkSimulationEngine {
   }
 
   private initCitizens() {
-    // 1. Dedicated Cyclist on outer cycle ring
+    // 1. Dedicated Cyclist on outer cycle ring (continuous clockwise circulation)
     const cycleLoop = [
       'cycle_north_mid',
       'cycle_ne',
@@ -49,7 +49,7 @@ export class ParkSimulationEngine {
       type: 'cyclist',
       pos: [...PARK_NAV_NODES['cycle_north_mid'].pos],
       rotationY: Math.PI / 2,
-      speed: 3.2,
+      speed: 3.4,
       currentPath: [...cycleLoop],
       pathIndex: 0,
       segmentProgress: 0,
@@ -61,7 +61,7 @@ export class ParkSimulationEngine {
       skinColor: '#fcd34d',
     });
 
-    // 2. Jogger on outer promenade loop
+    // 2. Jogger on outer promenade loop (continuous counter-clockwise circulation)
     const joggerPath = [
       'fp_north_mid',
       'fp_ne_corner',
@@ -79,7 +79,7 @@ export class ParkSimulationEngine {
       type: 'jogger',
       pos: [...PARK_NAV_NODES['fp_north_mid'].pos],
       rotationY: Math.PI / 2,
-      speed: 2.4,
+      speed: 2.2,
       currentPath: [...joggerPath],
       pathIndex: 0,
       segmentProgress: 0,
@@ -90,9 +90,14 @@ export class ParkSimulationEngine {
       hairColor: '#78350f',
       skinColor: '#fcd34d',
     });
+  }
 
-    // 3. Parent & Child visiting Quadrant I Playground
-    const playgroundPath = [
+  public triggerGrandOpening() {
+    // Check if grand opening cohort is already spawned
+    if (this.citizens.some((c) => c.id.startsWith('go_'))) return;
+
+    // Grand Opening Influx: Diverse citizens streaming in through open North, South, East, West gates
+    const goPathPlayground1 = [
       'gate_north',
       'axis_y_n2',
       'axis_y_n1',
@@ -102,127 +107,145 @@ export class ParkSimulationEngine {
       'plaza_n',
       'plaza_center',
     ];
-    this.citizens.push({
-      id: 'parent_1',
-      name: 'Elena (Parent)',
-      type: 'parent',
-      pos: [...PARK_NAV_NODES['gate_north'].pos],
-      rotationY: Math.PI,
-      speed: 1.1,
-      currentPath: [...playgroundPath],
-      pathIndex: 0,
-      segmentProgress: 0,
-      state: 'walking',
-      restTimer: 0,
-      shirtColor: '#059669',
-      pantsColor: '#334155',
-      hairColor: '#b45309',
-      skinColor: '#fde047',
-    });
-
-    this.citizens.push({
-      id: 'child_1',
-      name: 'Leo (Child)',
-      type: 'child',
-      pos: [
-        PARK_NAV_NODES['gate_north'].pos[0] + 0.4,
-        0.02,
-        PARK_NAV_NODES['gate_north'].pos[2] + 0.2,
-      ],
-      rotationY: Math.PI,
-      speed: 1.2,
-      currentPath: [...playgroundPath],
-      pathIndex: 0,
-      segmentProgress: 0,
-      state: 'walking',
-      restTimer: 0,
-      shirtColor: '#f59e0b',
-      pantsColor: '#1d4ed8',
-      hairColor: '#451a03',
-      skinColor: '#fde047',
-    });
-
-    // 4. Elderly visitor walking through Quadrant II Botanical Garden to Central Plaza
-    const gardenWalkPath = [
-      'gate_west',
-      'axis_x_w2',
-      'axis_x_w1',
-      'qii_garden_mid',
-      'qii_fountain',
-      'qii_garden_mid',
-      'plaza_w',
-      'plaza_center',
-    ];
-    this.citizens.push({
-      id: 'elder_1',
-      name: 'Arthur (Elderly Visitor)',
-      type: 'elderly',
-      pos: [...PARK_NAV_NODES['gate_west'].pos],
-      rotationY: 0,
-      speed: 0.75,
-      currentPath: [...gardenWalkPath],
-      pathIndex: 0,
-      segmentProgress: 0,
-      state: 'walking',
-      restTimer: 0,
-      shirtColor: '#475569',
-      pantsColor: '#1e293b',
-      hairColor: '#94a3b8',
-      skinColor: '#fed7aa',
-    });
-  }
-
-  public triggerGrandOpening() {
-    // Check if grand opening cohort is already spawned
-    if (this.citizens.some((c) => c.id.startsWith('go_'))) return;
-
-    // Grand Opening Influx: Diverse citizens streaming in from North and South gates
-    const goPath1 = [
-      'gate_north',
-      'axis_y_n2',
-      'axis_y_n1',
-      'plaza_n',
-      'plaza_center',
-      'axis_x_e1',
-      'axis_x_e2',
-      'qiv_picnic_tables',
-    ];
-    const goPath2 = [
+    const goPathPlayground2 = [
       'gate_north',
       'axis_y_n2',
       'qi_play_mid',
       'qi_play_slide',
       'qi_play_mid',
+      'qi_entrance',
       'plaza_n',
+    ];
+    const goPathBotanical = [
+      'gate_west',
+      'axis_x_w2',
+      'axis_x_w1',
+      'qii_garden_mid',
+      'qii_fountain',
+      'qii_gazebo',
+      'qii_garden_mid',
+      'plaza_w',
       'plaza_center',
     ];
-    const goPath3 = [
+    const goPathSports = [
+      'gate_south',
+      'axis_y_s2',
+      'axis_y_s1',
+      'qiii_sports_mid',
+      'qiii_court',
+      'qiii_pitch',
+      'qiii_sports_mid',
+      'plaza_s',
+      'plaza_center',
+    ];
+    const goPathPicnic = [
+      'gate_east',
+      'axis_x_e2',
+      'axis_x_e1',
+      'qiv_picnic_mid',
+      'qiv_tables',
+      'qiv_pond',
+      'qiv_picnic_mid',
+      'plaza_e',
+      'plaza_center',
+    ];
+    const goPathPlazaFountain = [
       'gate_south',
       'axis_y_s2',
       'axis_y_s1',
       'plaza_s',
       'plaza_center',
-      'axis_x_w1',
-      'qiii_sports_center',
-    ];
-    const goPath4 = [
-      'gate_south',
-      'axis_y_s2',
-      'qiv_picnic_mid',
-      'qiv_picnic_tables',
-      'plaza_e',
-      'plaza_center',
     ];
 
     this.citizens.push(
+      // Parent & Child visiting Playground
       {
-        id: 'go_teen_1',
-        name: 'Jordan (Teenager)',
-        type: 'jogger',
+        id: 'go_parent_1',
+        name: 'Elena (Parent)',
+        type: 'parent',
         pos: [...PARK_NAV_NODES['gate_north'].pos],
         rotationY: Math.PI,
-        speed: 2.1,
-        currentPath: [...goPath1],
+        speed: 1.1,
+        currentPath: [...goPathPlayground1],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#059669',
+        pantsColor: '#334155',
+        hairColor: '#b45309',
+        skinColor: '#fde047',
+      },
+      {
+        id: 'go_child_1',
+        name: 'Leo (Child)',
+        type: 'child',
+        pos: [
+          PARK_NAV_NODES['gate_north'].pos[0] + 0.4,
+          0.02,
+          PARK_NAV_NODES['gate_north'].pos[2] + 0.2,
+        ],
+        rotationY: Math.PI,
+        speed: 1.25,
+        currentPath: [...goPathPlayground1],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#f59e0b',
+        pantsColor: '#1d4ed8',
+        hairColor: '#451a03',
+        skinColor: '#fde047',
+      },
+      // Second child rushing to the slide
+      {
+        id: 'go_child_2',
+        name: 'Zoe (Child)',
+        type: 'child',
+        pos: [
+          PARK_NAV_NODES['gate_north'].pos[0] - 0.4,
+          0.02,
+          PARK_NAV_NODES['gate_north'].pos[2] + 0.5,
+        ],
+        rotationY: Math.PI,
+        speed: 1.45,
+        currentPath: [...goPathPlayground2],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'jogging',
+        restTimer: 0,
+        shirtColor: '#a855f7',
+        pantsColor: '#1e3a8a',
+        hairColor: '#ca8a04',
+        skinColor: '#fed7aa',
+      },
+      // Elderly visitor exploring Botanical Garden
+      {
+        id: 'go_elder_1',
+        name: 'Arthur (Botanist)',
+        type: 'elderly',
+        pos: [...PARK_NAV_NODES['gate_west'].pos],
+        rotationY: 0,
+        speed: 0.8,
+        currentPath: [...goPathBotanical],
+        pathIndex: 0,
+        segmentProgress: 0,
+        state: 'walking',
+        restTimer: 0,
+        shirtColor: '#475569',
+        pantsColor: '#1e293b',
+        hairColor: '#94a3b8',
+        skinColor: '#fed7aa',
+      },
+      // Teenager heading to Sports grounds
+      {
+        id: 'go_teen_1',
+        name: 'Jordan (Sports Enthusiast)',
+        type: 'jogger',
+        pos: [...PARK_NAV_NODES['gate_south'].pos],
+        rotationY: 0,
+        speed: 1.8,
+        currentPath: [...goPathSports],
         pathIndex: 0,
         segmentProgress: 0,
         state: 'jogging',
@@ -232,31 +255,15 @@ export class ParkSimulationEngine {
         hairColor: '#000000',
         skinColor: '#fcd34d',
       },
-      {
-        id: 'go_child_2',
-        name: 'Zoe (Child)',
-        type: 'child',
-        pos: [PARK_NAV_NODES['gate_north'].pos[0] - 0.5, 0.02, PARK_NAV_NODES['gate_north'].pos[2] + 0.5],
-        rotationY: Math.PI,
-        speed: 1.4,
-        currentPath: [...goPath2],
-        pathIndex: 0,
-        segmentProgress: 0,
-        state: 'walking',
-        restTimer: 0,
-        shirtColor: '#a855f7',
-        pantsColor: '#1e3a8a',
-        hairColor: '#ca8a04',
-        skinColor: '#fed7aa',
-      },
+      // Family heading to Picnic Grove
       {
         id: 'go_parent_2',
-        name: 'Carlos (Parent)',
+        name: 'Carlos (Picnicker)',
         type: 'parent',
-        pos: [...PARK_NAV_NODES['gate_south'].pos],
-        rotationY: 0,
-        speed: 1.2,
-        currentPath: [...goPath3],
+        pos: [...PARK_NAV_NODES['gate_east'].pos],
+        rotationY: -Math.PI / 2,
+        speed: 1.05,
+        currentPath: [...goPathPicnic],
         pathIndex: 0,
         segmentProgress: 0,
         state: 'walking',
@@ -266,14 +273,19 @@ export class ParkSimulationEngine {
         hairColor: '#451a03',
         skinColor: '#d97706',
       },
+      // Senior visiting Central Fountain
       {
         id: 'go_elder_2',
-        name: 'Grace (Elderly)',
+        name: 'Grace (Visitor)',
         type: 'elderly',
-        pos: [PARK_NAV_NODES['gate_south'].pos[0] + 0.4, 0.02, PARK_NAV_NODES['gate_south'].pos[2] - 0.3],
+        pos: [
+          PARK_NAV_NODES['gate_south'].pos[0] + 0.35,
+          0.02,
+          PARK_NAV_NODES['gate_south'].pos[2] - 0.2,
+        ],
         rotationY: 0,
         speed: 0.85,
-        currentPath: [...goPath4],
+        currentPath: [...goPathPlazaFountain],
         pathIndex: 0,
         segmentProgress: 0,
         state: 'walking',
@@ -291,13 +303,19 @@ export class ParkSimulationEngine {
   }
 
   public update(delta: number) {
-    const clampedDelta = Math.min(0.1, delta);
+    const clampedDelta = Math.min(0.08, delta);
 
     for (const citizen of this.citizens) {
       if (citizen.state === 'resting') {
         citizen.restTimer -= clampedDelta;
         if (citizen.restTimer <= 0) {
           citizen.state = citizen.type === 'jogger' ? 'jogging' : 'walking';
+          // Reverse route to stroll back through the park
+          if (citizen.currentPath.length > 2) {
+            citizen.currentPath.reverse();
+            citizen.pathIndex = 0;
+            citizen.segmentProgress = 0;
+          }
         }
         continue;
       }
@@ -305,8 +323,25 @@ export class ParkSimulationEngine {
       const path = citizen.currentPath;
       if (path.length < 2) continue;
 
+      const isLoop = path[0] === path[path.length - 1];
+      const maxIndex = isLoop ? path.length - 1 : path.length - 1;
+
+      if (citizen.pathIndex >= maxIndex) {
+        if (isLoop) {
+          citizen.pathIndex = 0;
+          citizen.segmentProgress = 0;
+        } else {
+          // Reached destination: pause and enjoy
+          citizen.state = 'resting';
+          citizen.restTimer = 8.0;
+          continue;
+        }
+      }
+
       const fromNodeId = path[citizen.pathIndex];
-      const toNodeId = path[(citizen.pathIndex + 1) % path.length];
+      const nextIndex = (citizen.pathIndex + 1) % path.length;
+      const toNodeId = path[nextIndex];
+
       const fromNode = PARK_NAV_NODES[fromNodeId];
       const toNode = PARK_NAV_NODES[toNodeId];
 
@@ -316,27 +351,35 @@ export class ParkSimulationEngine {
       const dz = toNode.pos[2] - fromNode.pos[2];
       const segmentDist = Math.sqrt(dx * dx + dz * dz) || 1;
 
-      // Target heading angle (always facing movement vector forward)
+      // Target heading angle (facing forward along movement vector)
       const targetAngle = getHeadingAngle(fromNode.pos, toNode.pos);
       citizen.rotationY = lerpAngle(citizen.rotationY, targetAngle, clampedDelta * 6);
 
-      // Advance along path segment
+      // Advance along current segment
       const progressInc = (citizen.speed * clampedDelta) / segmentDist;
       citizen.segmentProgress += progressInc;
 
       if (citizen.segmentProgress >= 1) {
         citizen.segmentProgress = 0;
-        citizen.pathIndex = (citizen.pathIndex + 1) % (path.length - 1);
+        citizen.pathIndex += 1;
 
-        // Pause briefly at activity spots (e.g. playground, fountain, plaza)
-        if (toNode.type === 'activity_spot' && citizen.type !== 'cyclist') {
+        if (citizen.pathIndex >= maxIndex) {
+          if (isLoop) {
+            citizen.pathIndex = 0;
+          } else {
+            // Arrived at destination
+            citizen.state = 'resting';
+            citizen.restTimer = 6.0;
+          }
+        } else if (toNode.type === 'activity_spot' && citizen.type !== 'cyclist') {
+          // Brief pause at attraction spot before continuing
           citizen.state = 'resting';
-          citizen.restTimer = 4.0;
+          citizen.restTimer = 3.5;
         }
       }
 
       // Smooth interpolation of position along segment
-      const t = citizen.segmentProgress;
+      const t = Math.min(1, Math.max(0, citizen.segmentProgress));
       citizen.pos[0] = fromNode.pos[0] + dx * t;
       citizen.pos[1] = fromNode.pos[1];
       citizen.pos[2] = fromNode.pos[2] + dz * t;
