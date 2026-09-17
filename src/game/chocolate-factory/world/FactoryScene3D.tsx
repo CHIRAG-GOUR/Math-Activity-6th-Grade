@@ -18,7 +18,7 @@ import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { TeamId } from '../types';
 import { runningStep, sim, stepSim } from '../engine/factorySim';
-import { sideOf } from '../engine/factoryLayout';
+import { sideOf, sideSign } from '../engine/factoryLayout';
 import {
   CentralAtrium3D, CentralProcessing3D, CustomerRow3D, Ground3D, IngredientPallets3D,
   LoadingDock3D, Surroundings3D, Warehouse3D,
@@ -50,57 +50,126 @@ const SimDriver: React.FC = () => {
 };
 
 // ── CAMERA ───────────────────────────────────────────────────────────────
-// A single wide shot that keeps BOTH factories on screen at all times. When
-// a line is running the camera eases a little way toward the average of the
-// active machines — with both teams busy that average sits in the middle, so
-// neither team is ever pushed out of frame.
+// A wide establishing shot that gently breathes when nothing needs it. The
+// moment a worker actually starts a machine, tips cocoa into the tank, or
+// starts loading the truck, the camera cuts in for a close look at that
+// team's line and holds there for several seconds — so a step is something
+// the class watches happen, not a number that changes off-screen. Both
+// teams work at once, so events queue one at a time: whichever team just
+// did something new gets the next look, and neither team is ever left
+// waiting forever off-camera.
 
 const BASE_POS = new THREE.Vector3(0, 45, 92);
 const BASE_LOOK = new THREE.Vector3(0, 5, -7);
 
-function activeFocus(team: TeamId): THREE.Vector3 | null {
-  const s = sim[team];
-  const side = sideOf(team);
-  switch (runningStep(team)) {
-    case 'ingredients': return new THREE.Vector3(side.measuringTank.x, 3, side.measuringTank.z);
-    case 'mixing': return new THREE.Vector3(side.mixer.x, 3, side.mixer.z);
-    case 'molding': return new THREE.Vector3(side.moldingMachine.x, 2, side.moldingMachine.z);
-    case 'cooling': return new THREE.Vector3(side.cutter.x, 2, (side.coolingEntry.z + side.cutter.z) / 2);
-    case 'packaging': return new THREE.Vector3(side.packagingMachine.x, 2, side.packagingMachine.z);
-    default:
-      if (s.logistics === 'truck_out' || s.logistics === 'at_customer') {
-        return new THREE.Vector3(s.truck.pos.x, 2, s.truck.pos.z);
-      }
-      if (s.logistics !== 'idle') return new THREE.Vector3(side.loadingDock.x, 2, side.loadingDock.z);
-      return null;
+/** How long a close-up holds once the camera has cut to it. */
+const HOLD_SECONDS = 7;
+const EASE_IN_RATE = 3.2;
+const EASE_OUT_RATE = 1.3;
+
+type ShotKind = 'ingredients' | 'mixing' | 'molding' | 'cooling' | 'packaging' | 'loading';
+interface CamShot { team: TeamId; pos: THREE.Vector3; look: THREE.Vector3; }
+
+function anchorFor(team: TeamId, kind: ShotKind): { x: number; z: number } {
+  const s = sideOf(team);
+  switch (kind) {
+    case 'ingredients': return s.tipPoint;
+    case 'mixing': return s.mixer;
+    case 'molding': return s.moldingMachine;
+    case 'cooling': return { x: s.cutter.x, z: (s.coolingEntry.z + s.cutter.z) / 2 };
+    case 'packaging': return s.packagingMachine;
+    case 'loading': return s.loadingDock;
   }
+}
+
+/** A close, angled shot pulled toward the centre aisle, so the machine and
+ *  whoever is working it both read clearly on either side of the factory. */
+function closeShot(team: TeamId, kind: ShotKind): CamShot {
+  const p = anchorFor(team, kind);
+  const sign = sideSign(team);
+  return {
+    team,
+    pos: new THREE.Vector3(p.x - sign * 6.5, 5.3, p.z + 8.5),
+    look: new THREE.Vector3(p.x, 1.5, p.z - 1),
+  };
 }
 
 const CameraDirector: React.FC = () => {
   const { camera } = useThree();
-  const look = useRef(BASE_LOOK.clone());
-  const focus = useRef(new THREE.Vector3());
-  const tmp = useRef(new THREE.Vector3());
+  const camPos = useRef(BASE_POS.clone());
+  const camLook = useRef(BASE_LOOK.clone());
+
+  // What each team was doing last frame — a shot fires once on a NEW event,
+  // not every frame the same machine happens to still be running.
+  const prevRunning = useRef<Record<TeamId, string | null>>({ blue: null, red: null });
+  const prevTip = useRef<Record<TeamId, number>>({ blue: 0, red: 0 });
+  const prevLog = useRef<Record<TeamId, string>>({ blue: 'idle', red: 'idle' });
+
+  const current = useRef<{ shot: CamShot; until: number } | null>(null);
+  const queued = useRef<CamShot | null>(null);
+
+  const offer = (team: TeamId, kind: ShotKind, now: number) => {
+    const shot = closeShot(team, kind);
+    if (current.current?.shot.team === team) {
+      // Already watching this team — stay put, just look at their new job
+      // and give them the full hold again.
+      current.current = { shot, until: now + HOLD_SECONDS };
+    } else {
+      // One team waits its turn; the newest event wins that single slot.
+      queued.current = shot;
+    }
+  };
 
   useFrame((state, delta) => {
-    // Average of whatever the two teams are doing right now.
-    focus.current.copy(BASE_LOOK);
-    const a = activeFocus('blue');
-    const b = activeFocus('red');
-    if (a && b) focus.current.set((a.x + b.x) / 2, 3, (a.z + b.z) / 2);
-    else if (a) focus.current.set(a.x * 0.32, 3, a.z * 0.5 + BASE_LOOK.z * 0.5);
-    else if (b) focus.current.set(b.x * 0.32, 3, b.z * 0.5 + BASE_LOOK.z * 0.5);
+    const now = state.clock.getElapsedTime();
 
-    // Never travel far: this is a breath, not a cut.
-    tmp.current.copy(BASE_LOOK).lerp(focus.current, 0.45);
-    look.current.lerp(tmp.current, 1 - Math.exp(-1.2 * delta));
+    for (const team of ['blue', 'red'] as TeamId[]) {
+      const side = sim[team];
+      const run = runningStep(team);
+      if (run && run !== 'ingredients' && run !== prevRunning.current[team]) offer(team, run, now);
+      prevRunning.current[team] = run;
 
-    const drift = Math.sin(state.clock.elapsedTime * 0.12) * 1.6;
-    camera.position.lerp(
-      tmp.current.clone().multiplyScalar(0.08).add(BASE_POS).setX(BASE_POS.x + drift + look.current.x * 0.06),
-      1 - Math.exp(-1.1 * delta)
-    );
-    camera.lookAt(look.current);
+      // The cocoa step's own moment is a loader (or the forklift) actually
+      // tipping a load in — not the instant the tank starts waiting for one.
+      if (side.tipPour > 0.5 && prevTip.current[team] <= 0.5) offer(team, 'ingredients', now);
+      prevTip.current[team] = side.tipPour;
+
+      const log = side.logistics;
+      if (log !== prevLog.current[team] &&
+        (log === 'cart_loading' || log === 'truck_loading' || log === 'fork_unload')) {
+        offer(team, 'loading', now);
+      }
+      prevLog.current[team] = log;
+    }
+
+    // Advance the queue once the current close-up has had its time.
+    if (!current.current || now >= current.current.until) {
+      if (queued.current) {
+        current.current = { shot: queued.current, until: now + HOLD_SECONDS };
+        queued.current = null;
+      } else {
+        current.current = null;
+      }
+    }
+
+    let wantPos: THREE.Vector3;
+    let wantLook: THREE.Vector3;
+    let rate: number;
+    if (current.current) {
+      wantPos = current.current.shot.pos;
+      wantLook = current.current.shot.look;
+      rate = EASE_IN_RATE;
+    } else {
+      wantPos = new THREE.Vector3(BASE_POS.x + Math.sin(now * 0.12) * 1.6, BASE_POS.y, BASE_POS.z);
+      wantLook = BASE_LOOK;
+      rate = EASE_OUT_RATE;
+    }
+
+    const k = 1 - Math.exp(-rate * delta);
+    camPos.current.lerp(wantPos, k);
+    camLook.current.lerp(wantLook, k);
+    camera.position.copy(camPos.current);
+    camera.lookAt(camLook.current);
   });
   return null;
 };

@@ -27,6 +27,7 @@ export interface HumanCharacterProps {
   isJogging?: boolean;
   isWalking?: boolean;
   isSeated?: boolean;
+  isCycling?: boolean;
   isHammering?: boolean;
   speed?: number;
 }
@@ -47,6 +48,7 @@ export const StylizedHuman3D: React.FC<HumanCharacterProps> = ({
   isJogging = false,
   isWalking = true,
   isSeated = false,
+  isCycling = false,
   isHammering = false,
   speed = 1,
 }) => {
@@ -58,7 +60,22 @@ export const StylizedHuman3D: React.FC<HumanCharacterProps> = ({
   const headRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    const t = state.clock.getElapsedTime() * (isJogging ? 10 : isWalking ? 6 : 1) * speed;
+    const t = state.clock.getElapsedTime() * (isJogging ? 10 : isWalking ? 6 : isCycling ? 8 : 1) * speed;
+
+    if (isCycling) {
+      // Dynamic pedaling legs in opposition & arms grasping handlebars
+      if (leftLegRef.current) {
+        leftLegRef.current.rotation.x = 0.65 + Math.sin(t) * 0.38;
+      }
+      if (rightLegRef.current) {
+        rightLegRef.current.rotation.x = 0.65 - Math.sin(t) * 0.38;
+      }
+      if (leftArmRef.current) leftArmRef.current.rotation.x = 0.62;
+      if (rightArmRef.current) rightArmRef.current.rotation.x = 0.62;
+      if (headRef.current) headRef.current.rotation.x = 0.08;
+      if (rootRef.current) rootRef.current.position.y = position[1] - 0.22;
+      return;
+    }
 
     if (isSeated) {
       // Fixed seated pose
@@ -149,51 +166,63 @@ export const StylizedHuman3D: React.FC<HumanCharacterProps> = ({
       </group>
 
       {/* ============================================================ */}
-      {/* UPPER BODY: Torso, Vest & Arms */}
+      {/* UPPER BODY: Torso & Shoulders */}
       {/* ============================================================ */}
-      {/* Torso */}
-      <mesh castShadow position={[0, 1.05, 0]}>
-        <boxGeometry args={[0.34, 0.48, 0.22]} />
-        <meshStandardMaterial color={hasSafetyVest ? '#ea580c' : shirtColor} roughness={0.6} />
-      </mesh>
-
-      {/* Safety Vest Reflective Stripes */}
-      {hasSafetyVest && (
-        <group position={[0, 1.05, 0]}>
-          <mesh position={[0, 0.08, 0.115]}>
-            <boxGeometry args={[0.32, 0.06, 0.01]} />
-            <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.4} />
-          </mesh>
-          <mesh position={[0, -0.08, 0.115]}>
-            <boxGeometry args={[0.32, 0.06, 0.01]} />
-            <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.4} />
-          </mesh>
-        </group>
-      )}
-
-      {/* Left Arm */}
-      <group position={[-0.22, 1.22, 0]} ref={leftArmRef}>
-        <mesh castShadow position={[0, -0.2, 0]}>
-          <cylinderGeometry args={[0.045, 0.04, 0.42, 8]} />
-          <meshStandardMaterial color={hasSafetyVest ? '#ea580c' : shirtColor} />
+      <group position={[0, 0.95, 0]}>
+        {/* Torso Shirt */}
+        <mesh castShadow position={[0, 0.12, 0]}>
+          <boxGeometry args={[0.34, 0.42, 0.22]} />
+          <meshStandardMaterial color={shirtColor} roughness={0.7} />
         </mesh>
-        {/* Hand */}
-        <mesh castShadow position={[0, -0.42, 0]}>
-          <sphereGeometry args={[0.042, 6, 6]} />
-          <meshStandardMaterial color={skinColor} />
+
+        {/* Safety Vest Over Shirt */}
+        {hasSafetyVest && (
+          <group position={[0, 0.12, 0]}>
+            <mesh castShadow>
+              <boxGeometry args={[0.35, 0.4, 0.23]} />
+              <meshStandardMaterial color="#ea580c" roughness={0.5} />
+            </mesh>
+            {/* Hi-Vis Yellow Reflective Stripes */}
+            <mesh position={[0, 0.08, 0.12]}>
+              <boxGeometry args={[0.36, 0.04, 0.01]} />
+              <meshStandardMaterial color="#facc15" emissive="#ca8a04" emissiveIntensity={0.3} />
+            </mesh>
+            <mesh position={[0, -0.08, 0.12]}>
+              <boxGeometry args={[0.36, 0.04, 0.01]} />
+              <meshStandardMaterial color="#facc15" emissive="#ca8a04" emissiveIntensity={0.3} />
+            </mesh>
+          </group>
+        )}
+      </group>
+
+      {/* ============================================================ */}
+      {/* ARMS & HANDS */}
+      {/* ============================================================ */}
+      {/* Left Arm */}
+      <group position={[-0.21, 1.25, 0]} ref={leftArmRef}>
+        {/* Upper Arm Sleeve */}
+        <mesh castShadow position={[0, -0.16, 0]}>
+          <cylinderGeometry args={[0.045, 0.04, 0.28, 8]} />
+          <meshStandardMaterial color={shirtColor} roughness={0.7} />
+        </mesh>
+        {/* Forearm & Hand */}
+        <mesh castShadow position={[0, -0.4, 0]}>
+          <cylinderGeometry args={[0.038, 0.035, 0.28, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.6} />
         </mesh>
       </group>
 
       {/* Right Arm */}
-      <group position={[0.22, 1.22, 0]} ref={rightArmRef}>
-        <mesh castShadow position={[0, -0.2, 0]}>
-          <cylinderGeometry args={[0.045, 0.04, 0.42, 8]} />
-          <meshStandardMaterial color={hasSafetyVest ? '#ea580c' : shirtColor} />
+      <group position={[0.21, 1.25, 0]} ref={rightArmRef}>
+        {/* Upper Arm Sleeve */}
+        <mesh castShadow position={[0, -0.16, 0]}>
+          <cylinderGeometry args={[0.045, 0.04, 0.28, 8]} />
+          <meshStandardMaterial color={shirtColor} roughness={0.7} />
         </mesh>
-        {/* Hand */}
-        <mesh castShadow position={[0, -0.42, 0]}>
-          <sphereGeometry args={[0.042, 6, 6]} />
-          <meshStandardMaterial color={skinColor} />
+        {/* Forearm & Hand */}
+        <mesh castShadow position={[0, -0.4, 0]}>
+          <cylinderGeometry args={[0.038, 0.035, 0.28, 8]} />
+          <meshStandardMaterial color={skinColor} roughness={0.6} />
         </mesh>
       </group>
 
@@ -283,6 +312,7 @@ export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
   const pedalsRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
+    // Pure rolling motion around the axle (X-axis) in the YZ plane
     const t = state.clock.getElapsedTime() * 8 * speed;
     if (wheelFrontRef.current) wheelFrontRef.current.rotation.x = t;
     if (wheelRearRef.current) wheelRearRef.current.rotation.x = t;
@@ -295,71 +325,104 @@ export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
       {/* BICYCLE GEOMETRY */}
       {/* ============================================================ */}
       <group position={[0, 0.35, 0]}>
-        {/* Front Wheel (Z = +0.55m) */}
+        {/* Front Wheel Assembly (Z = +0.55m) */}
         <group position={[0, 0, 0.55]} ref={wheelFrontRef}>
-          {/* Rubber Tire */}
-          <mesh castShadow>
-            <torusGeometry args={[0.3, 0.03, 8, 20]} />
+          {/* Rubber Tire: Oriented with normal along X (in YZ plane) so it ROLLS forward */}
+          <mesh castShadow rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[0.3, 0.032, 12, 32]} />
             <meshStandardMaterial color="#0f172a" roughness={0.9} />
           </mesh>
-          {/* Wheel Hub & Spokes */}
+          {/* Wheel Axle Hub (Cylinder along X) */}
           <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 8]} />
+            <cylinderGeometry args={[0.03, 0.03, 0.09, 12]} />
             <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
           </mesh>
+          {/* Spokes in YZ Plane */}
           <mesh>
-            <cylinderGeometry args={[0.006, 0.006, 0.58, 4]} />
-            <meshStandardMaterial color="#94a3b8" />
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
           </mesh>
           <mesh rotation={[Math.PI / 2, 0, 0]}>
-            <cylinderGeometry args={[0.006, 0.006, 0.58, 4]} />
-            <meshStandardMaterial color="#94a3b8" />
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+          </mesh>
+          <mesh rotation={[Math.PI / 4, 0, 0]}>
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 4, 0, 0]}>
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
           </mesh>
         </group>
 
-        {/* Rear Wheel (Z = -0.55m) */}
+        {/* Rear Wheel Assembly (Z = -0.55m) */}
         <group position={[0, 0, -0.55]} ref={wheelRearRef}>
-          <mesh castShadow>
-            <torusGeometry args={[0.3, 0.03, 8, 20]} />
+          {/* Rubber Tire: Oriented in YZ plane so it ROLLS forward */}
+          <mesh castShadow rotation={[0, Math.PI / 2, 0]}>
+            <torusGeometry args={[0.3, 0.032, 12, 32]} />
             <meshStandardMaterial color="#0f172a" roughness={0.9} />
           </mesh>
+          {/* Wheel Axle Hub */}
           <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.08, 8]} />
+            <cylinderGeometry args={[0.03, 0.03, 0.09, 12]} />
             <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
           </mesh>
+          {/* Spokes in YZ Plane */}
           <mesh>
-            <cylinderGeometry args={[0.006, 0.006, 0.58, 4]} />
-            <meshStandardMaterial color="#94a3b8" />
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+          </mesh>
+          <mesh rotation={[Math.PI / 2, 0, 0]}>
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+          </mesh>
+          <mesh rotation={[Math.PI / 4, 0, 0]}>
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
+          </mesh>
+          <mesh rotation={[-Math.PI / 4, 0, 0]}>
+            <cylinderGeometry args={[0.005, 0.005, 0.58, 4]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.6} />
           </mesh>
         </group>
 
-        {/* Diamond Frame Tubes (Painted Cyan / Red) */}
+        {/* Diamond Frame Tubes */}
         {/* Top Tube */}
         <mesh position={[0, 0.32, 0]} rotation={[0.1, 0, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.85, 6]} />
+          <cylinderGeometry args={[0.02, 0.02, 0.85, 8]} />
           <meshStandardMaterial color="#0284c7" metalness={0.7} roughness={0.3} />
         </mesh>
         {/* Down Tube */}
         <mesh position={[0, 0.15, 0.15]} rotation={[-0.6, 0, 0]}>
-          <cylinderGeometry args={[0.024, 0.024, 0.88, 6]} />
+          <cylinderGeometry args={[0.024, 0.024, 0.88, 8]} />
           <meshStandardMaterial color="#0284c7" metalness={0.7} roughness={0.3} />
         </mesh>
         {/* Seat Tube */}
         <mesh position={[0, 0.18, -0.15]} rotation={[0.3, 0, 0]}>
-          <cylinderGeometry args={[0.022, 0.022, 0.72, 6]} />
+          <cylinderGeometry args={[0.022, 0.022, 0.72, 8]} />
           <meshStandardMaterial color="#0284c7" metalness={0.7} roughness={0.3} />
         </mesh>
         {/* Front Fork */}
         <mesh position={[0, 0.12, 0.5]} rotation={[-0.25, 0, 0]}>
-          <cylinderGeometry args={[0.02, 0.02, 0.68, 6]} />
+          <cylinderGeometry args={[0.02, 0.02, 0.68, 8]} />
           <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
         </mesh>
 
         {/* Handlebars */}
         <group position={[0, 0.46, 0.44]}>
           <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.018, 0.018, 0.42, 6]} />
+            <cylinderGeometry args={[0.018, 0.018, 0.44, 8]} />
             <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          {/* Grips */}
+          <mesh position={[-0.21, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.022, 0.022, 0.08, 8]} />
+            <meshStandardMaterial color="#f43f5e" />
+          </mesh>
+          <mesh position={[0.21, 0, 0]} rotation={[0, 0, Math.PI / 2]}>
+            <cylinderGeometry args={[0.022, 0.022, 0.08, 8]} />
+            <meshStandardMaterial color="#f43f5e" />
           </mesh>
         </group>
 
@@ -369,11 +432,22 @@ export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
           <meshStandardMaterial color="#0f172a" roughness={0.6} />
         </mesh>
 
-        {/* Bottom Bracket & Pedals */}
+        {/* Bottom Bracket & Rotating Pedals */}
         <group position={[0, -0.1, -0.05]} ref={pedalsRef}>
+          {/* Crank Axle */}
           <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.015, 0.015, 0.28, 6]} />
-            <meshStandardMaterial color="#94a3b8" />
+            <cylinderGeometry args={[0.015, 0.015, 0.28, 8]} />
+            <meshStandardMaterial color="#94a3b8" metalness={0.8} />
+          </mesh>
+          {/* Left Pedal */}
+          <mesh position={[0.16, 0.08, 0]}>
+            <boxGeometry args={[0.08, 0.02, 0.09]} />
+            <meshStandardMaterial color="#1e293b" />
+          </mesh>
+          {/* Right Pedal */}
+          <mesh position={[-0.16, -0.08, 0]}>
+            <boxGeometry args={[0.08, 0.02, 0.09]} />
+            <meshStandardMaterial color="#1e293b" />
           </mesh>
         </group>
       </group>
@@ -389,7 +463,7 @@ export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
           pantsColor="#0f172a"
           hasHelmet={true}
           isWalking={false}
-          isSeated={true}
+          isCycling={true}
         />
       </group>
     </group>
