@@ -144,12 +144,15 @@ export class FarmMaterialsCache {
       transparent: true,
       opacity: 0.9,
     });
+
+    const wellWaterTex = createWellWaterTexture();
     this.wellWater = new THREE.MeshStandardMaterial({
-      color: 0x0284c7, // Vibrant deep crystal blue well water (not green)
-      roughness: 0.05,
-      metalness: 0.5,
-      emissive: 0x0369a1,
-      emissiveIntensity: 0.35,
+      map: wellWaterTex,
+      color: 0xffffff,
+      roughness: 0.08,
+      metalness: 0.35,
+      emissive: 0x0284c7,
+      emissiveIntensity: 0.2,
     });
     this.wellWaterRipple = new THREE.MeshStandardMaterial({
       color: 0x7dd3fc, // Bright cyan-blue surface ripple highlight
@@ -424,4 +427,51 @@ export class FarmMaterialsCache {
     }
     return FarmMaterialsCache.instance;
   }
+}
+
+function createWellWaterTexture(): THREE.CanvasTexture {
+  if (typeof document === 'undefined') return new THREE.CanvasTexture({} as any);
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 512;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return new THREE.CanvasTexture(canvas);
+
+  // Deep ocean blue radial gradient
+  const grad = ctx.createRadialGradient(256, 256, 20, 256, 256, 256);
+  grad.addColorStop(0, '#38bdf8');   // Bright crystal cyan center
+  grad.addColorStop(0.35, '#0284c7'); // Rich azure blue
+  grad.addColorStop(0.75, '#0369a1'); // Deep navy blue
+  grad.addColorStop(1, '#082f49');    // Dark deep water edge
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, 512, 512);
+
+  // Soft concentric calm water wave rings
+  ctx.lineWidth = 5;
+  [45, 90, 140, 185, 220, 242].forEach((r, idx) => {
+    ctx.beginPath();
+    ctx.arc(256, 256, r, 0, Math.PI * 2);
+    ctx.strokeStyle = idx % 2 === 0 ? 'rgba(255, 255, 255, 0.45)' : 'rgba(186, 230, 253, 0.35)';
+    ctx.stroke();
+  });
+
+  // Subtle caustic wave sparkles
+  for (let i = 0; i < 20; i++) {
+    const angle = (i / 20) * Math.PI * 2;
+    const dist = 70 + (i % 4) * 35;
+    const cx = 256 + Math.cos(angle) * dist;
+    const cy = 256 + Math.sin(angle) * dist;
+    const rad = 22 + (i % 3) * 10;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, rad, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(240, 249, 255, 0.3)';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  return texture;
 }

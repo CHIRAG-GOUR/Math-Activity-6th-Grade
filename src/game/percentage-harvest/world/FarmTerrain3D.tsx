@@ -29,9 +29,6 @@ export const FarmTerrain3D: React.FC = () => {
     if (wellBucketRef.current) {
       wellBucketRef.current.rotation.z = Math.sin(state.clock.getElapsedTime() * 2.0) * 0.04;
     }
-    if (wellWaterRef.current) {
-      wellWaterRef.current.rotation.z += delta * 0.3;
-    }
   });
 
   return (
@@ -180,23 +177,10 @@ export const FarmTerrain3D: React.FC = () => {
             <cylinderGeometry args={[0.915, 0.915, 0.2, 24, 1, true]} />
           </mesh>
 
-          {/* ── VIBRANT DEEP CRYSTAL BLUE WELL WATER SURFACE (स्वच्छ गहरा नीला पानी) ── */}
-          <group ref={wellWaterRef} position={[0, 0.50, 0]}>
-            {/* Deep Glowing Blue Water Disk filling the entire well interior */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow material={mats.wellWater}>
-              <circleGeometry args={[0.92, 32]} />
-            </mesh>
-            {/* Sparkling Concentric Water Ripple Rings */}
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
-              <ringGeometry args={[0.22, 0.32, 24]} />
-            </mesh>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
-              <ringGeometry args={[0.52, 0.64, 24]} />
-            </mesh>
-            <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.005, 0]} material={mats.wellWaterRipple}>
-              <ringGeometry args={[0.76, 0.86, 24]} />
-            </mesh>
-          </group>
+          {/* ── VIBRANT DEEP CRYSTAL BLUE WELL WATER SURFACE (स्वच्छ गहरा शांत नीला पानी) ── */}
+          <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.50, 0]} receiveShadow material={mats.wellWater}>
+            <circleGeometry args={[0.92, 32]} />
+          </mesh>
 
           {/* Left & Right Vertical Wooden Timber Pillars */}
           {[-0.92, 0.92].map((px) => (
