@@ -157,6 +157,8 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
     >
       <Canvas
         shadows
+        dpr={[1, 1.5]}
+        gl={{ antialias: true, powerPreference: 'high-performance' }}
         camera={{ position: [0, 22, 26], fov: 42 }}
         className="w-full h-full"
       >
@@ -169,18 +171,18 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
           turbidity={4}
           rayleigh={0.3}
         />
-        <ambientLight intensity={0.8} />
+        <ambientLight intensity={0.85} />
         <directionalLight
           castShadow
           position={[28, 42, -28]}
-          intensity={1.35}
-          shadow-mapSize-width={2048}
-          shadow-mapSize-height={2048}
-          shadow-camera-far={85}
-          shadow-camera-left={-32}
-          shadow-camera-right={32}
-          shadow-camera-top={32}
-          shadow-camera-bottom={-32}
+          intensity={1.3}
+          shadow-mapSize-width={1024}
+          shadow-mapSize-height={1024}
+          shadow-camera-far={75}
+          shadow-camera-left={-26}
+          shadow-camera-right={26}
+          shadow-camera-top={26}
+          shadow-camera-bottom={-26}
         />
 
         {/* Orbit Controls with generous bounds */}

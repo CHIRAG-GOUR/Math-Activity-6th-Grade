@@ -53,9 +53,52 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* ============================================================ */}
       {/* 1. SURROUNDING CITY STREET / ROAD */}
       {/* ============================================================ */}
+      {/* Asphalt Ground Plane */}
       <mesh receiveShadow position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[75, 75]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.9} />
+        <meshStandardMaterial color="#334155" roughness={0.8} />
+      </mesh>
+
+      {/* 2-Lane Asphalt Road Ribbon Surface */}
+      <mesh receiveShadow position={[0, -0.055, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[44, 44]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.7} />
+      </mesh>
+
+      {/* Outer White Road Edge Lines (at R = 20.8m) */}
+      <mesh position={[0, -0.05, -20.8]}>
+        <boxGeometry args={[41.6, 0.01, 0.12]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[0, -0.05, 20.8]}>
+        <boxGeometry args={[41.6, 0.01, 0.12]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[-20.8, -0.05, 0]}>
+        <boxGeometry args={[0.12, 0.01, 41.6]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[20.8, -0.05, 0]}>
+        <boxGeometry args={[0.12, 0.01, 41.6]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+
+      {/* Inner White Road Edge Lines (at R = 16.2m) */}
+      <mesh position={[0, -0.05, -16.2]}>
+        <boxGeometry args={[32.4, 0.01, 0.12]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[0, -0.05, 16.2]}>
+        <boxGeometry args={[32.4, 0.01, 0.12]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[-16.2, -0.05, 0]}>
+        <boxGeometry args={[0.12, 0.01, 32.4]} />
+        <meshBasicMaterial color="#f8fafc" />
+      </mesh>
+      <mesh position={[16.2, -0.05, 0]}>
+        <boxGeometry args={[0.12, 0.01, 32.4]} />
+        <meshBasicMaterial color="#f8fafc" />
       </mesh>
 
       {/* Surrounding City Sidewalks underneath Buildings */}
