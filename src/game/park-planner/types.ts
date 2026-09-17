@@ -171,6 +171,10 @@ export interface TeamParkState {
   hasAnsweredCurrent: boolean;
   isCurrentCorrect: boolean | null;
   feedbackMessage: string | null;
+  attemptsRemaining: number; // 2 attempts per question
+  maxAttempts: number; // 2
+  timeLeft: number; // 60s countdown timer per question
+  isTimeExpired: boolean;
   installedObjects: InstalledParkObject[];
   quadrantBuild: QuadrantBuildProgress;
   citizenHappiness: number; // 0 to 100%

@@ -84,6 +84,10 @@ function createInitialTeamState(teamId: TeamId, teamName: string, firstQuestion:
     hasAnsweredCurrent: false,
     isCurrentCorrect: null,
     feedbackMessage: null,
+    attemptsRemaining: 2,
+    maxAttempts: 2,
+    timeLeft: 60,
+    isTimeExpired: false,
     installedObjects: [],
     quadrantBuild: createInitialQuadrantBuild(),
     citizenHappiness: 20,
@@ -119,7 +123,7 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
       set((state) => {
         const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
         const teamState = state[teamKey];
-        if (teamState.hasAnsweredCurrent) return state;
+        if (teamState.hasAnsweredCurrent || teamState.isTimeExpired) return state;
 
         return {
           [teamKey]: {
@@ -136,7 +140,7 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
       set((state) => {
         const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
         const teamState = state[teamKey];
-        if (teamState.hasAnsweredCurrent) return state;
+        if (teamState.hasAnsweredCurrent || teamState.isTimeExpired) return state;
 
         const currentPoints = [...teamState.selectedPoints];
         const existingIdx = currentPoints.findIndex(p => isEqualCoord(p, coord));
@@ -175,7 +179,7 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
       set((state) => {
         const teamKey = teamId === 'blue' ? 'blueTeam' : 'redTeam';
         const teamState = state[teamKey];
-        if (teamState.hasAnsweredCurrent) return state;
+        if (teamState.hasAnsweredCurrent || teamState.isTimeExpired) return state;
 
         let parsedPoint: Coordinate2D | null = null;
         if (typeof answer === 'object' && answer !== null && 'x' in answer) {
@@ -203,21 +207,25 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
       const team = state[teamKey];
       const q = team.currentQuestion;
 
-      if (!q || team.hasAnsweredCurrent) return;
+      if (!q || team.hasAnsweredCurrent || team.isTimeExpired) return;
 
       // Determine correctness based on question mode
       let isCorrect = false;
       let targetCoord: Coordinate2D = q.targetPoint || { x: 0, y: 0 };
 
       if (q.mode === 'point_plot' || q.mode === 'translate' || q.mode === 'reflect' || q.mode === 'rotate') {
-        if (team.selectedPoint && isEqualCoord(team.selectedPoint, q.correctAnswer as Coordinate2D)) {
+        if (team.selectedPoint && typeof q.correctAnswer === 'object' && isEqualCoord(team.selectedPoint, q.correctAnswer as Coordinate2D)) {
           isCorrect = true;
           targetCoord = team.selectedPoint;
         } else if (typeof team.selectedAnswer === 'string') {
-          const expectedStr = formatCoord(q.correctAnswer as Coordinate2D);
+          const expectedStr = typeof q.correctAnswer === 'object' ? formatCoord(q.correctAnswer as Coordinate2D) : String(q.correctAnswer);
           if (team.selectedAnswer.replace(/\s+/g, '') === expectedStr.replace(/\s+/g, '')) {
             isCorrect = true;
           }
+        }
+      } else if (q.mode === 'identify') {
+        if (typeof team.selectedAnswer === 'string' && team.selectedAnswer === String(q.correctAnswer)) {
+          isCorrect = true;
         }
       } else if (q.mode === 'polygon' || q.mode === 'path') {
         const expectedPoints = q.correctAnswer as Coordinate2D[];
@@ -298,7 +306,7 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
             ...team,
             hasAnsweredCurrent: true,
             isCurrentCorrect: true,
-            feedbackMessage: `Correct! ${q.physicalOutcome.description}`,
+            feedbackMessage: `✅ Correct! ${q.physicalOutcome.description}`,
             installedObjects: updatedObjects,
             quadrantBuild: updatedQuadrantBuild,
             citizenHappiness: newHappiness,
@@ -311,19 +319,43 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
           },
         });
       } else {
-        // Incorrect
+        // Incorrect answer
         parkAudio.playIncorrectBuzz();
-        const totalAnswered = team.totalAnswered + 1;
-        set({
-          [teamKey]: {
-            ...team,
-            hasAnsweredCurrent: true,
-            isCurrentCorrect: false,
-            feedbackMessage: `Incorrect. Expected ${Array.isArray(q.correctAnswer) ? q.correctAnswer.map(formatCoord).join(', ') : typeof q.correctAnswer === 'object' ? formatCoord(q.correctAnswer as Coordinate2D) : q.correctAnswer}. Check your coordinates and try next round!`,
-            totalAnswered,
-            accuracy: Math.round((team.correctAnswersCount / totalAnswered) * 100),
-          },
-        });
+        const remaining = team.attemptsRemaining - 1;
+
+        if (remaining > 0) {
+          // 1 attempt remaining - allow retry!
+          set({
+            [teamKey]: {
+              ...team,
+              attemptsRemaining: remaining,
+              hasAnsweredCurrent: false,
+              isCurrentCorrect: null,
+              selectedAnswer: null,
+              feedbackMessage: `⚠️ Not quite right! You have 1 try remaining. Tip: Check the X and Y coordinates and try again!`,
+            },
+          });
+        } else {
+          // 0 attempts remaining - out of tries, no construction!
+          const totalAnswered = team.totalAnswered + 1;
+          const expectedStr = typeof q.correctAnswer === 'object' && !Array.isArray(q.correctAnswer)
+            ? formatCoord(q.correctAnswer as Coordinate2D)
+            : Array.isArray(q.correctAnswer)
+            ? q.correctAnswer.map(formatCoord).join(', ')
+            : String(q.correctAnswer);
+
+          set({
+            [teamKey]: {
+              ...team,
+              attemptsRemaining: 0,
+              hasAnsweredCurrent: true,
+              isCurrentCorrect: false,
+              feedbackMessage: `❌ Out of tries (2/2 used). Expected: ${expectedStr}. No construction progress made this round.`,
+              totalAnswered,
+              accuracy: Math.round((team.correctAnswersCount / totalAnswered) * 100),
+            },
+          });
+        }
       }
     },
 
@@ -374,6 +406,10 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
             hasAnsweredCurrent: false,
             isCurrentCorrect: null,
             feedbackMessage: null,
+            attemptsRemaining: 2,
+            maxAttempts: 2,
+            timeLeft: 60,
+            isTimeExpired: false,
           },
         });
       }
@@ -382,6 +418,30 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
     tickTransformProgress: (delta: number) => {
       set((state) => {
         let changed = false;
+
+        // Countdown timer for blue and red teams (60 seconds per round)
+        const updateTeamTimer = (team: TeamParkState): TeamParkState => {
+          if (team.hasAnsweredCurrent || team.isMatchComplete || team.isTimeExpired) {
+            return team;
+          }
+          changed = true;
+          const newTime = Math.max(0, team.timeLeft - delta);
+          if (newTime <= 0) {
+            parkAudio.playIncorrectBuzz();
+            return {
+              ...team,
+              timeLeft: 0,
+              isTimeExpired: true,
+              hasAnsweredCurrent: true,
+              isCurrentCorrect: false,
+              feedbackMessage: `⏰ Time's up! (60s expired) No construction progress was made for this round.`,
+            };
+          }
+          return {
+            ...team,
+            timeLeft: newTime,
+          };
+        };
 
         const updateQuadrantBuild = (qb: QuadrantBuildProgress): QuadrantBuildProgress => {
           const updated = { ...qb };
@@ -472,21 +532,23 @@ export const useParkStore = create<ParkStoreState>((set, get) => {
           });
         };
 
-        const updatedBlueQb = updateQuadrantBuild(state.blueTeam.quadrantBuild);
-        const updatedRedQb = updateQuadrantBuild(state.redTeam.quadrantBuild);
-        const updatedBlueObjects = updateObjects(state.blueTeam.installedObjects);
-        const updatedRedObjects = updateObjects(state.redTeam.installedObjects);
+        const updatedBlueTeam = updateTeamTimer(state.blueTeam);
+        const updatedRedTeam = updateTeamTimer(state.redTeam);
+        const updatedBlueQb = updateQuadrantBuild(updatedBlueTeam.quadrantBuild);
+        const updatedRedQb = updateQuadrantBuild(updatedRedTeam.quadrantBuild);
+        const updatedBlueObjects = updateObjects(updatedBlueTeam.installedObjects);
+        const updatedRedObjects = updateObjects(updatedRedTeam.installedObjects);
 
         if (!changed) return state;
 
         return {
           blueTeam: {
-            ...state.blueTeam,
+            ...updatedBlueTeam,
             quadrantBuild: updatedBlueQb,
             installedObjects: updatedBlueObjects,
           },
           redTeam: {
-            ...state.redTeam,
+            ...updatedRedTeam,
             quadrantBuild: updatedRedQb,
             installedObjects: updatedRedObjects,
           },

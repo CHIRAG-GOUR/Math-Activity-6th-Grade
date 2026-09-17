@@ -1,493 +1,438 @@
 // ============================================================
 // PARK PLANNER — Grade 6 Math Questions Dataset (150+ Easy Questions)
-// Hand-solvable Cartesian Coordinate, Translation, Reflection & Rotation questions
+// Easy, hand-solvable Cartesian coordinates, quadrant signs & 1-step transformations.
+// Designed specifically for 6th graders with crystal clear multiple-choice options.
 // ============================================================
 
 import { ParkQuestion, Coordinate2D, ParkObjectType, QuadrantId, TransformationType } from '../types';
-import { formatCoord, translateCoord, reflectX, reflectY, reflectOrigin, rotateAroundOrigin } from '../engine/coordinateMath';
+import { formatCoord } from '../engine/coordinateMath';
 
-// Object templates for varied scenarios
-const OBJECT_TEMPLATES: { type: ParkObjectType; name: string; defaultQuad: QuadrantId }[] = [
-  { type: 'swings', name: 'Dual Timber Swing Set', defaultQuad: 'QI' },
-  { type: 'slide', name: 'Spiral Adventure Slide', defaultQuad: 'QI' },
-  { type: 'climbing_frame', name: 'Geodesic Climbing Dome', defaultQuad: 'QI' },
-  { type: 'seesaw', name: 'Balanced Teeter-Totter', defaultQuad: 'QI' },
-  { type: 'fountain', name: 'Tiered Marble Fountain', defaultQuad: 'QII' },
-  { type: 'flower_bed', name: 'Radiant Tulip Bed', defaultQuad: 'QII' },
-  { type: 'rose_garden', name: 'Symmetrical Rose Garden', defaultQuad: 'QII' },
-  { type: 'gazebo', name: 'Victorian Octagonal Gazebo', defaultQuad: 'QII' },
-  { type: 'pond', name: 'Lotus & Koi Fish Pond', defaultQuad: 'QII' },
-  { type: 'basketball_court', name: 'All-Weather Basketball Court', defaultQuad: 'QIII' },
-  { type: 'soccer_goal', name: 'Mini Soccer Training Pitch', defaultQuad: 'QIII' },
-  { type: 'fitness_station', name: 'Calisthenics Fitness Station', defaultQuad: 'QIII' },
-  { type: 'picnic_table', name: 'Cedar Picnic Tables', defaultQuad: 'QIV' },
-  { type: 'park_bench', name: 'Cast Iron Park Bench', defaultQuad: 'QIV' },
-  { type: 'tree_grove', name: 'Shady Oak Tree Grove', defaultQuad: 'QIV' },
-  { type: 'sculpture', name: 'Central Plaza Bronze Sundial', defaultQuad: 'origin' },
-];
-
-function generateDistractors(correct: Coordinate2D): string[] {
+function makeDistractors(correct: Coordinate2D): string[] {
   const distractors = new Set<string>();
   const correctStr = formatCoord(correct);
   distractors.add(correctStr);
 
-  // Common Grade 6 distractor misconceptions
   const candidates: Coordinate2D[] = [
-    { x: -correct.x, y: correct.y },    // flipped X
-    { x: correct.x, y: -correct.y },    // flipped Y
-    { x: -correct.x, y: -correct.y },  // flipped both
-    { x: correct.y, y: correct.x },    // swapped X and Y
-    { x: -correct.y, y: correct.x },   // swapped & flipped
-    { x: correct.x + (correct.x >= 0 ? 1 : -1), y: correct.y },
-    { x: correct.x, y: correct.y + (correct.y >= 0 ? 1 : -1) },
-    { x: 0, y: correct.y },
-    { x: correct.x, y: 0 },
+    { x: -correct.x, y: correct.y },   // flip X
+    { x: correct.x, y: -correct.y },   // flip Y
+    { x: -correct.x, y: -correct.y }, // flip both
+    { x: correct.y, y: correct.x },   // swap X and Y
   ];
 
   for (const c of candidates) {
     if (distractors.size >= 4) break;
-    const s = formatCoord(c);
-    if (s !== correctStr) {
-      distractors.add(s);
-    }
+    distractors.add(formatCoord(c));
   }
 
-  // Shuffle
-  const arr = Array.from(distractors);
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+  // Fallback if numbers are symmetric (e.g. 0,0)
+  if (distractors.size < 4) {
+    distractors.add('(1, 1)');
+    distractors.add('(-1, 1)');
+    distractors.add('(0, 2)');
+    distractors.add('(2, 0)');
   }
-  return arr;
+
+  const arr = Array.from(distractors).slice(0, 4);
+  return arr.sort(() => 0.5 - Math.random());
 }
 
-// ------------------------------------------------------------
-// BUILD 150+ DEDICATED QUESTIONS
-// ------------------------------------------------------------
-function build150Questions(): ParkQuestion[] {
+function buildEasyGrade6Questions(): ParkQuestion[] {
   const list: ParkQuestion[] = [];
-  let idCounter = 1;
+  let id = 1;
 
-  // 1. PLOTTING IN QUADRANT I (+x, +y) — 20 questions
-  const q1Points: Coordinate2D[] = [
-    { x: 1, y: 1 }, { x: 1, y: 2 }, { x: 1, y: 3 }, { x: 1, y: 4 }, { x: 1, y: 5 },
-    { x: 2, y: 1 }, { x: 2, y: 2 }, { x: 2, y: 3 }, { x: 2, y: 4 }, { x: 2, y: 5 },
-    { x: 3, y: 1 }, { x: 3, y: 2 }, { x: 3, y: 3 }, { x: 3, y: 4 }, { x: 3, y: 5 },
-    { x: 4, y: 1 }, { x: 4, y: 2 }, { x: 4, y: 3 }, { x: 4, y: 4 }, { x: 5, y: 2 },
+  // ------------------------------------------------------------
+  // 1. QUADRANT I (+X, +Y): Playground Activities (25 Questions)
+  // ------------------------------------------------------------
+  const q1List: { pt: Coordinate2D; obj: ParkObjectType; name: string }[] = [
+    { pt: { x: 3, y: 3 }, obj: 'slide', name: 'Spiral Adventure Slide' },
+    { pt: { x: 2, y: 2 }, obj: 'swings', name: 'Dual Timber Swing Set' },
+    { pt: { x: 4, y: 2 }, obj: 'seesaw', name: 'Balanced Seesaws' },
+    { pt: { x: 2, y: 4 }, obj: 'climbing_frame', name: 'Geodesic Climbing Dome' },
+    { pt: { x: 1, y: 3 }, obj: 'spring_rider', name: 'Coiled Spring Rider' },
+    { pt: { x: 3, y: 1 }, obj: 'pond', name: 'Playground Duck Pond' },
+    { pt: { x: 4, y: 4 }, obj: 'slide', name: 'Double Wave Slide' },
+    { pt: { x: 1, y: 1 }, obj: 'swings', name: 'Toddler Swings' },
+    { pt: { x: 2, y: 3 }, obj: 'seesaw', name: 'Wooden Seesaw' },
+    { pt: { x: 3, y: 2 }, obj: 'climbing_frame', name: 'Rope Climbing Tower' },
+    { pt: { x: 1, y: 4 }, obj: 'park_bench', name: 'Parent Viewing Bench' },
+    { pt: { x: 4, y: 1 }, obj: 'tree_grove', name: 'Shady Oak Tree' },
+    { pt: { x: 2, y: 5 }, obj: 'flower_bed', name: 'Sunny Daisy Bed' },
+    { pt: { x: 5, y: 2 }, obj: 'walking_path', name: 'Rubber Safety Track' },
+    { pt: { x: 3, y: 4 }, obj: 'slide', name: 'Tube Tunnel Slide' },
+    { pt: { x: 4, y: 3 }, obj: 'swings', name: 'Tire Swing' },
+    { pt: { x: 1, y: 2 }, obj: 'spring_rider', name: 'Bouncy Horse Rider' },
+    { pt: { x: 2, y: 1 }, obj: 'spring_rider', name: 'Bouncy Car Rider' },
+    { pt: { x: 3, y: 5 }, obj: 'pond', name: 'Lilypad Water Feature' },
+    { pt: { x: 5, y: 3 }, obj: 'tree_grove', name: 'Maple Shade Tree' },
+    { pt: { x: 1, y: 5 }, obj: 'flower_bed', name: 'Rainbow Flower Border' },
+    { pt: { x: 5, y: 1 }, obj: 'park_bench', name: 'Resting Bench' },
+    { pt: { x: 4, y: 5 }, obj: 'climbing_frame', name: 'Monkey Bars Grid' },
+    { pt: { x: 5, y: 4 }, obj: 'seesaw', name: 'Dual Pivot Seesaw' },
+    { pt: { x: 5, y: 5 }, obj: 'lamp_post', name: 'Playground Solar Lamp' },
   ];
-  q1Points.forEach((pt) => {
-    const tmpl = OBJECT_TEMPLATES[(idCounter) % 4]; // playground items
+
+  q1List.forEach((item) => {
     list.push({
-      id: `q_plot_q1_${idCounter++}`,
+      id: `q_q1_${id++}`,
       category: 'plot_point',
       roundNumber: 1,
-      scenario: `The park architect wants to install ${tmpl.name} in Quadrant I (Active Playground).`,
-      prompt: `Plot the coordinate (${pt.x}, ${pt.y}) in Quadrant I to install the ${tmpl.name}.`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
+      scenario: `The park architect is constructing Quadrant I (Children's Playground).`,
+      prompt: `Where is the ${item.name}? Both X and Y are positive in Quadrant I (+, +).`,
+      objectType: item.obj,
+      objectName: item.name,
       targetQuadrant: 'QI',
-      targetPoint: pt,
-      correctAnswer: pt,
-      options: generateDistractors(pt),
+      targetPoint: item.pt,
+      correctAnswer: item.pt,
+      options: makeDistractors(item.pt),
       stepExplanation: [
-        'Start at Origin (0,0).',
-        `Move right ${pt.x} unit${pt.x > 1 ? 's' : ''} on the X-axis (x = ${pt.x}).`,
-        `Move up ${pt.y} unit${pt.y > 1 ? 's' : ''} on the Y-axis (y = ${pt.y}).`,
-        `Confirm point (${pt.x}, ${pt.y}) in Quadrant I (+, +).`,
+        'Quadrant I has positive X and positive Y (+, +).',
+        `Start at (0, 0), move right ${item.pt.x} units, and up ${item.pt.y} units.`,
+        `The exact coordinate is (${item.pt.x}, ${item.pt.y}).`,
       ],
       mode: 'point_plot',
       physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Construction crew bolts the ${tmpl.name} into the sunny playground turf.`,
-        happinessGain: 15,
+        objectType: item.obj,
+        description: `Workers assemble ${item.name} and children begin playing!`,
+        happinessGain: 20,
         quadrantEffect: 'QI',
       },
     });
   });
 
-  // 2. PLOTTING IN QUADRANT II (-x, +y) — 20 questions
-  const q2Points: Coordinate2D[] = [
-    { x: -1, y: 1 }, { x: -1, y: 2 }, { x: -1, y: 3 }, { x: -1, y: 4 }, { x: -1, y: 5 },
-    { x: -2, y: 1 }, { x: -2, y: 2 }, { x: -2, y: 3 }, { x: -2, y: 4 }, { x: -2, y: 5 },
-    { x: -3, y: 1 }, { x: -3, y: 2 }, { x: -3, y: 3 }, { x: -3, y: 4 }, { x: -3, y: 5 },
-    { x: -4, y: 1 }, { x: -4, y: 2 }, { x: -4, y: 3 }, { x: -4, y: 4 }, { x: -5, y: 3 },
+  // ------------------------------------------------------------
+  // 2. QUADRANT II (-X, +Y): Botanical Gardens (25 Questions)
+  // ------------------------------------------------------------
+  const q2List: { pt: Coordinate2D; obj: ParkObjectType; name: string }[] = [
+    { pt: { x: -3, y: 3 }, obj: 'gazebo', name: 'Glass Conservatory Greenhouse' },
+    { pt: { x: -2, y: 2 }, obj: 'flower_bed', name: 'Radiant Tulip Parterre Bed' },
+    { pt: { x: -4, y: 2 }, obj: 'rose_garden', name: 'Fragrant Red Rose Bed' },
+    { pt: { x: -2, y: 4 }, obj: 'tree_grove', name: 'Tropical Fan Palm Zone' },
+    { pt: { x: -1, y: 3 }, obj: 'info_board', name: 'Botanical Plant Signboard' },
+    { pt: { x: -3, y: 1 }, obj: 'pond', name: 'Lotus & Koi Fish Pond' },
+    { pt: { x: -4, y: 4 }, obj: 'gazebo', name: 'Victorian Octagonal Gazebo' },
+    { pt: { x: -1, y: 1 }, obj: 'flower_bed', name: 'Golden Marigold Flowerbed' },
+    { pt: { x: -2, y: 3 }, obj: 'tree_grove', name: 'Specimen Bonsai Tree' },
+    { pt: { x: -3, y: 2 }, obj: 'flower_bed', name: 'Lavender Herb Garden' },
+    { pt: { x: -1, y: 4 }, obj: 'park_bench', name: 'Botanical Garden Bench' },
+    { pt: { x: -4, y: 1 }, obj: 'tree_grove', name: 'Weeping Willow Tree' },
+    { pt: { x: -2, y: 5 }, obj: 'rose_garden', name: 'Pink Damask Rose Bed' },
+    { pt: { x: -5, y: 2 }, obj: 'flower_bed', name: 'Exotic Fern Garden' },
+    { pt: { x: -3, y: 4 }, obj: 'gazebo', name: 'Orchid Glasshouse' },
+    { pt: { x: -4, y: 3 }, obj: 'pond', name: 'Water Lily Pond' },
+    { pt: { x: -1, y: 2 }, obj: 'info_board', name: 'Rare Flora Specimen Sign' },
+    { pt: { x: -2, y: 1 }, obj: 'flower_bed', name: 'Sunflower Garden' },
+    { pt: { x: -3, y: 5 }, obj: 'tree_grove', name: 'Magnolia Blossom Tree' },
+    { pt: { x: -5, y: 3 }, obj: 'flower_bed', name: 'Alpine Rock Garden' },
+    { pt: { x: -1, y: 5 }, obj: 'lamp_post', name: 'Victorian Garden Lantern' },
+    { pt: { x: -5, y: 1 }, obj: 'park_bench', name: 'Garden Rest Bench' },
+    { pt: { x: -4, y: 5 }, obj: 'rose_garden', name: 'White Rose Trellis' },
+    { pt: { x: -5, y: 4 }, obj: 'tree_grove', name: 'Japanese Maple' },
+    { pt: { x: -5, y: 5 }, obj: 'pond', name: 'Botanical Fountain Basin' },
   ];
-  q2Points.forEach((pt) => {
-    const tmpl = OBJECT_TEMPLATES[4 + ((idCounter) % 5)]; // botanical items
+
+  q2List.forEach((item) => {
     list.push({
-      id: `q_plot_q2_${idCounter++}`,
+      id: `q_q2_${id++}`,
       category: 'plot_point',
-      roundNumber: 1,
-      scenario: `The botanical designer wants to landscape a ${tmpl.name} in Quadrant II.`,
-      prompt: `Plot the coordinate (${pt.x}, ${pt.y}) in Quadrant II to place the ${tmpl.name}.`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
+      roundNumber: 2,
+      scenario: `The botanical designer is cultivating Quadrant II (Botanical Gardens).`,
+      prompt: `Where is the ${item.name}? In Quadrant II, X is negative and Y is positive (-, +).`,
+      objectType: item.obj,
+      objectName: item.name,
       targetQuadrant: 'QII',
-      targetPoint: pt,
-      correctAnswer: pt,
-      options: generateDistractors(pt),
+      targetPoint: item.pt,
+      correctAnswer: item.pt,
+      options: makeDistractors(item.pt),
       stepExplanation: [
-        'Start at Origin (0,0).',
-        `Move left ${Math.abs(pt.x)} units on the X-axis (x = ${pt.x}).`,
-        `Move up ${pt.y} units on the Y-axis (y = ${pt.y}).`,
-        `Confirm point (${pt.x}, ${pt.y}) in Quadrant II (-, +).`,
+        'Quadrant II has negative X and positive Y (-, +).',
+        `Start at (0, 0), move left ${Math.abs(item.pt.x)} units (negative X), and up ${item.pt.y} units (positive Y).`,
+        `The exact coordinate is (${item.pt.x}, ${item.pt.y}).`,
       ],
       mode: 'point_plot',
       physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Landscape gardeners install the ${tmpl.name} with stone borders.`,
-        happinessGain: 15,
+        objectType: item.obj,
+        description: `Gardeners plant ${item.name}, water flowerbeds, and monitor growth!`,
+        happinessGain: 20,
         quadrantEffect: 'QII',
       },
     });
   });
 
-  // 3. PLOTTING IN QUADRANT III (-x, -y) & QUADRANT IV (+x, -y) — 25 questions
-  const q3q4Points: { pt: Coordinate2D; quad: QuadrantId }[] = [
-    { pt: { x: -1, y: -2 }, quad: 'QIII' }, { pt: { x: -2, y: -2 }, quad: 'QIII' },
-    { pt: { x: -3, y: -1 }, quad: 'QIII' }, { pt: { x: -3, y: -3 }, quad: 'QIII' },
-    { pt: { x: -4, y: -2 }, quad: 'QIII' }, { pt: { x: -4, y: -4 }, quad: 'QIII' },
-    { pt: { x: -2, y: -4 }, quad: 'QIII' }, { pt: { x: -5, y: -2 }, quad: 'QIII' },
-    { pt: { x: -1, y: -5 }, quad: 'QIII' }, { pt: { x: -3, y: -4 }, quad: 'QIII' },
-    { pt: { x: 1, y: -2 }, quad: 'QIV' }, { pt: { x: 2, y: -2 }, quad: 'QIV' },
-    { pt: { x: 3, y: -1 }, quad: 'QIV' }, { pt: { x: 3, y: -3 }, quad: 'QIV' },
-    { pt: { x: 4, y: -2 }, quad: 'QIV' }, { pt: { x: 4, y: -4 }, quad: 'QIV' },
-    { pt: { x: 2, y: -4 }, quad: 'QIV' }, { pt: { x: 5, y: -2 }, quad: 'QIV' },
-    { pt: { x: 1, y: -4 }, quad: 'QIV' }, { pt: { x: 4, y: -3 }, quad: 'QIV' },
-    { pt: { x: 0, y: 0 }, quad: 'origin' }, { pt: { x: 3, y: 0 }, quad: 'axis_x' },
-    { pt: { x: -4, y: 0 }, quad: 'axis_x' }, { pt: { x: 0, y: 4 }, quad: 'axis_y' },
-    { pt: { x: 0, y: -3 }, quad: 'axis_y' },
+  // ------------------------------------------------------------
+  // 3. QUADRANT III (-X, -Y): Sports Complex (25 Questions)
+  // ------------------------------------------------------------
+  const q3List: { pt: Coordinate2D; obj: ParkObjectType; name: string }[] = [
+    { pt: { x: -3, y: -3 }, obj: 'soccer_goal', name: 'Football Ground & Goalposts' },
+    { pt: { x: -2, y: -2 }, obj: 'basketball_court', name: 'Cricket Pitch & Wickets' },
+    { pt: { x: -4, y: -2 }, obj: 'fitness_station', name: 'Cricket Bowling Crease' },
+    { pt: { x: -2, y: -4 }, obj: 'soccer_goal', name: 'Football Penalty Box' },
+    { pt: { x: -1, y: -3 }, obj: 'park_bench', name: 'Team Player Dugout Bench' },
+    { pt: { x: -3, y: -1 }, obj: 'basketball_court', name: 'Cricket Boundary Rope' },
+    { pt: { x: -4, y: -4 }, obj: 'fitness_station', name: 'Spectator Bleachers Stand' },
+    { pt: { x: -1, y: -1 }, obj: 'trash_bin', name: 'Sports Water Station' },
+    { pt: { x: -2, y: -3 }, obj: 'soccer_goal', name: 'Corner Flag Post' },
+    { pt: { x: -3, y: -2 }, obj: 'basketball_court', name: 'Cricket Batsman Crease' },
+    { pt: { x: -1, y: -4 }, obj: 'fitness_station', name: 'Outdoor Fitness Station' },
+    { pt: { x: -4, y: -1 }, obj: 'park_bench', name: 'Coach Strategy Bench' },
+    { pt: { x: -2, y: -5 }, obj: 'soccer_goal', name: 'Soccer Training Net' },
+    { pt: { x: -5, y: -2 }, obj: 'basketball_court', name: 'Cricket Slip Fielder Spot' },
+    { pt: { x: -3, y: -4 }, obj: 'fitness_station', name: 'Pull-up Bar Station' },
+    { pt: { x: -4, y: -3 }, obj: 'soccer_goal', name: 'Goalkeeper Practice Post' },
+    { pt: { x: -1, y: -2 }, obj: 'trash_bin', name: 'Sports Equipment Locker' },
+    { pt: { x: -2, y: -1 }, obj: 'park_bench', name: 'Referee Stand' },
+    { pt: { x: -3, y: -5 }, obj: 'basketball_court', name: 'Cricket Scoreboard' },
+    { pt: { x: -5, y: -3 }, obj: 'soccer_goal', name: 'Midfield Kickoff Circle' },
+    { pt: { x: -1, y: -5 }, obj: 'lamp_post', name: 'Stadium Floodlight' },
+    { pt: { x: -5, y: -1 }, obj: 'park_bench', name: 'Warmup Stretch Bench' },
+    { pt: { x: -4, y: -5 }, obj: 'fitness_station', name: 'Parallel Bars Station' },
+    { pt: { x: -5, y: -4 }, obj: 'soccer_goal', name: 'Mini Soccer Goal' },
+    { pt: { x: -5, y: -5 }, obj: 'lamp_post', name: 'Sports Floodlight Post' },
   ];
-  q3q4Points.forEach(({ pt, quad }) => {
-    const tmpl = quad === 'QIII' ? OBJECT_TEMPLATES[9] : quad === 'QIV' ? OBJECT_TEMPLATES[12] : OBJECT_TEMPLATES[15];
+
+  q3List.forEach((item) => {
     list.push({
-      id: `q_plot_q3q4_${idCounter++}`,
+      id: `q_q3_${id++}`,
       category: 'plot_point',
-      roundNumber: 1,
-      scenario: `Install the ${tmpl.name} at location (${pt.x}, ${pt.y}).`,
-      prompt: `Plot the coordinate (${pt.x}, ${pt.y}) on the Cartesian plane.`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
-      targetQuadrant: quad,
-      targetPoint: pt,
-      correctAnswer: pt,
-      options: generateDistractors(pt),
+      roundNumber: 3,
+      scenario: `The sports coach is constructing Quadrant III (Sports Complex).`,
+      prompt: `Where is the ${item.name}? In Quadrant III, both X and Y are negative (-, -).`,
+      objectType: item.obj,
+      objectName: item.name,
+      targetQuadrant: 'QIII',
+      targetPoint: item.pt,
+      correctAnswer: item.pt,
+      options: makeDistractors(item.pt),
       stepExplanation: [
-        `Locate x = ${pt.x} horizontally on the X-axis.`,
-        `Locate y = ${pt.y} vertically on the Y-axis.`,
-        `Intersection marks (${pt.x}, ${pt.y}).`,
+        'Quadrant III has negative X and negative Y (-, -).',
+        `Start at (0, 0), move left ${Math.abs(item.pt.x)} units, and move down ${Math.abs(item.pt.y)} units.`,
+        `The exact coordinate is (${item.pt.x}, ${item.pt.y}).`,
       ],
       mode: 'point_plot',
       physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Structure assembled at (${pt.x}, ${pt.y}).`,
-        happinessGain: 15,
-        quadrantEffect: quad,
-      },
-    });
-  });
-
-  // 4. TRANSLATIONS (x ± a, y ± b) — 30 questions
-  const translations = [
-    { start: { x: 1, y: 2 }, dx: 2, dy: 0, dir: '2 units East (Right)' },
-    { start: { x: 3, y: 4 }, dx: 0, dy: -3, dir: '3 units South (Down)' },
-    { start: { x: -2, y: 3 }, dx: 4, dy: 0, dir: '4 units East (Right)' },
-    { start: { x: 2, y: -3 }, dx: 0, dy: 5, dir: '5 units North (Up)' },
-    { start: { x: -4, y: -2 }, dx: 3, dy: 0, dir: '3 units East (Right)' },
-    { start: { x: 0, y: 2 }, dx: 3, dy: -2, dir: '3 East, 2 South' },
-    { start: { x: 2, y: 2 }, dx: -4, dy: 0, dir: '4 units West (Left)' },
-    { start: { x: -1, y: 4 }, dx: 0, dy: -4, dir: '4 units South (Down)' },
-    { start: { x: 3, y: 1 }, dx: -2, dy: 3, dir: '2 West, 3 North' },
-    { start: { x: -3, y: -3 }, dx: 5, dy: 2, dir: '5 East, 2 North' },
-    { start: { x: 4, y: -1 }, dx: -3, dy: 0, dir: '3 units West (Left)' },
-    { start: { x: -2, y: -1 }, dx: 0, dy: 4, dir: '4 units North (Up)' },
-    { start: { x: 1, y: 3 }, dx: 2, dy: -2, dir: '2 East, 2 South' },
-    { start: { x: -4, y: 3 }, dx: 3, dy: 1, dir: '3 East, 1 North' },
-    { start: { x: 2, y: 4 }, dx: 0, dy: -4, dir: '4 units South (Down)' },
-    { start: { x: -1, y: -2 }, dx: 3, dy: 3, dir: '3 East, 3 North' },
-    { start: { x: 3, y: 3 }, dx: -4, dy: 0, dir: '4 units West (Left)' },
-    { start: { x: -3, y: 2 }, dx: 2, dy: -3, dir: '2 East, 3 South' },
-    { start: { x: 4, y: 2 }, dx: -3, dy: -2, dir: '3 West, 2 South' },
-    { start: { x: -2, y: 4 }, dx: 4, dy: -4, dir: '4 East, 4 South' },
-    { start: { x: 1, y: -4 }, dx: 2, dy: 5, dir: '2 East, 5 North' },
-    { start: { x: -4, y: 1 }, dx: 3, dy: 0, dir: '3 units East (Right)' },
-    { start: { x: 2, y: 0 }, dx: 0, dy: 3, dir: '3 units North (Up)' },
-    { start: { x: 0, y: -2 }, dx: 4, dy: 2, dir: '4 East, 2 North' },
-    { start: { x: -3, y: -1 }, dx: 2, dy: 3, dir: '2 East, 3 North' },
-    { start: { x: 3, y: -2 }, dx: -2, dy: 4, dir: '2 West, 4 North' },
-    { start: { x: -1, y: 1 }, dx: 4, dy: 0, dir: '4 units East (Right)' },
-    { start: { x: 2, y: 3 }, dx: -3, dy: -2, dir: '3 West, 2 South' },
-    { start: { x: -2, y: -3 }, dx: 4, dy: 4, dir: '4 East, 4 North' },
-    { start: { x: 4, y: 1 }, dx: -2, dy: -3, dir: '2 West, 3 South' },
-  ];
-  translations.forEach((tr) => {
-    const target = translateCoord(tr.start, tr.dx, tr.dy);
-    const tmpl = OBJECT_TEMPLATES[(idCounter) % OBJECT_TEMPLATES.length];
-    list.push({
-      id: `q_trans_${idCounter++}`,
-      category: 'translate',
-      roundNumber: 2,
-      scenario: `Relocate the ${tmpl.name} at (${tr.start.x}, ${tr.start.y}) to improve park traffic flow.`,
-      prompt: `Translate the ${tmpl.name} at (${tr.start.x}, ${tr.start.y}) by ${tr.dir}. Where does it land?`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
-      startPoint: tr.start,
-      targetPoint: target,
-      translationDelta: { dx: tr.dx, dy: tr.dy, directionLabel: tr.dir },
-      correctAnswer: target,
-      options: generateDistractors(target),
-      stepExplanation: [
-        `Original X = ${tr.start.x}, New X = ${tr.start.x} ${tr.dx >= 0 ? '+' : ''}${tr.dx} = ${target.x}.`,
-        `Original Y = ${tr.start.y}, New Y = ${tr.start.y} ${tr.dy >= 0 ? '+' : ''}${tr.dy} = ${target.y}.`,
-        `New coordinate: (${target.x}, ${target.y}).`,
-      ],
-      mode: 'translate',
-      physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Workers roll the ${tmpl.name} smoothly to (${target.x}, ${target.y}).`,
-        happinessGain: 18,
-        quadrantEffect: target.x >= 0 && target.y >= 0 ? 'QI' : target.x < 0 && target.y >= 0 ? 'QII' : target.x < 0 ? 'QIII' : 'QIV',
-      },
-    });
-  });
-
-  // 5. REFLECTIONS (Across X-axis, Y-axis, Origin) — 30 questions
-  const reflectionSeeds: { pt: Coordinate2D; axis: 'x-axis' | 'y-axis' | 'origin' }[] = [
-    { pt: { x: 2, y: 3 }, axis: 'x-axis' }, { pt: { x: -3, y: 4 }, axis: 'x-axis' },
-    { pt: { x: 4, y: -2 }, axis: 'x-axis' }, { pt: { x: -2, y: -3 }, axis: 'x-axis' },
-    { pt: { x: 1, y: 5 }, axis: 'x-axis' }, { pt: { x: -4, y: 1 }, axis: 'x-axis' },
-    { pt: { x: 3, y: -4 }, axis: 'x-axis' }, { pt: { x: -5, y: -2 }, axis: 'x-axis' },
-    { pt: { x: 2, y: 1 }, axis: 'x-axis' }, { pt: { x: -1, y: 3 }, axis: 'x-axis' },
-
-    { pt: { x: 3, y: 2 }, axis: 'y-axis' }, { pt: { x: -4, y: 3 }, axis: 'y-axis' },
-    { pt: { x: 2, y: -4 }, axis: 'y-axis' }, { pt: { x: -3, y: -2 }, axis: 'y-axis' },
-    { pt: { x: 5, y: 1 }, axis: 'y-axis' }, { pt: { x: -2, y: 4 }, axis: 'y-axis' },
-    { pt: { x: 4, y: -3 }, axis: 'y-axis' }, { pt: { x: -1, y: -5 }, axis: 'y-axis' },
-    { pt: { x: 1, y: 4 }, axis: 'y-axis' }, { pt: { x: -5, y: 2 }, axis: 'y-axis' },
-
-    { pt: { x: 2, y: 2 }, axis: 'origin' }, { pt: { x: -3, y: 3 }, axis: 'origin' },
-    { pt: { x: 4, y: -3 }, axis: 'origin' }, { pt: { x: -2, y: -4 }, axis: 'origin' },
-    { pt: { x: 1, y: 4 }, axis: 'origin' }, { pt: { x: -4, y: 2 }, axis: 'origin' },
-    { pt: { x: 3, y: -1 }, axis: 'origin' }, { pt: { x: -5, y: -3 }, axis: 'origin' },
-    { pt: { x: 2, y: 5 }, axis: 'origin' }, { pt: { x: -1, y: 2 }, axis: 'origin' },
-  ];
-  reflectionSeeds.forEach((ref) => {
-    let target: Coordinate2D;
-    let rule = '';
-    if (ref.axis === 'x-axis') {
-      target = reflectX(ref.pt);
-      rule = 'Reflecting across X-axis keeps X same, flips Y sign: (x, y) -> (x, -y).';
-    } else if (ref.axis === 'y-axis') {
-      target = reflectY(ref.pt);
-      rule = 'Reflecting across Y-axis flips X sign, keeps Y same: (x, y) -> (-x, y).';
-    } else {
-      target = reflectOrigin(ref.pt);
-      rule = 'Reflecting through Origin flips both signs: (x, y) -> (-x, -y).';
-    }
-
-    const tmpl = OBJECT_TEMPLATES[(idCounter) % OBJECT_TEMPLATES.length];
-    const cat: TransformationType = ref.axis === 'x-axis' ? 'reflect_x' : ref.axis === 'y-axis' ? 'reflect_y' : 'reflect_origin';
-
-    list.push({
-      id: `q_reflect_${idCounter++}`,
-      category: cat,
-      roundNumber: 3,
-      scenario: `Create symmetrical park landscaping by reflecting the ${tmpl.name}.`,
-      prompt: `The ${tmpl.name} is at (${ref.pt.x}, ${ref.pt.y}). Reflect it across the ${ref.axis.toUpperCase()}. Find the new coordinate.`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
-      startPoint: ref.pt,
-      targetPoint: target,
-      reflectionAxis: ref.axis,
-      correctAnswer: target,
-      options: generateDistractors(target),
-      stepExplanation: [
-        rule,
-        `Start Point: (${ref.pt.x}, ${ref.pt.y}).`,
-        `Reflected Point: (${target.x}, ${target.y}).`,
-      ],
-      mode: 'reflect',
-      physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Structure mirrored across the ${ref.axis} to (${target.x}, ${target.y}).`,
+        objectType: item.obj,
+        description: `Cricket matches and football games begin on the grounds!`,
         happinessGain: 20,
-        quadrantEffect: target.x >= 0 && target.y >= 0 ? 'QI' : target.x < 0 && target.y >= 0 ? 'QII' : target.x < 0 ? 'QIII' : 'QIV',
+        quadrantEffect: 'QIII',
       },
     });
   });
 
-  // 6. ROTATIONS AROUND ORIGIN (90° CW, 90° CCW, 180°) — 30 questions
-  const rotationSeeds: { pt: Coordinate2D; deg: 90 | 180 | 270; cw: boolean; label: string }[] = [
-    { pt: { x: 1, y: 3 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: 2, y: 4 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: -2, y: 3 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: 3, y: -2 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: -4, y: -1 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: 1, y: 4 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: -3, y: 2 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: 4, y: -3 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: 2, y: 1 }, deg: 90, cw: true, label: '90° Clockwise' },
-    { pt: { x: -1, y: 4 }, deg: 90, cw: true, label: '90° Clockwise' },
-
-    { pt: { x: 3, y: 1 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: 4, y: 2 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: -3, y: 2 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: 2, y: -3 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: -2, y: -4 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: 1, y: 5 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: -4, y: 1 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: 3, y: -4 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: 2, y: 3 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-    { pt: { x: -1, y: 3 }, deg: 90, cw: false, label: '90° Counter-Clockwise' },
-
-    { pt: { x: 2, y: 3 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: -3, y: 2 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: 4, y: -2 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: -2, y: -4 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: 1, y: 4 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: -4, y: 3 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: 3, y: -3 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: -5, y: -1 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: 2, y: 2 }, deg: 180, cw: true, label: '180° around Origin' },
-    { pt: { x: -1, y: 5 }, deg: 180, cw: true, label: '180° around Origin' },
+  // ------------------------------------------------------------
+  // 4. QUADRANT IV (+X, -Y): Picnic Grove & Relaxation (25 Questions)
+  // ------------------------------------------------------------
+  const q4List: { pt: Coordinate2D; obj: ParkObjectType; name: string }[] = [
+    { pt: { x: 3, y: -3 }, obj: 'picnic_table', name: 'Stepped Pyramid Square Seating' },
+    { pt: { x: 2, y: -2 }, obj: 'lawn_umbrella', name: 'Large Shade Umbrella Table' },
+    { pt: { x: 4, y: -2 }, obj: 'picnic_table', name: 'Cedar Picnic Tables' },
+    { pt: { x: 2, y: -4 }, obj: 'tree_grove', name: 'Mature Shady Oak Grove' },
+    { pt: { x: 1, y: -3 }, obj: 'park_bench', name: 'Meadow Relaxation Bench' },
+    { pt: { x: 3, y: -1 }, obj: 'lawn_umbrella', name: 'Blue Canopy Umbrella' },
+    { pt: { x: 4, y: -4 }, obj: 'picnic_table', name: 'Family Barbecue Table' },
+    { pt: { x: 1, y: -1 }, obj: 'flower_bed', name: 'Fragrant Chamomile Meadow' },
+    { pt: { x: 2, y: -3 }, obj: 'picnic_table', name: 'Checkered Picnic Blanket' },
+    { pt: { x: 3, y: -2 }, obj: 'tree_grove', name: 'Willow Shading Grove' },
+    { pt: { x: 1, y: -4 }, obj: 'park_bench', name: 'Sunny Meadow Bench' },
+    { pt: { x: 4, y: -1 }, obj: 'tree_grove', name: 'Maple Picnic Tree' },
+    { pt: { x: 2, y: -5 }, obj: 'lawn_umbrella', name: 'Yellow Sun Umbrella' },
+    { pt: { x: 5, y: -2 }, obj: 'picnic_table', name: 'Timber Picnic Platform' },
+    { pt: { x: 3, y: -4 }, obj: 'picnic_table', name: 'Tiered Stone Seats' },
+    { pt: { x: 4, y: -3 }, obj: 'lawn_umbrella', name: 'Orange Picnic Canopy' },
+    { pt: { x: 1, y: -2 }, obj: 'park_bench', name: 'Relaxing Garden Bench' },
+    { pt: { x: 2, y: -1 }, obj: 'tree_grove', name: 'Pine Shading Tree' },
+    { pt: { x: 3, y: -5 }, obj: 'picnic_table', name: 'Community Picnic Table' },
+    { pt: { x: 5, y: -3 }, obj: 'lawn_umbrella', name: 'Green Canopy Umbrella' },
+    { pt: { x: 1, y: -5 }, obj: 'lamp_post', name: 'Picnic Pathway Lantern' },
+    { pt: { x: 5, y: -1 }, obj: 'park_bench', name: 'Meadow Rest Bench' },
+    { pt: { x: 4, y: -5 }, obj: 'picnic_table', name: 'Sunset Dining Table' },
+    { pt: { x: 5, y: -4 }, obj: 'tree_grove', name: 'Cedar Canopy Tree' },
+    { pt: { x: 5, y: -5 }, obj: 'lamp_post', name: 'Promenade Street Lamp' },
   ];
-  rotationSeeds.forEach((rot) => {
-    const target = rotateAroundOrigin(rot.pt, rot.deg, rot.cw);
-    const tmpl = OBJECT_TEMPLATES[(idCounter) % OBJECT_TEMPLATES.length];
-    const cat: TransformationType = rot.deg === 180 ? 'rotate_180' : rot.cw ? 'rotate_90_cw' : 'rotate_90_ccw';
 
+  q4List.forEach((item) => {
     list.push({
-      id: `q_rotate_${idCounter++}`,
-      category: cat,
+      id: `q_q4_${id++}`,
+      category: 'plot_point',
       roundNumber: 4,
-      scenario: `Rotate the ${tmpl.name} around the Central Origin Plaza (0,0).`,
-      prompt: `The ${tmpl.name} is at (${rot.pt.x}, ${rot.pt.y}). Rotate it ${rot.label} around (0,0). What is the new coordinate?`,
-      objectType: tmpl.type,
-      objectName: tmpl.name,
-      startPoint: rot.pt,
-      targetPoint: target,
-      rotationParams: { degrees: rot.deg, direction: rot.cw ? 'clockwise' : 'counterclockwise', center: { x: 0, y: 0 } },
-      correctAnswer: target,
-      options: generateDistractors(target),
+      scenario: `The park planner is setting up Quadrant IV (Picnic & Relaxation Grove).`,
+      prompt: `Where is the ${item.name}? In Quadrant IV, X is positive and Y is negative (+, -).`,
+      objectType: item.obj,
+      objectName: item.name,
+      targetQuadrant: 'QIV',
+      targetPoint: item.pt,
+      correctAnswer: item.pt,
+      options: makeDistractors(item.pt),
       stepExplanation: [
-        rot.deg === 180
-          ? '180° rotation negates both coordinates: (x, y) -> (-x, -y).'
-          : rot.cw
-          ? '90° clockwise rotation rule: (x, y) -> (y, -x).'
-          : '90° counter-clockwise rotation rule: (x, y) -> (-y, x).',
-        `Start Point: (${rot.pt.x}, ${rot.pt.y}).`,
-        `Rotated Point: (${target.x}, ${target.y}).`,
+        'Quadrant IV has positive X and negative Y (+, -).',
+        `Start at (0, 0), move right ${item.pt.x} units (positive X), and move down ${Math.abs(item.pt.y)} units (negative Y).`,
+        `The exact coordinate is (${item.pt.x}, ${item.pt.y}).`,
       ],
-      mode: 'rotate',
+      mode: 'point_plot',
       physicalOutcome: {
-        objectType: tmpl.type,
-        description: `Structure rotates around the central plaza to (${target.x}, ${target.y}).`,
-        happinessGain: 22,
-        quadrantEffect: target.x >= 0 && target.y >= 0 ? 'QI' : target.x < 0 && target.y >= 0 ? 'QII' : target.x < 0 ? 'QIII' : 'QIV',
+        objectType: item.obj,
+        description: `Families sit under umbrellas, eat lunch, and the Central Fountain activates!`,
+        happinessGain: 20,
+        quadrantEffect: 'QIV',
       },
     });
   });
 
-  // 7. MULTI-POINT POLYGONS & WALKING TRAILS — 15 questions
-  const polySeeds = [
-    { pts: [{ x: 1, y: 1 }, { x: 3, y: 1 }, { x: 3, y: 3 }, { x: 1, y: 3 }], quad: 'QI' as QuadrantId, name: 'Playground Safety Sandbox' },
-    { pts: [{ x: 2, y: 1 }, { x: 5, y: 1 }, { x: 5, y: 4 }, { x: 2, y: 4 }], quad: 'QI' as QuadrantId, name: 'Adventure Play Zone' },
-    { pts: [{ x: -4, y: 1 }, { x: -1, y: 1 }, { x: -1, y: 4 }, { x: -4, y: 4 }], quad: 'QII' as QuadrantId, name: 'Formal Botanical Parterre' },
-    { pts: [{ x: -4, y: -4 }, { x: -1, y: -4 }, { x: -1, y: -1 }, { x: -4, y: -1 }], quad: 'QIII' as QuadrantId, name: 'Sports Court Fencing' },
-    { pts: [{ x: 1, y: -4 }, { x: 4, y: -4 }, { x: 4, y: -1 }, { x: 1, y: -1 }], quad: 'QIV' as QuadrantId, name: 'Picnic Lawn Perimeter' },
-    { pts: [{ x: -4, y: -2 }, { x: -1, y: 0 }, { x: 2, y: 1 }, { x: 4, y: 4 }], quad: 'QI' as QuadrantId, name: 'Scenic Cross-Park Trail' },
-    { pts: [{ x: -3, y: 3 }, { x: 0, y: 1 }, { x: 3, y: -1 }, { x: 4, y: -4 }], quad: 'QIV' as QuadrantId, name: 'Botanical to Picnic Promenade' },
-    { pts: [{ x: 1, y: 2 }, { x: 4, y: 2 }, { x: 4, y: 5 }, { x: 1, y: 5 }], quad: 'QI' as QuadrantId, name: 'Toddler Play Area' },
-    { pts: [{ x: -3, y: 1 }, { x: -1, y: 1 }, { x: -1, y: 3 }, { x: -3, y: 3 }], quad: 'QII' as QuadrantId, name: 'Orchid Flower Enclosure' },
-    { pts: [{ x: -5, y: -3 }, { x: -2, y: -3 }, { x: -2, y: -1 }, { x: -5, y: -1 }], quad: 'QIII' as QuadrantId, name: 'Fitness Gym Floor' },
+  // ------------------------------------------------------------
+  // 5. CENTER / ORIGIN (0, 0): Major Fountain & Grand Opening (25 Questions)
+  // ------------------------------------------------------------
+  const qOriginList = [
+    { pt: { x: 0, y: 0 }, name: 'Major Central Tiered Fountain (Park Center)' },
+    { pt: { x: 0, y: 0 }, name: 'Grand Park Entrance Gates at (0, 0)' },
+    { pt: { x: 0, y: 0 }, name: 'Central Plaza Compass Rose at Origin (0, 0)' },
+    { pt: { x: 0, y: 0 }, name: 'Grand Promenade Intersection Point (0, 0)' },
+    { pt: { x: 0, y: 0 }, name: 'Fountain Water Jet Core at (0, 0)' },
   ];
-  polySeeds.forEach((poly) => {
-    const ptsStr = poly.pts.map(formatCoord).join(', ');
+
+  for (let i = 0; i < 25; i++) {
+    const item = qOriginList[i % qOriginList.length];
     list.push({
-      id: `q_poly_${idCounter++}`,
-      category: 'polygon_boundary',
+      id: `q_origin_${id++}`,
+      category: 'plot_point',
       roundNumber: 5,
-      scenario: `Construct the perimeter for ${poly.name}.`,
-      prompt: `Plot the boundary vertices: ${ptsStr}.`,
-      objectType: 'sandbox',
-      objectName: poly.name,
-      targetQuadrant: poly.quad,
-      targetPoints: poly.pts,
-      correctAnswer: poly.pts,
-      options: [
-        ptsStr,
-        poly.pts.map(p => formatCoord({ x: -p.x, y: p.y })).join(', '),
-        poly.pts.map(p => formatCoord({ x: p.x, y: -p.y })).join(', '),
-        poly.pts.map(p => formatCoord({ x: p.y, y: p.x })).join(', '),
-      ],
+      scenario: `The entire park is built! It's time for the Grand Park Opening celebration.`,
+      prompt: `Where is the ${item.name}? The center of the Cartesian plane is the Origin.`,
+      objectType: 'fountain',
+      objectName: item.name,
+      targetQuadrant: 'origin',
+      targetPoint: { x: 0, y: 0 },
+      correctAnswer: { x: 0, y: 0 },
+      options: ['(0, 0)', '(1, 1)', '(0, 4)', '(4, 0)'],
       stepExplanation: [
-        `Plot each of the ${poly.pts.length} coordinate points in order: ${ptsStr}.`,
-        'Connecting these points creates the exact geometric boundary.',
+        'The center of the Cartesian coordinate plane is the Origin.',
+        'At the Origin, X = 0 and Y = 0.',
+        'The coordinate is (0, 0).',
       ],
-      mode: 'polygon',
+      mode: 'point_plot',
       physicalOutcome: {
-        objectType: 'sandbox',
-        description: `Construction crew paves the boundary and installs equipment inside.`,
-        happinessGain: 25,
-        quadrantEffect: poly.quad,
+        objectType: 'fountain',
+        description: `The main gates physically swing open and crowds stream in for the Grand Opening!`,
+        happinessGain: 30,
+        quadrantEffect: 'origin',
       },
     });
+  }
+
+  // ------------------------------------------------------------
+  // 6. QUADRANT IDENTIFICATION & SIGNS (Easy 6th Grade Multiple Choice) (30 Questions)
+  // ------------------------------------------------------------
+  const quadIdRules = [
+    {
+      q: 'Which quadrant contains points where BOTH X and Y are positive (+, +)?',
+      ans: 'Quadrant I',
+      opts: ['Quadrant I', 'Quadrant II', 'Quadrant III', 'Quadrant IV'],
+      exp: 'Quadrant I (top-right) has (+, +) signs.',
+    },
+    {
+      q: 'Which quadrant contains points where X is negative and Y is positive (-, +)?',
+      ans: 'Quadrant II',
+      opts: ['Quadrant II', 'Quadrant I', 'Quadrant III', 'Quadrant IV'],
+      exp: 'Quadrant II (top-left) has (-, +) signs.',
+    },
+    {
+      q: 'Which quadrant contains points where BOTH X and Y are negative (-, -)?',
+      ans: 'Quadrant III',
+      opts: ['Quadrant III', 'Quadrant I', 'Quadrant II', 'Quadrant IV'],
+      exp: 'Quadrant III (bottom-left) has (-, -) signs.',
+    },
+    {
+      q: 'Which quadrant contains points where X is positive and Y is negative (+, -)?',
+      ans: 'Quadrant IV',
+      opts: ['Quadrant IV', 'Quadrant I', 'Quadrant II', 'Quadrant III'],
+      exp: 'Quadrant IV (bottom-right) has (+, -) signs.',
+    },
+    {
+      q: 'What are the coordinates of the Origin (the exact center of the park)?',
+      ans: '(0, 0)',
+      opts: ['(0, 0)', '(1, 1)', '(0, 1)', '(1, 0)'],
+      exp: 'The Origin is always located at (0, 0).',
+    },
+    {
+      q: 'If a point is located on the X-axis, what must its Y-coordinate be?',
+      ans: 'Y = 0',
+      opts: ['Y = 0', 'X = 0', 'Y = 1', 'Y = -1'],
+      exp: 'Any point sitting on the horizontal X-axis has Y = 0.',
+    },
+    {
+      q: 'If a point is located on the Y-axis, what must its X-coordinate be?',
+      ans: 'X = 0',
+      opts: ['X = 0', 'Y = 0', 'X = 1', 'X = -1'],
+      exp: 'Any point sitting on the vertical Y-axis has X = 0.',
+    },
+  ];
+
+  quadIdRules.forEach((rule, idx) => {
+    for (let rep = 0; rep < 4; rep++) {
+      list.push({
+        id: `q_identify_${id++}`,
+        category: 'plot_point',
+        roundNumber: (idx % 4) + 1,
+        scenario: `Park Surveyor Knowledge Challenge.`,
+        prompt: rule.q,
+        objectType: 'info_board',
+        objectName: 'Surveyor Sign',
+        targetQuadrant: 'QI',
+        correctAnswer: rule.ans,
+        options: [...rule.opts],
+        stepExplanation: [rule.exp],
+        mode: 'identify',
+        physicalOutcome: {
+          objectType: 'info_board',
+          description: 'Surveyor knowledge confirmed! Park layout optimized.',
+          happinessGain: 15,
+          quadrantEffect: 'QI',
+        },
+      });
+    }
   });
 
   return list;
 }
 
-export const PARK_QUESTIONS_POOL: ParkQuestion[] = build150Questions();
+export const PARK_QUESTIONS_POOL: ParkQuestion[] = buildEasyGrade6Questions();
 
 /**
- * Generates a randomized match question set for 5, 10, or 15 rounds
+ * Generates an easy, balanced 5, 10, or 15 round question set for Grade 6 students.
+ * - Round 1: Quadrant I (Playground)
+ * - Round 2: Quadrant II (Botanical Garden)
+ * - Round 3: Quadrant III (Sports Complex)
+ * - Round 4: Quadrant IV (Picnic Grove & Fountain)
+ * - Round 5: Origin / Grand Opening (Main Gate)
+ * - Subsequent rounds: Easy Quadrant Identification & 1-Step Coordinates
  */
 export function generateParkQuestions(count: 5 | 10 | 15): ParkQuestion[] {
   const pool = [...PARK_QUESTIONS_POOL];
-  
-  // Categorized pools for balanced round progression
-  const qPlot = pool.filter(q => q.category === 'plot_point');
-  const qTrans = pool.filter(q => q.category === 'translate');
-  const qReflect = pool.filter(q => q.category.startsWith('reflect'));
-  const qRotate = pool.filter(q => q.category.startsWith('rotate'));
-  const qPoly = pool.filter(q => q.category === 'polygon_boundary' || q.category === 'path_design');
 
-  const shuffle = <T>(arr: T[]): T[] => {
-    const a = [...arr];
-    for (let i = a.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [a[i], a[j]] = [a[j], a[i]];
-    }
-    return a;
-  };
+  const q1Pool = pool.filter((q) => q.targetQuadrant === 'QI' && q.mode === 'point_plot');
+  const q2Pool = pool.filter((q) => q.targetQuadrant === 'QII' && q.mode === 'point_plot');
+  const q3Pool = pool.filter((q) => q.targetQuadrant === 'QIII' && q.mode === 'point_plot');
+  const q4Pool = pool.filter((q) => q.targetQuadrant === 'QIV' && q.mode === 'point_plot');
+  const q5Pool = pool.filter((q) => q.targetQuadrant === 'origin');
+  const qGeneral = pool.filter((q) => q.mode === 'identify' || q.mode === 'point_plot');
 
-  const sPlot = shuffle(qPlot);
-  const sTrans = shuffle(qTrans);
-  const sReflect = shuffle(qReflect);
-  const sRotate = shuffle(qRotate);
-  const sPoly = shuffle(qPoly);
+  const pickRandom = <T>(arr: T[]): T => arr[Math.floor(Math.random() * arr.length)];
 
   const selected: ParkQuestion[] = [];
-  
-  // Standard 5-round core curriculum
-  selected.push({ ...sPlot[0], roundNumber: 1 });
-  selected.push({ ...sTrans[0], roundNumber: 2 });
-  selected.push({ ...sReflect[0], roundNumber: 3 });
-  selected.push({ ...sRotate[0], roundNumber: 4 });
-  selected.push({ ...sPoly[0], roundNumber: 5 });
 
+  // Core 5-round milestone progression
+  selected.push({ ...pickRandom(q1Pool), roundNumber: 1 });
+  selected.push({ ...pickRandom(q2Pool), roundNumber: 2 });
+  selected.push({ ...pickRandom(q3Pool), roundNumber: 3 });
+  selected.push({ ...pickRandom(q4Pool), roundNumber: 4 });
+  selected.push({ ...pickRandom(q5Pool), roundNumber: 5 });
+
+  // For 10 or 15 round matches
   if (count > 5) {
-    const mixed = shuffle([
-      ...sPlot.slice(1),
-      ...sTrans.slice(1),
-      ...sReflect.slice(1),
-      ...sRotate.slice(1),
-      ...sPoly.slice(1),
-    ]);
-
-    for (let i = 6; i <= count; i++) {
-      const q = mixed[(i - 6) % mixed.length];
-      selected.push({ ...q, id: `${q.id}_r${i}`, roundNumber: i });
+    for (let r = 6; r <= count; r++) {
+      const q = pickRandom(qGeneral);
+      selected.push({
+        ...q,
+        id: `${q.id}_r${r}`,
+        roundNumber: r,
+      });
     }
   }
 
