@@ -56,11 +56,18 @@ interface HumanoidRigProps {
   customAccessory?: React.ReactNode;
 }
 
+/**
+ * The camera has to hold BOTH factories, which left the crew only a few pixels
+ * tall and made their work impossible to follow. Everyone is drawn slightly
+ * larger than life so walking, carrying and tipping read from the wide shot.
+ */
+export const CREW_SCALE = 1.4;
+
 export const ArticulatedHuman3D: React.FC<HumanoidRigProps> = ({
   style,
   team,
   read,
-  scale = 1,
+  scale = CREW_SCALE,
   customAccessory,
 }) => {
   const root = useRef<THREE.Group>(null);
@@ -640,17 +647,17 @@ export const IngredientHandler3D: React.FC<{ team: TeamId; index: 0 | 1 }> = ({ 
         if (isTipping) {
           // Elevated above tank rim and tilted 55 degrees
           sackRef.current.position.set(
-            w.pos.x + f.x * 0.72,
-            1.82,
-            w.pos.z + f.z * 0.72
+            w.pos.x + f.x * 0.72 * CREW_SCALE,
+            1.82 * CREW_SCALE,
+            w.pos.z + f.z * 0.72 * CREW_SCALE
           );
           sackRef.current.rotation.set(-1.1, w.heading, 0);
         } else {
           // Held against chest with both arms cradling
           sackRef.current.position.set(
-            w.pos.x + f.x * 0.42,
-            1.12 + Math.sin(state.clock.elapsedTime * 7.5) * 0.03,
-            w.pos.z + f.z * 0.42
+            w.pos.x + f.x * 0.42 * CREW_SCALE,
+            1.12 * CREW_SCALE + Math.sin(state.clock.elapsedTime * 7.5) * 0.03,
+            w.pos.z + f.z * 0.42 * CREW_SCALE
           );
           sackRef.current.rotation.set(0, w.heading, 0);
         }
@@ -663,9 +670,9 @@ export const IngredientHandler3D: React.FC<{ team: TeamId; index: 0 | 1 }> = ({ 
       if (isTipping) {
         const f = { x: -Math.sin(w.heading), z: -Math.cos(w.heading) };
         beanStreamRef.current.position.set(
-          w.pos.x + f.x * 0.95,
-          1.4,
-          w.pos.z + f.z * 0.95
+          w.pos.x + f.x * 0.95 * CREW_SCALE,
+          1.4 * CREW_SCALE,
+          w.pos.z + f.z * 0.95 * CREW_SCALE
         );
       }
     }
@@ -754,9 +761,9 @@ export const MixerOperator3D: React.FC<{ team: TeamId }> = ({ team }) => {
       if (!isOperating) {
         const f = { x: -Math.sin(w.heading), z: -Math.cos(w.heading) };
         tabletRef.current.position.set(
-          w.pos.x + f.x * 0.35,
-          1.05 + Math.sin(state.clock.elapsedTime * 1.5) * 0.02,
-          w.pos.z + f.z * 0.35
+          w.pos.x + f.x * 0.35 * CREW_SCALE,
+          1.05 * CREW_SCALE + Math.sin(state.clock.elapsedTime * 1.5) * 0.02,
+          w.pos.z + f.z * 0.35 * CREW_SCALE
         );
         tabletRef.current.rotation.set(-0.5, w.heading, 0);
       }
@@ -819,9 +826,9 @@ export const QualityInspector3D: React.FC<{ team: TeamId }> = ({ team }) => {
 
     if (clipboardRef.current) {
       clipboardRef.current.position.set(
-        w.pos.x + f.x * 0.32 - 0.12,
-        1.1,
-        w.pos.z + f.z * 0.32
+        w.pos.x + f.x * 0.32 * CREW_SCALE - 0.12,
+        1.1 * CREW_SCALE,
+        w.pos.z + f.z * 0.32 * CREW_SCALE
       );
       clipboardRef.current.rotation.set(-0.6, w.heading - 0.3, 0);
     }
@@ -829,9 +836,9 @@ export const QualityInspector3D: React.FC<{ team: TeamId }> = ({ team }) => {
     if (sampleBarRef.current) {
       const inspectCycle = Math.sin(state.clock.elapsedTime * 2.2);
       sampleBarRef.current.position.set(
-        w.pos.x + f.x * 0.36 + 0.14,
-        1.25 + inspectCycle * 0.04,
-        w.pos.z + f.z * 0.36
+        w.pos.x + f.x * 0.36 * CREW_SCALE + 0.14,
+        1.25 * CREW_SCALE + inspectCycle * 0.04,
+        w.pos.z + f.z * 0.36 * CREW_SCALE
       );
       sampleBarRef.current.rotation.set(0.4 + inspectCycle * 0.2, w.heading, 0);
     }
@@ -909,9 +916,9 @@ export const PackingWorker3D: React.FC<{ team: TeamId }> = ({ team }) => {
       if (packing) {
         const f = { x: -Math.sin(w.heading), z: -Math.cos(w.heading) };
         boxRef.current.position.set(
-          w.pos.x + f.x * 0.46,
-          1.06 + Math.sin(state.clock.elapsedTime * 3.2) * 0.05,
-          w.pos.z + f.z * 0.46
+          w.pos.x + f.x * 0.46 * CREW_SCALE,
+          1.06 * CREW_SCALE + Math.sin(state.clock.elapsedTime * 3.2) * 0.05,
+          w.pos.z + f.z * 0.46 * CREW_SCALE
         );
         boxRef.current.rotation.set(0, w.heading, 0);
       }
