@@ -1011,13 +1011,19 @@ export function victoryRun(team: TeamId) {
   const side = sim[team];
   if (side.celebrating) return;
   side.celebrating = true;
+  // The loading-timeout safety net measures from `answeredAt`; this load
+  // isn't triggered by an answer, so give it a fresh clock of its own.
+  side.answeredAt = sim.elapsed;
   side.boxCount = 3;
   side.boxesOnPallet = 3;
   side.boxesInTruck = 0;
   side.forkliftLoad = 'none';
   side.packT = 1;
   emit(side, 'box_seal');
-  beginLoading(side);
+  // The last few boxes go out by hand, whatever the count — a worker
+  // carrying the load to send the truck off reads better for the finale
+  // than watching the forklift make its long outer-lane loop.
+  beginLoading(side, true);
 }
 
 // ── QUERIES ──────────────────────────────────────────────────────────────

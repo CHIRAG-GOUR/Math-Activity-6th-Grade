@@ -623,87 +623,149 @@ export const CityVehicle3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 6B. MOVING CITY VEHICLES & TRAFFIC
+// 6B. VEHICLE TRAJECTORY SOLVER (Continuous Rounded Rectangle)
+// ------------------------------------------------------------
+export function getRoundedRectPath(
+  dist: number,
+  radius: number,
+  cornerRadius: number,
+  isCcw: boolean,
+  isCar: boolean // true = car (local front +X), false = cyclist (local front +Z)
+): { x: number; z: number; rotY: number } {
+  const r_c = Math.min(cornerRadius, radius * 0.35);
+  const L = radius - r_c;
+  const straightLen = 2 * L;
+  const arcLen = 0.5 * Math.PI * r_c;
+  const totalPerimeter = 4 * straightLen + 4 * arcLen;
+
+  let s = dist % totalPerimeter;
+  if (s < 0) s += totalPerimeter;
+
+  // If counter-clockwise, traverse in reverse
+  const trackPos = isCcw ? (totalPerimeter - s) % totalPerimeter : s;
+
+  let x = 0;
+  let z = 0;
+  let dx = 0;
+  let dz = 0;
+
+  const p0End = straightLen;
+  const p1End = p0End + arcLen;
+  const p2End = p1End + straightLen;
+  const p3End = p2End + arcLen;
+  const p4End = p3End + straightLen;
+  const p5End = p4End + arcLen;
+  const p6End = p5End + straightLen;
+
+  if (trackPos < p0End) {
+    // North straight edge moving East
+    const u = trackPos;
+    x = -L + u;
+    z = -radius;
+    dx = 1;
+    dz = 0;
+  } else if (trackPos < p1End) {
+    // North-East corner turning South
+    const u = ((trackPos - p0End) / arcLen) * (0.5 * Math.PI);
+    x = L + r_c * Math.sin(u);
+    z = -L - r_c * Math.cos(u);
+    dx = Math.cos(u);
+    dz = Math.sin(u);
+  } else if (trackPos < p2End) {
+    // East straight edge moving South
+    const u = trackPos - p1End;
+    x = radius;
+    z = -L + u;
+    dx = 0;
+    dz = 1;
+  } else if (trackPos < p3End) {
+    // South-East corner turning West
+    const u = ((trackPos - p2End) / arcLen) * (0.5 * Math.PI);
+    x = L + r_c * Math.cos(u);
+    z = L + r_c * Math.sin(u);
+    dx = -Math.sin(u);
+    dz = Math.cos(u);
+  } else if (trackPos < p4End) {
+    // South straight edge moving West
+    const u = trackPos - p3End;
+    x = L - u;
+    z = radius;
+    dx = -1;
+    dz = 0;
+  } else if (trackPos < p5End) {
+    // South-West corner turning North
+    const u = ((trackPos - p4End) / arcLen) * (0.5 * Math.PI);
+    x = -L - r_c * Math.sin(u);
+    z = L + r_c * Math.cos(u);
+    dx = -Math.cos(u);
+    dz = -Math.sin(u);
+  } else if (trackPos < p6End) {
+    // West straight edge moving North
+    const u = trackPos - p5End;
+    x = -radius;
+    z = L - u;
+    dx = 0;
+    dz = -1;
+  } else {
+    // North-West corner turning East
+    const u = ((trackPos - p6End) / arcLen) * (0.5 * Math.PI);
+    x = -L - r_c * Math.cos(u);
+    z = -L - r_c * Math.sin(u);
+    dx = Math.sin(u);
+    dz = -Math.cos(u);
+  }
+
+  if (isCcw) {
+    dx = -dx;
+    dz = -dz;
+  }
+
+  let rotY = 0;
+  if (isCar) {
+    rotY = Math.atan2(-dz, dx);
+  } else {
+    rotY = Math.atan2(dx, dz);
+  }
+
+  return { x, z, rotY };
+}
+
+// ------------------------------------------------------------
+// 6C. MOVING CITY VEHICLES & TRAFFIC
 // ------------------------------------------------------------
 export const MovingCityCar3D: React.FC<{
   type?: 'taxi' | 'sedan' | 'suv';
   color?: string;
   speed?: number; // m/s
   radius?: number; // Distance from center
+  cornerRadius?: number;
   initialOffset?: number;
   reverseDirection?: boolean;
 }> = ({
   type = 'taxi',
   color = '#eab308',
-  speed = 6.0,
-  radius = 21.0,
+  speed = 5.5,
+  radius = 17.5,
+  cornerRadius = 2.4,
   initialOffset = 0,
   reverseDirection = false,
 }) => {
   const rootRef = useRef<THREE.Group>(null);
-  const sideLength = radius * 2;
-  const totalPerimeter = sideLength * 4;
 
   useFrame((state) => {
     if (!rootRef.current) return;
     const t = state.clock.getElapsedTime();
-    let dist = (t * speed + initialOffset) % totalPerimeter;
-    if (dist < 0) dist += totalPerimeter;
+    const currentDist = t * speed + initialOffset;
+    const { x, z, rotY } = getRoundedRectPath(
+      currentDist,
+      radius,
+      cornerRadius,
+      reverseDirection,
+      true
+    );
 
-    if (reverseDirection) {
-      // Counter-clockwise
-      const ccwDist = totalPerimeter - dist;
-      const seg = Math.floor(ccwDist / sideLength);
-      const frac = (ccwDist % sideLength) / sideLength;
-
-      let x = 0, z = 0, rotY = 0;
-      if (seg === 0) { // North road going West
-        x = radius - frac * sideLength;
-        z = -radius;
-        rotY = -Math.PI / 2;
-      } else if (seg === 1) { // West road going South
-        x = -radius;
-        z = -radius + frac * sideLength;
-        rotY = 0;
-      } else if (seg === 2) { // South road going East
-        x = -radius + frac * sideLength;
-        z = radius;
-        rotY = Math.PI / 2;
-      } else { // East road going North
-        x = radius;
-        z = radius - frac * sideLength;
-        rotY = Math.PI;
-      }
-
-      rootRef.current.position.set(x, 0, z);
-      rootRef.current.rotation.y = rotY;
-    } else {
-      // Clockwise
-      const seg = Math.floor(dist / sideLength);
-      const frac = (dist % sideLength) / sideLength;
-
-      let x = 0, z = 0, rotY = 0;
-      if (seg === 0) { // North road going East
-        x = -radius + frac * sideLength;
-        z = -radius;
-        rotY = Math.PI / 2;
-      } else if (seg === 1) { // East road going South
-        x = radius;
-        z = -radius + frac * sideLength;
-        rotY = 0;
-      } else if (seg === 2) { // South road going West
-        x = radius - frac * sideLength;
-        z = radius;
-        rotY = -Math.PI / 2;
-      } else { // West road going North
-        x = -radius;
-        z = radius - frac * sideLength;
-        rotY = Math.PI;
-      }
-
-      rootRef.current.position.set(x, 0, z);
-      rootRef.current.rotation.y = rotY;
-    }
+    rootRef.current.position.set(x, 0, z);
+    rootRef.current.rotation.y = rotY;
   });
 
   return (
@@ -716,71 +778,32 @@ export const MovingCityCar3D: React.FC<{
 export const MovingCityCyclist3D: React.FC<{
   speed?: number;
   radius?: number;
+  cornerRadius?: number;
   initialOffset?: number;
   reverseDirection?: boolean;
-}> = ({ speed = 2.4, radius = 17.5, initialOffset = 0, reverseDirection = false }) => {
+}> = ({
+  speed = 2.2,
+  radius = 15.6,
+  cornerRadius = 2.0,
+  initialOffset = 0,
+  reverseDirection = false,
+}) => {
   const rootRef = useRef<THREE.Group>(null);
-  const sideLength = radius * 2;
-  const totalPerimeter = sideLength * 4;
 
   useFrame((state) => {
     if (!rootRef.current) return;
     const t = state.clock.getElapsedTime();
-    let dist = (t * speed + initialOffset) % totalPerimeter;
-    if (dist < 0) dist += totalPerimeter;
+    const currentDist = t * speed + initialOffset;
+    const { x, z, rotY } = getRoundedRectPath(
+      currentDist,
+      radius,
+      cornerRadius,
+      reverseDirection,
+      false
+    );
 
-    if (reverseDirection) {
-      const ccwDist = totalPerimeter - dist;
-      const seg = Math.floor(ccwDist / sideLength);
-      const frac = (ccwDist % sideLength) / sideLength;
-
-      let x = 0, z = 0, rotY = 0;
-      if (seg === 0) {
-        x = radius - frac * sideLength;
-        z = -radius;
-        rotY = -Math.PI / 2;
-      } else if (seg === 1) {
-        x = -radius;
-        z = -radius + frac * sideLength;
-        rotY = 0;
-      } else if (seg === 2) {
-        x = -radius + frac * sideLength;
-        z = radius;
-        rotY = Math.PI / 2;
-      } else {
-        x = radius;
-        z = radius - frac * sideLength;
-        rotY = Math.PI;
-      }
-
-      rootRef.current.position.set(x, 0, z);
-      rootRef.current.rotation.y = rotY;
-    } else {
-      const seg = Math.floor(dist / sideLength);
-      const frac = (dist % sideLength) / sideLength;
-
-      let x = 0, z = 0, rotY = 0;
-      if (seg === 0) {
-        x = -radius + frac * sideLength;
-        z = -radius;
-        rotY = Math.PI / 2;
-      } else if (seg === 1) {
-        x = radius;
-        z = -radius + frac * sideLength;
-        rotY = 0;
-      } else if (seg === 2) {
-        x = radius - frac * sideLength;
-        z = radius;
-        rotY = -Math.PI / 2;
-      } else {
-        x = -radius;
-        z = radius - frac * sideLength;
-        rotY = Math.PI;
-      }
-
-      rootRef.current.position.set(x, 0, z);
-      rootRef.current.rotation.y = rotY;
-    }
+    rootRef.current.position.set(x, 0, z);
+    rootRef.current.rotation.y = rotY;
   });
 
   return (
@@ -791,12 +814,12 @@ export const MovingCityCyclist3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 7. STREET FURNITURE (Streetlights, Bus Shelter, Fire Hydrants)
+// 7. STREET FURNITURE & STREET LAMPS
 // ------------------------------------------------------------
-export const StreetLamp3D: React.FC<{ position: [number, number, number]; rotationY?: number }> = ({
-  position,
-  rotationY = 0,
-}) => {
+export const StreetLamp3D: React.FC<{
+  position: [number, number, number];
+  rotationY?: number;
+}> = ({ position, rotationY = 0 }) => {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Base & Mast */}
@@ -818,36 +841,71 @@ export const StreetLamp3D: React.FC<{ position: [number, number, number]; rotati
   );
 };
 
-export const BusStopShelter3D: React.FC<{ position: [number, number, number]; rotationY?: number }> = ({
-  position,
-  rotationY = 0,
-}) => {
+// ------------------------------------------------------------
+// 7B. BUS STOP SHELTER
+// ------------------------------------------------------------
+export const BusStopShelter3D: React.FC<{
+  position: [number, number, number];
+  rotationY?: number;
+}> = ({ position, rotationY = 0 }) => {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Steel Frame & Roof */}
-      <mesh position={[0, 1.3, 0]}>
-        <boxGeometry args={[2.8, 2.4, 1.4]} />
-        <meshStandardMaterial color="#1e293b" wireframe />
+      {/* Base Platform */}
+      <mesh receiveShadow position={[0, 0.04, 0]}>
+        <boxGeometry args={[3.2, 0.08, 1.4]} />
+        <meshStandardMaterial color="#64748b" roughness={0.7} />
       </mesh>
-      {/* Roof Canopy */}
-      <mesh castShadow position={[0, 2.5, 0]}>
-        <boxGeometry args={[3.0, 0.08, 1.6]} />
-        <meshStandardMaterial color="#0284c7" />
+
+      {/* 4 Steel Support Columns */}
+      {[-1.4, 1.4].map((px, pi) =>
+        [-0.55, 0.55].map((pz, pzi) => (
+          <mesh key={`shelter_col_${pi}_${pzi}`} position={[px, 1.2, pz]}>
+            <cylinderGeometry args={[0.04, 0.04, 2.3, 8]} />
+            <meshStandardMaterial color="#0f172a" metalness={0.8} />
+          </mesh>
+        ))
+      )}
+
+      {/* Glass Back Wall */}
+      <mesh position={[0, 1.2, -0.55]}>
+        <boxGeometry args={[2.7, 1.8, 0.03]} />
+        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
       </mesh>
-      {/* Back Glass Wall */}
-      <mesh position={[0, 1.2, -0.68]}>
-        <planeGeometry args={[2.7, 2.2]} />
-        <meshStandardMaterial color="#bae6fd" transparent opacity={0.5} />
+
+      {/* Glass Side Walls */}
+      <mesh position={[-1.4, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[1.1, 1.8, 0.03]} />
+        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
       </mesh>
-      {/* Bench Inside */}
-      <mesh castShadow position={[0, 0.45, -0.3]}>
-        <boxGeometry args={[2.2, 0.08, 0.4]} />
-        <meshStandardMaterial color="#9a3412" />
+      <mesh position={[1.4, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[1.1, 1.8, 0.03]} />
+        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
       </mesh>
-      {/* Bus Stop Sign */}
-      <Html position={[1.4, 2.0, 0]} center distanceFactor={14} occlude pointerEvents="none">
-        <div className="bg-blue-600 text-white font-black text-[8px] px-2 py-0.5 rounded shadow select-none pointer-events-none">
-          🚌 BUS STOP
+
+      {/* Curved Modern Canopy Roof */}
+      <mesh position={[0, 2.38, 0]}>
+        <boxGeometry args={[3.4, 0.08, 1.6]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.8} />
+      </mesh>
+
+      {/* Interior Wooden Waiting Bench */}
+      <group position={[0, 0.45, -0.3]}>
+        <mesh position={[0, 0, 0]}>
+          <boxGeometry args={[2.2, 0.08, 0.35]} />
+          <meshStandardMaterial color="#b45309" roughness={0.6} />
+        </mesh>
+        {[-0.9, 0.9].map((lx, li) => (
+          <mesh key={`shelter_bench_leg_${li}`} position={[lx, -0.2, 0]}>
+            <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
+            <meshStandardMaterial color="#0f172a" />
+          </mesh>
+        ))}
+      </group>
+
+      {/* Bus Stop Name Plaque */}
+      <Html position={[0, 2.7, 0.85]} center distanceFactor={16} occlude pointerEvents="none">
+        <div className="bg-slate-900/95 text-sky-400 font-extrabold text-[9px] px-2.5 py-0.5 rounded-full border border-sky-400 shadow-md whitespace-nowrap">
+          🚌 CENTRAL PARK TRANSIT HUB
         </div>
       </Html>
     </group>
@@ -864,11 +922,11 @@ export const ParkCitySurroundings3D: React.FC = () => {
       <RadiantSunAndClouds3D />
 
       {/* ============================================================ */}
-      {/* 2. NORTH CITY BLOCK (Z = -22m to -32m) */}
+      {/* 2. NORTH CITY BLOCK (Z = -26m to -36m) */}
       {/* ============================================================ */}
       {/* Skyscrapers & High Rises */}
       <CityBuilding3D
-        position={[-14, 0, -26]}
+        position={[-14, 0, -29]}
         width={7}
         height={26}
         depth={7}
@@ -878,7 +936,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="METRO TOWER"
       />
       <CityBuilding3D
-        position={[-6, 0, -28]}
+        position={[-6, 0, -30]}
         width={6.5}
         height={20}
         depth={6}
@@ -887,7 +945,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasHelipad={true}
       />
       <CityBuilding3D
-        position={[6, 0, -28]}
+        position={[6, 0, -30]}
         width={7}
         height={24}
         depth={6.5}
@@ -896,7 +954,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="CENTRAL PLAZA"
       />
       <CityBuilding3D
-        position={[15, 0, -26]}
+        position={[15, 0, -29]}
         width={6.5}
         height={19}
         depth={7}
@@ -905,31 +963,31 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
 
-      {/* North Sidewalk Shops */}
+      {/* North Sidewalk Shops (at z = -23.5m) */}
       <CityShopFront3D
-        position={[-8, 0, -18.5]}
+        position={[-8, 0, -23.5]}
         rotationY={0}
         shopName="🥐 CROISSANT & CO. BAKERY"
         awningColors={['#ec4899', '#ffffff']}
         shopType="bakery"
       />
       <CityShopFront3D
-        position={[8, 0, -18.5]}
+        position={[8, 0, -23.5]}
         rotationY={0}
         shopName="☕ ARTISAN COFFEE ROASTERS"
         awningColors={['#78350f', '#d97706']}
         shopType="cafe"
       />
 
-      {/* North Roadside Hotdog Stall & Roadside Balloon Seller */}
-      <StreetFoodStall3D position={[-2.8, 0, -17.5]} rotationY={0} type="hotdog" />
-      <RoadsideBalloonSeller3D position={[3.2, 0, -17.5]} rotationY={0} />
+      {/* North Roadside Hotdog Stall & Roadside Balloon Seller (at z = -22.5m) */}
+      <StreetFoodStall3D position={[-2.8, 0, -22.5]} rotationY={0} type="hotdog" />
+      <RoadsideBalloonSeller3D position={[3.2, 0, -22.5]} rotationY={0} />
 
       {/* ============================================================ */}
-      {/* 3. SOUTH CITY BLOCK (Z = +22m to +32m) */}
+      {/* 3. SOUTH CITY BLOCK (Z = +26m to +36m) */}
       {/* ============================================================ */}
       <CityBuilding3D
-        position={[-14, 0, 26]}
+        position={[-14, 0, 29]}
         width={7}
         height={22}
         depth={7}
@@ -938,7 +996,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="INNOVATION LAB"
       />
       <CityBuilding3D
-        position={[-5, 0, 28]}
+        position={[-5, 0, 30]}
         width={6}
         height={18}
         depth={6}
@@ -947,7 +1005,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
       <CityBuilding3D
-        position={[6, 0, 28]}
+        position={[6, 0, 30]}
         width={7}
         height={28}
         depth={7}
@@ -957,7 +1015,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="INFINITY TOWER"
       />
       <CityBuilding3D
-        position={[15, 0, 26]}
+        position={[15, 0, 29]}
         width={6.5}
         height={21}
         depth={6.5}
@@ -965,30 +1023,30 @@ export const ParkCitySurroundings3D: React.FC = () => {
         accentColor="#7dd3fc"
       />
 
-      {/* South Sidewalk Shops */}
+      {/* South Sidewalk Shops (at z = 23.5m) */}
       <CityShopFront3D
-        position={[-8, 0, 18.5]}
+        position={[-8, 0, 23.5]}
         rotationY={Math.PI}
         shopName="🌸 BLOOM & BLOSSOM FLORIST"
         awningColors={['#16a34a', '#ffffff']}
         shopType="florist"
       />
       <CityShopFront3D
-        position={[8, 0, 18.5]}
+        position={[8, 0, 23.5]}
         rotationY={Math.PI}
         shopName="🍦 GELATO DREAMS PARLOR"
         awningColors={['#0284c7', '#f43f5e']}
         shopType="icecream"
       />
 
-      {/* South Fruit Stall */}
-      <StreetFoodStall3D position={[2.8, 0, 17.5]} rotationY={Math.PI} type="fruit" />
+      {/* South Fruit Stall (at z = 22.5m) */}
+      <StreetFoodStall3D position={[2.8, 0, 22.5]} rotationY={Math.PI} type="fruit" />
 
       {/* ============================================================ */}
-      {/* 4. WEST CITY BLOCK (X = -22m to -32m) */}
+      {/* 4. WEST CITY BLOCK (X = -26m to -36m) */}
       {/* ============================================================ */}
       <CityBuilding3D
-        position={[-26, 0, -8]}
+        position={[-29, 0, -9]}
         width={6.5}
         height={23}
         depth={7}
@@ -996,7 +1054,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         accentColor="#38bdf8"
       />
       <CityBuilding3D
-        position={[-28, 0, 0]}
+        position={[-30, 0, 0]}
         width={7}
         height={25}
         depth={6.5}
@@ -1006,7 +1064,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="GRAND HOTEL"
       />
       <CityBuilding3D
-        position={[-26, 0, 8]}
+        position={[-29, 0, 9]}
         width={6.5}
         height={20}
         depth={7}
@@ -1015,14 +1073,14 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
 
-      {/* West Bus Stop */}
-      <BusStopShelter3D position={[-17.8, 0, 3.5]} rotationY={Math.PI / 2} />
+      {/* West Bus Stop (at x = -22.8m) */}
+      <BusStopShelter3D position={[-22.8, 0, 3.5]} rotationY={Math.PI / 2} />
 
       {/* ============================================================ */}
-      {/* 5. EAST CITY BLOCK (X = +22m to +32m) */}
+      {/* 5. EAST CITY BLOCK (X = +26m to +36m) */}
       {/* ============================================================ */}
       <CityBuilding3D
-        position={[26, 0, -8]}
+        position={[29, 0, -9]}
         width={6.5}
         height={21}
         depth={7}
@@ -1031,7 +1089,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasAntenna={true}
       />
       <CityBuilding3D
-        position={[28, 0, 0]}
+        position={[30, 0, 0]}
         width={7}
         height={27}
         depth={6.5}
@@ -1040,7 +1098,7 @@ export const ParkCitySurroundings3D: React.FC = () => {
         buildingName="TECH HUB"
       />
       <CityBuilding3D
-        position={[26, 0, 8]}
+        position={[29, 0, 9]}
         width={6.5}
         height={22}
         depth={7}
@@ -1049,30 +1107,30 @@ export const ParkCitySurroundings3D: React.FC = () => {
         hasBalconies={true}
       />
 
-      {/* 4 Perimeter Streetlights at Corner Crosswalks */}
-      <StreetLamp3D position={[-17.2, 0, -17.2]} rotationY={Math.PI / 4} />
-      <StreetLamp3D position={[17.2, 0, -17.2]} rotationY={-Math.PI / 4} />
-      <StreetLamp3D position={[-17.2, 0, 17.2]} rotationY={(3 * Math.PI) / 4} />
-      <StreetLamp3D position={[17.2, 0, 17.2]} rotationY={(-3 * Math.PI) / 4} />
+      {/* 4 Perimeter Streetlights at Corner Crosswalks (at |x|=21.5m, |z|=21.5m) */}
+      <StreetLamp3D position={[-21.5, 0, -21.5]} rotationY={Math.PI / 4} />
+      <StreetLamp3D position={[21.5, 0, -21.5]} rotationY={-Math.PI / 4} />
+      <StreetLamp3D position={[-21.5, 0, 21.5]} rotationY={(3 * Math.PI) / 4} />
+      <StreetLamp3D position={[21.5, 0, 21.5]} rotationY={(-3 * Math.PI) / 4} />
 
       {/* ============================================================ */}
       {/* 6. DYNAMIC MOVING CITY TRAFFIC (Cars & Cyclists in Motion) */}
       {/* ============================================================ */}
-      {/* 1. Yellow NYC Taxi (Inner Lane, Clockwise) */}
-      <MovingCityCar3D type="taxi" speed={6.2} radius={21.0} initialOffset={0} />
+      {/* 1. Yellow NYC Taxi (Inner Lane R=17.5m, Clockwise) */}
+      <MovingCityCar3D type="taxi" speed={5.5} radius={17.4} cornerRadius={2.2} initialOffset={0} />
 
-      {/* 2. Cherry Red Sports Coupe (Inner Lane, Clockwise) */}
-      <MovingCityCar3D type="sedan" color="#dc2626" speed={7.2} radius={21.0} initialOffset={84} />
+      {/* 2. Cherry Red Sports Coupe (Inner Lane R=17.5m, Clockwise) */}
+      <MovingCityCar3D type="sedan" color="#dc2626" speed={6.5} radius={17.4} cornerRadius={2.2} initialOffset={70} />
 
-      {/* 3. Electric Blue Sedan (Outer Lane, Counter-Clockwise) */}
-      <MovingCityCar3D type="sedan" color="#0284c7" speed={5.8} radius={23.5} initialOffset={42} reverseDirection={true} />
+      {/* 3. Electric Blue Sedan (Outer Lane R=19.6m, Counter-Clockwise) */}
+      <MovingCityCar3D type="sedan" color="#0284c7" speed={5.2} radius={19.6} cornerRadius={2.6} initialOffset={35} reverseDirection={true} />
 
-      {/* 4. White Express Delivery Van (Outer Lane, Counter-Clockwise) */}
-      <MovingCityCar3D type="suv" color="#f8fafc" speed={5.2} radius={23.5} initialOffset={126} reverseDirection={true} />
+      {/* 4. White Express Delivery Van (Outer Lane R=19.6m, Counter-Clockwise) */}
+      <MovingCityCar3D type="suv" color="#f8fafc" speed={4.8} radius={19.6} cornerRadius={2.6} initialOffset={105} reverseDirection={true} />
 
-      {/* 5. Extra Commuter City Cyclist along South Street */}
-      <MovingCityCyclist3D speed={2.2} radius={18.0} initialOffset={20} />
-      <MovingCityCyclist3D speed={2.5} radius={18.0} initialOffset={100} reverseDirection={true} />
+      {/* 5. Commuter City Cyclists on Dedicated Outer Perimeter Track (R=15.6m) */}
+      <MovingCityCyclist3D speed={2.2} radius={15.6} cornerRadius={1.8} initialOffset={15} />
+      <MovingCityCyclist3D speed={2.4} radius={15.6} cornerRadius={1.8} initialOffset={80} reverseDirection={true} />
     </group>
   );
 };
