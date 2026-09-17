@@ -19,6 +19,7 @@
 import React, { useEffect, useState } from 'react';
 import type { TeamId } from '../types';
 import { sim, STEPS, type Logistics, type StepId } from '../engine/factorySim';
+import type { StationId } from '../engine/crewNav';
 import { useFactoryStore, TOTAL_CYCLES } from '../store/factoryStore';
 
 const STEP_SHORT: Record<StepId, string> = {
@@ -42,7 +43,7 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   fork_to_pallet: 'FORKLIFT COLLECTING PALLET',
   fork_lift: 'LIFTING THE PALLET',
   fork_to_truck: 'CARRYING BOXES TO THE TRUCK',
-  fork_unload: 'LOADING THE TRUCK',
+  fork_unload: 'UNLOADING THE PALLET INTO THE TRUCK',
   fork_return: 'FORKLIFT RETURNING',
   truck_out: 'TRUCK OUT FOR DELIVERY',
   at_customer: 'DELIVERING TO THE CUSTOMER',
@@ -53,10 +54,35 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   cocoa_to_tank: 'CARRYING COCOA TO THE TANK',
   cocoa_pour: 'TIPPING THE PALLET INTO THE TANK',
   cocoa_return: 'FORKLIFT RETURNING',
-  packer_loading: 'PACKER CARRYING BOXES TO THE TRUCK',
+  cart_to_stack: 'LOADING WORKER FETCHING THE CART',
+  cart_loading: 'LOADING BOXES ONTO THE CART',
+  cart_to_truck: 'PUSHING THE CART TO THE TRUCK',
+  truck_loading: 'LOADING BOXES INTO THE TRUCK',
 };
 
+const PLACE: Partial<Record<StationId, string>> = {
+  STORE_A: 'THE SACK STORE', STORE_B: 'THE SACK STORE', TIP_A: 'THE COCOA TANK', TIP_B: 'THE COCOA TANK',
+  MIX_W: 'THE MIXER', MOLD_W: 'THE MOLDER', COOL_W: 'THE COOLING TUNNEL', CUT_W: 'THE CUTTER',
+  PACK_W: 'THE PACKING MACHINE', CART_BAY: 'THE CART', STACK_W: 'THE BOX STACK', TRUCK_W: 'THE TRUCK', LIFT_W: 'THE TRUCK',
+};
+
+/** What the team's crew is physically doing for the step just answered. */
+function crewLine(team: TeamId): string {
+  const s = sim[team];
+  if (s.phase !== 'running') return '';
+  const busy = s.crew.find((w) => w.task?.production && w.state === 'WALK_TO_TARGET');
+  if (busy && !s.machineOn) return `${busy.label} WALKING TO ${PLACE[busy.task!.station] ?? 'THE STATION'}`;
+  const carrying = s.handlers.find((w) => w.task?.type === 'TRANSFER_INGREDIENT' || w.task?.type === 'FETCH_INGREDIENT');
+  if (STEPS[s.stepIndex] === 'ingredients' && carrying) {
+    return carrying.state === 'PERFORM_TASK' && carrying.task?.type === 'TRANSFER_INGREDIENT'
+      ? 'TIPPING COCOA INTO THE TANK'
+      : carrying.carry === 'sack' ? 'CARRYING COCOA SACKS TO THE TANK' : 'FETCHING COCOA SACKS';
+  }
+  return '';
+}
+
 interface Live {
+  crew: string;
   stepIndex: number;
   running: boolean;
   logistics: Logistics;
@@ -73,6 +99,7 @@ interface Live {
 function readLive(team: TeamId): Live {
   const s = sim[team];
   return {
+    crew: crewLine(team),
     stepIndex: s.stepIndex,
     running: s.phase === 'running',
     logistics: s.logistics,
@@ -114,6 +141,7 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
   const statusLine = finished
     ? (isChampion ? '🏆 FACTORY CHAMPIONS' : isTie ? 'CHALLENGE COMPLETE — TIED' : 'CHALLENGE COMPLETE')
     : LOGISTICS_LABEL[live.logistics]
+      || live.crew
       || (live.running ? `${t.stepLabel} — RUNNING` : t.status === 'complete' ? 'ALL ORDERS COMPLETE' : 'AWAITING YOUR FRACTION');
 
   return (
@@ -130,13 +158,20 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
             {isBlue ? 'BLUE CHOCOLATE WORKS' : 'RED CHOCOLATE WORKS'}
           </div>
           <div className="text-[10px] font-bold uppercase tracking-[0.18em] opacity-90 mt-0.5">
-            ORDER {Math.min(TOTAL_CYCLES, t.cycle + 1)} OF {TOTAL_CYCLES} · ROUND {t.round}
+            LEVEL {Math.min(TOTAL_CYCLES, t.cycle + 1)} OF {TOTAL_CYCLES} · STEP {Math.min(5, t.step + 1)} OF 5
           </div>
         </div>
         <div className="shrink-0 rounded-lg bg-white/20 px-2 py-1 text-[9px] font-black uppercase tracking-wider text-right leading-tight max-w-[46%]">
           {statusLine}
         </div>
       </div>
+
+      {/* ── LEVEL MILESTONE ── */}
+      {t.levelMessage && (
+        <div className="mx-2.5 mt-2 rounded-lg border-2 border-amber-400 bg-gradient-to-r from-amber-100 to-yellow-50 px-2 py-1 text-center text-[11px] font-black uppercase tracking-wider text-amber-900">
+          🏅 {t.levelMessage}
+        </div>
+      )}
 
       {/* ── FIVE-STEP CHAIN ── */}
       <div className="px-2.5 pt-2 flex items-center gap-1">
@@ -194,7 +229,7 @@ export const TeamConsole: React.FC<{ team: TeamId }> = ({ team }) => {
               ? (isChampion
                 ? 'Your factory ran the best production line of the shift — the victory truck is rolling out.'
                 : 'Production finished. The shift is complete.')
-              : 'All five orders complete. Finishing the last delivery…'}
+              : `All ${TOTAL_CYCLES} levels complete. Finishing the last delivery…`}
           </p>
         )}
       </div>

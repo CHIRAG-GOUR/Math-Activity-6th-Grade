@@ -1,15 +1,16 @@
 // ============================================================
-// PARK PLANNER — Master 3D Scene & Canvas
-// Real daylight 3D park simulation powered by Cartesian coordinates
+// PARK PLANNER — Master 3D Park Scene & Canvas
+// Real daylight 3D park simulation powered by Cartesian coordinates & Waypoint Navigation
 // ============================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import * as THREE from 'three';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { OrbitControls, Sky, Environment } from '@react-three/drei';
+import { OrbitControls, Sky } from '@react-three/drei';
 import { useParkStore } from '../store/parkStore';
-import { coordToWorld, lerp3D, easeInOutCubic, UNIT_SIZE } from '../engine/coordinateMath';
+import { coordToWorld, lerp3D, easeInOutCubic } from '../engine/coordinateMath';
 import { Coordinate2D, InstalledParkObject } from '../types';
+import { globalParkSim, SimCitizen } from '../engine/parkSimEngine';
 
 import { ParkTerrain3D } from './ParkTerrain3D';
 import { SwingSet3D, SlideTower3D, ClimbingDome3D, Seesaw3D } from './ParkPlayground3D';
@@ -17,7 +18,7 @@ import { TieredFountain3D, FlowerBed3D, VictorianGazebo3D, KoiPond3D } from './P
 import { BasketballCourt3D, SoccerPitch3D, FitnessStation3D } from './ParkSportsComplex3D';
 import { PicnicTable3D, ParkBench3D, ShadyTree3D } from './ParkPicnicGrove3D';
 import { ConstructionWorker3D, ConstructionCart3D } from './ParkWorkers3D';
-import { ActiveJogger3D, Cyclist3D, BenchSitter3D } from './ParkCitizens3D';
+import { StylizedHuman3D, RealisticCyclist3D } from './ParkCharacters3D';
 
 // ------------------------------------------------------------
 // OBJECT RENDERER WITH SMOOTH INTERPOLATIONS
@@ -59,17 +60,12 @@ const RenderInstalledObject: React.FC<{ object: InstalledParkObject }> = ({ obje
 
       {/* Picnic & Relaxation items */}
       {object.type === 'picnic_table' && <PicnicTable3D />}
-      {object.type === 'park_bench' && (
-        <group>
-          <ParkBench3D />
-          {!object.isConstructing && <BenchSitter3D position={[0, 0, 0]} />}
-        </group>
-      )}
+      {object.type === 'park_bench' && <ParkBench3D hasVisitor={!object.isConstructing} />}
       {object.type === 'tree_grove' && <ShadyTree3D scale={1.2} />}
       {object.type === 'sculpture' && <TieredFountain3D isFlowing={true} />}
       {object.type === 'walking_path' && (
-        <mesh position={[0, 0.03, 0]}>
-          <boxGeometry args={[2.2, 0.03, 2.2]} />
+        <mesh position={[0, 0.035, 0]}>
+          <boxGeometry args={[2.3, 0.03, 2.3]} />
           <meshStandardMaterial color="#d4c7b0" roughness={0.6} />
         </mesh>
       )}
@@ -78,14 +74,53 @@ const RenderInstalledObject: React.FC<{ object: InstalledParkObject }> = ({ obje
 };
 
 // ------------------------------------------------------------
-// SIMULATION TICKER COMPONENT
+// SIMULATION & NPC TICKER COMPONENT
 // ------------------------------------------------------------
-const SimTicker: React.FC = () => {
+const LiveParkSimManager: React.FC = () => {
   const tickTransform = useParkStore((s) => s.tickTransformProgress);
+  const [, setFrame] = useState(0);
+
   useFrame((_, delta) => {
     tickTransform(delta);
+    globalParkSim.update(delta);
+    setFrame((f) => (f + 1) % 1000);
   });
-  return null;
+
+  const citizens = globalParkSim.getCitizens();
+
+  return (
+    <group name="LivingParkCitizens">
+      {citizens.map((c) => {
+        if (c.type === 'cyclist') {
+          return (
+            <RealisticCyclist3D
+              key={c.id}
+              position={c.pos}
+              rotationY={c.rotationY}
+              speed={1.2}
+            />
+          );
+        }
+
+        return (
+          <StylizedHuman3D
+            key={c.id}
+            position={c.pos}
+            rotationY={c.rotationY}
+            scale={c.type === 'child' ? 0.65 : 0.95}
+            shirtColor={c.shirtColor}
+            pantsColor={c.pantsColor}
+            hairColor={c.hairColor}
+            skinColor={c.skinColor}
+            isJogging={c.state === 'jogging'}
+            isWalking={c.state === 'walking'}
+            isSeated={c.state === 'resting'}
+            hasHeadband={c.type === 'jogger'}
+          />
+        );
+      })}
+    </group>
+  );
 };
 
 // ------------------------------------------------------------
@@ -106,64 +141,69 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
     <div className="relative w-full h-full min-h-[460px] bg-sky-200 overflow-hidden select-none">
       <Canvas
         shadows
-        camera={{ position: [0, 18, 22], fov: 42 }}
+        camera={{ position: [0, 20, 24], fov: 40 }}
         className="w-full h-full"
       >
-        <SimTicker />
-
         {/* Daylight Environment */}
         <Sky
           distance={450000}
-          sunPosition={[20, 35, 20]}
+          sunPosition={[22, 38, 22]}
           inclination={0.6}
           azimuth={0.25}
-          turbidity={6}
-          rayleigh={0.5}
+          turbidity={5}
+          rayleigh={0.4}
         />
-        <ambientLight intensity={0.7} />
+        <ambientLight intensity={0.75} />
         <directionalLight
           castShadow
-          position={[18, 30, 18]}
-          intensity={1.2}
+          position={[20, 32, 20]}
+          intensity={1.25}
           shadow-mapSize-width={2048}
           shadow-mapSize-height={2048}
-          shadow-camera-far={60}
-          shadow-camera-left={-20}
-          shadow-camera-right={20}
-          shadow-camera-top={20}
-          shadow-camera-bottom={-20}
+          shadow-camera-far={65}
+          shadow-camera-left={-22}
+          shadow-camera-right={22}
+          shadow-camera-top={22}
+          shadow-camera-bottom={-22}
         />
 
-        {/* Orbit Controls with bounded angles */}
+        {/* Orbit Controls */}
         <OrbitControls
           enablePan={true}
           enableZoom={true}
           minDistance={10}
-          maxDistance={38}
+          maxDistance={42}
           maxPolarAngle={Math.PI / 2.15}
           target={[0, 0, 0]}
         />
 
-        {/* Base Cartesian Park Promenades & Grid */}
+        {/* Master Terrain with Footpath, Roads & Cartesian Promenades */}
         <ParkTerrain3D
           selectedPoint={activeTeam.selectedPoint}
           selectedPoints={activeTeam.selectedPoints}
           onPointClick={onCoordinateClick}
         />
 
-        {/* Standing Perimeter Trees */}
+        {/* Outer Perimeter Street Trees */}
         {[
-          [-10, -10],
-          [10, -10],
-          [-10, 10],
-          [10, 10],
-          [-8, 6],
-          [8, -6],
-          [9, 4],
-          [-9, -5],
+          [-15, -15],
+          [15, -15],
+          [-15, 15],
+          [15, 15],
+          [-15, 0],
+          [15, 0],
+          [0, -15],
+          [0, 15],
+          [-11, -7],
+          [11, -7],
+          [-11, 7],
+          [11, 7],
         ].map(([tx, tz], i) => (
-          <ShadyTree3D key={`ptree_${i}`} position={[tx, 0, tz]} scale={0.9 + (i % 3) * 0.15} />
+          <ShadyTree3D key={`outer_tree_${i}`} position={[tx, 0, tz]} scale={1.0 + (i % 3) * 0.15} />
         ))}
+
+        {/* Living Park Citizens & Traffic Simulation */}
+        <LiveParkSimManager />
 
         {/* Installed Objects: Blue Team */}
         {blueTeam.installedObjects.map((obj) => (
@@ -175,7 +215,7 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
           <RenderInstalledObject key={`red_obj_${obj.id}`} object={obj} />
         ))}
 
-        {/* Construction Workers on Active Tasks */}
+        {/* Active Construction Workers & Utility Carts */}
         {activeTeam.selectedPoint && (
           <group>
             <ConstructionWorker3D
@@ -184,16 +224,12 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
             />
             <ConstructionCart3D
               position={coordToWorld(
-                { x: activeTeam.selectedPoint.x + 0.6, y: activeTeam.selectedPoint.y },
+                { x: activeTeam.selectedPoint.x + 0.65, y: activeTeam.selectedPoint.y },
                 0
               )}
             />
           </group>
         )}
-
-        {/* Living Park Citizens */}
-        <ActiveJogger3D />
-        <Cyclist3D />
       </Canvas>
     </div>
   );

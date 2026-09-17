@@ -22,6 +22,7 @@ import { FactoryOverlays } from './FactoryOverlays';
 import { useFactoryStore } from '../store/factoryStore';
 import { drainEvents, runningStep, sim } from '../engine/factorySim';
 import { factoryAudio } from '../engine/factoryAudio';
+import { CrewDebugPanel, npcDebugEnabled } from '../world/CrewDebug3D';
 
 /** Feeds simulation events to the audio engine, outside the render loop. */
 const AudioBridge: React.FC = () => {
@@ -65,6 +66,8 @@ export const ChocolateFactoryGame: React.FC = () => {
 
   const [mobileActiveTeam, setMobileActiveTeam] = useState<'blue' | 'red'>('blue');
   const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const [showNpcDebug, setShowNpcDebug] = useState(false);
+  useEffect(() => { setShowNpcDebug(npcDebugEnabled()); }, []);
 
   useEffect(() => {
     const checkViewport = () => {
@@ -184,6 +187,7 @@ export const ChocolateFactoryGame: React.FC = () => {
         )}
 
         <FactoryOverlays />
+        {showNpcDebug && <CrewDebugPanel />}
       </main>
     </div>
   );

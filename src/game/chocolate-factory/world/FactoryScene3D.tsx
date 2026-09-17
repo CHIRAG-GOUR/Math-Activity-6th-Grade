@@ -28,7 +28,8 @@ import {
   MoldingMachine3D, PackagingMachine3D, QualityStation3D,
 } from './Machines3D';
 import { DeliveryTruck3D, Forklift3D } from './Vehicles3D';
-import { IngredientHandler3D, MixerOperator3D, PackingWorker3D, QualityInspector3D } from './Humans3D';
+import { Cart3D, TeamCrew3D } from './Humans3D';
+import { CrewDebug3D, npcDebugEnabled } from './CrewDebug3D';
 
 // ── FIXED-STEP SIMULATION DRIVER ────────────────────────────────────────
 
@@ -155,11 +156,8 @@ const TeamFactory3D: React.FC<{ team: TeamId }> = ({ team }) => {
       <Forklift3D team={team} />
       <DeliveryTruck3D team={team} />
 
-      <IngredientHandler3D team={team} index={0} />
-      <IngredientHandler3D team={team} index={1} />
-      <MixerOperator3D team={team} />
-      <QualityInspector3D team={team} />
-      <PackingWorker3D team={team} />
+      <Cart3D team={team} />
+      <TeamCrew3D team={team} />
     </group>
   );
 };
@@ -181,6 +179,7 @@ const SceneContents: React.FC = () => (
 
     <TeamFactory3D team="blue" />
     <TeamFactory3D team="red" />
+    {npcDebugEnabled() && <CrewDebug3D />}
   </>
 );
 

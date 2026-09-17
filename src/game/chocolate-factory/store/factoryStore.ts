@@ -5,10 +5,12 @@
 // and Red each hold their own cycle, step, question, selection and results,
 // and each advances the moment THEIR OWN machines finish a step.
 //
-// A CYCLE is one customer order fulfilled in FIVE steps, one question each:
+// A LEVEL is one customer order fulfilled in FIVE steps, one question each:
 //   cocoa -> mixing -> molds -> cooling & cutting -> packaging
-// then the forklift loads the truck and the truck makes the delivery.
-// Five cycles per team, one per curriculum round: 25 questions each.
+// then the boxes are loaded and the truck makes the delivery. A level is
+// complete only when the order physically reaches the customer; that
+// milestone unlocks the next level. Progression never waits on an animation
+// finishing perfectly — every worker-dependent stage has a fallback in the sim.
 // ============================================================
 
 'use client';
@@ -21,8 +23,9 @@ import {
   STEPS, STEPS_PER_CYCLE, STEP_LABEL, STEP_ACTION, type StepId,
 } from '../engine/factorySim';
 
-export const TOTAL_CYCLES = 1;
-export const TOTAL_QUESTIONS = 5;
+/** Levels per team — one customer order each. */
+export const TOTAL_CYCLES = 3;
+export const TOTAL_QUESTIONS = TOTAL_CYCLES * 5;
 
 export type TeamStatus = 'answering' | 'retry' | 'working' | 'delivering' | 'complete';
 
@@ -40,6 +43,9 @@ export interface TeamState {
   feedback: string | null;
   lastCorrect: boolean | null;
   questionsAnswered: number;
+  /** Shown after a delivery: which level was just completed / unlocked. */
+  levelMessage: string | null;
+  levelsComplete: number;
 
   ordersCompleted: number;
   deliveries: number;
@@ -72,6 +78,7 @@ function makeTeam(team: TeamId = 'blue'): TeamState {
     stepLabel: STEP_LABEL[STEPS[0]], stepAction: STEP_ACTION[STEPS[0]],
     order, selected: null, attempt: 1, status: 'answering',
     feedback: null, lastCorrect: null, questionsAnswered: 0,
+    levelMessage: null, levelsComplete: 0,
     ordersCompleted: 0, deliveries: 0, onTime: 0,
     quality: 92, satisfaction: 88, waste: 0, rework: 0, score: 0,
   };
@@ -128,7 +135,7 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
     const side = sim[team];
     if (side.cycle >= TOTAL_CYCLES) {
       set((s) => ({
-        [team]: { ...s[team], status: 'complete', order: null, feedback: 'ALL FIVE ORDERS COMPLETE' },
+        [team]: { ...s[team], status: 'complete', order: null, feedback: `ALL ${TOTAL_CYCLES} LEVELS COMPLETE` },
       } as Partial<FactoryStore>));
       maybeFinish();
       return;
@@ -185,8 +192,13 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
       onCycleDelivered: (team) => {
         const side = sim[team];
         set((s) => {
+          const level = side.ordersCompleted;
           const next: TeamState = {
             ...s[team],
+            levelsComplete: level,
+            levelMessage: level >= TOTAL_CYCLES
+              ? `LEVEL ${level} COMPLETE — ALL LEVELS DONE!`
+              : `LEVEL ${level} COMPLETE — LEVEL ${level + 1} UNLOCKED`,
             ordersCompleted: side.ordersCompleted,
             deliveries: side.deliveries,
             onTime: side.onTimeDeliveries,
@@ -260,6 +272,8 @@ export const useFactoryStore = create<FactoryStore>((set, get) => {
           ...s[team],
           status: lastStep ? 'delivering' : 'working',
           lastCorrect: true,
+          // The banner stays until the new level's first fraction goes in.
+          levelMessage: side.stepIndex === 0 ? null : s[team].levelMessage,
           questionsAnswered: s[team].questionsAnswered + 1,
           quality: side.quality,
           waste: side.wasteUnits,

@@ -1,6 +1,7 @@
 // ============================================================
-// PARK PLANNER — 3D Park Terrain & Cartesian Grid Promenades
-// Paved East-West (X-axis) and North-South (Y-axis) avenues with Origin Plaza
+// PARK PLANNER — Master Urban Park Terrain & Infrastructure
+// City street, outer sidewalk footpath, cycle track, perimeter fence with gates,
+// Cartesian promenades, Origin Plaza, and quadrant landscaping zones.
 // ============================================================
 
 import React, { useMemo } from 'react';
@@ -22,7 +23,10 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
   hoveredPoint,
   onPointClick,
 }) => {
-  const parkSize = (GRID_EXTENT * 2 + 2) * UNIT_SIZE; // ~28.8 units
+  const parkInnerSize = (GRID_EXTENT * 2 + 0.6) * UNIT_SIZE; // 25.44m inner park
+  const cycleTrackRadius = UNIT_SIZE * 5.4; // 12.96m
+  const outerFootpathRadius = UNIT_SIZE * 5.8; // 13.92m
+  const roadSize = UNIT_SIZE * 15; // ~36m total world extent
 
   // Generate grid points from -5 to +5
   const gridCoords = useMemo(() => {
@@ -38,97 +42,292 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
   const axisValues = [-5, -4, -3, -2, -1, 1, 2, 3, 4, 5];
 
   return (
-    <group name="ParkTerrain">
-      {/* Base Lush Park Lawn */}
-      <mesh receiveShadow position={[0, -0.05, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[parkSize + 12, parkSize + 12]} />
+    <group name="MasterParkTerrain">
+      {/* ============================================================ */}
+      {/* 1. SURROUNDING CITY STREET / ROAD */}
+      {/* ============================================================ */}
+      <mesh receiveShadow position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[roadSize, roadSize]} />
+        <meshStandardMaterial color="#1e293b" roughness={0.9} />
+      </mesh>
+
+      {/* Road White Dash Markings */}
+      {[-roadSize * 0.42, roadSize * 0.42].map((offset, idx) => (
+        <React.Fragment key={`road_lines_${idx}`}>
+          {/* North/South Roads */}
+          <mesh position={[0, -0.04, offset]}>
+            <boxGeometry args={[roadSize - 2, 0.01, 0.15]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+          {/* East/West Roads */}
+          <mesh position={[offset, -0.04, 0]}>
+            <boxGeometry args={[0.15, 0.01, roadSize - 2]} />
+            <meshBasicMaterial color="#ffffff" />
+          </mesh>
+        </React.Fragment>
+      ))}
+
+      {/* ============================================================ */}
+      {/* 2. OUTER SIDEWALK / PEDESTRIAN FOOTPATH */}
+      {/* ============================================================ */}
+      <mesh receiveShadow position={[0, -0.01, 0]}>
+        <boxGeometry args={[outerFootpathRadius * 2 + 1.8, 0.08, outerFootpathRadius * 2 + 1.8]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+
+      {/* Outer Footpath Curbs */}
+      <mesh position={[0, 0.04, (outerFootpathRadius * 2 + 1.8) / 2]}>
+        <boxGeometry args={[outerFootpathRadius * 2 + 1.9, 0.12, 0.18]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.6} />
+      </mesh>
+      <mesh position={[0, 0.04, -(outerFootpathRadius * 2 + 1.8) / 2]}>
+        <boxGeometry args={[outerFootpathRadius * 2 + 1.9, 0.12, 0.18]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.6} />
+      </mesh>
+      <mesh position={[(outerFootpathRadius * 2 + 1.8) / 2, 0.04, 0]}>
+        <boxGeometry args={[0.18, 0.12, outerFootpathRadius * 2 + 1.9]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.6} />
+      </mesh>
+      <mesh position={[-(outerFootpathRadius * 2 + 1.8) / 2, 0.04, 0]}>
+        <boxGeometry args={[0.18, 0.12, outerFootpathRadius * 2 + 1.9]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.6} />
+      </mesh>
+
+      {/* ============================================================ */}
+      {/* 3. DEDICATED BRICK-RED CYCLING LANE */}
+      {/* ============================================================ */}
+      <mesh receiveShadow position={[0, 0.015, 0]}>
+        <boxGeometry args={[cycleTrackRadius * 2 + 0.6, 0.04, cycleTrackRadius * 2 + 0.6]} />
+        <meshStandardMaterial color="#b91c1c" roughness={0.8} />
+      </mesh>
+      {/* Cycle Lane Inner Cutout Base */}
+      <mesh receiveShadow position={[0, 0.02, 0]}>
+        <boxGeometry args={[cycleTrackRadius * 2 - 1.2, 0.04, cycleTrackRadius * 2 - 1.2]} />
         <meshStandardMaterial color="#4f9a3e" roughness={0.88} />
       </mesh>
 
-      {/* Subtle Landscaping Grid Tiles */}
-      <gridHelper
-        args={[parkSize, GRID_EXTENT * 2, '#7ec96e', '#5fa84e']}
-        position={[0, 0.005, 0]}
-      />
+      {/* ============================================================ */}
+      {/* 4. PERIMETER WROUGHT-IRON FENCE & 4 ENTRANCE GATES */}
+      {/* ============================================================ */}
+      {/* North Fence Section */}
+      <group position={[0, 0.35, -parkInnerSize / 2]}>
+        <mesh position={[-6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        <mesh position={[6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        {/* North Entrance Arch Gate */}
+        <group position={[0, 0.4, 0]}>
+          <mesh position={[-1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[0, 0.9, 0]}>
+            <boxGeometry args={[2.6, 0.18, 0.1]} />
+            <meshStandardMaterial color="#047857" />
+          </mesh>
+          <Html position={[0, 1.3, 0]} center distanceFactor={18}>
+            <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
+              NORTH GATE
+            </div>
+          </Html>
+        </group>
+      </group>
+
+      {/* South Fence Section */}
+      <group position={[0, 0.35, parkInnerSize / 2]}>
+        <mesh position={[-6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        <mesh position={[6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        {/* South Entrance Arch Gate */}
+        <group position={[0, 0.4, 0]}>
+          <mesh position={[-1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[0, 0.9, 0]}>
+            <boxGeometry args={[2.6, 0.18, 0.1]} />
+            <meshStandardMaterial color="#047857" />
+          </mesh>
+          <Html position={[0, 1.3, 0]} center distanceFactor={18}>
+            <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
+              SOUTH GATE
+            </div>
+          </Html>
+        </group>
+      </group>
+
+      {/* East Fence Section */}
+      <group position={[parkInnerSize / 2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh position={[-6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        <mesh position={[6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        {/* East Gate */}
+        <group position={[0, 0.4, 0]}>
+          <mesh position={[-1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[0, 0.9, 0]}>
+            <boxGeometry args={[2.6, 0.18, 0.1]} />
+            <meshStandardMaterial color="#047857" />
+          </mesh>
+        </group>
+      </group>
+
+      {/* West Fence Section */}
+      <group position={[-parkInnerSize / 2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <mesh position={[-6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        <mesh position={[6.2, 0, 0]}>
+          <boxGeometry args={[10, 0.7, 0.06]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
+        </mesh>
+        {/* West Gate */}
+        <group position={[0, 0.4, 0]}>
+          <mesh position={[-1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[1.2, 0, 0]}>
+            <cylinderGeometry args={[0.1, 0.12, 1.6, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          <mesh position={[0, 0.9, 0]}>
+            <boxGeometry args={[2.6, 0.18, 0.1]} />
+            <meshStandardMaterial color="#047857" />
+          </mesh>
+        </group>
+      </group>
 
       {/* ============================================================ */}
-      {/* X-AXIS: Main East-West Promenade */}
+      {/* 5. MAIN CARTESIAN PROMENADES (X-Axis & Y-Axis) */}
       {/* ============================================================ */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
-        <boxGeometry args={[parkSize, 0.04, UNIT_SIZE * 0.9]} />
+      {/* X-Axis: East-West Grand Promenade */}
+      <mesh receiveShadow position={[0, 0.03, 0]}>
+        <boxGeometry args={[parkInnerSize, 0.05, UNIT_SIZE * 0.95]} />
         <meshStandardMaterial color="#e5ded0" roughness={0.65} />
       </mesh>
       {/* X-Axis Curbs */}
-      <mesh position={[0, 0.04, UNIT_SIZE * 0.45]}>
-        <boxGeometry args={[parkSize, 0.06, 0.08]} />
-        <meshStandardMaterial color="#b8afa0" roughness={0.6} />
+      <mesh position={[0, 0.055, UNIT_SIZE * 0.48]}>
+        <boxGeometry args={[parkInnerSize, 0.08, 0.1]} />
+        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
       </mesh>
-      <mesh position={[0, 0.04, -UNIT_SIZE * 0.45]}>
-        <boxGeometry args={[parkSize, 0.06, 0.08]} />
-        <meshStandardMaterial color="#b8afa0" roughness={0.6} />
+      <mesh position={[0, 0.055, -UNIT_SIZE * 0.48]}>
+        <boxGeometry args={[parkInnerSize, 0.08, 0.1]} />
+        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
       </mesh>
 
-      {/* ============================================================ */}
-      {/* Y-AXIS: Main North-South Promenade */}
-      {/* ============================================================ */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
-        <boxGeometry args={[UNIT_SIZE * 0.9, 0.04, parkSize]} />
+      {/* Y-Axis: North-South Grand Promenade */}
+      <mesh receiveShadow position={[0, 0.03, 0]}>
+        <boxGeometry args={[UNIT_SIZE * 0.95, 0.05, parkInnerSize]} />
         <meshStandardMaterial color="#e5ded0" roughness={0.65} />
       </mesh>
       {/* Y-Axis Curbs */}
-      <mesh position={[UNIT_SIZE * 0.45, 0.04, 0]}>
-        <boxGeometry args={[0.08, 0.06, parkSize]} />
-        <meshStandardMaterial color="#b8afa0" roughness={0.6} />
+      <mesh position={[UNIT_SIZE * 0.48, 0.055, 0]}>
+        <boxGeometry args={[0.1, 0.08, parkInnerSize]} />
+        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
       </mesh>
-      <mesh position={[-UNIT_SIZE * 0.45, 0.04, 0]}>
-        <boxGeometry args={[0.08, 0.06, parkSize]} />
-        <meshStandardMaterial color="#b8afa0" roughness={0.6} />
+      <mesh position={[-UNIT_SIZE * 0.48, 0.055, 0]}>
+        <boxGeometry args={[0.1, 0.08, parkInnerSize]} />
+        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
       </mesh>
 
       {/* ============================================================ */}
-      {/* ORIGIN (0,0): Central Plaza */}
+      {/* 6. CENTRAL ORIGIN PLAZA (0, 0) */}
       {/* ============================================================ */}
-      <group position={[0, 0.03, 0]}>
-        {/* Circular Plaza Stones */}
+      <group position={[0, 0.04, 0]}>
+        {/* Radial Plaza Cobblestone */}
         <mesh receiveShadow rotation={[-Math.PI / 2, 0, 0]}>
-          <circleGeometry args={[UNIT_SIZE * 0.95, 32]} />
-          <meshStandardMaterial color="#f2eee6" roughness={0.5} />
+          <circleGeometry args={[UNIT_SIZE * 1.15, 32]} />
+          <meshStandardMaterial color="#f5f0e6" roughness={0.5} />
         </mesh>
-        {/* Outer Ring */}
+        {/* Outer Plaza Trim Ring */}
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[UNIT_SIZE * 0.85, UNIT_SIZE * 0.95, 32]} />
-          <meshStandardMaterial color="#b8afa0" roughness={0.6} />
+          <ringGeometry args={[UNIT_SIZE * 1.05, UNIT_SIZE * 1.15, 32]} />
+          <meshStandardMaterial color="#78716c" roughness={0.6} />
         </mesh>
-        {/* Compass Star / Bronze Medallion */}
+        {/* Brass Compass Rose */}
         <mesh position={[0, 0.01, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4]}>
-          <planeGeometry args={[0.6, 0.6]} />
-          <meshStandardMaterial color="#d97706" metalness={0.7} roughness={0.3} />
+          <planeGeometry args={[0.8, 0.8]} />
+          <meshStandardMaterial color="#d97706" metalness={0.8} roughness={0.2} />
         </mesh>
         {/* Origin Label Plaque */}
-        <Html position={[0, 0.2, 0]} center distanceFactor={16}>
-          <div className="bg-slate-900/90 text-amber-300 font-black text-[11px] px-2 py-0.5 rounded-full border border-amber-400 shadow-md backdrop-blur-sm pointer-events-none select-none whitespace-nowrap">
+        <Html position={[0, 0.35, 0]} center distanceFactor={16}>
+          <div className="bg-slate-900/95 text-amber-300 font-black text-xs px-2.5 py-1 rounded-full border border-amber-400 shadow-xl backdrop-blur-sm pointer-events-none select-none whitespace-nowrap">
             ORIGIN (0, 0)
           </div>
         </Html>
       </group>
 
       {/* ============================================================ */}
-      {/* X-AXIS & Y-AXIS Coordinate Number Plaques */}
+      {/* 7. QUADRANT SECONDARY ACCESS PATHS */}
+      {/* ============================================================ */}
+      {/* QI Active Play Access Path */}
+      <mesh position={[UNIT_SIZE * 2.2, 0.025, -UNIT_SIZE * 2.2]} rotation={[0, Math.PI / 4, 0]}>
+        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
+        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
+      </mesh>
+      {/* QII Botanical Garden Access Path */}
+      <mesh position={[-UNIT_SIZE * 2.2, 0.025, -UNIT_SIZE * 2.2]} rotation={[0, -Math.PI / 4, 0]}>
+        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
+        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
+      </mesh>
+      {/* QIII Sports Complex Access Path */}
+      <mesh position={[-UNIT_SIZE * 2.2, 0.025, UNIT_SIZE * 2.2]} rotation={[0, Math.PI / 4, 0]}>
+        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
+        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
+      </mesh>
+      {/* QIV Picnic Grove Access Path */}
+      <mesh position={[UNIT_SIZE * 2.2, 0.025, UNIT_SIZE * 2.2]} rotation={[0, -Math.PI / 4, 0]}>
+        <boxGeometry args={[UNIT_SIZE * 2.6, 0.03, 0.7]} />
+        <meshStandardMaterial color="#ded7c4" roughness={0.7} />
+      </mesh>
+
+      {/* ============================================================ */}
+      {/* 8. AXES COORDINATE NUMBER STONES (-5 to +5) */}
       {/* ============================================================ */}
       {axisValues.map((val) => {
         const xPos = coordToWorld({ x: val, y: 0 }, 0.05);
         const yPos = coordToWorld({ x: 0, y: val }, 0.05);
 
         return (
-          <React.Fragment key={`axis_${val}`}>
+          <React.Fragment key={`axis_marker_${val}`}>
             {/* X-Axis Number Stone */}
             <group position={xPos}>
               <mesh position={[0, 0.02, 0]}>
-                <cylinderGeometry args={[0.2, 0.22, 0.04, 16]} />
+                <cylinderGeometry args={[0.22, 0.24, 0.05, 16]} />
                 <meshStandardMaterial color="#334155" roughness={0.4} />
               </mesh>
-              <Html position={[0, 0.15, 0.35]} center distanceFactor={18}>
-                <div className="bg-slate-900/80 text-white font-bold text-[10px] px-1.5 py-0.5 rounded border border-slate-600 select-none shadow pointer-events-none">
+              <Html position={[0, 0.18, 0.4]} center distanceFactor={18}>
+                <div className="bg-slate-900/90 text-white font-bold text-[10px] px-1.5 py-0.5 rounded border border-slate-600 shadow select-none pointer-events-none">
                   {val > 0 ? `+${val}` : `${val}`}
                 </div>
               </Html>
@@ -137,11 +336,11 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             {/* Y-Axis Number Stone */}
             <group position={yPos}>
               <mesh position={[0, 0.02, 0]}>
-                <cylinderGeometry args={[0.2, 0.22, 0.04, 16]} />
+                <cylinderGeometry args={[0.22, 0.24, 0.05, 16]} />
                 <meshStandardMaterial color="#334155" roughness={0.4} />
               </mesh>
-              <Html position={[0.35, 0.15, 0]} center distanceFactor={18}>
-                <div className="bg-slate-900/80 text-white font-bold text-[10px] px-1.5 py-0.5 rounded border border-slate-600 select-none shadow pointer-events-none">
+              <Html position={[0.4, 0.18, 0]} center distanceFactor={18}>
+                <div className="bg-slate-900/90 text-white font-bold text-[10px] px-1.5 py-0.5 rounded border border-slate-600 shadow select-none pointer-events-none">
                   {val > 0 ? `+${val}` : `${val}`}
                 </div>
               </Html>
@@ -151,70 +350,67 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       })}
 
       {/* ============================================================ */}
-      {/* Quadrant Watermark Badges */}
+      {/* 9. QUADRANT EDUCATIONAL TITLES */}
       {/* ============================================================ */}
-      <Html position={[UNIT_SIZE * 3, 0.02, -UNIT_SIZE * 3]} center distanceFactor={22}>
-        <div className="text-emerald-800/60 font-black text-xs tracking-wider uppercase bg-white/70 px-2 py-1 rounded-md border border-emerald-300 select-none pointer-events-none">
+      <Html position={[UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
+        <div className="text-emerald-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-emerald-400 shadow-md select-none pointer-events-none">
           Quadrant I (+, +) • Active Playground
         </div>
       </Html>
-      <Html position={[-UNIT_SIZE * 3, 0.02, -UNIT_SIZE * 3]} center distanceFactor={22}>
-        <div className="text-teal-800/60 font-black text-xs tracking-wider uppercase bg-white/70 px-2 py-1 rounded-md border border-teal-300 select-none pointer-events-none">
+      <Html position={[-UNIT_SIZE * 3.2, 0.04, -UNIT_SIZE * 3.2]} center distanceFactor={22}>
+        <div className="text-teal-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-teal-400 shadow-md select-none pointer-events-none">
           Quadrant II (-, +) • Botanical Gardens
         </div>
       </Html>
-      <Html position={[-UNIT_SIZE * 3, 0.02, UNIT_SIZE * 3]} center distanceFactor={22}>
-        <div className="text-blue-800/60 font-black text-xs tracking-wider uppercase bg-white/70 px-2 py-1 rounded-md border border-blue-300 select-none pointer-events-none">
+      <Html position={[-UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
+        <div className="text-blue-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-blue-400 shadow-md select-none pointer-events-none">
           Quadrant III (-, -) • Sports Complex
         </div>
       </Html>
-      <Html position={[UNIT_SIZE * 3, 0.02, UNIT_SIZE * 3]} center distanceFactor={22}>
-        <div className="text-amber-800/60 font-black text-xs tracking-wider uppercase bg-white/70 px-2 py-1 rounded-md border border-amber-300 select-none pointer-events-none">
+      <Html position={[UNIT_SIZE * 3.2, 0.04, UNIT_SIZE * 3.2]} center distanceFactor={22}>
+        <div className="text-amber-900 font-extrabold text-[11px] tracking-wider uppercase bg-white/85 px-3 py-1.5 rounded-lg border-2 border-amber-400 shadow-md select-none pointer-events-none">
           Quadrant IV (+, -) • Picnic Grove
         </div>
       </Html>
 
       {/* ============================================================ */}
-      {/* Interactive Coordinate Plotting Points */}
+      {/* 10. INTERACTIVE COORDINATE CLICK NODES */}
       {/* ============================================================ */}
       {gridCoords.map((coord) => {
         const isSelected = selectedPoint && selectedPoint.x === coord.x && selectedPoint.y === coord.y;
         const isPolySelected = selectedPoints.some((p) => p.x === coord.x && p.y === coord.y);
         const isHovered = hoveredPoint && hoveredPoint.x === coord.x && hoveredPoint.y === coord.y;
-        const worldPos = coordToWorld(coord, 0.02);
+        const worldPos = coordToWorld(coord, 0.03);
 
         return (
           <group
-            key={`grid_${coord.x}_${coord.y}`}
+            key={`grid_pt_${coord.x}_${coord.y}`}
             position={worldPos}
             onClick={(e) => {
               e.stopPropagation();
               onPointClick?.(coord);
             }}
           >
-            {/* Small subtle embedded stone dot */}
+            {/* Subtle stone node */}
             <mesh position={[0, 0.01, 0]}>
-              <cylinderGeometry args={[0.08, 0.09, 0.02, 8]} />
+              <cylinderGeometry args={[0.09, 0.1, 0.02, 8]} />
               <meshStandardMaterial
-                color={isSelected || isPolySelected ? '#3b82f6' : isHovered ? '#60a5fa' : '#88aa77'}
+                color={isSelected || isPolySelected ? '#2563eb' : isHovered ? '#60a5fa' : '#6b7280'}
                 roughness={0.5}
               />
             </mesh>
 
-            {/* If Selected: Surveyor Marker / Pin Flag */}
+            {/* Surveyor Flag Pin when selected */}
             {(isSelected || isPolySelected) && (
               <group position={[0, 0, 0]}>
-                {/* Brass Surveyor Tripod Pin */}
                 <mesh position={[0, 0.4, 0]}>
                   <cylinderGeometry args={[0.02, 0.02, 0.8, 8]} />
                   <meshStandardMaterial color="#f59e0b" metalness={0.8} roughness={0.2} />
                 </mesh>
-                {/* Glowing Target Sphere */}
                 <mesh position={[0, 0.8, 0]}>
                   <sphereGeometry args={[0.12, 16, 16]} />
                   <meshStandardMaterial color="#3b82f6" emissive="#2563eb" emissiveIntensity={0.6} />
                 </mesh>
-                {/* Coordinate Label */}
                 <Html position={[0, 1.15, 0]} center distanceFactor={14}>
                   <div className="bg-blue-600 text-white font-extrabold text-xs px-2 py-0.5 rounded-full shadow-lg border border-blue-200 select-none pointer-events-none whitespace-nowrap animate-bounce">
                     ({coord.x}, {coord.y})
@@ -225,24 +421,6 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
           </group>
         );
       })}
-
-      {/* Perimeter Hedge & Fencing */}
-      <mesh position={[0, 0.3, -(parkSize / 2 + 0.6)]}>
-        <boxGeometry args={[parkSize + 2, 0.6, 0.4]} />
-        <meshStandardMaterial color="#2d6a4f" roughness={0.9} />
-      </mesh>
-      <mesh position={[0, 0.3, parkSize / 2 + 0.6]}>
-        <boxGeometry args={[parkSize + 2, 0.6, 0.4]} />
-        <meshStandardMaterial color="#2d6a4f" roughness={0.9} />
-      </mesh>
-      <mesh position={[-(parkSize / 2 + 0.6), 0.3, 0]}>
-        <boxGeometry args={[0.4, 0.6, parkSize + 2]} />
-        <meshStandardMaterial color="#2d6a4f" roughness={0.9} />
-      </mesh>
-      <mesh position={[parkSize / 2 + 0.6, 0.3, 0]}>
-        <boxGeometry args={[0.4, 0.6, parkSize + 2]} />
-        <meshStandardMaterial color="#2d6a4f" roughness={0.9} />
-      </mesh>
     </group>
   );
 };

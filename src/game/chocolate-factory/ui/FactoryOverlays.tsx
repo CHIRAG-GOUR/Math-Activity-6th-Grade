@@ -68,7 +68,7 @@ export const FactoryOverlays: React.FC = () => {
             <p className="mt-4 text-xs xl:text-sm font-bold text-slate-600 leading-relaxed">
               Both factories run at the same time. Every fraction you apply sets the real amount of
               chocolate your line produces — the tank fills to it, the molds take it, the truck carries
-              it to the customer. {TOTAL_CYCLES} customer orders each, five steps per order, {TOTAL_QUESTIONS} fractions apiece.
+              it to the customer. {TOTAL_CYCLES} levels each — one customer order per level, five steps per order, {TOTAL_QUESTIONS} fractions apiece. Watch your crew carry, operate, pack and load every order.
             </p>
 
             <button

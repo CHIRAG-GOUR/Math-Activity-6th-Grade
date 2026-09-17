@@ -217,17 +217,40 @@ export function forkliftCocoaToTank(team: TeamId, from: Vec3): Vec3[] {
   return [from, v(stand.x + sign * 1.5, 0, (from.z + stand.z) / 2), stand];
 }
 
-/** Forklift: packaging pallet of boxes -> alongside the truck bed -> back. */
+/**
+ * Forklifts use the OUTER lane (beyond the crew's inner aisle and clear of
+ * every machine) and the front lane in front of the packing machine, so they
+ * never drive through the production line.
+ */
+const FORK_OUTER_X = 27;
+const FORK_FRONT_Z = 29.6;
+
+/** Forklift: wherever it is -> outer lane -> front lane -> the packed pallet. */
 export function forkliftPalletRoute(team: TeamId, from: Vec3): Vec3[] {
   const s = sideOf(team);
   const sign = sideSign(team);
-  return [from, v(s.palletOut.x + sign * 3.5, 0, s.palletOut.z - 3), s.palletOut];
+  const outer = sign * FORK_OUTER_X;
+  return [from, v(outer, 0, from.z), v(outer, 0, FORK_FRONT_Z), v(s.palletOut.x + sign * 3.7, 0, FORK_FRONT_Z), s.palletOut];
 }
+
+/** Forklift: the pallet -> round to the truck's side, forks facing the bed. */
 export function forkliftToTruck(team: TeamId, from: Vec3): Vec3[] {
   const s = sideOf(team);
   const sign = sideSign(team);
-  const stand = v(s.truckHome.x + sign * 3.2, 0, s.truckHome.z + 0.6);
-  return [from, v(s.palletOut.x + sign * 3.5, 0, s.palletOut.z + 1.5), stand];
+  return [
+    from,
+    v(s.palletOut.x + sign * 4, 0, 31.8),
+    v(s.truckHome.x + sign * 7, 0, s.truckHome.z + 0.1),
+    v(s.truckHome.x + sign * 3.4, 0, s.truckHome.z + 0.1),
+  ];
+}
+
+/** Forklift: anywhere -> outer lane -> parked at home. */
+export function forkliftHomeRoute(team: TeamId, from: Vec3): Vec3[] {
+  const s = sideOf(team);
+  const sign = sideSign(team);
+  const outer = sign * FORK_OUTER_X;
+  return [from, v(outer, 0, from.z), v(outer, 0, s.forkliftHome.z), s.forkliftHome];
 }
 
 /** Loader worker: packaging exit -> beside the truck bed -> back. */
