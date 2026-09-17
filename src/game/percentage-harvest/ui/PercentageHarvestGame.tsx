@@ -86,14 +86,14 @@ export const PercentageHarvestGame: React.FC = () => {
       <FarmHeader activeMobileTab={isMobile ? mobileTab : undefined} />
 
       {/* ── CENTER AREA: DUAL FARM STATIONS (LEFT & RIGHT) ── */}
-      <main className="relative flex-1 w-full max-w-[1920px] mx-auto px-4 flex items-center justify-between pointer-events-none z-20">
+      <main className="relative flex-1 w-full max-w-[2400px] mx-auto px-2 sm:px-4 md:px-6 lg:px-8 flex items-center justify-between pointer-events-none z-20">
         {/* Mobile Viewport Team Switcher (< 1080px) */}
         {isMobile && (
-          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 flex p-1 rounded-full bg-slate-900/80 backdrop-blur-md border border-white/20 shadow-xl pointer-events-auto">
+          <div className="absolute top-1 left-1/2 -translate-x-1/2 z-30 flex p-1 rounded-full bg-slate-900/85 backdrop-blur-md border border-white/20 shadow-xl pointer-events-auto">
             <button
               type="button"
               onClick={() => setMobileTab('blue')}
-              className={`px-4 py-1 rounded-full font-black text-xs uppercase tracking-wider transition cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-wider transition cursor-pointer ${
                 mobileTab === 'blue'
                   ? 'bg-blue-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -104,7 +104,7 @@ export const PercentageHarvestGame: React.FC = () => {
             <button
               type="button"
               onClick={() => setMobileTab('red')}
-              className={`px-4 py-1 rounded-full font-black text-xs uppercase tracking-wider transition cursor-pointer ${
+              className={`px-4 py-1.5 rounded-full font-black text-xs uppercase tracking-wider transition cursor-pointer ${
                 mobileTab === 'red'
                   ? 'bg-red-600 text-white shadow-md'
                   : 'text-slate-400 hover:text-white'
@@ -118,7 +118,11 @@ export const PercentageHarvestGame: React.FC = () => {
         {/* ── LEFT: BLUE FARM CONTROL STATION ── */}
         <div
           className={`transition-all duration-300 ${
-            isMobile && mobileTab !== 'blue' ? 'hidden' : 'block'
+            isMobile
+              ? mobileTab === 'blue'
+                ? 'w-full flex justify-center'
+                : 'hidden'
+              : 'block'
           }`}
         >
           <TeamFarmConsole teamId="blue" />
@@ -127,7 +131,11 @@ export const PercentageHarvestGame: React.FC = () => {
         {/* ── RIGHT: RED FARM CONTROL STATION ── */}
         <div
           className={`transition-all duration-300 ${
-            isMobile && mobileTab !== 'red' ? 'hidden' : 'block'
+            isMobile
+              ? mobileTab === 'red'
+                ? 'w-full flex justify-center'
+                : 'hidden'
+              : 'block'
           }`}
         >
           <TeamFarmConsole teamId="red" />
