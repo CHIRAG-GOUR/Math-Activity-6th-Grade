@@ -238,14 +238,7 @@ export const CityBuilding3D: React.FC<BuildingProps> = ({
         </group>
       )}
 
-      {/* Building Name Plaque / Neon Sign */}
-      {buildingName && (
-        <Html position={[0, height - 1.2, depth / 2 + 0.1]} center distanceFactor={22} occlude pointerEvents="none">
-          <div className="bg-slate-900/90 text-cyan-300 font-extrabold text-[9px] px-2.5 py-1 rounded shadow-lg border border-cyan-400 tracking-wider whitespace-nowrap select-none pointer-events-none">
-            {buildingName}
-          </div>
-        </Html>
-      )}
+
     </group>
   );
 };
@@ -345,12 +338,7 @@ export const CityShopFront3D: React.FC<ShopProps> = ({
         </group>
       )}
 
-      {/* Shop Signboard */}
-      <Html position={[0, 3.4, 1.7]} center distanceFactor={18} occlude pointerEvents="none">
-        <div className="bg-slate-950/90 text-white font-black text-[9px] px-2.5 py-0.5 rounded-md shadow border border-amber-400 whitespace-nowrap select-none pointer-events-none">
-          {shopName}
-        </div>
-      </Html>
+
     </group>
   );
 };
@@ -438,12 +426,7 @@ export const StreetFoodStall3D: React.FC<{
         </group>
       )}
 
-      {/* Signboard */}
-      <Html position={[0, 1.35, 0.55]} center distanceFactor={16} occlude pointerEvents="none">
-        <div className="bg-amber-400 text-slate-950 font-black text-[8px] px-2 py-0.5 rounded shadow border border-amber-600 uppercase select-none pointer-events-none">
-          {type === 'hotdog' ? '🌭 Hotdogs & Pretzels' : '🍎 Fresh Organic Fruit'}
-        </div>
-      </Html>
+
     </group>
   );
 };
@@ -525,12 +508,7 @@ export const RoadsideBalloonSeller3D: React.FC<{
         ))}
       </group>
 
-      {/* Signboard */}
-      <Html position={[0, 1.6, 0.5]} center distanceFactor={14} occlude pointerEvents="none">
-        <div className="bg-pink-500 text-white font-extrabold text-[8px] px-2 py-0.5 rounded shadow border border-pink-300 whitespace-nowrap select-none pointer-events-none animate-pulse">
-          🎈 BALLOONS
-        </div>
-      </Html>
+
     </group>
   );
 };
@@ -902,12 +880,7 @@ export const BusStopShelter3D: React.FC<{
         ))}
       </group>
 
-      {/* Bus Stop Name Plaque */}
-      <Html position={[0, 2.7, 0.85]} center distanceFactor={16} occlude pointerEvents="none">
-        <div className="bg-slate-900/95 text-sky-400 font-extrabold text-[9px] px-2.5 py-0.5 rounded-full border border-sky-400 shadow-md whitespace-nowrap">
-          🚌 CENTRAL PARK TRANSIT HUB
-        </div>
-      </Html>
+
     </group>
   );
 };

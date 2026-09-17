@@ -263,14 +263,14 @@ export const CoolingTunnel3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const exit = s.coolingExit;
   const midZ = (entry.z + exit.z) / 2;
   const len = exit.z - entry.z;
-  const fans = useRef<THREE.Group>(null);
+  const blades = useRef<(THREE.Group | null)[]>([]);
   const sheet = useRef<THREE.Mesh>(null);
   const display = useMemo(() => new LiveDisplay(256, 128), []);
 
   useFrame((_, delta) => {
     const sm = sim[team];
     const cooling = runningStep(team) === 'cooling';
-    if (fans.current) fans.current.children.forEach((f, i) => { f.rotation.z += delta * (cooling ? 4.4 : 1.6) * (1 + i * 0.12); });
+    blades.current.forEach((b, i) => { if (b) b.rotation.z += delta * (cooling ? 6.5 : 2.0) * (1 + i * 0.1); });
     if (sheet.current) {
       const inTunnel = cooling && sm.coolT < 1;
       sheet.current.visible = inTunnel;
@@ -300,18 +300,32 @@ export const CoolingTunnel3D: React.FC<{ team: TeamId }> = ({ team }) => {
       <mesh geometry={GEO.box} material={MAT.steelDark} position={[entry.x, 0.8, midZ]} scale={[2.9, 0.34, len + 2.6]} />
       {/* the chocolate sheet cooling as it travels */}
       <mesh ref={sheet} geometry={GEO.box} material={MAT.chocolate} position={[entry.x, 1.2, entry.z]} scale={[2.0, 0.22, 1.5]} castShadow visible={false} />
-      {/* roof fans */}
-      <group ref={fans}>
-        {[-0.3, 0.35].map((f, i) => (
-          <group key={i} position={[entry.x, 2.95, midZ + f * len]} rotation={[Math.PI / 2, 0, 0]}>
-            <mesh geometry={GEO.cyl} material={MAT.steelDark} scale={[1.5, 0.2, 1.5]} />
-            {[0, 1, 2].map((b) => (
-              <mesh key={b} geometry={GEO.box} material={MAT.steelLight}
-                position={[0, 0.16, 0]} rotation={[0, (b * Math.PI * 2) / 3, 0]} scale={[1.2, 0.05, 0.3]} />
+      {/* roof extractor fans — a real guarded housing with radiating, pitched
+          blades and a spun hub, not a flat asterisk of sticks */}
+      {[-0.32, 0, 0.32].map((f, i) => (
+        <group key={i} position={[entry.x, 2.98, midZ + f * len]} rotation={[Math.PI / 2, 0, 0]}>
+          {/* mounting collar into the roof */}
+          <mesh geometry={GEO.cyl} material={MAT.steelDark} scale={[1.9, 0.18, 1.9]} castShadow />
+          {/* wire safety guard: outer ring + radial spokes, does not spin */}
+          <mesh geometry={GEO.torus} material={MAT.steelLight} scale={[1.62, 1.62, 0.9]} position={[0, 0.1, 0]} />
+          {[0, 1, 2, 3].map((g) => (
+            <mesh key={g} geometry={GEO.box} material={MAT.steelLight}
+              rotation={[0, 0, (g * Math.PI) / 4]} position={[0, 0.1, 0]} scale={[1.62, 0.035, 0.035]} />
+          ))}
+          {/* the blades, spinning */}
+          <group ref={(el) => { blades.current[i] = el; }}>
+            <mesh geometry={GEO.cone} material={MAT.steelLight} position={[0, 0.22, 0]} scale={[0.32, 0.3, 0.32]} castShadow />
+            {[0, 1, 2, 3, 4, 5].map((b) => (
+              <group key={b} rotation={[0, 0, (b * Math.PI * 2) / 6]}>
+                <group rotation={[0.42, 0, 0]}>
+                  <mesh geometry={GEO.box} material={MAT.steelDark} position={[0.42, 0.08, 0]} scale={[0.62, 0.04, 0.3]} castShadow />
+                  <mesh geometry={GEO.box} material={MAT.steelDark} position={[0.85, 0.08, 0]} scale={[0.3, 0.03, 0.2]} />
+                </group>
+              </group>
             ))}
           </group>
-        ))}
-      </group>
+        </group>
+      ))}
       {/* temperature panel */}
       <mesh position={[entry.x + sideSign(team) * 2.4, 2.0, midZ]} rotation={[0, sideSign(team) * -Math.PI / 2, 0]}>
         <planeGeometry args={[1.4, 0.7]} />
@@ -437,6 +451,9 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const wrapArm = useRef<THREE.Group>(null);
   const sealer = useRef<THREE.Mesh>(null);
   const stack = useRef<THREE.Group>(null);
+  const wrapBars = useRef<(THREE.Mesh | null)[]>([]);
+  const WRAP_N = 3;
+  const WRAP_CYCLE = 1.6;
 
   useFrame((state) => {
     const s = sim[team];
@@ -447,6 +464,17 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
     if (sealer.current) {
       sealer.current.position.y = packing ? 2.1 - Math.abs(Math.sin(state.clock.elapsedTime * 5)) * 0.5 : 2.1;
     }
+    // Bars ride the internal belt past the wrap arm — brown going in, gold
+    // foil coming out the other side — before they ever reach a box.
+    const t = state.clock.elapsedTime;
+    wrapBars.current.forEach((bar, i) => {
+      if (!bar) return;
+      bar.visible = packing;
+      if (!packing) return;
+      const phase = ((t / WRAP_CYCLE) + i / WRAP_N) % 1;
+      bar.position.z = 1.5 - phase * 3.0;
+      bar.material = phase < 0.42 ? MAT.chocolate : MAT.wrapperGold;
+    });
     if (stack.current) {
       // Boxes stack up on the pallet as they are sealed, then leave with the forklift.
       const boxes = Math.min(6, s.boxesOnPallet);
@@ -461,6 +489,15 @@ export const PackagingMachine3D: React.FC<{ team: TeamId }> = ({ team }) => {
         <mesh geometry={GEO.box} material={MAT.steelLight} position={[0, 1.4, 0]} scale={[4.6, 2.8, 3.8]} castShadow receiveShadow />
         <mesh geometry={GEO.box} material={teamMat(team)} position={[0, 2.85, 0]} scale={[4.7, 0.2, 3.9]} />
         <mesh geometry={GEO.box} material={MAT.glass} position={[sign * 2.32, 1.6, 0]} scale={[0.08, 1.5, 2.6]} />
+        {/* internal belt carrying bars under the wrap arm */}
+        <mesh geometry={GEO.box} material={MAT.steelDark} position={[0, 1.12, 0]} scale={[1.7, 0.3, 3.6]} />
+        <mesh geometry={GEO.box} material={MAT.belt} position={[0, 1.3, 0]} scale={[1.4, 0.08, 3.6]} receiveShadow />
+        {/* the bars themselves — plain chocolate until the wrap arm passes
+            over them, then they carry on wrapped in foil toward the sealer */}
+        {[0, 1, 2].map((i) => (
+          <mesh key={i} ref={(el) => { wrapBars.current[i] = el; }} geometry={GEO.box} material={MAT.chocolate}
+            position={[0, 1.42, 1.5]} scale={[0.58, 0.2, 0.42]} castShadow visible={false} />
+        ))}
         {/* wrapping arm */}
         <group ref={wrapArm} position={[0, 2.5, 1.2]}>
           <mesh geometry={GEO.box} material={MAT.steel} position={[0, -0.4, 0]} scale={[0.22, 1.0, 0.22]} castShadow />

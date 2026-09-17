@@ -211,12 +211,7 @@ export const CricketGround3D: React.FC<{
         </group>
       )}
 
-      {/* Ground Signboard */}
-      <Html position={[0, 0.8, -2.6]} center distanceFactor={16}>
-        <div className="bg-emerald-900 text-white font-extrabold text-[9px] px-2 py-0.5 rounded shadow border border-emerald-400 whitespace-nowrap">
-          CRICKET PITCH & OVAL
-        </div>
-      </Html>
+
     </group>
   );
 };
@@ -402,12 +397,7 @@ export const FootballGround3D: React.FC<{
         </group>
       )}
 
-      {/* Signboard */}
-      <Html position={[0, 0.8, -1.6]} center distanceFactor={16}>
-        <div className="bg-blue-900 text-white font-extrabold text-[9px] px-2 py-0.5 rounded shadow border border-blue-400 whitespace-nowrap">
-          FOOTBALL PITCH
-        </div>
-      </Html>
+
     </group>
   );
 };

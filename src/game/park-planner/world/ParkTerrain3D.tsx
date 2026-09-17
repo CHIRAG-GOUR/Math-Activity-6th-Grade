@@ -274,11 +274,6 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             </mesh>
           </group>
 
-          <Html position={[0, 1.3, 0]} center distanceFactor={18}>
-            <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
-              {gateOpenAngle > 0.2 ? 'PARK OPEN' : 'MAIN ENTRANCE GATE'}
-            </div>
-          </Html>
         </group>
       </group>
 
@@ -319,11 +314,6 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
               <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} wireframe />
             </mesh>
           </group>
-          <Html position={[0, 1.3, 0]} center distanceFactor={18}>
-            <div className="bg-emerald-800 text-white font-black text-[9px] px-2 py-0.5 rounded shadow whitespace-nowrap">
-              SOUTH GATE
-            </div>
-          </Html>
         </group>
       </group>
 

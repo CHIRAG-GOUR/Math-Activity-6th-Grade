@@ -294,12 +294,7 @@ export const GreenhouseConservatory3D: React.FC<{
         </group>
       ))}
 
-      {/* Labeled Plaque */}
-      <Html position={[0, 1.8, 1.15]} center distanceFactor={16}>
-        <div className="bg-emerald-950/90 text-emerald-300 font-bold text-[9px] px-2 py-0.5 rounded shadow border border-emerald-500 whitespace-nowrap">
-          TROPICAL CONSERVATORY
-        </div>
-      </Html>
+
     </group>
   );
 };
@@ -436,11 +431,7 @@ export const BotanicalSpecimenZone3D: React.FC<{
           <boxGeometry args={[0.6, 0.24, 0.04]} />
           <meshStandardMaterial color="#fef3c7" roughness={0.6} />
         </mesh>
-        <Html position={[0, 0.3, 0.03]} center distanceFactor={14}>
-          <div className="bg-amber-900 text-amber-100 font-bold text-[8px] px-1.5 py-0.5 rounded shadow whitespace-nowrap">
-            {title}
-          </div>
-        </Html>
+
       </group>
     </group>
   );

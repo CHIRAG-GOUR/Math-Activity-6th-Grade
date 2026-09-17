@@ -252,12 +252,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
         </group>
       )}
 
-      {/* Label */}
-      <Html position={[0, 1.3, 0]} center distanceFactor={16}>
-        <div className="bg-slate-900/90 text-amber-300 font-extrabold text-[8px] px-2 py-0.5 rounded shadow border border-amber-400 whitespace-nowrap">
-          TIERED AMPHITHEATRE SEATING
-        </div>
-      </Html>
+
     </group>
   );
 };
