@@ -55,7 +55,7 @@ export function getStudioBasicMaterial(color: string, transparent = false, opaci
   return mat;
 }
 
-// ── Core Pre-Cached Materials (Bright Light Studio Theme) ──
+// ── Core Pre-Cached Materials (Bright Light Studio Theme & Human Characters) ──
 export const MAT_FLOOR_CONCRETE = getStudioMaterial('#e2e8f0', 0.6, 0.05); // Smooth Light Concrete Studio Floor
 export const MAT_FLOOR_STAGE = getStudioMaterial('#cbd5e1', 0.5, 0.1);    // Light Stage Deck
 export const MAT_STAGE_TAPE_YELLOW = getStudioMaterial('#eab308', 0.3, 0.0, '#ca8a04', 0.5);
@@ -83,3 +83,23 @@ export const MAT_STUDIO_LIGHT_WHITE = getStudioMaterial('#ffffff', 0.1, 0.0, '#f
 export const MAT_GLASS_TINT = getStudioBasicMaterial('#38bdf8', true, 0.25);
 export const MAT_RED_CARPET = getStudioMaterial('#b91c1c', 0.8, 0.0);
 export const MAT_GOLD_BRASS = getStudioMaterial('#f59e0b', 0.2, 0.8, '#d97706', 0.4);
+
+// ── Human Character Materials ──
+export const MAT_SKIN_PEACH = getStudioMaterial('#ffedd5', 0.6, 0.0);
+export const MAT_SKIN_WARM = getStudioMaterial('#fed7aa', 0.6, 0.0);
+export const MAT_SKIN_BRONZE = getStudioMaterial('#d97706', 0.6, 0.0);
+export const MAT_SKIN_DEEP = getStudioMaterial('#78350f', 0.6, 0.0);
+export const MAT_EYE_WHITE = getStudioMaterial('#ffffff', 0.2, 0.0);
+export const MAT_EYE_PUPIL = getStudioMaterial('#0f172a', 0.1, 0.0);
+export const MAT_LIPS_ROSE = getStudioMaterial('#f43f5e', 0.5, 0.0);
+export const MAT_HAIR_BRUNETTE = getStudioMaterial('#451a03', 0.7, 0.05);
+export const MAT_HAIR_BLACK = getStudioMaterial('#0f172a', 0.6, 0.1);
+export const MAT_HAIR_BLONDE = getStudioMaterial('#fde047', 0.6, 0.05);
+export const MAT_HAIR_AUBURN = getStudioMaterial('#9a3412', 0.7, 0.05);
+export const MAT_DIRECTOR_CAP = getStudioMaterial('#1e293b', 0.5, 0.1);
+export const MAT_DIRECTOR_CAP_BRIM = getStudioMaterial('#0f172a', 0.4, 0.1);
+export const MAT_GOWN_EMERALD = getStudioMaterial('#059669', 0.4, 0.2, '#10b981', 0.3);
+export const MAT_GOWN_GOLD = getStudioMaterial('#eab308', 0.3, 0.6, '#facc15', 0.3);
+export const MAT_JACKET_HERO = getStudioMaterial('#1e40af', 0.5, 0.1);
+export const MAT_JACKET_LEATHER = getStudioMaterial('#78350f', 0.4, 0.2);
+

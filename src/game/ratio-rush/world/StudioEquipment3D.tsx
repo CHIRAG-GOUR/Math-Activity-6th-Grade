@@ -1,16 +1,17 @@
 // ============================================================
-// RATIO RUSH — STUDIO EQUIPMENT 3D (LIGHT THEME & HANGING LIGHTS)
+// RATIO RUSH — STUDIO EQUIPMENT 3D (LIGHT THEME & LIVE MONITORS)
 // Authentic professional studio setup based on real film soundstages:
 // - Overhead Ceiling Pantograph & Drop Lighting Array (12+ Hanging Lights)
-// - Foreground Cinema Camera on Tripod with Back LCD Screen
-// - Video Village Rolling Floor TV Monitor Cart
+// - Foreground Cinema Camera on Tripod with Back LCD Screen (Showing live shoot!)
+// - Video Village Rolling Floor TV Monitor Cart (Showing live shoot & telemetry!)
 // - Talk-show Director Table & Studio Armchair
 // - Large Floor C-Stand Softboxes with Sandbags
 // - Camera Dolly on Steel Rails
 // - Grounded BNC & XLR Cables with Yellow Protective Ramps
 // ============================================================
 
-import React from 'react';
+import React, { useMemo, useRef } from 'react';
+import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
   geoBox,
@@ -18,22 +19,162 @@ import {
   geoCylinder12,
   geoCylinder16,
   geoSphere12,
-  getStudioMaterial,
   MAT_STEEL_DARK,
   MAT_STEEL_BRIGHT,
   MAT_ROAD_CASE_BLACK,
-  MAT_ROAD_CASE_CORNER,
   MAT_CABLE_BLACK,
   MAT_CABLE_YELLOW,
   MAT_CABLE_RAMP,
-  MAT_DIRECTOR_WOOD,
-  MAT_DIRECTOR_CANVAS,
-  MAT_SCREEN_GLOW,
-  MAT_SCREEN_RECORDING,
   MAT_WARM_BULB,
   MAT_STUDIO_LIGHT_WHITE,
-  MAT_STAGE_TAPE_YELLOW,
+  getStudioMaterial,
 } from './StudioMaterials';
+
+// Helper to generate dynamic live studio monitor canvas texture
+function createLiveStudioScreenTexture(isFilming: boolean, title = 'RATIO RUSH'): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 320;
+  const ctx = canvas.getContext('2d');
+
+  if (ctx) {
+    // 1. Dark Studio Monitor Glass Background
+    ctx.fillStyle = '#090d16';
+    ctx.fillRect(0, 0, 512, 320);
+
+    // 2. Green Screen Cyclorama Stage Rendering
+    ctx.fillStyle = '#15803d';
+    ctx.fillRect(20, 20, 472, 220);
+
+    // Light Concrete Stage Floor
+    ctx.fillStyle = '#94a3b8';
+    ctx.fillRect(20, 170, 472, 70);
+
+    // Stage Yellow Hazard Tape
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(20, 168, 472, 4);
+
+    // 3. Actors and Actresses on Live Feed!
+    // Hero (Lead Actor in Blue Jacket)
+    ctx.fillStyle = '#1d4ed8';
+    ctx.fillRect(160, 105, 26, 65);
+    ctx.fillStyle = '#ffedd5';
+    ctx.beginPath();
+    ctx.arc(173, 94, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(165, 84, 16, 8); // hair
+
+    // Lead Actress (In Elegant Emerald Gown & Flowing Hair)
+    ctx.fillStyle = '#059669';
+    ctx.beginPath();
+    ctx.moveTo(225, 102);
+    ctx.lineTo(248, 170);
+    ctx.lineTo(202, 170);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#facc15';
+    ctx.fillRect(212, 120, 26, 4); // gold belt
+    ctx.fillStyle = '#ffedd5';
+    ctx.beginPath();
+    ctx.arc(225, 92, 11, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#451a03'; // flowing brunette hair
+    ctx.beginPath();
+    ctx.arc(225, 92, 14, Math.PI * 0.8, Math.PI * 2.2);
+    ctx.fill();
+    ctx.fillRect(214, 95, 22, 30);
+
+    // Villain (In Violet Trenchcoat)
+    ctx.fillStyle = '#7e22ce';
+    ctx.fillRect(285, 102, 26, 68);
+    ctx.fillStyle = '#dc2626'; // cape
+    ctx.fillRect(305, 108, 8, 62);
+    ctx.fillStyle = '#fed7aa';
+    ctx.beginPath();
+    ctx.arc(298, 92, 11, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Glowing Ratio Core Prop
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(240, 135, 24, 35);
+    ctx.fillStyle = '#38bdf8';
+    ctx.beginPath();
+    ctx.arc(252, 145, 6, 0, Math.PI * 2);
+    ctx.fill();
+
+    // 4. 16:9 Viewfinder Framing Grid
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(40, 36, 432, 243);
+
+    // Center Crosshair
+    ctx.strokeStyle = 'rgba(255, 255, 255, 0.85)';
+    ctx.beginPath();
+    ctx.moveTo(246, 157); ctx.lineTo(266, 157);
+    ctx.moveTo(256, 147); ctx.lineTo(256, 167);
+    ctx.stroke();
+
+    // Safe Area Action Box
+    ctx.strokeStyle = 'rgba(56, 189, 248, 0.4)';
+    ctx.lineWidth = 1;
+    ctx.strokeRect(60, 50, 392, 215);
+
+    // 5. Telemetry & Live Shoot Overlays
+    // Header Bar
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.9)';
+    ctx.fillRect(40, 36, 432, 28);
+
+    if (isFilming) {
+      ctx.fillStyle = '#ef4444';
+      ctx.beginPath();
+      ctx.arc(55, 50, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('REC  00:05:42 • 4K RAW 60P', 68, 54);
+    } else {
+      ctx.fillStyle = '#22c55e';
+      ctx.beginPath();
+      ctx.arc(55, 50, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 12px monospace';
+      ctx.fillText('LIVE VIEW • 16:9 CINEMA', 68, 54);
+    }
+
+    ctx.fillStyle = '#38bdf8';
+    ctx.font = 'bold 11px monospace';
+    ctx.fillText('CAM 1 [A]', 410, 54);
+
+    // Audio VU Meters
+    ctx.fillStyle = '#22c55e';
+    ctx.fillRect(460, 80, 5, 80);
+    ctx.fillRect(467, 80, 5, 75);
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(460, 68, 5, 12);
+    ctx.fillRect(467, 68, 5, 12);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(460, 60, 5, 8);
+    ctx.fillRect(467, 60, 5, 8);
+
+    // Bottom Telemetry Bar
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.92)';
+    ctx.fillRect(40, 240, 432, 39);
+
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 12px sans-serif';
+    ctx.fillText(`SCENE 1 TAKE 1 • ${title}`, 50, 257);
+
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10.5px monospace';
+    ctx.fillText('ISO 800 | 1/50 | f/2.8 | 5600K | 16:9 | 🔋 94%', 50, 271);
+  }
+
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
 
 export const StudioEquipment3D: React.FC<{
   isFilming: boolean;
@@ -52,6 +193,31 @@ export const StudioEquipment3D: React.FC<{
     { x: -3.5, y: 6.4, z: 2.0, type: 'cone', rotY: 0.2, rotX: 0.25, drop: 1.6 },
     { x: 3.5, y: 6.4, z: 2.0, type: 'cone', rotY: -0.2, rotX: 0.25, drop: 1.6 },
   ];
+
+  // Dynamic Live Monitor Textures
+  const liveTvMaterial = useMemo(() => {
+    if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
+    const tex = createLiveStudioScreenTexture(isFilming, 'RATIO RUSH: STAGE 1');
+    return new THREE.MeshStandardMaterial({
+      map: tex,
+      emissiveMap: tex,
+      emissive: new THREE.Color('#ffffff'),
+      emissiveIntensity: 0.9,
+      roughness: 0.2,
+    });
+  }, [isFilming]);
+
+  const liveCamMaterial = useMemo(() => {
+    if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
+    const tex = createLiveStudioScreenTexture(isFilming, 'CAM 1 VIEWFINDER');
+    return new THREE.MeshStandardMaterial({
+      map: tex,
+      emissiveMap: tex,
+      emissive: new THREE.Color('#ffffff'),
+      emissiveIntensity: 0.9,
+      roughness: 0.2,
+    });
+  }, [isFilming]);
 
   return (
     <group>
@@ -140,8 +306,7 @@ export const StudioEquipment3D: React.FC<{
         ))}
       </group>
 
-      {/* ── 2. FOREGROUND CINEMA CAMERA 1 ON TRIPOD (Photo 2) ── */}
-      {/* Positioned in foreground looking right at the actors */}
+      {/* ── 2. FOREGROUND CINEMA CAMERA 1 ON TRIPOD WITH LIVE LCD MONITOR (Photo 2) ── */}
       <group position={[1.4, 0, 4.6]}>
         {/* Pro Video Tripod (Spread 3 Steel Legs) */}
         <mesh
@@ -197,17 +362,17 @@ export const StudioEquipment3D: React.FC<{
             scale={[0.38, 0.32, 0.1]}
             position={[0, 0.22, -0.52]}
           />
-          {/* Back LCD Monitor (Facing Viewer/Director) */}
+          {/* Back LCD Monitor (Facing Viewer/Director, displaying live shoot!) */}
           <mesh
             geometry={geoBox}
-            material={isFilming ? MAT_SCREEN_RECORDING : MAT_SCREEN_GLOW}
-            scale={[0.3, 0.2, 0.02]}
+            material={liveCamMaterial}
+            scale={[0.32, 0.22, 0.02]}
             position={[0, 0.24, 0.28]}
           />
           {/* Top Viewfinder Monitor */}
           <mesh
             geometry={geoBox}
-            material={MAT_SCREEN_GLOW}
+            material={liveCamMaterial}
             scale={[0.22, 0.14, 0.04]}
             position={[-0.12, 0.45, 0]}
             rotation={[0, 0.2, 0]}
@@ -257,7 +422,7 @@ export const StudioEquipment3D: React.FC<{
           />
           <mesh
             geometry={geoBox}
-            material={MAT_SCREEN_GLOW}
+            material={liveCamMaterial}
             scale={[0.28, 0.18, 0.02]}
             position={[0, 0, 0.25]}
           />
@@ -265,6 +430,7 @@ export const StudioEquipment3D: React.FC<{
       </group>
 
       {/* ── 4. PRODUCTION MONITOR ON ROLLING RACK CART (Photo 1) ── */}
+      {/* 40" Client / Director Live Monitor displaying what is being shot! */}
       <group position={[-1.8, 0, 3.2]}>
         {/* Metal Cart Frame */}
         <mesh
@@ -273,17 +439,18 @@ export const StudioEquipment3D: React.FC<{
           scale={[0.9, 0.85, 0.6]}
           position={[0, 0.42, 0]}
         />
-        {/* 40" Client / Director LCD TV Monitor on Cart */}
+        {/* Monitor Bezel */}
         <mesh
           geometry={geoBox}
           material={MAT_ROAD_CASE_BLACK}
           scale={[1.2, 0.75, 0.08]}
           position={[0, 1.25, 0]}
         />
+        {/* Live TV Screen displaying live shot & telemetry */}
         <mesh
           geometry={geoBox}
-          material={isFilming ? MAT_SCREEN_RECORDING : MAT_SCREEN_GLOW}
-          scale={[1.14, 0.69, 0.02]}
+          material={liveTvMaterial}
+          scale={[1.15, 0.7, 0.02]}
           position={[0, 1.25, 0.05]}
         />
         {/* Cable bundle dropping down cart back to floor */}
@@ -298,21 +465,18 @@ export const StudioEquipment3D: React.FC<{
       {/* ── 5. STUDIO TALK-SHOW TABLE & ARMCHAIR (Photo 1) ── */}
       {/* Black Modern Pedestal Table */}
       <group position={[0, 0, 0.2]}>
-        {/* Base Disc */}
         <mesh
           geometry={geoCylinder12}
           material={MAT_ROAD_CASE_BLACK}
           scale={[0.4, 0.02, 0.4]}
           position={[0, 0.01, 0]}
         />
-        {/* Curved Center Pedestal */}
         <mesh
           geometry={geoCylinder8}
           material={MAT_ROAD_CASE_BLACK}
           scale={[0.08, 0.75, 0.08]}
           position={[0, 0.38, 0]}
         />
-        {/* Round Black Tabletop */}
         <mesh
           geometry={geoCylinder16}
           material={MAT_ROAD_CASE_BLACK}
@@ -323,28 +487,24 @@ export const StudioEquipment3D: React.FC<{
 
       {/* Modern Studio Armchair in Light Cream Fabric */}
       <group position={[3.6, 0, 0.4]} rotation={[0, -0.4, 0]}>
-        {/* Seat Cushion */}
         <mesh
           geometry={geoBox}
           material={getStudioMaterial('#f1f5f9', 0.8, 0.0)}
           scale={[0.85, 0.4, 0.85]}
           position={[0, 0.25, 0]}
         />
-        {/* Curved Backrest */}
         <mesh
           geometry={geoBox}
           material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
           scale={[0.85, 0.65, 0.25]}
           position={[0, 0.65, -0.32]}
         />
-        {/* Left Armrest */}
         <mesh
           geometry={geoBox}
           material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
           scale={[0.2, 0.45, 0.85]}
           position={[-0.38, 0.5, 0]}
         />
-        {/* Right Armrest */}
         <mesh
           geometry={geoBox}
           material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
@@ -368,7 +528,6 @@ export const StudioEquipment3D: React.FC<{
           scale={[0.3, 0.12, 0.2]}
           position={[0, 0.06, 0.15]}
         />
-        {/* Softbox Hood (Aimed at stage center) */}
         <group position={[0, 2.4, 0]} rotation={[-0.2, 0.6, 0]}>
           <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[1.2, 1.2, 0.4]} />
           <mesh
@@ -406,21 +565,18 @@ export const StudioEquipment3D: React.FC<{
       </group>
 
       {/* ── 7. GROUNDED CABLE RUNS WITH RAMPS ACROSS THE FLOOR ── */}
-      {/* Black BNC SDI Video Cable: Camera 1 → Monitor Cart */}
       <mesh
         geometry={geoBox}
         material={MAT_CABLE_BLACK}
         scale={[0.04, 0.02, 2.2]}
         position={[0.2, 0.015, 3.8]}
       />
-      {/* Yellow Power Cable: Softbox Left → Wall Trunk */}
       <mesh
         geometry={geoBox}
         material={MAT_CABLE_YELLOW}
         scale={[0.04, 0.02, 5.0]}
         position={[-5.2, 0.015, 4.5]}
       />
-      {/* Yellow/Black Cable Protector Ramps */}
       <group position={[-1.8, 0, 4.8]}>
         <mesh
           geometry={geoBox}
