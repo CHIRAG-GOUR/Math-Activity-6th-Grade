@@ -421,14 +421,14 @@ export const StylizedHuman3D: React.FC<HumanCharacterProps> = ({
 // 2. DEDICATED REALISTIC CYCLIST & BICYCLE
 // ------------------------------------------------------------
 export interface RealisticCyclistProps {
-  position: [number, number, number];
-  rotationY: number;
+  position?: [number, number, number];
+  rotationY?: number;
   speed?: number;
 }
 
 export const RealisticCyclist3D: React.FC<RealisticCyclistProps> = ({
-  position,
-  rotationY,
+  position = [0, 0, 0],
+  rotationY = 0,
   speed = 1.0,
 }) => {
   const wheelFrontRef = useRef<THREE.Group>(null);

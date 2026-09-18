@@ -65,6 +65,50 @@ const CursorParallaxRig: React.FC<{
 };
 
 // ------------------------------------------------------------
+// ------------------------------------------------------------
+// HIGH-PERFORMANCE CITIZEN ACTOR (Pure Three.js ref transforms, zero React re-renders)
+// ------------------------------------------------------------
+const CitizenActor: React.FC<{
+  citizen: ReturnType<typeof globalParkSim.getCitizens>[number];
+}> = ({ citizen }) => {
+  const actorRef = useRef<THREE.Group>(null);
+
+  useFrame(() => {
+    if (actorRef.current) {
+      actorRef.current.position.set(citizen.pos[0], citizen.pos[1], citizen.pos[2]);
+      actorRef.current.rotation.y = citizen.rotationY;
+    }
+  });
+
+  if (citizen.type === 'cyclist') {
+    return (
+      <group ref={actorRef} position={citizen.pos} rotation={[0, citizen.rotationY, 0]}>
+        <RealisticCyclist3D speed={1.2} />
+      </group>
+    );
+  }
+
+  return (
+    <group ref={actorRef} position={citizen.pos} rotation={[0, citizen.rotationY, 0]}>
+      <StylizedHuman3D
+        scale={citizen.type === 'child' ? 0.65 : 0.95}
+        shirtColor={citizen.shirtColor}
+        pantsColor={citizen.pantsColor}
+        shoesColor={citizen.shoesColor}
+        hairColor={citizen.hairColor}
+        skinColor={citizen.skinColor}
+        isJogging={citizen.state === 'jogging'}
+        isWalking={citizen.state === 'walking'}
+        isSeated={citizen.state === 'resting' && citizen.restTimer > 0 && citizen.restTimer < 1000}
+        hasHeadband={citizen.type === 'jogger' || citizen.hasHeadband}
+        hasGuardUniform={citizen.hasGuardUniform}
+        hasGuardCap={citizen.hasGuardCap}
+      />
+    </group>
+  );
+};
+
+// ------------------------------------------------------------
 // SIMULATION & NPC TICKER COMPONENT
 // ------------------------------------------------------------
 const LiveParkSimManager: React.FC<{ currentRound: number; grandOpeningActive?: boolean }> = ({
@@ -72,54 +116,23 @@ const LiveParkSimManager: React.FC<{ currentRound: number; grandOpeningActive?: 
   grandOpeningActive,
 }) => {
   const tickTransform = useParkStore((s) => s.tickTransformProgress);
-  const [, setFrame] = useState(0);
+  const [citizens, setCitizens] = useState(() => globalParkSim.getCitizens());
 
   useEffect(() => {
     globalParkSim.updateRoundCrowd(currentRound, !!grandOpeningActive);
+    setCitizens([...globalParkSim.getCitizens()]);
   }, [currentRound, grandOpeningActive]);
 
   useFrame((_, delta) => {
     tickTransform(delta);
     globalParkSim.update(delta);
-    setFrame((f) => (f + 1) % 1000);
   });
-
-  const citizens = globalParkSim.getCitizens();
 
   return (
     <group name="LivingParkCitizens">
-      {citizens.map((c) => {
-        if (c.type === 'cyclist') {
-          return (
-            <RealisticCyclist3D
-              key={c.id}
-              position={c.pos}
-              rotationY={c.rotationY}
-              speed={1.2}
-            />
-          );
-        }
-
-        return (
-          <StylizedHuman3D
-            key={c.id}
-            position={c.pos}
-            rotationY={c.rotationY}
-            scale={c.type === 'child' ? 0.65 : 0.95}
-            shirtColor={c.shirtColor}
-            pantsColor={c.pantsColor}
-            shoesColor={c.shoesColor}
-            hairColor={c.hairColor}
-            skinColor={c.skinColor}
-            isJogging={c.state === 'jogging'}
-            isWalking={c.state === 'walking'}
-            isSeated={c.state === 'resting' && (c.restTimer > 0 && c.restTimer < 1000)}
-            hasHeadband={c.type === 'jogger' || c.hasHeadband}
-            hasGuardUniform={c.hasGuardUniform}
-            hasGuardCap={c.hasGuardCap}
-          />
-        );
-      })}
+      {citizens.map((c) => (
+        <CitizenActor key={c.id} citizen={c} />
+      ))}
     </group>
   );
 };

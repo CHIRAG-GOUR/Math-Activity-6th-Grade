@@ -148,38 +148,122 @@ export const SwingSet3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 2. ADVENTURE SPIRAL SLIDE TOWER WITH SLIDING CHILD
+// ------------------------------------------------------------
+// 2. ADVENTURE SLIDE TOWER WITH REALISTIC ANIMATED CHILD
+// Slide is positioned on the exact OPPOSITE side of the ladder (North vs South).
+// The climbing child ascends the ladder, pauses/stops at the top, sits down,
+// slides down smoothly, pauses at the bottom, and walks back.
 // ------------------------------------------------------------
 export const SlideTower3D: React.FC<{
   position?: [number, number, number];
   rotationY?: number;
   hasActiveChild?: boolean;
 }> = ({ position = [0, 0, 0], rotationY = 0, hasActiveChild = true }) => {
-  const slidingChildRef = useRef<THREE.Group>(null);
+  const childGroupRef = useRef<THREE.Group>(null);
+  const childLeftLegRef = useRef<THREE.Group>(null);
+  const childRightLegRef = useRef<THREE.Group>(null);
+  const childLeftArmRef = useRef<THREE.Group>(null);
+  const childRightArmRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
-    const t = (state.clock.getElapsedTime() * 0.6) % 3.0; // 3 sec loop
-    if (slidingChildRef.current) {
-      if (t < 1.4) {
-        // Climbing ladder
-        const climbT = t / 1.4;
-        slidingChildRef.current.position.set(0, 0.1 + climbT * 1.8, 0.75 - climbT * 0.4);
-        slidingChildRef.current.rotation.set(0, Math.PI, 0);
-      } else if (t < 2.5) {
-        // Sliding down spiral chute
-        const slideT = (t - 1.4) / 1.1;
-        slidingChildRef.current.position.set(
-          0.7 + slideT * 1.05,
-          1.85 - slideT * 1.5,
-          0
-        );
-        slidingChildRef.current.rotation.set(0, -Math.PI / 2, 0);
+    if (!childGroupRef.current) return;
+    const totalDuration = 7.0; // 7-second complete cycle
+    const t = (state.clock.getElapsedTime() * 0.9) % totalDuration;
+
+    let posX = 0;
+    let posY = 0.02;
+    let posZ = 0;
+    let rotX = 0;
+    let rotY = 0;
+    let rotZ = 0;
+    let legSwing = 0;
+    let isSeatedPose = false;
+
+    if (t < 2.2) {
+      // ── Phase 1: Climbing up the ladder (South side) ──
+      const climbProg = t / 2.2;
+      posX = 0;
+      posY = 0.05 + climbProg * 1.85;
+      posZ = 1.15 - climbProg * 0.4;
+      rotY = Math.PI; // Facing ladder / South
+      rotX = -0.15; // Leaning into ladder rungs
+      legSwing = Math.sin(climbProg * Math.PI * 8) * 0.45;
+    } else if (t < 3.4) {
+      // ── Phase 2: Reached top platform & STOPPED (Prepares to slide) ──
+      const platProg = Math.min(1, (t - 2.2) / 0.8);
+      posX = 0;
+      posY = 1.95;
+      posZ = 0.75 - platProg * 1.5; // Walk forward across platform to slide lip (-0.75)
+      rotY = 0; // Facing North towards slide
+      rotX = 0;
+      // When reached slide lip (platProg > 0.8), STOP WALKING and sit down!
+      if (platProg > 0.7) {
+        legSwing = 0; // STOPPED COMPLETELY
+        isSeatedPose = true;
+        posY = 1.88;
       } else {
-        // Walking back around
-        const walkT = (t - 2.5) / 0.5;
-        slidingChildRef.current.position.set(1.75 - walkT * 1.75, 0.02, walkT * 0.75);
-        slidingChildRef.current.rotation.set(0, Math.PI / 2, 0);
+        legSwing = Math.sin(platProg * Math.PI * 4) * 0.35;
       }
+    } else if (t < 4.6) {
+      // ── Phase 3: Sliding down the chute (North side) ──
+      const slideProg = (t - 3.4) / 1.2;
+      posX = 0;
+      posY = 1.88 - slideProg * 1.82; // Glide from Y=1.88 down to Y=0.06
+      posZ = -0.75 - slideProg * 2.3; // Glide from Z=-0.75 down to Z=-3.05
+      rotX = -0.45; // Tilted back sliding posture
+      rotY = 0; // Facing North down slide
+      legSwing = 0; // Legs extend forward, NOT walking!
+      isSeatedPose = true;
+    } else if (t < 5.6) {
+      // ── Phase 4: Landed at bottom & STOPPED (Celebration pause) ──
+      posX = 0;
+      posY = 0.02;
+      posZ = -3.1;
+      rotY = 0.3;
+      rotX = 0;
+      legSwing = 0; // STOPPED COMPLETELY (standing happily)
+      isSeatedPose = false;
+    } else {
+      // ── Phase 5: Walking back around to the ladder ──
+      const walkProg = (t - 5.6) / 1.4;
+      if (walkProg < 0.3) {
+        // Step out to the side
+        posX = (walkProg / 0.3) * 1.15;
+        posY = 0.02;
+        posZ = -3.1 + (walkProg / 0.3) * 0.5;
+        rotY = Math.PI * 0.7;
+      } else if (walkProg < 0.85) {
+        // Walk along side of playhouse
+        const sideProg = (walkProg - 0.3) / 0.55;
+        posX = 1.15;
+        posY = 0.02;
+        posZ = -2.6 + sideProg * 3.4;
+        rotY = Math.PI;
+      } else {
+        // Turn back in towards ladder
+        const turnProg = (walkProg - 0.85) / 0.15;
+        posX = 1.15 * (1 - turnProg);
+        posY = 0.02;
+        posZ = 0.8 + turnProg * 0.35;
+        rotY = Math.PI * 0.75;
+      }
+      legSwing = Math.sin(walkProg * Math.PI * 10) * 0.45;
+      isSeatedPose = false;
+    }
+
+    childGroupRef.current.position.set(posX, posY, posZ);
+    childGroupRef.current.rotation.set(rotX, rotY, rotZ);
+
+    if (isSeatedPose) {
+      if (childLeftLegRef.current) childLeftLegRef.current.rotation.set(-1.3, 0, 0);
+      if (childRightLegRef.current) childRightLegRef.current.rotation.set(-1.3, 0, 0);
+      if (childLeftArmRef.current) childLeftArmRef.current.rotation.set(-0.8, 0, -0.3);
+      if (childRightArmRef.current) childRightArmRef.current.rotation.set(-0.8, 0, 0.3);
+    } else {
+      if (childLeftLegRef.current) childLeftLegRef.current.rotation.set(legSwing, 0, 0);
+      if (childRightLegRef.current) childRightLegRef.current.rotation.set(-legSwing, 0, 0);
+      if (childLeftArmRef.current) childLeftArmRef.current.rotation.set(-legSwing * 0.7, 0, 0);
+      if (childRightArmRef.current) childRightArmRef.current.rotation.set(legSwing * 0.7, 0, 0);
     }
   });
 
@@ -195,23 +279,23 @@ export const SlideTower3D: React.FC<{
         ))
       )}
 
-      {/* Timber Floor Platform */}
+      {/* Timber Floor Platform (Elevated at Y = 1.9m) */}
       <mesh castShadow receiveShadow position={[0, 1.9, 0]}>
         <boxGeometry args={[1.5, 0.08, 1.5]} />
         <meshStandardMaterial color="#b45309" roughness={0.6} />
       </mesh>
 
-      {/* Safety Railings */}
-      <mesh position={[0, 2.25, -0.7]}>
-        <boxGeometry args={[1.4, 0.65, 0.05]} />
+      {/* Side Safety Railings (West & East Walls) */}
+      <mesh position={[-0.72, 2.25, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[1.44, 0.65, 0.05]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.3} roughness={0.4} />
       </mesh>
-      <mesh position={[-0.7, 2.25, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[1.4, 0.65, 0.05]} />
+      <mesh position={[0.72, 2.25, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <boxGeometry args={[1.44, 0.65, 0.05]} />
         <meshStandardMaterial color="#f59e0b" metalness={0.3} roughness={0.4} />
       </mesh>
 
-      {/* Access Ladder (South) */}
+      {/* ── 1. ACCESS LADDER (SOUTH SIDE: Z = +0.75m) ── */}
       <group position={[0, 0.95, 0.75]} rotation={[0.2, 0, 0]}>
         <mesh position={[-0.32, 0, 0]}>
           <cylinderGeometry args={[0.035, 0.035, 2.0, 8]} />
@@ -229,40 +313,95 @@ export const SlideTower3D: React.FC<{
         ))}
       </group>
 
-      {/* Curved Slide Chute (East) */}
-      <group position={[0.7, 1.85, 0]}>
-        {/* Chute Arch Entrance */}
-        <mesh position={[0, 0.35, 0]}>
-          <torusGeometry args={[0.32, 0.04, 8, 16, Math.PI]} />
+      {/* ── 2. SLIDE CHUTE (NORTH SIDE: OPPOSITE OF LADDER, Z = -0.75m to -3.1m) ── */}
+      <group position={[0, 0, 0]}>
+        {/* Chute Arch Entrance at North Platform Lip */}
+        <mesh position={[0, 2.22, -0.75]}>
+          <torusGeometry args={[0.36, 0.04, 8, 16, Math.PI]} />
           <meshStandardMaterial color="#0284c7" />
         </mesh>
-        {/* Spiral Chute Tube */}
-        <mesh castShadow position={[0.85, -0.75, 0]} rotation={[0, 0, -0.62]}>
-          <cylinderGeometry args={[0.34, 0.36, 2.1, 16, 1, true, -Math.PI / 2, Math.PI]} />
-          <meshStandardMaterial color="#0284c7" roughness={0.3} side={THREE.DoubleSide} />
+
+        {/* Slide Chute Bed: Smooth straight downward slope directly opposite ladder */}
+        <mesh castShadow position={[0, 0.98, -1.9]} rotation={[0.66, 0, 0]}>
+          <boxGeometry args={[0.68, 0.06, 2.65]} />
+          <meshStandardMaterial color="#0284c7" roughness={0.25} metalness={0.15} />
         </mesh>
-        {/* Soft Exit Ramp */}
-        <mesh position={[1.75, -1.75, 0]}>
-          <boxGeometry args={[0.75, 0.06, 0.6]} />
+
+        {/* Left & Right Raised Chute Safety Guardrails */}
+        <mesh position={[-0.34, 1.05, -1.9]} rotation={[0.66, 0, 0]}>
+          <boxGeometry args={[0.05, 0.22, 2.65]} />
+          <meshStandardMaterial color="#f59e0b" roughness={0.3} />
+        </mesh>
+        <mesh position={[0.34, 1.05, -1.9]} rotation={[0.66, 0, 0]}>
+          <boxGeometry args={[0.05, 0.22, 2.65]} />
+          <meshStandardMaterial color="#f59e0b" roughness={0.3} />
+        </mesh>
+
+        {/* Soft Level Exit Ramp at Bottom (Z = -3.1m) */}
+        <mesh position={[0, 0.05, -3.1]}>
+          <boxGeometry args={[0.68, 0.05, 0.65]} />
           <meshStandardMaterial color="#0284c7" roughness={0.3} />
+        </mesh>
+
+        {/* Structural Steel Support Legs under Slide Bed */}
+        <mesh position={[-0.32, 0.5, -1.9]}>
+          <cylinderGeometry args={[0.03, 0.03, 1.0, 8]} />
+          <meshStandardMaterial color="#78350f" />
+        </mesh>
+        <mesh position={[0.32, 0.5, -1.9]}>
+          <cylinderGeometry args={[0.03, 0.03, 1.0, 8]} />
+          <meshStandardMaterial color="#78350f" />
         </mesh>
       </group>
 
-      {/* Pyramid Shingled Roof */}
+      {/* Pyramid Shingled Play Tower Roof */}
       <mesh castShadow position={[0, 2.9, 0]} rotation={[0, Math.PI / 4, 0]}>
         <coneGeometry args={[1.3, 0.8, 4]} />
         <meshStandardMaterial color="#ef4444" roughness={0.5} />
       </mesh>
 
-      {/* Active Sliding Child */}
+      {/* ── 3. REALISTIC ACTIVE SLIDING CHILD ── */}
       {hasActiveChild && (
-        <group ref={slidingChildRef} position={[0, 0, 0]}>
-          <StylizedHuman3D
-            scale={0.55}
-            shirtColor="#ec4899"
-            pantsColor="#1e3a8a"
-            isWalking={true}
-          />
+        <group ref={childGroupRef} position={[0, 0.05, 1.15]} scale={0.54}>
+          {/* Torso & Head */}
+          <mesh castShadow position={[0, 0.62, 0]}>
+            <boxGeometry args={[0.32, 0.42, 0.2]} />
+            <meshStandardMaterial color="#ec4899" />
+          </mesh>
+          <mesh castShadow position={[0, 0.98, 0]}>
+            <sphereGeometry args={[0.13, 10, 10]} />
+            <meshStandardMaterial color="#fcd34d" />
+          </mesh>
+          {/* Hair */}
+          <mesh position={[0, 1.05, 0]}>
+            <sphereGeometry args={[0.135, 8, 8, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+            <meshStandardMaterial color="#451a03" />
+          </mesh>
+          {/* Limbs with Dedicated Animated Refs */}
+          <group ref={childLeftLegRef} position={[-0.09, 0.38, 0]}>
+            <mesh position={[0, -0.2, 0]}>
+              <cylinderGeometry args={[0.045, 0.045, 0.4, 6]} />
+              <meshStandardMaterial color="#1e3a8a" />
+            </mesh>
+          </group>
+          <group ref={childRightLegRef} position={[0.09, 0.38, 0]}>
+            <mesh position={[0, -0.2, 0]}>
+              <cylinderGeometry args={[0.045, 0.045, 0.4, 6]} />
+              <meshStandardMaterial color="#1e3a8a" />
+            </mesh>
+          </group>
+          <group ref={childLeftArmRef} position={[-0.2, 0.75, 0]}>
+            <mesh position={[0, -0.16, 0]}>
+              <cylinderGeometry args={[0.035, 0.035, 0.34, 6]} />
+              <meshStandardMaterial color="#ec4899" />
+            </mesh>
+          </group>
+          <group ref={childRightArmRef} position={[0.2, 0.75, 0]}>
+            <mesh position={[0, -0.16, 0]}>
+              <cylinderGeometry args={[0.035, 0.035, 0.34, 6]} />
+              <meshStandardMaterial color="#ec4899" />
+            </mesh>
+          </group>
         </group>
       )}
     </group>
@@ -285,20 +424,20 @@ export const ClimbingDome3D: React.FC<{
       </mesh>
       {/* Geodesic Dome Steel Struts */}
       <mesh castShadow position={[0, 0.85, 0]}>
-        <sphereGeometry args={[1.2, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
+        <sphereGeometry args={[1.2, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
         <meshStandardMaterial
           color="#f59e0b"
           metalness={0.6}
           roughness={0.3}
           wireframe
-          wireframeLinewidth={3}
+          wireframeLinewidth={2}
         />
       </mesh>
       {/* Colorful Climbing Node Grips */}
       {[-0.8, 0, 0.8].map((x, i) =>
         [-0.8, 0, 0.8].map((z, j) => (
           <mesh key={`climb_grip_${i}_${j}`} position={[x * 0.92, 0.8 + ((i + j) % 3) * 0.15, z * 0.92]}>
-            <sphereGeometry args={[0.075, 8, 8]} />
+            <sphereGeometry args={[0.075, 6, 6]} />
             <meshStandardMaterial color={i % 2 === 0 ? '#ef4444' : '#10b981'} roughness={0.4} />
           </mesh>
         ))
@@ -429,7 +568,7 @@ export const SpringRider3D: React.FC<{
       {/* Heavy Coiled Steel Spring */}
       <mesh position={[0, 0.35, 0]}>
         <cylinderGeometry args={[0.14, 0.14, 0.58, 12, 8, true]} />
-        <meshStandardMaterial color="#0284c7" metalness={0.8} roughness={0.2} wireframe wireframeLinewidth={3} />
+        <meshStandardMaterial color="#0284c7" metalness={0.8} roughness={0.2} wireframe wireframeLinewidth={2} />
       </mesh>
 
       {/* Animated Rocker Animal Body */}
@@ -473,7 +612,7 @@ export const SpringRider3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 6. 3D PLAYGROUND POND WITH ROCKS, WATER & CATTAILS
+// 6. 3D PLAYGROUND POND (Sized compactly so it never spills onto walkways)
 // ------------------------------------------------------------
 export const PlaygroundPond3D: React.FC<{
   position?: [number, number, number];
@@ -491,67 +630,52 @@ export const PlaygroundPond3D: React.FC<{
 
   return (
     <group position={position}>
-      {/* Sandy/Pebble Shoreline Base */}
+      {/* Sandy/Pebble Shoreline Base (Radius 1.45m) */}
       <mesh receiveShadow position={[0, 0.02, 0]}>
-        <cylinderGeometry args={[2.4, 2.6, 0.05, 20]} />
+        <cylinderGeometry args={[1.35, 1.45, 0.04, 16]} />
         <meshStandardMaterial color="#d4a373" roughness={0.9} />
       </mesh>
 
       {/* Natural Shoreline River Boulders */}
-      {Array.from({ length: 18 }).map((_, i) => {
-        const angle = (i * Math.PI * 2) / 18;
-        const r = 2.1 + ((i % 3) * 0.15 - 0.1);
+      {Array.from({ length: 14 }).map((_, i) => {
+        const angle = (i * Math.PI * 2) / 14;
+        const r = 1.25 + ((i % 3) * 0.08 - 0.04);
         const x = Math.cos(angle) * r;
         const z = Math.sin(angle) * r;
-        const s = 0.3 + (i % 4) * 0.06;
+        const s = 0.22 + (i % 3) * 0.04;
         return (
-          <mesh key={`pond_rock_${i}`} castShadow position={[x, 0.14, z]} scale={[s, s * 0.7, s]}>
-            <dodecahedronGeometry args={[0.8, 0]} />
+          <mesh key={`pond_rock_${i}`} castShadow position={[x, 0.1, z]} scale={[s, s * 0.7, s]}>
+            <dodecahedronGeometry args={[0.7, 0]} />
             <meshStandardMaterial color="#64748b" roughness={0.9} />
           </mesh>
         );
       })}
 
-      {/* Radiant Clear Azure Water Layer */}
-      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <circleGeometry args={[2.0, 24]} />
+      {/* Radiant Clear Azure Water Layer (Radius 1.2m) */}
+      <mesh position={[0, 0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <circleGeometry args={[1.2, 20]} />
         <meshStandardMaterial color="#0284c7" roughness={0.04} metalness={0.4} transparent opacity={0.88} />
       </mesh>
 
       {/* Animated Ripple */}
-      <mesh ref={rippleRef} position={[0, 0.09, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.6, 0.85, 24]} />
+      <mesh ref={rippleRef} position={[0, 0.07, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.35, 0.55, 16]} />
         <meshStandardMaterial color="#bae6fd" transparent opacity={0.5} />
       </mesh>
 
-      {/* Water Lilies & Cattails */}
+      {/* Water Lilies */}
       {[
-        { x: -0.8, z: 0.6 },
-        { x: 0.9, z: -0.5 },
-        { x: 0.3, z: 0.9 },
+        { x: -0.45, z: 0.35 },
+        { x: 0.5, z: -0.3 },
       ].map((pos, idx) => (
-        <group key={`pond_lily_${idx}`} position={[pos.x, 0.09, pos.z]}>
+        <group key={`pond_lily_${idx}`} position={[pos.x, 0.075, pos.z]}>
           <mesh rotation={[-Math.PI / 2, 0, idx * 1.8]}>
-            <circleGeometry args={[0.28, 12, 0, Math.PI * 1.8]} />
+            <circleGeometry args={[0.18, 10, 0, Math.PI * 1.8]} />
             <meshStandardMaterial color="#22c55e" roughness={0.4} />
           </mesh>
-          <mesh position={[0, 0.05, 0]}>
-            <sphereGeometry args={[0.08, 6, 6]} />
+          <mesh position={[0, 0.035, 0]}>
+            <sphereGeometry args={[0.05, 6, 6]} />
             <meshStandardMaterial color="#f472b6" />
-          </mesh>
-        </group>
-      ))}
-
-      {/* Shoreline Cattails / Reeds */}
-      {[-1.8, 1.7, 0.2].map((x, i) => (
-        <group key={`reed_${i}`} position={[x, 0.12, 1.4 * (i % 2 === 0 ? 1 : -1)]}>
-          <mesh position={[0, 0.45, 0]}>
-            <cylinderGeometry args={[0.015, 0.02, 0.9, 6]} />
-            <meshStandardMaterial color="#15803d" />
-          </mesh>
-          <mesh position={[0, 0.75, 0]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.25, 6]} />
-            <meshStandardMaterial color="#78350f" />
           </mesh>
         </group>
       ))}
@@ -568,15 +692,12 @@ export const FullQuadrant1Playground3D: React.FC<{
   isBuilt: boolean;
 }> = ({ progress, isBuilding, isBuilt }) => {
   if (!isBuilding && !isBuilt) {
-    // Quadrant is not yet started: render empty under-construction ground zone
     return (
       <group position={[6, 0, -6]}>
-        {/* Under-construction Ground Markers */}
         <mesh receiveShadow position={[0, 0.01, 0]}>
           <boxGeometry args={[9.5, 0.02, 9.5]} />
           <meshStandardMaterial color="#3f6212" roughness={0.9} opacity={0.6} transparent />
         </mesh>
-        {/* Surveyor Wooden Stakes */}
         {[-4, 4].map((x, i) =>
           [-4, 4].map((z, j) => (
             <mesh key={`stake_${i}_${j}`} position={[x, 0.2, z]}>
@@ -589,7 +710,6 @@ export const FullQuadrant1Playground3D: React.FC<{
     );
   }
 
-  // Calculate dynamic scaling and visibility based on 8-10s construction progress
   const stageScale = isBuilt ? 1 : Math.min(1, 0.1 + progress * 0.9);
   const showEarlyStructures = progress > 0.15 || isBuilt;
   const showLateStructures = progress > 0.45 || isBuilt;
@@ -609,7 +729,7 @@ export const FullQuadrant1Playground3D: React.FC<{
         <meshStandardMaterial color="#047857" roughness={0.8} />
       </mesh>
 
-      {/* 2. Construction Workers Active during Building Phase (0 to 1) */}
+      {/* 2. Construction Workers Active during Building Phase */}
       {isBuilding && progress < 0.95 && (
         <group>
           <ConstructionWorker3D
@@ -629,8 +749,8 @@ export const FullQuadrant1Playground3D: React.FC<{
         <group scale={[stageScale, stageScale, stageScale]}>
           {/* Swings */}
           <SwingSet3D position={[-2.2, 0, -1.8]} rotationY={0} hasActiveChild={showActiveChildren} />
-          {/* Large Slide Tower */}
-          <SlideTower3D position={[2.2, 0, -1.8]} rotationY={-0.2} hasActiveChild={showActiveChildren} />
+          {/* Large Slide Tower: Positioned with ladder at South (+Z) and slide extending North (-Z) */}
+          <SlideTower3D position={[2.2, 0, 0.8]} rotationY={0} hasActiveChild={showActiveChildren} />
         </group>
       )}
 
@@ -639,17 +759,17 @@ export const FullQuadrant1Playground3D: React.FC<{
           {/* Seesaw */}
           <Seesaw3D position={[-2.2, 0, 1.8]} rotationY={0.3} hasActiveChildren={showActiveChildren} />
           {/* Climbing Dome */}
-          <ClimbingDome3D position={[2.0, 0, 1.8]} hasActiveChild={showActiveChildren} />
+          <ClimbingDome3D position={[1.8, 0, -2.4]} hasActiveChild={showActiveChildren} />
           {/* Spring Rider */}
           <SpringRider3D position={[0, 0, 0.2]} rotationY={0.5} hasActiveChild={showActiveChildren} />
         </group>
       )}
 
-      {/* 4. Natural 3D Pond, Landscaping & Parent Benches */}
+      {/* 4. Natural 3D Pond, Landscaping & Parent Benches (Centered in grass away from paths) */}
       {showLandscaping && (
         <group scale={[stageScale, stageScale, stageScale]}>
-          {/* Beautiful Pond */}
-          <PlaygroundPond3D position={[3.6, 0, 3.6]} />
+          {/* Beautiful Pond (compact and centered in lawn) */}
+          <PlaygroundPond3D position={[2.2, 0, 2.4]} />
           {/* Shade Trees */}
           <ShadyTree3D position={[-3.8, 0, -3.8]} scale={1.1} />
           <ShadyTree3D position={[-3.8, 0, 3.8]} scale={1.0} />
