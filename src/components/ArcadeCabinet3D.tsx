@@ -580,6 +580,7 @@ export const ArcadeCabinet3D: React.FC<{
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = 8;
     tex.generateMipmaps = true;
+    tex.needsUpdate = true;
     return tex;
   }, [config]);
 
@@ -656,9 +657,11 @@ export const ArcadeCabinet3D: React.FC<{
     }
 
     if (marqueeMeshRef.current && marqueeMeshRef.current.material) {
-      const mat = marqueeMeshRef.current.material as THREE.MeshStandardMaterial;
-      const pulse = 0.88 + Math.sin(t * 3) * 0.12;
-      mat.emissiveIntensity = hovered ? 1.4 : pulse;
+      if ('emissiveIntensity' in marqueeMeshRef.current.material) {
+        const mat = marqueeMeshRef.current.material as THREE.MeshStandardMaterial;
+        const pulse = 0.88 + Math.sin(t * 3) * 0.12;
+        mat.emissiveIntensity = hovered ? 1.4 : pulse;
+      }
     }
 
     if (screenMeshRef.current && screenMeshRef.current.material) {
@@ -942,28 +945,39 @@ export const ArcadeCabinet3D: React.FC<{
 
       {/* ── TOP ILLUMINATED MARQUEE LIGHTBOX (`y = 3.32, z = 0.36`) ── */}
       <group position={[0, 3.32, 0.36]} rotation={[0.22, 0, 0]}>
+        {/* Outer Housing Shell */}
         <mesh castShadow receiveShadow>
           <boxGeometry args={[1.52, 0.62, 0.44]} />
           <meshStandardMaterial color={config.theme.cabinetColor} roughness={0.4} />
         </mesh>
 
-        <mesh position={[0, 0, 0.22]}>
-          <boxGeometry args={[1.46, 0.54, 0.03]} />
-          <meshStandardMaterial color="#0f172a" metalness={0.9} roughness={0.2} />
+        {/* Inner Bezel Frame */}
+        <mesh position={[0, 0, 0.21]}>
+          <boxGeometry args={[1.48, 0.56, 0.02]} />
+          <meshStandardMaterial color="#0f172a" metalness={0.8} roughness={0.3} />
         </mesh>
 
+        {/* Themed Illuminated Marquee Signboard with Name & Colored Design */}
         {marqueeTexture && (
-          <mesh ref={marqueeMeshRef} position={[0, 0, 0.24]}>
-            <planeGeometry args={[1.42, 0.48]} />
-            <meshStandardMaterial
+          <mesh ref={marqueeMeshRef} position={[0, 0, 0.225]}>
+            <planeGeometry args={[1.44, 0.52]} />
+            <meshBasicMaterial
               map={marqueeTexture}
-              emissive="#ffffff"
-              emissiveMap={marqueeTexture}
-              emissiveIntensity={0.95}
               toneMapped={false}
             />
           </mesh>
         )}
+
+        {/* Marquee Glossy Lightbox Glass Overlay */}
+        <mesh position={[0, 0, 0.228]}>
+          <planeGeometry args={[1.44, 0.52]} />
+          <meshStandardMaterial
+            transparent
+            opacity={hovered ? 0.06 : 0.12}
+            roughness={0.1}
+            color="#ffffff"
+          />
+        </mesh>
       </group>
 
       {/* ── 3D CONTOURED SIDE WINGS WITH DECALS & T-MOLDING ── */}
