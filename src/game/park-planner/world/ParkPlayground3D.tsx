@@ -679,6 +679,20 @@ export const PlaygroundPond3D: React.FC<{
           </mesh>
         </group>
       ))}
+
+      {/* Scenic Timber Bench Beside the Playground Pond */}
+      <group position={[-0.2, 0, -1.75]} rotation={[0, Math.PI, 0]}>
+        <ParkBench3D position={[0, 0, 0]} rotationY={0} hasVisitor={false} />
+        <group position={[0, 0.1, 0]}>
+          <StylizedHuman3D
+            scale={0.82}
+            shirtColor="#059669"
+            pantsColor="#1e3a8a"
+            isWalking={false}
+            isSeated={true}
+          />
+        </group>
+      </group>
     </group>
   );
 };

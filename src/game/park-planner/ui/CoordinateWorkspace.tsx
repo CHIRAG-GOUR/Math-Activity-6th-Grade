@@ -25,17 +25,17 @@ export const CoordinateWorkspace: React.FC<CoordinateWorkspaceProps> = ({
   const activeQuad = selectedPoint ? getQuadrant(selectedPoint) : null;
 
   return (
-    <div className="flex flex-col items-center bg-slate-50/90 p-1.5 rounded-xl border border-slate-200 w-full">
+    <div className="flex flex-col items-center bg-slate-50/90 p-2 rounded-xl border border-slate-200 w-full">
       {/* Mini Grid Header */}
-      <div className="flex justify-between items-center w-full mb-1 text-[10px] font-bold text-slate-600 px-0.5">
+      <div className="flex justify-between items-center w-full mb-1.5 text-xs font-bold text-slate-600 px-0.5">
         <span>Cartesian Grid</span>
-        <span className="font-mono bg-blue-100 text-blue-900 px-1.5 py-0.5 rounded-full text-[9px] font-extrabold shadow-sm">
+        <span className="font-mono bg-blue-100 text-blue-900 px-2 py-0.5 rounded-full text-[10px] font-extrabold shadow-sm">
           {selectedPoint ? `${formatCoord(selectedPoint)} • ${activeQuad}` : 'Tap a point'}
         </span>
       </div>
 
-      {/* Ultra-Compact SVG Grid (115px) */}
-      <div className="relative w-[115px] h-[115px] bg-white rounded-lg border border-slate-300 shadow-sm overflow-hidden select-none">
+      {/* Enlarged Touch-Friendly SVG Grid (145px) */}
+      <div className="relative w-[145px] h-[145px] bg-white rounded-xl border border-slate-300 shadow-sm overflow-hidden select-none">
         <svg viewBox="-5.6 -5.6 11.2 11.2" className="w-full h-full">
           {/* Subtle Quadrant Color Tinting */}
           <rect x="0" y="-5" width="5" height="5" fill="#ecfdf5" opacity={0.7} />

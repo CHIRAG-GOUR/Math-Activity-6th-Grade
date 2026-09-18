@@ -516,13 +516,20 @@ export const VictorianGazebo3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 7. LOTUS & KOI POND WITH WATER LILIES
+// 7. LOTUS & KOI POND WITH WATER LILIES & SCENIC POND-SIDE BENCH
 // ------------------------------------------------------------
-export const KoiPond3D: React.FC<{ position?: [number, number, number] }> = ({
-  position = [0, 0, 0],
-}) => {
+export const KoiPond3D: React.FC<{
+  position?: [number, number, number];
+  hasVisitor?: boolean;
+}> = ({ position = [0, 0, 0], hasVisitor = true }) => {
   return (
     <group position={position}>
+      {/* Stone Flagstone Viewing Perimeter Border */}
+      <mesh receiveShadow position={[0, 0.02, 0]}>
+        <cylinderGeometry args={[1.7, 1.8, 0.03, 24]} />
+        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
+      </mesh>
+
       {/* Natural River Boulders Rim */}
       {Array.from({ length: 16 }).map((_, i) => {
         const angle = (i * Math.PI * 2) / 16;
@@ -573,6 +580,22 @@ export const KoiPond3D: React.FC<{ position?: [number, number, number] }> = ({
           </mesh>
         </group>
       ))}
+
+      {/* Scenic Viewing Bench Beside the Koi Pond */}
+      <group position={[0, 0, 1.75]} rotation={[0, 0, 0]}>
+        <ParkBench3D position={[0, 0, 0]} rotationY={0} hasVisitor={false} />
+        {hasVisitor && (
+          <group position={[0, 0.1, 0]}>
+            <StylizedHuman3D
+              scale={0.85}
+              shirtColor="#0284c7"
+              pantsColor="#334155"
+              isWalking={false}
+              isSeated={true}
+            />
+          </group>
+        )}
+      </group>
     </group>
   );
 };
@@ -665,7 +688,7 @@ export const FullQuadrant2Botanical3D: React.FC<{
         <group scale={[stageScale, stageScale, stageScale]}>
           <TropicalPlantsZone3D position={[-2.2, 0, -2.2]} />
           <BotanicalSpecimenZone3D position={[2.2, 0, 2.2]} title="Rosa Damascena" flowerColor="#f43f5e" />
-          <KoiPond3D position={[0, 0, 0]} />
+          <KoiPond3D position={[-1.8, 0, 0]} hasVisitor={showStaff} />
         </group>
       )}
 

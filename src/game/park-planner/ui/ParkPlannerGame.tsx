@@ -100,14 +100,14 @@ export const ParkPlannerGame: React.FC = () => {
         )}
 
         {/* Dual Team Consoles: Positioned towards bottom corners */}
-        <div className="absolute inset-0 pointer-events-none p-4 md:p-6 flex justify-between items-end z-10">
+        <div className="absolute inset-0 pointer-events-none p-3 md:p-5 flex justify-between items-end z-10">
           {/* Blue Team Console (Left Corner) */}
-          <div className="pointer-events-auto max-w-[340px] w-full">
+          <div className="pointer-events-auto max-w-[370px] lg:max-w-[390px] w-full">
             <TeamParkConsole teamId="blue" />
           </div>
 
           {/* Red Team Console (Right Corner) */}
-          <div className="pointer-events-auto max-w-[340px] w-full">
+          <div className="pointer-events-auto max-w-[370px] lg:max-w-[390px] w-full">
             <TeamParkConsole teamId="red" />
           </div>
         </div>
