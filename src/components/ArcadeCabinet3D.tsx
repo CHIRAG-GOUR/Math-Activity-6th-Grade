@@ -54,6 +54,40 @@ export interface ArcadeCabinetConfig {
   };
 }
 
+// ── Global Texture Cache Pool for All 13 Games ──
+const globalTextureCache = new Map<string, THREE.Texture>();
+
+function getArcadeGameTexture(imagePath: string, onLoaded?: (tex: THREE.Texture) => void): THREE.Texture | null {
+  if (typeof window === 'undefined' || !imagePath) return null;
+  const cached = globalTextureCache.get(imagePath);
+  if (cached) {
+    if (onLoaded) onLoaded(cached);
+    return cached;
+  }
+
+  const loader = new THREE.TextureLoader();
+  const tex = loader.load(
+    imagePath,
+    (loadedTex) => {
+      loadedTex.colorSpace = THREE.SRGBColorSpace;
+      loadedTex.anisotropy = 8;
+      loadedTex.generateMipmaps = true;
+      loadedTex.minFilter = THREE.LinearMipmapLinearFilter;
+      loadedTex.magFilter = THREE.LinearFilter;
+      loadedTex.needsUpdate = true;
+      globalTextureCache.set(imagePath, loadedTex);
+      if (onLoaded) onLoaded(loadedTex);
+    },
+    undefined,
+    (err) => {
+      console.warn('Screen texture fallback:', imagePath, err);
+    }
+  );
+  tex.colorSpace = THREE.SRGBColorSpace;
+  globalTextureCache.set(imagePath, tex);
+  return tex;
+}
+
 export const ArcadeCabinet3D: React.FC<{
   config: ArcadeCabinetConfig;
   isSelected?: boolean;
@@ -67,28 +101,22 @@ export const ArcadeCabinet3D: React.FC<{
   const screenMeshRef = useRef<THREE.Mesh>(null);
 
   const [hovered, setHovered] = useState(false);
-  const [screenTex, setScreenTex] = useState<THREE.Texture | null>(null);
+  const [screenTex, setScreenTex] = useState<THREE.Texture | null>(() => {
+    if (typeof window !== 'undefined' && config.image) {
+      return globalTextureCache.get(config.image) || null;
+    }
+    return null;
+  });
 
-  // Load Game Artwork Texture for CRT screen
+  // Load Game Artwork Texture for CRT screen & Side Art
   useEffect(() => {
     if (typeof window === 'undefined' || !config.image || config.status !== 'active') return;
-    const loader = new THREE.TextureLoader();
-    loader.load(
-      config.image,
-      (tex) => {
-        tex.colorSpace = THREE.SRGBColorSpace;
-        tex.anisotropy = 8;
-        tex.generateMipmaps = true;
-        tex.minFilter = THREE.LinearMipmapLinearFilter;
-        tex.magFilter = THREE.LinearFilter;
-        tex.needsUpdate = true;
-        setScreenTex(tex);
-      },
-      undefined,
-      (err) => {
-        console.warn('Screen texture fallback:', config.image, err);
-      }
-    );
+    const tex = getArcadeGameTexture(config.image, (loaded) => {
+      setScreenTex(loaded);
+    });
+    if (tex) {
+      setScreenTex(tex);
+    }
   }, [config.image, config.status]);
 
   // High-Resolution Procedural Fallback / Game Screen Poster Texture
@@ -520,7 +548,7 @@ export const ArcadeCabinet3D: React.FC<{
   }, [config]);
 
   // Procedural Side Art Decal Texture with Bright Themes
-  const sideArtTexture = useMemo(() => {
+  const proceduralSideArtTexture = useMemo(() => {
     if (typeof document === 'undefined') return null;
     const canvas = document.createElement('canvas');
     canvas.width = 512;
@@ -622,6 +650,7 @@ export const ArcadeCabinet3D: React.FC<{
   };
 
   const activeScreenTexture = config.status === 'active' ? (screenTex || proceduralScreenTexture) : proceduralScreenTexture;
+  const sideArtTexture = screenTex || proceduralSideArtTexture;
 
   return (
     <group
@@ -987,6 +1016,17 @@ export const ArcadeCabinet3D: React.FC<{
               <span>•</span>
               <span className="text-amber-600 font-bold">{config.grade}</span>
             </div>
+
+            {/* Game Artwork Thumbnail directly on Overhead Card */}
+            {config.image && (
+              <div className="relative w-full h-12 rounded-lg overflow-hidden border border-slate-900 shadow-inner bg-slate-900 my-0.5">
+                <img
+                  src={config.image}
+                  alt={config.title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
 
             {/* Main Machine Name - Full title with clean wrapping */}
             <h3 className="text-[9.5px] font-black font-bank uppercase tracking-tight text-slate-950 leading-tight">

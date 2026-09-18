@@ -694,6 +694,15 @@ export const ArcadeLobbyScene: React.FC<{
 
   useEffect(() => {
     setMounted(true);
+    // Eagerly preload all 13 arcade machine card images in browser cache
+    if (typeof window !== 'undefined') {
+      ARCADE_CABINET_DATA.forEach((cab) => {
+        if (cab.image) {
+          const img = new window.Image();
+          img.src = cab.image;
+        }
+      });
+    }
   }, []);
 
   if (!mounted) {
