@@ -11,7 +11,7 @@
 // 8. Sound Crew (Over-ear studio headphones & boom microphone)
 // ============================================================
 
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -21,6 +21,7 @@ import {
   geoCylinder16,
   geoSphere12,
   geoSphere16,
+  geoPlane,
   getStudioMaterial,
   MAT_STEEL_DARK,
   MAT_STEEL_BRIGHT,
@@ -45,6 +46,49 @@ import {
   MAT_JACKET_LEATHER,
   MAT_GOLD_BRASS,
 } from './StudioMaterials';
+
+// ── Sharp Dynamic Canvas Texture for Director's Shirt Back ──
+function createDirectorShirtBackTexture(): THREE.CanvasTexture {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512;
+  canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  if (ctx) {
+    // Dark Slate / Black Jacket Fabric
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(0, 0, 512, 256);
+
+    // Bold Gold Border Frame
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 14;
+    ctx.strokeRect(16, 16, 480, 224);
+
+    // Inner White Accent Frame
+    ctx.strokeStyle = '#ffffff';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(26, 26, 460, 204);
+
+    // Header Stars
+    ctx.fillStyle = '#fde047';
+    ctx.font = 'bold 24px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('★  CINEMA PRODUCTION  ★', 256, 64);
+
+    // HUGE BOLD "DIRECTOR"
+    ctx.fillStyle = '#facc15';
+    ctx.font = '900 84px "Arial Black", Impact, sans-serif';
+    ctx.fillText('DIRECTOR', 256, 154);
+
+    // Underline Accent Stripes
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(70, 172, 372, 10);
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(140, 188, 232, 6);
+  }
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.needsUpdate = true;
+  return texture;
+}
 
 export interface BlenderHumanProps {
   position: [number, number, number];
@@ -83,58 +127,140 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
     const headRef = useRef<THREE.Group>(null);
     const bodyRootRef = useRef<THREE.Group>(null);
 
+    const directorShirtBackMaterial = useMemo(() => {
+      if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
+      const tex = createDirectorShirtBackTexture();
+      return new THREE.MeshStandardMaterial({
+        map: tex,
+        roughness: 0.5,
+        metalness: 0.1,
+      });
+    }, []);
+
     useFrame((state) => {
       const t = state.clock.getElapsedTime();
       const breath = Math.sin(t * 2.0) * 0.015;
 
-      if (bodyRootRef.current) {
-        bodyRootRef.current.position.y = breath;
-      }
-
-      if (headRef.current) {
-        headRef.current.rotation.y = Math.sin(t * 1.2) * 0.06;
-        headRef.current.rotation.x = Math.cos(t * 1.5) * 0.03;
-      }
-
-      // Dynamic Arm Kinematics by Pose
-      if (pose === 'directing') {
+      // ── 1. ACTIVE PROCEDURAL ACTING & STAGE KINEMATICS ──
+      if (characterType === 'lead_actor') {
+        // Hero: Dynamic action hero acting! Stance sway, commanding hero arm point, passionate lines
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath * 1.5;
+          bodyRootRef.current.rotation.y = Math.sin(t * 1.5) * 0.12;
+          bodyRootRef.current.rotation.z = Math.cos(t * 1.8) * 0.04;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.28;
+          headRef.current.rotation.x = -0.05 + Math.cos(t * 2.0) * 0.08;
+        }
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = isFilming ? -1.85 : -1.2 + Math.sin(t * 3) * 0.1;
-          rightArmRef.current.rotation.z = -0.35;
+          // Dynamic dramatic point and sweeping delivery
+          rightArmRef.current.rotation.x = -1.25 + Math.sin(t * 2.2) * 0.35;
+          rightArmRef.current.rotation.y = 0.2;
+          rightArmRef.current.rotation.z = -0.42 + Math.cos(t * 2.2) * 0.15;
         }
         if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -0.7;
-          leftArmRef.current.rotation.z = 0.4;
+          // Hand on hip / open palm gesturing
+          leftArmRef.current.rotation.x = -0.65 + Math.cos(t * 1.8) * 0.25;
+          leftArmRef.current.rotation.z = 0.38;
         }
-      } else if (pose === 'acting_dramatic') {
+      } else if (characterType === 'lead_actress') {
+        // Heroine: Dramatic, emotional acting! Hand to heart, graceful sweeping plea, head tilts
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath * 1.4;
+          bodyRootRef.current.rotation.y = Math.cos(t * 1.3) * 0.09;
+          bodyRootRef.current.rotation.z = Math.sin(t * 1.6) * 0.035;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = -0.15 + Math.sin(t * 1.5) * 0.22;
+          headRef.current.rotation.z = Math.sin(t * 1.6) * 0.08;
+          headRef.current.rotation.x = Math.cos(t * 1.4) * 0.06;
+        }
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.5 + Math.sin(t * 2.2) * 0.15;
+          // Sweeps forward passionately in emotional dialogue
+          rightArmRef.current.rotation.x = -1.35 + Math.sin(t * 2.0) * 0.28;
           rightArmRef.current.rotation.z = -0.45;
         }
         if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -1.1 + Math.cos(t * 2.2) * 0.12;
-          leftArmRef.current.rotation.z = 0.35;
+          // Hand brought up to heart / chest
+          leftArmRef.current.rotation.x = -1.6 + Math.cos(t * 1.6) * 0.12;
+          leftArmRef.current.rotation.z = 0.45;
         }
-      } else if (pose === 'acting_hero') {
+      } else if (characterType === 'co_star') {
+        // Co-Star / Friend: Lively conversation, banter gestures, active dialogue reactions
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath;
+          bodyRootRef.current.rotation.y = Math.sin(t * 2.0) * 0.12;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.cos(t * 2.2) * 0.25;
+          headRef.current.rotation.x = Math.sin(t * 2.5) * 0.08;
+        }
         if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -0.6;
-          rightArmRef.current.rotation.z = -0.3;
+          rightArmRef.current.rotation.x = -1.1 + Math.sin(t * 3.0) * 0.3;
+          rightArmRef.current.rotation.z = -0.28;
         }
         if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -0.4;
-          leftArmRef.current.rotation.z = 0.3;
+          leftArmRef.current.rotation.x = -0.8 + Math.cos(t * 2.8) * 0.25;
+          leftArmRef.current.rotation.z = 0.32;
         }
-      } else if (pose === 'filming') {
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.1, 0.2, 0);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.1, -0.2, 0);
-      } else if (pose === 'boom_mic') {
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-2.1, 0.15, -0.1);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.9, -0.15, 0.1);
-      } else if (pose === 'photo') {
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.5, 0.3, 0);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.6, -0.2, 0);
+      } else if (characterType === 'villain') {
+        // Villain: Menacing monologue, cape swirling, dramatic laughing posture
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath * 1.2;
+          bodyRootRef.current.rotation.y = Math.sin(t * 1.0) * 0.15;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.x = 0.1 + Math.sin(t * 1.8) * 0.08;
+          headRef.current.rotation.y = -0.2 + Math.cos(t * 1.2) * 0.2;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = -1.65 + Math.sin(t * 1.6) * 0.25;
+          rightArmRef.current.rotation.z = -0.52;
+        }
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -1.25;
+          leftArmRef.current.rotation.z = 0.45;
+        }
+      } else if (characterType === 'director') {
+        // Director: Holds golden megaphone to mouth, points instructions, inspects scene
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath;
+          bodyRootRef.current.rotation.y = Math.sin(t * 1.6) * 0.08;
+        }
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.22;
+          headRef.current.rotation.x = Math.cos(t * 1.8) * 0.06;
+        }
+        if (rightArmRef.current) {
+          rightArmRef.current.rotation.x = isFilming ? -1.95 : -1.75 + Math.sin(t * 2.5) * 0.18;
+          rightArmRef.current.rotation.z = -0.32;
+        }
+        if (leftArmRef.current) {
+          leftArmRef.current.rotation.x = -0.85 + Math.cos(t * 2.0) * 0.25;
+          leftArmRef.current.rotation.z = 0.42;
+        }
+      } else if (characterType === 'camera_op') {
+        // Camera Op: Steering tripod pan bars smoothly
+        if (headRef.current) headRef.current.rotation.set(0.08, Math.sin(t * 1.2) * 0.08, 0);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.1, 0.2 - Math.sin(t * 1.2) * 0.05, 0);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.1, -0.2 + Math.sin(t * 1.2) * 0.05, 0);
+      } else if (characterType === 'boom_op') {
+        // Boom Operator: Fine-adjusting boom pole over cast
+        if (headRef.current) headRef.current.rotation.set(-0.15, Math.sin(t * 1.5) * 0.1, 0);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-2.1 + Math.cos(t * 1.5) * 0.06, 0.15, -0.1);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.9 + Math.sin(t * 1.5) * 0.06, -0.15, 0.1);
+      } else if (characterType === 'photographer') {
+        // Photographer: Aiming DSLR & snapping BTS photos
+        if (headRef.current) headRef.current.rotation.set(0.05, Math.sin(t * 2.0) * 0.12, 0);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.5 + Math.sin(t * 2.0) * 0.1, 0.3, 0);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.6 + Math.sin(t * 2.0) * 0.1, -0.2, 0);
       } else {
-        // Natural Idle
+        if (bodyRootRef.current) bodyRootRef.current.position.y = breath;
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 1.2) * 0.06;
+          headRef.current.rotation.x = Math.cos(t * 1.5) * 0.03;
+        }
         if (leftArmRef.current) leftArmRef.current.rotation.set(breath * 2, 0, 0.1);
         if (rightArmRef.current) rightArmRef.current.rotation.set(-breath * 2, 0, -0.1);
       }
@@ -340,7 +466,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
 
           {characterType === 'director' && (
             <group>
-              {/* Flannel Collar Trim */}
+              {/* Flannel Collar Trim on Front */}
               <mesh
                 geometry={geoBox}
                 material={getStudioMaterial('#e2e8f0')}
@@ -359,6 +485,22 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
                 material={MAT_STEEL_DARK}
                 scale={[0.01, 0.08, 0.01]}
                 position={[0.16, 1.04, 0.12]}
+              />
+
+              {/* ── BOLD "DIRECTOR" PRINT ON BACK OF SHIRT (Facing Viewer/Camera) ── */}
+              <mesh
+                geometry={geoPlane}
+                material={directorShirtBackMaterial}
+                scale={[0.38, 0.20, 1]}
+                position={[0, 1.20, -0.13]}
+                rotation={[0, Math.PI, 0]}
+              />
+              {/* Gold Accent Stitching Border on Back of Jacket */}
+              <mesh
+                geometry={geoBox}
+                material={MAT_STAGE_TAPE_YELLOW}
+                scale={[0.40, 0.22, 0.01]}
+                position={[0, 1.20, -0.126]}
               />
             </group>
           )}
@@ -544,55 +686,80 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
             {/* 1. DIRECTOR: AUTHENTIC 3D DIRECTOR BASEBALL CAP */}
             {characterType === 'director' && (
               <group position={[0, 0.04, 0]}>
-                {/* 6-Panel Dome Crown */}
+                {/* 6-Panel Dome Crown (Navy/Dark Slate) */}
                 <mesh
                   geometry={geoSphere16}
                   material={MAT_DIRECTOR_CAP}
-                  scale={[0.165, 0.13, 0.165]}
+                  scale={[0.17, 0.14, 0.17]}
                   position={[0, 0.07, -0.01]}
                 />
                 {/* Cap Lower Sweatband */}
                 <mesh
                   geometry={geoCylinder16}
                   material={MAT_DIRECTOR_CAP}
-                  scale={[0.16, 0.05, 0.16]}
+                  scale={[0.165, 0.05, 0.165]}
                   position={[0, 0.04, 0]}
                 />
-                {/* Curved Front Visor / Bill */}
+                {/* Curved Front Visor / Bill (Pointing to +Z) */}
                 <mesh
                   geometry={geoBox}
                   material={MAT_DIRECTOR_CAP_BRIM}
-                  scale={[0.19, 0.02, 0.18]}
-                  position={[0, 0.03, 0.17]}
+                  scale={[0.20, 0.025, 0.20]}
+                  position={[0, 0.03, 0.18]}
                   rotation={[0.18, 0, 0]}
                 />
                 {/* Golden Crown Button */}
                 <mesh
                   geometry={geoSphere12}
                   material={MAT_GOLD_BRASS}
-                  scale={[0.025, 0.025, 0.025]}
-                  position={[0, 0.20, -0.01]}
+                  scale={[0.028, 0.028, 0.028]}
+                  position={[0, 0.21, -0.01]}
                 />
+
+                {/* Golden Front Embroidered Patch / Clapper Badge */}
+                <mesh
+                  geometry={geoBox}
+                  material={MAT_GOLD_BRASS}
+                  scale={[0.06, 0.045, 0.02]}
+                  position={[0, 0.10, 0.16]}
+                  rotation={[-0.15, 0, 0]}
+                />
+
+                {/* Rear Adjustable Snapback Strap & Arch Cutout (Visible on Back of Head) */}
+                <group position={[0, 0.03, -0.165]}>
+                  <mesh
+                    geometry={geoBox}
+                    material={MAT_ROAD_CASE_BLACK}
+                    scale={[0.11, 0.02, 0.02]}
+                    position={[0, 0, 0]}
+                  />
+                  <mesh
+                    geometry={geoBox}
+                    material={MAT_STEEL_BRIGHT}
+                    scale={[0.025, 0.025, 0.025]}
+                    position={[0.02, 0, 0.005]}
+                  />
+                </group>
 
                 {/* Over-Ear Headphones around Director's Neck */}
                 <group position={[0, -0.18, 0]}>
                   <mesh
                     geometry={geoCylinder16}
                     material={MAT_STEEL_DARK}
-                    scale={[0.15, 0.03, 0.15]}
+                    scale={[0.16, 0.035, 0.16]}
                   />
                   <mesh
                     geometry={geoCylinder8}
                     material={MAT_ROAD_CASE_BLACK}
-                    scale={[0.06, 0.06, 0.06]}
-                    position={[-0.15, 0, 0.03]}
+                    scale={[0.07, 0.07, 0.07]}
+                    position={[-0.16, 0, 0.03]}
                     rotation={[0, 0, Math.PI / 2]}
                   />
                   <mesh
                     geometry={geoCylinder8}
                     material={MAT_ROAD_CASE_BLACK}
-                    scale={[0.06, 0.06, 0.06]}
-                    position={[0.15, 0, 0.03]}
+                    scale={[0.07, 0.07, 0.07]}
+                    position={[0.16, 0, 0.03]}
                     rotation={[0, 0, Math.PI / 2]}
                   />
                 </group>
@@ -761,7 +928,7 @@ export const StudioCharacters3D: React.FC<{
         rotationY={0.15}
         characterType="lead_actor"
         skinMat={MAT_SKIN_PEACH}
-        pose={isFilming ? 'acting_hero' : 'idle'}
+        pose="acting_hero"
         isFilming={isFilming}
       />
 
@@ -771,7 +938,7 @@ export const StudioCharacters3D: React.FC<{
         rotationY={0.02}
         characterType="lead_actress"
         skinMat={MAT_SKIN_WARM}
-        pose={isFilming ? 'acting_dramatic' : 'idle'}
+        pose="acting_dramatic"
         isFilming={isFilming}
       />
 
@@ -781,7 +948,7 @@ export const StudioCharacters3D: React.FC<{
         rotationY={-0.08}
         characterType="co_star"
         skinMat={MAT_SKIN_PEACH}
-        pose="idle"
+        pose="acting_hero"
         isFilming={isFilming}
       />
 

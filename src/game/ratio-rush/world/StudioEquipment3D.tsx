@@ -29,6 +29,7 @@ import {
   MAT_STUDIO_LIGHT_WHITE,
   MAT_DIRECTOR_WOOD,
   MAT_STAGE_TAPE_YELLOW,
+  MAT_STAGE_TAPE_RED,
   getStudioMaterial,
 } from './StudioMaterials';
 
@@ -178,11 +179,201 @@ function createLiveStudioScreenTexture(isFilming: boolean, title = 'RATIO RUSH')
   return texture;
 }
 
+// ============================================================
+// ── PRO STUDIO CINEMA CAMERA TRIPOD WITH SYMMETRICAL LEGS ──
+// Symmetrical 120° dual-tube carbon fiber legs that meet at the top bowl
+// and stand securely with rubber floor pads, not poking or splaying outward.
+// ============================================================
+export const StudioCameraTripod3D: React.FC<{
+  position: [number, number, number];
+  rotationY?: number;
+  monitorMaterial: THREE.Material;
+  camId?: string;
+}> = React.memo(({ position, rotationY = 0, monitorMaterial }) => {
+  const legAngles = [0, (2 * Math.PI) / 3, (4 * Math.PI) / 3];
+
+  return (
+    <group position={position} rotation={[0, rotationY, 0]}>
+      {/* Top Spider Bowl Casting & Leveling Ball */}
+      <mesh
+        geometry={geoCylinder16}
+        material={MAT_STEEL_DARK}
+        scale={[0.22, 0.08, 0.22]}
+        position={[0, 1.32, 0]}
+      />
+      <mesh
+        geometry={geoSphere12}
+        material={MAT_STEEL_BRIGHT}
+        scale={[0.12, 0.08, 0.12]}
+        position={[0, 1.30, 0]}
+      />
+
+      {/* Three Symmetrical Twin-Tube Legs meeting at top bowl */}
+      {legAngles.map((angle, idx) => {
+        const tiltAngle = Math.atan2(0.36 - 0.08, 1.30); // ~12°
+        const length = Math.sqrt(Math.pow(0.36 - 0.08, 2) + Math.pow(1.30, 2));
+
+        return (
+          <group key={`leg-${idx}`} rotation={[0, angle, 0]}>
+            <group position={[0.22, 0.67, 0]} rotation={[0, 0, -tiltAngle]}>
+              {/* Twin Leg Tubes */}
+              <mesh
+                geometry={geoCylinder8}
+                material={MAT_STEEL_DARK}
+                scale={[0.024, length, 0.024]}
+                position={[0, 0, -0.035]}
+              />
+              <mesh
+                geometry={geoCylinder8}
+                material={MAT_STEEL_DARK}
+                scale={[0.024, length, 0.024]}
+                position={[0, 0, 0.035]}
+              />
+              {/* Mid-Leg Stage Aluminum Locking Clamps */}
+              <mesh
+                geometry={geoBox}
+                material={MAT_ROAD_CASE_BLACK}
+                scale={[0.05, 0.08, 0.12]}
+                position={[0, 0.15, 0]}
+              />
+              <mesh
+                geometry={geoBox}
+                material={MAT_ROAD_CASE_BLACK}
+                scale={[0.05, 0.08, 0.12]}
+                position={[0, -0.22, 0]}
+              />
+              {/* Red Leg Lock Levers */}
+              <mesh
+                geometry={geoBox}
+                material={MAT_STAGE_TAPE_RED}
+                scale={[0.06, 0.02, 0.03]}
+                position={[0.025, 0.15, 0]}
+              />
+            </group>
+
+            {/* Rubber Swivel Foot on Floor */}
+            <mesh
+              geometry={geoCylinder12}
+              material={MAT_ROAD_CASE_BLACK}
+              scale={[0.08, 0.03, 0.08]}
+              position={[0.36, 0.015, 0]}
+            />
+          </group>
+        );
+      })}
+
+      {/* Mid-Level Spreader locking legs together */}
+      <group position={[0, 0.42, 0]}>
+        <mesh
+          geometry={geoCylinder12}
+          material={MAT_STEEL_BRIGHT}
+          scale={[0.08, 0.03, 0.08]}
+        />
+        {legAngles.map((angle, idx) => (
+          <group key={`spreader-arm-${idx}`} rotation={[0, angle, 0]}>
+            <mesh
+              geometry={geoBox}
+              material={MAT_STEEL_DARK}
+              scale={[0.26, 0.02, 0.035]}
+              position={[0.13, 0, 0]}
+            />
+          </group>
+        ))}
+      </group>
+
+      {/* Fluid Pan/Tilt Head & Cinema Camera */}
+      <group position={[0, 1.40, 0]}>
+        {/* Head Base Plate & Tilt Lock Knob */}
+        <mesh geometry={geoBox} material={MAT_STEEL_DARK} scale={[0.26, 0.14, 0.26]} />
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_STAGE_TAPE_RED}
+          scale={[0.03, 0.06, 0.03]}
+          position={[-0.14, 0, 0]}
+          rotation={[0, 0, Math.PI / 2]}
+        />
+
+        {/* Camera Body (Facing -Z toward the green stage) */}
+        <mesh
+          geometry={geoBox}
+          material={MAT_ROAD_CASE_BLACK}
+          scale={[0.36, 0.32, 0.58]}
+          position={[0, 0.24, 0]}
+        />
+
+        {/* Cinema Cine Lens (Pointing forward to -Z) */}
+        <mesh
+          geometry={geoCylinder16}
+          material={MAT_STEEL_DARK}
+          scale={[0.12, 0.32, 0.12]}
+          position={[0, 0.24, -0.42]}
+          rotation={[Math.PI / 2, 0, 0]}
+        />
+
+        {/* Pro Carbon Matte Box & French Flag (Pointing forward to -Z) */}
+        <mesh
+          geometry={geoBox}
+          material={MAT_ROAD_CASE_BLACK}
+          scale={[0.42, 0.34, 0.12]}
+          position={[0, 0.24, -0.58]}
+        />
+        <mesh
+          geometry={geoBox}
+          material={MAT_STEEL_DARK}
+          scale={[0.44, 0.02, 0.18]}
+          position={[0, 0.42, -0.62]}
+          rotation={[0.3, 0, 0]}
+        />
+
+        {/* Back LCD Monitor (Facing +Z toward Operator/Director with live video!) */}
+        <mesh
+          geometry={geoBox}
+          material={monitorMaterial}
+          scale={[0.34, 0.24, 0.02]}
+          position={[0, 0.26, 0.30]}
+        />
+
+        {/* Top EVF Viewfinder */}
+        <group position={[-0.14, 0.46, 0.05]} rotation={[0, 0.25, 0]}>
+          <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[0.16, 0.12, 0.28]} />
+          <mesh
+            geometry={geoBox}
+            material={monitorMaterial}
+            scale={[0.14, 0.10, 0.02]}
+            position={[0, 0, 0.15]}
+          />
+        </group>
+
+        {/* Dual Ergonomic Pan Bar Handles (Facing +Z toward Operator) */}
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_STEEL_BRIGHT}
+          scale={[0.018, 0.48, 0.018]}
+          position={[0.22, 0.08, 0.26]}
+          rotation={[-0.38, 0, 0.1]}
+        />
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_STEEL_BRIGHT}
+          scale={[0.018, 0.48, 0.018]}
+          position={[-0.22, 0.08, 0.26]}
+          rotation={[-0.38, 0, -0.1]}
+        />
+      </group>
+    </group>
+  );
+});
+
+StudioCameraTripod3D.displayName = 'StudioCameraTripod3D';
+
+// ============================================================
+// MASTER STUDIO EQUIPMENT COMPONENT
+// ============================================================
 export const StudioEquipment3D: React.FC<{
   isFilming: boolean;
   dollyProgress?: number;
-}> = React.memo(({ isFilming, dollyProgress = 0 }) => {
-  // Array of 10 hanging ceiling pantograph lights like in Reference Photo 1
+}> = React.memo(({ isFilming }) => {
+  // Array of 10 hanging ceiling pantograph lights
   const hangingLights = [
     { x: -7.5, y: 5.8, z: -1.0, type: 'softbox', rotY: 0.3, rotX: 0.35, drop: 2.2 },
     { x: -5.0, y: 5.6, z: -2.5, type: 'fresnel', rotY: 0.2, rotX: 0.4, drop: 2.4 },
@@ -308,128 +499,21 @@ export const StudioEquipment3D: React.FC<{
         ))}
       </group>
 
-      {/* ── 2. FOREGROUND CINEMA CAMERA 1 ON TRIPOD WITH LIVE LCD MONITOR (Photo 2) ── */}
-      <group position={[1.4, 0, 4.6]}>
-        {/* Pro Video Tripod (Spread 3 Steel Legs) */}
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[-0.32, 0.7, 0.2]}
-          rotation={[-0.15, 0, 0.2]}
-        />
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[0.32, 0.7, 0.2]}
-          rotation={[-0.15, 0, -0.2]}
-        />
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[0, 0.7, -0.35]}
-          rotation={[0.25, 0, 0]}
-        />
-        {/* Ground Mid-Level Spreader */}
-        <mesh
-          geometry={geoCylinder12}
-          material={MAT_STEEL_BRIGHT}
-          scale={[0.4, 0.02, 0.4]}
-          position={[0, 0.25, 0]}
-        />
+      {/* ── 2. FOREGROUND CINEMA CAMERA 1 (A-CAM) ON SYMMETRICAL PRO TRIPOD ── */}
+      <StudioCameraTripod3D
+        position={[1.4, 0, 3.6]}
+        rotationY={0.08}
+        monitorMaterial={liveCamMaterial}
+        camId="CAM 1"
+      />
 
-        {/* Fluid Head & Cinema Camera Body */}
-        <group position={[0, 1.42, 0]}>
-          <mesh geometry={geoBox} material={MAT_STEEL_DARK} scale={[0.25, 0.16, 0.25]} />
-          {/* Camera Body (Facing forward toward green screen) */}
-          <mesh
-            geometry={geoBox}
-            material={MAT_ROAD_CASE_BLACK}
-            scale={[0.36, 0.3, 0.55]}
-            position={[0, 0.22, 0]}
-          />
-          {/* Cinema Lens & Matte Box (Pointing Forward) */}
-          <mesh
-            geometry={geoCylinder16}
-            material={MAT_STEEL_DARK}
-            scale={[0.11, 0.28, 0.11]}
-            position={[0, 0.22, -0.38]}
-            rotation={[Math.PI / 2, 0, 0]}
-          />
-          <mesh
-            geometry={geoBox}
-            material={MAT_ROAD_CASE_BLACK}
-            scale={[0.38, 0.32, 0.1]}
-            position={[0, 0.22, -0.52]}
-          />
-          {/* Back LCD Monitor (Facing Viewer/Director, displaying live shoot!) */}
-          <mesh
-            geometry={geoBox}
-            material={liveCamMaterial}
-            scale={[0.32, 0.22, 0.02]}
-            position={[0, 0.24, 0.28]}
-          />
-          {/* Top Viewfinder Monitor */}
-          <mesh
-            geometry={geoBox}
-            material={liveCamMaterial}
-            scale={[0.22, 0.14, 0.04]}
-            position={[-0.12, 0.45, 0]}
-            rotation={[0, 0.2, 0]}
-          />
-          {/* Pan Bar Handle (Facing Director) */}
-          <mesh
-            geometry={geoCylinder8}
-            material={MAT_STEEL_BRIGHT}
-            scale={[0.02, 0.45, 0.02]}
-            position={[0.2, 0.05, 0.25]}
-            rotation={[-0.4, 0, 0]}
-          />
-        </group>
-      </group>
-
-      {/* ── 3. SECOND CAMERA ON TRIPOD (Stage Left Foreground) ── */}
-      <group position={[-3.8, 0, 4.4]}>
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[-0.3, 0.7, 0.2]}
-          rotation={[-0.15, 0, 0.2]}
-        />
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[0.3, 0.7, 0.2]}
-          rotation={[-0.15, 0, -0.2]}
-        />
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_DARK}
-          scale={[0.035, 1.45, 0.035]}
-          position={[0, 0.7, -0.35]}
-          rotation={[0.25, 0, 0]}
-        />
-        <group position={[0, 1.42, 0]}>
-          <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[0.32, 0.26, 0.48]} />
-          <mesh
-            geometry={geoCylinder12}
-            material={MAT_STEEL_DARK}
-            scale={[0.09, 0.22, 0.09]}
-            position={[0, 0, -0.32]}
-            rotation={[Math.PI / 2, 0, 0]}
-          />
-          <mesh
-            geometry={geoBox}
-            material={liveCamMaterial}
-            scale={[0.28, 0.18, 0.02]}
-            position={[0, 0, 0.25]}
-          />
-        </group>
-      </group>
+      {/* ── 3. SECOND CINEMA CAMERA (B-CAM) ON SYMMETRICAL PRO TRIPOD ── */}
+      <StudioCameraTripod3D
+        position={[-3.8, 0, 3.6]}
+        rotationY={-0.12}
+        monitorMaterial={liveCamMaterial}
+        camId="CAM 2"
+      />
 
       {/* ── 4. PRODUCTION MONITOR ON ROLLING RACK CART (Video Village) ── */}
       {/* 40" Client / Director Live Monitor displaying what is being shot! */}
@@ -539,21 +623,28 @@ export const StudioEquipment3D: React.FC<{
         />
       </group>
 
-      {/* ── 6. FLOOR C-STAND SOFTBOXES WITH SANDBAGS (Photo 2) ── */}
+      {/* ── 6. FLOOR C-STAND SOFTBOXES WITH 3-LEG TURTLE BASES & SANDBAGS ── */}
       {/* Left Stage Front Softbox */}
       <group position={[-6.2, 0, 1.5]}>
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_BRIGHT}
-          scale={[0.04, 2.8, 0.04]}
-          position={[0, 1.4, 0]}
-        />
+        {/* 3-Leg Staggered Turtle Base flat on the floor */}
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[0, 0.02, 0.3]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[-0.26, 0.03, -0.15]} rotation={[Math.PI / 2, 0, (2 * Math.PI) / 3]} />
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[0.26, 0.04, -0.15]} rotation={[Math.PI / 2, 0, (4 * Math.PI) / 3]} />
+        {/* Studio Sandbag on Base */}
         <mesh
           geometry={geoBox}
           material={MAT_CABLE_YELLOW}
-          scale={[0.3, 0.12, 0.2]}
-          position={[0, 0.06, 0.15]}
+          scale={[0.34, 0.10, 0.24]}
+          position={[0, 0.06, 0.12]}
         />
+        {/* Center Chrome Riser Column */}
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_STEEL_BRIGHT}
+          scale={[0.038, 2.8, 0.038]}
+          position={[0, 1.4, 0]}
+        />
+        {/* Gobo Grip Head & Softbox Fixture */}
         <group position={[0, 2.4, 0]} rotation={[-0.2, 0.6, 0]}>
           <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[1.2, 1.2, 0.4]} />
           <mesh
@@ -567,18 +658,25 @@ export const StudioEquipment3D: React.FC<{
 
       {/* Right Stage Front Softbox */}
       <group position={[6.8, 0, 1.5]}>
-        <mesh
-          geometry={geoCylinder8}
-          material={MAT_STEEL_BRIGHT}
-          scale={[0.04, 2.8, 0.04]}
-          position={[0, 1.4, 0]}
-        />
+        {/* 3-Leg Staggered Turtle Base flat on the floor */}
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[0, 0.02, 0.3]} rotation={[Math.PI / 2, 0, 0]} />
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[-0.26, 0.03, -0.15]} rotation={[Math.PI / 2, 0, (2 * Math.PI) / 3]} />
+        <mesh geometry={geoCylinder8} material={MAT_STEEL_BRIGHT} scale={[0.025, 0.7, 0.025]} position={[0.26, 0.04, -0.15]} rotation={[Math.PI / 2, 0, (4 * Math.PI) / 3]} />
+        {/* Studio Sandbag on Base */}
         <mesh
           geometry={geoBox}
           material={MAT_CABLE_YELLOW}
-          scale={[0.3, 0.12, 0.2]}
-          position={[0, 0.06, 0.15]}
+          scale={[0.34, 0.10, 0.24]}
+          position={[0, 0.06, 0.12]}
         />
+        {/* Center Chrome Riser Column */}
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_STEEL_BRIGHT}
+          scale={[0.038, 2.8, 0.038]}
+          position={[0, 1.4, 0]}
+        />
+        {/* Gobo Grip Head & Softbox Fixture */}
         <group position={[0, 2.4, 0]} rotation={[-0.2, -0.6, 0]}>
           <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[1.2, 1.2, 0.4]} />
           <mesh
@@ -589,6 +687,7 @@ export const StudioEquipment3D: React.FC<{
           />
         </group>
       </group>
+
       {/* ── 7. GROUNDED CABLE RUNS WITH RAMPS ACROSS THE FLOOR ── */}
       <mesh
         geometry={geoBox}
