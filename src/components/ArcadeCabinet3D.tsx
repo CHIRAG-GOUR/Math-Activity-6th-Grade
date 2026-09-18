@@ -517,12 +517,22 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.textAlign = 'center';
     ctx.fillText(`★ CABINET #${config.number}  •  ${config.grade.toUpperCase()} ★`, 1024, 118);
 
-    // 2. Main Game Title in Ultra-Legible, Simple, Bold Pure White Font with Soft Shadow
-    ctx.font = '900 102px Arial, sans-serif';
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
-    ctx.fillText(config.title, 1028, 298); // Clean drop shadow for maximum contrast
+    // 2. Main Game Title in Ultra-Legible, Bold Pure White Font with Soft Shadow
+    const titleLen = config.title.length;
+    let titleFontSize = 104;
+    if (titleLen > 24) {
+      titleFontSize = 78;
+    } else if (titleLen > 18) {
+      titleFontSize = 88;
+    } else if (titleLen > 14) {
+      titleFontSize = 96;
+    }
+
+    ctx.font = `900 ${titleFontSize}px "Impact", "Arial Black", Arial, sans-serif`;
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
+    ctx.fillText(config.title, 1028, 298, 1850); // Clean drop shadow for maximum contrast
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(config.title, 1024, 294);
+    ctx.fillText(config.title, 1024, 294, 1850);
 
     // 3. Bottom Topic Badge: Solid High-Contrast Pill with Bold White Text (NOT black)
     const pillBg = config.theme.marqueeBg || '#1e293b';
@@ -538,7 +548,7 @@ export const ArcadeCabinet3D: React.FC<{
 
     ctx.font = 'bold 64px Arial, sans-serif';
     ctx.fillStyle = '#ffffff';
-    ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 1024, 526);
+    ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 1024, 526, 1520);
 
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -995,38 +1005,38 @@ export const ArcadeCabinet3D: React.FC<{
         </mesh>
       </group>
 
-      {/* ── 3D COMPACT FLOATING NAME & TOPIC CARD OVERHEAD (Floating cleanly above marquee, no overlap) ── */}
-      <Html position={[0, 4.25, 0.35]} center distanceFactor={13.5}>
+      {/* ── 3D PROMINENT FLOATING NAME & TOPIC CARD OVERHEAD ── */}
+      <Html position={[0, 4.15, 0.35]} center distanceFactor={10}>
         <div
           className={`flex flex-col items-center select-none transition-all duration-300 transform pointer-events-auto cursor-pointer ${
-            hovered ? 'scale-110 -translate-y-2' : 'scale-100 opacity-95'
+            hovered ? 'scale-105 -translate-y-2' : 'scale-100 opacity-95'
           }`}
           onClick={handleClick}
         >
           <div
-            className="px-2.5 py-1.5 rounded-xl bg-white/95 backdrop-blur-md shadow-md flex flex-col items-center text-center gap-1 w-[128px]"
+            className="px-3.5 py-2 rounded-2xl bg-white/95 backdrop-blur-md shadow-xl flex flex-col items-center text-center gap-1 w-[165px]"
             style={{
-              border: `2px solid ${config.theme.cardBorderColor || config.theme.tMoldingColor}`,
+              border: `2.5px solid ${config.theme.cardBorderColor || config.theme.tMoldingColor}`,
               boxShadow: hovered
-                ? `0 10px 24px ${config.theme.tMoldingEmissive}88, 0 0 14px ${config.theme.tMoldingColor}55`
-                : `0 4px 12px rgba(0,0,0,0.12)`,
+                ? `0 12px 28px ${config.theme.tMoldingEmissive}88, 0 0 18px ${config.theme.tMoldingColor}66`
+                : `0 6px 18px rgba(0,0,0,0.14)`,
             }}
           >
             {/* Header Tag */}
-            <div className="flex items-center gap-1 text-[8px] font-black font-game tracking-wider uppercase text-slate-500 leading-none">
+            <div className="flex items-center gap-1 text-[8.5px] font-black font-game tracking-wider uppercase text-slate-500 leading-none">
               <span>CAB #{config.number}</span>
               <span>•</span>
               <span className="text-amber-600 font-bold">{config.grade}</span>
             </div>
 
-            {/* Main Machine Name - Full title with clean wrapping */}
-            <h3 className="text-[9.5px] font-black font-bank uppercase tracking-tight text-slate-950 leading-tight">
+            {/* Main Machine Name */}
+            <h3 className="text-[11px] font-black font-bank uppercase tracking-wider text-slate-950 leading-tight">
               {config.title}
             </h3>
 
             {/* Topic Badge */}
             <div
-              className="px-2 py-0.5 rounded-full text-[8px] font-bold font-game uppercase tracking-tight shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-full leading-tight"
+              className="px-2.5 py-0.5 rounded-full text-[9px] font-bold font-game uppercase tracking-tight shadow-sm whitespace-nowrap overflow-hidden text-ellipsis max-w-full leading-tight"
               style={{
                 backgroundColor: config.theme.topicBadgeBg,
                 color: config.theme.topicBadgeText,
@@ -1037,12 +1047,12 @@ export const ArcadeCabinet3D: React.FC<{
 
             {/* Play Indicator */}
             {config.status === 'active' ? (
-              <div className="flex items-center gap-1 text-[7.5px] font-bold text-emerald-700 font-game tracking-wider leading-none mt-0.5">
+              <div className="flex items-center gap-1 text-[8px] font-bold text-emerald-700 font-game tracking-wider leading-none mt-0.5">
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 <span>PLAY →</span>
               </div>
             ) : (
-              <div className="text-[7.5px] font-bold text-purple-700 font-game tracking-wider leading-none mt-0.5">
+              <div className="text-[8px] font-bold text-purple-700 font-game tracking-wider leading-none mt-0.5">
                 COMING SOON
               </div>
             )}
