@@ -132,13 +132,11 @@ export const DigitalScratchpad: React.FC<Props> = ({
         <button
           type="button"
           onClick={() => setIsOpen(true)}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl text-white font-black text-[11px] uppercase tracking-wider border-2 border-black shadow-[3px_3px_0px_#000000] hover:scale-105 active:scale-95 transition-all cursor-pointer ${
-            isBlue ? 'bg-blue-600 hover:bg-blue-500' : 'bg-red-600 hover:bg-red-500'
-          }`}
+          className="flex items-center gap-1 px-2 py-0.5 rounded-md text-white font-bold text-[10px] uppercase tracking-wider bg-white/20 hover:bg-white/30 border border-white/30 backdrop-blur transition-all cursor-pointer active:scale-95 shadow-2xs"
           title="Open Scratchpad / Rough Work"
         >
-          <Edit3 className="w-3.5 h-3.5" />
-          <span>ROUGH WORK</span>
+          <Edit3 className="w-3 h-3" />
+          <span>ROUGH</span>
         </button>
       )}
 

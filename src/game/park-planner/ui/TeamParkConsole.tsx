@@ -39,7 +39,7 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
 
   return (
     <div
-      className={`w-full max-w-[340px] flex flex-col bg-white rounded-2xl shadow-xl border-2 transition-all duration-200 overflow-hidden ${
+      className={`w-full max-w-[310px] sm:max-w-[320px] flex flex-col bg-white rounded-2xl shadow-xl border-2 transition-all duration-200 overflow-hidden select-none ${
         isBlue
           ? 'border-blue-300 shadow-blue-100/50'
           : 'border-rose-300 shadow-rose-100/50'
@@ -48,14 +48,14 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
     >
       {/* Console Header Banner with Round, Timer & Scratchpad */}
       <div
-        className={`px-3 py-2 flex items-center justify-between text-white ${
+        className={`px-3 py-1.5 flex items-center justify-between text-white ${
           isBlue
             ? 'bg-gradient-to-r from-blue-600 to-indigo-600'
             : 'bg-gradient-to-r from-rose-600 to-red-600'
         }`}
       >
         <div className="flex items-center gap-1.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-white animate-pulse" />
+          <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
           <span className="font-extrabold text-xs tracking-wide uppercase">
             {team.teamName}
           </span>
@@ -73,7 +73,7 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
       </div>
 
       {/* 60s Countdown Timer Bar */}
-      <div className="w-full bg-slate-200 h-1.5 overflow-hidden">
+      <div className="w-full bg-slate-200 h-1 overflow-hidden">
         <div
           className={`h-full transition-all duration-300 ${
             isTimerCritical
@@ -86,13 +86,13 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
         />
       </div>
 
-      {/* Main Console Body */}
-      <div className="p-3.5 flex flex-col gap-2.5 overflow-y-auto max-h-[calc(100vh-220px)]">
+      {/* Main Console Body — Fits completely without scrollbars */}
+      <div className="p-2 flex flex-col gap-1.5 overflow-hidden">
         {/* Status Pills: Timer & 2-Attempts Counter */}
-        <div className="flex items-center justify-between text-xs font-bold">
+        <div className="flex items-center justify-between text-[11px] font-bold">
           {/* Timer Countdown Badge */}
           <div
-            className={`px-2.5 py-0.5 rounded-full border flex items-center gap-1 transition-colors ${
+            className={`px-2 py-0.5 rounded-md border flex items-center gap-1 transition-colors ${
               team.isTimeExpired
                 ? 'bg-rose-100 text-rose-800 border-rose-300'
                 : isTimerCritical
@@ -103,12 +103,12 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
             }`}
           >
             <span>⏱️</span>
-            <span>{team.isTimeExpired ? '0s (TIME EXPIRED)' : `${secondsLeft}s`}</span>
+            <span>{team.isTimeExpired ? '0s (Expired)' : `${secondsLeft}s`}</span>
           </div>
 
           {/* Attempts Remaining Badge */}
           <div
-            className={`px-2.5 py-0.5 rounded-full border font-bold text-[11px] ${
+            className={`px-2 py-0.5 rounded-md border font-bold text-[10px] ${
               team.attemptsRemaining === 2
                 ? 'bg-blue-50 text-blue-700 border-blue-200'
                 : team.attemptsRemaining === 1
@@ -121,15 +121,13 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
         </div>
 
         {/* Task Objective Card */}
-        <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200">
-          <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
-            {q.category.toUpperCase().replace('_', ' ')} • MISSION
+        <div className="bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between text-[9px] font-bold uppercase tracking-wider text-slate-500 mb-0.5">
+            <span>{q.targetQuadrant ? `QUADRANT: ${q.targetQuadrant}` : q.category.toUpperCase()}</span>
+            <span className="text-emerald-700 font-extrabold truncate max-w-[140px]">{q.objectName}</span>
           </div>
-          <div className="font-extrabold text-slate-800 text-xs md:text-sm leading-snug">
+          <div className="font-extrabold text-slate-800 text-[11px] leading-snug">
             {q.prompt}
-          </div>
-          <div className="text-[11px] text-slate-600 mt-1 italic">
-            "{q.scenario}"
           </div>
         </div>
 
@@ -150,10 +148,12 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
 
         {/* Multiple Choice Quick Options */}
         {q.options && q.options.length > 0 && (
-          <div className="grid grid-cols-2 gap-1.5">
+          <div className="grid grid-cols-2 gap-1">
             {q.options.map((opt, idx) => {
               const optStr = typeof opt === 'object' ? formatCoord(opt) : String(opt);
-              const isSelected = team.selectedAnswer === optStr || (team.selectedPoint && formatCoord(team.selectedPoint) === optStr);
+              const isSelected =
+                team.selectedAnswer === optStr ||
+                (team.selectedPoint && formatCoord(team.selectedPoint) === optStr);
 
               return (
                 <button
@@ -161,11 +161,11 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
                   type="button"
                   disabled={team.hasAnsweredCurrent || team.isTimeExpired}
                   onClick={() => selectOptionAnswer(teamId, opt)}
-                  className={`py-2 px-2.5 text-xs font-black rounded-lg border text-center transition-all ${
+                  className={`py-1.5 px-2 text-[11px] font-black rounded-lg border text-center transition-all ${
                     isSelected
                       ? isBlue
-                        ? 'bg-blue-600 text-white border-blue-700 shadow-md ring-2 ring-blue-300 scale-102'
-                        : 'bg-rose-600 text-white border-rose-700 shadow-md ring-2 ring-rose-300 scale-102'
+                        ? 'bg-blue-600 text-white border-blue-700 shadow ring-1 ring-blue-300 scale-[1.02]'
+                        : 'bg-rose-600 text-white border-rose-700 shadow ring-1 ring-rose-300 scale-[1.02]'
                       : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-100 hover:border-slate-400 active:scale-98'
                   }`}
                 >
@@ -179,7 +179,7 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
         {/* Feedback Area (After Submission or on 1st incorrect attempt) */}
         {team.feedbackMessage && (
           <div
-            className={`p-2.5 rounded-xl border text-xs leading-relaxed font-semibold animate-fadeIn ${
+            className={`px-2 py-1 rounded-lg border text-[10px] leading-snug font-semibold animate-fadeIn ${
               team.isCurrentCorrect === true
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-900'
                 : team.attemptsRemaining === 1 && !team.hasAnsweredCurrent
@@ -197,15 +197,6 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
               </span>
             </div>
             <div>{team.feedbackMessage}</div>
-            
-            {/* Step Explanation */}
-            {team.hasAnsweredCurrent && q.stepExplanation && (
-              <div className="mt-1.5 text-[11px] text-slate-600 border-t border-slate-200 pt-1 space-y-0.5">
-                {q.stepExplanation.map((step, sIdx) => (
-                  <div key={`step_${sIdx}`}>• {step}</div>
-                ))}
-              </div>
-            )}
           </div>
         )}
 
@@ -215,7 +206,7 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
             type="button"
             disabled={!team.selectedPoint && !team.selectedAnswer && team.selectedPoints.length === 0}
             onClick={() => submitAnswer(teamId)}
-            className={`w-full py-2.5 px-4 font-black text-xs md:text-sm rounded-xl text-white shadow-md transition-transform active:scale-95 disabled:opacity-50 disabled:pointer-events-none ${
+            className={`w-full py-1.5 px-3 font-black text-xs rounded-xl text-white shadow transition-transform active:scale-95 disabled:opacity-40 disabled:pointer-events-none ${
               team.attemptsRemaining === 1
                 ? 'bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 animate-pulse'
                 : isBlue
@@ -224,7 +215,7 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
             }`}
           >
             {team.attemptsRemaining === 1
-              ? '🔄 RETRY (FINAL TRY 2/2)'
+              ? '🔄 RETRY (TRY 2/2)'
               : q.mode === 'point_plot'
               ? '🏗️ CONSTRUCT AT POINT'
               : '📐 SUBMIT ANSWER'}
@@ -233,14 +224,14 @@ export const TeamParkConsole: React.FC<TeamParkConsoleProps> = ({ teamId }) => {
           <button
             type="button"
             onClick={() => advanceRound(teamId)}
-            className="w-full py-2.5 px-4 font-black text-xs md:text-sm rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow-md transition-transform active:scale-95 flex items-center justify-center gap-2"
+            className="w-full py-1.5 px-3 font-black text-xs rounded-xl bg-slate-900 text-white hover:bg-slate-800 shadow transition-transform active:scale-95 flex items-center justify-center gap-1.5"
           >
             <span>{team.currentRound >= totalRounds ? '🏆 COMPLETE PARK' : 'NEXT MISSION ➔'}</span>
           </button>
         )}
 
         {/* Park Status Footer */}
-        <div className="flex items-center justify-between bg-slate-100 px-3 py-1.5 rounded-lg text-[11px] font-bold text-slate-600">
+        <div className="flex items-center justify-between bg-slate-100 px-2.5 py-1 rounded-lg text-[10px] font-bold text-slate-600">
           <div>
             Happiness: <span className="text-emerald-600">{team.citizenHappiness}%</span>
           </div>
