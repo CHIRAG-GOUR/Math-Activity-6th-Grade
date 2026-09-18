@@ -116,13 +116,13 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
 
   return (
     <div
-      className={`w-full flex flex-col justify-between p-4 rounded-2xl bg-white border-4 border-black shadow-[8px_8px_0px_#000000] text-black transition-all select-none`}
+      className="w-full flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white border-4 border-black shadow-[10px_10px_0px_#000000] text-black transition-all select-none"
     >
       {/* ── 1. Team Header, Score & Rough Work Button ── */}
-      <div className="flex items-center justify-between border-b-3 border-black pb-2.5">
-        <div className="flex items-center gap-2">
+      <div className="flex items-center justify-between border-b-3 border-black pb-3">
+        <div className="flex items-center gap-2.5">
           <div
-            className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm border-2 border-black shadow-[2px_2px_0px_#000000] ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-base border-3 border-black shadow-[3px_3px_0px_#000000] ${
               isBlue ? 'bg-blue-500 text-white' : 'bg-red-500 text-white'
             }`}
           >
@@ -131,14 +131,14 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
           <div>
             <div className="flex items-center gap-1.5">
               <span
-                className={`px-2 py-0.5 rounded-md text-[11px] font-black uppercase tracking-wide border-2 border-black shadow-[2px_2px_0px_#000000] ${
+                className={`px-2.5 py-0.5 rounded-md text-xs font-black uppercase tracking-wide border-2 border-black shadow-[2px_2px_0px_#000000] ${
                   isBlue ? 'bg-blue-400 text-black' : 'bg-red-400 text-black'
                 }`}
               >
                 {isBlue ? 'BLUE STUDIO' : 'RED STUDIO'}
               </span>
             </div>
-            <div className="text-[11px] text-black font-black mt-1">
+            <div className="text-xs text-black font-black mt-1">
               Stage {currentQ.stage} of 5 • {currentQ.title.split(':')[1] || currentQ.title}
             </div>
           </div>
@@ -150,7 +150,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
           <button
             type="button"
             onClick={() => setShowScratchpad(!showScratchpad)}
-            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider border-2 border-black transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black uppercase tracking-wider border-3 border-black transition-all cursor-pointer ${
               showScratchpad
                 ? 'bg-yellow-400 text-black shadow-[3px_3px_0px_#000000] translate-x-0.5 translate-y-0.5'
                 : 'bg-white hover:bg-yellow-200 text-black shadow-[3px_3px_0px_#000000]'
@@ -158,12 +158,12 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
             title="Open Rough Work Canvas"
           >
             <Edit3 className="w-4 h-4 stroke-[2.5]" />
-            <span>ROUGH</span>
+            <span>ROUGH WORK</span>
           </button>
 
           {/* Score Box */}
-          <div className="px-2.5 py-1 rounded-lg bg-yellow-300 border-2 border-black shadow-[2px_2px_0px_#000000] text-right leading-none">
-            <div className="text-base font-black font-mono text-black">
+          <div className="px-3 py-1 rounded-xl bg-yellow-300 border-3 border-black shadow-[3px_3px_0px_#000000] text-right leading-none">
+            <div className="text-lg font-black font-mono text-black">
               {teamState.score}
             </div>
             <div className="text-[9px] text-black font-black uppercase">PTS</div>
@@ -172,14 +172,14 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
       </div>
 
       {/* ── 2. Production Stage Progress Indicator ── */}
-      <div className="flex items-center gap-1.5 my-2.5">
+      <div className="flex items-center gap-1.5 my-3">
         {RATIO_QUESTIONS.map((q, idx) => {
           const isSolved = teamState.solvedStages.includes(q.stage);
           const isCurrent = idx === teamState.currentQuestionIndex;
           return (
             <div
               key={`stage-bar-${idx}`}
-              className={`flex-1 h-3 rounded-md border-2 border-black transition-all ${
+              className={`flex-1 h-3.5 rounded-lg border-2 border-black transition-all ${
                 isSolved
                   ? isBlue
                     ? 'bg-blue-500 shadow-[1px_1px_0px_#000000]'
@@ -196,15 +196,15 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
 
       {/* ── 3. INTERACTIVE ROUGH WORK DRAWING AREA (When Opened) ── */}
       {showScratchpad ? (
-        <div className="flex-1 flex flex-col gap-2 my-1 p-2.5 rounded-xl bg-yellow-50 border-3 border-black shadow-[4px_4px_0px_#000000]">
+        <div className="flex-1 flex flex-col gap-2 my-1.5 p-3 rounded-xl bg-yellow-100 border-3 border-black shadow-[4px_4px_0px_#000000]">
           {/* Scratchpad Toolbar */}
-          <div className="flex items-center justify-between gap-1 pb-1.5 border-b-2 border-black text-xs">
+          <div className="flex items-center justify-between gap-1 pb-2 border-b-2 border-black text-xs">
             {/* Pen / Eraser Mode */}
             <div className="flex items-center gap-1 bg-white p-1 rounded-lg border-2 border-black shadow-[2px_2px_0px_#000000]">
               <button
                 type="button"
                 onClick={() => setPadMode('pen')}
-                className={`p-1 rounded-md border transition cursor-pointer ${
+                className={`p-1.5 rounded-md border transition cursor-pointer ${
                   padMode === 'pen'
                     ? 'bg-yellow-400 text-black border-black font-black'
                     : 'bg-white border-transparent text-slate-600 hover:text-black'
@@ -216,7 +216,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
               <button
                 type="button"
                 onClick={() => setPadMode('eraser')}
-                className={`p-1 rounded-md border transition cursor-pointer ${
+                className={`p-1.5 rounded-md border transition cursor-pointer ${
                   padMode === 'eraser'
                     ? 'bg-yellow-400 text-black border-black font-black'
                     : 'bg-white border-transparent text-slate-600 hover:text-black'
@@ -228,7 +228,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
             </div>
 
             {/* Color Swatches */}
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1.5">
               {PEN_COLORS.map((c) => (
                 <button
                   key={c.hex}
@@ -238,7 +238,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
                     setPadMode('pen');
                   }}
                   style={{ backgroundColor: c.hex }}
-                  className={`w-4 h-4 rounded-full border-2 border-black transition-all cursor-pointer ${
+                  className={`w-5 h-5 rounded-full border-2 border-black transition-all cursor-pointer ${
                     penColor === c.hex && padMode === 'pen'
                       ? 'scale-125 ring-2 ring-yellow-400 shadow-[1px_1px_0px_#000000]'
                       : 'opacity-80 hover:opacity-100'
@@ -291,11 +291,11 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
 
           {/* Canvas Area */}
           <div
-            className={`relative w-full h-36 rounded-xl border-2 border-black overflow-hidden cursor-crosshair touch-none ${
+            className={`relative w-full h-40 rounded-xl border-3 border-black overflow-hidden cursor-crosshair touch-none ${
               bgPattern === 'grid'
-                ? 'bg-[radial-gradient(#000000_1px,transparent_1px)] bg-[size:14px_14px] bg-white'
+                ? 'bg-[radial-gradient(#000000_1.5px,transparent_1.5px)] bg-[size:14px_14px] bg-white'
                 : bgPattern === 'ruled'
-                ? 'bg-[linear-gradient(transparent_21px,#000000_22px)] bg-[size:100%_22px] bg-white'
+                ? 'bg-[linear-gradient(transparent_22px,#000000_24px)] bg-[size:100%_24px] bg-white'
                 : 'bg-white'
             }`}
           >
@@ -311,21 +311,21 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
         </div>
       ) : (
         /* ── 3. Neo-Brutalist Math Question Card ── */
-        <div className="flex-1 flex flex-col justify-center gap-2 my-1.5 p-3 rounded-xl bg-yellow-50 border-3 border-black shadow-[4px_4px_0px_#000000]">
+        <div className="flex-1 flex flex-col justify-center gap-2 my-2 p-3.5 sm:p-4 rounded-xl bg-yellow-100 border-3 border-black shadow-[4px_4px_0px_#000000]">
           <div className="flex items-center gap-1.5">
-            <span className="px-2 py-0.5 rounded bg-yellow-400 border-2 border-black text-[10.5px] font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_#000000] flex items-center gap-1">
+            <span className="px-2.5 py-0.5 rounded-md bg-yellow-400 border-2 border-black text-xs font-black uppercase tracking-wider text-black shadow-[2px_2px_0px_#000000] flex items-center gap-1">
               <Film className="w-3.5 h-3.5" />
               <span>RATIO CHALLENGE</span>
             </span>
           </div>
-          <p className="text-black font-extrabold leading-snug text-sm">
+          <p className="text-black font-extrabold leading-snug text-sm sm:text-base">
             {currentQ.mathPrompt}
           </p>
         </div>
       )}
 
       {/* ── 4. Multiple Choice Option Buttons (Neo-Brutalism) ── */}
-      <div className="grid grid-cols-2 gap-2 my-2">
+      <div className="grid grid-cols-2 gap-2.5 my-2.5">
         {currentQ.options.map((opt) => {
           const isSelected = teamState.selectedOption === opt || teamState.inputAnswer === opt.toString();
           return (
@@ -333,14 +333,14 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
               key={`opt-${opt}`}
               onClick={() => selectOption(team, opt)}
               disabled={teamState.feedbackStatus === 'correct'}
-              className={`p-3 rounded-xl text-sm font-black transition-all cursor-pointer flex items-center justify-between border-3 border-black ${
+              className={`p-3.5 rounded-xl text-base font-black transition-all cursor-pointer flex items-center justify-between border-3 border-black ${
                 isSelected
-                  ? 'bg-yellow-400 text-black shadow-[4px_4px_0px_#000000] ring-2 ring-black scale-102'
+                  ? 'bg-yellow-400 text-black shadow-[5px_5px_0px_#000000] ring-2 ring-black scale-102'
                   : 'bg-white hover:bg-yellow-100 text-black shadow-[3px_3px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
               }`}
             >
-              <span className="text-base font-black">{opt}</span>
-              <span className="text-xs text-black font-bold uppercase">
+              <span className="text-lg sm:text-xl font-black">{opt}</span>
+              <span className="text-xs text-black font-black uppercase">
                 {currentQ.correctUnit}
               </span>
             </button>
@@ -349,17 +349,17 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
       </div>
 
       {/* ── 5. Feedback Message & Action Buttons ── */}
-      <div className="flex flex-col gap-1.5 mt-1">
+      <div className="flex flex-col gap-2 mt-1">
         {teamState.feedbackStatus === 'correct' && (
-          <div className="p-2.5 rounded-xl bg-emerald-300 border-3 border-black text-black text-xs font-black flex items-center justify-between shadow-[4px_4px_0px_#000000] animate-fadeIn">
-            <div className="flex items-center gap-1.5">
+          <div className="p-3 rounded-xl bg-emerald-300 border-3 border-black text-black text-xs sm:text-sm font-black flex items-center justify-between shadow-[4px_4px_0px_#000000] animate-fadeIn">
+            <div className="flex items-center gap-2">
               <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
               <span className="leading-tight">{teamState.feedbackMessage}</span>
             </div>
             {teamState.currentQuestionIndex < RATIO_QUESTIONS.length - 1 && (
               <button
                 onClick={() => nextQuestion(team)}
-                className="px-3 py-1.5 rounded-lg bg-yellow-400 text-black font-black text-xs flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_#000000] hover:bg-yellow-300 active:shadow-none transition-all cursor-pointer whitespace-nowrap ml-2"
+                className="px-3.5 py-1.5 rounded-xl bg-yellow-400 text-black font-black text-xs sm:text-sm flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_#000000] hover:bg-yellow-300 active:shadow-none transition-all cursor-pointer whitespace-nowrap ml-2"
               >
                 NEXT <ArrowRight className="w-4 h-4 stroke-[3]" />
               </button>
@@ -368,8 +368,8 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
         )}
 
         {teamState.feedbackStatus === 'incorrect' && (
-          <div className="p-2 rounded-xl bg-rose-300 border-3 border-black text-black text-xs font-black flex items-center gap-1.5 shadow-[3px_3px_0px_#000000] animate-shake">
-            <XCircle className="w-4 h-4 text-black shrink-0" />
+          <div className="p-2.5 rounded-xl bg-rose-300 border-3 border-black text-black text-xs sm:text-sm font-black flex items-center gap-2 shadow-[3px_3px_0px_#000000] animate-shake">
+            <XCircle className="w-5 h-5 text-black shrink-0" />
             <span className="leading-tight">{teamState.feedbackMessage}</span>
           </div>
         )}
@@ -378,13 +378,13 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
           <button
             onClick={() => submitAnswer(team)}
             disabled={!teamState.inputAnswer}
-            className={`w-full py-3 rounded-xl text-sm font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all border-3 border-black ${
+            className={`w-full py-3.5 rounded-xl text-sm sm:text-base font-black uppercase tracking-wider flex items-center justify-center gap-2 transition-all border-3 border-black ${
               teamState.inputAnswer
-                ? 'bg-yellow-400 hover:bg-yellow-300 text-black shadow-[4px_4px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none cursor-pointer'
-                : 'bg-slate-200 text-slate-500 border-2 border-slate-400 cursor-not-allowed shadow-none'
+                ? 'bg-yellow-400 hover:bg-yellow-300 text-black shadow-[5px_5px_0px_#000000] active:translate-x-1 active:translate-y-1 active:shadow-none cursor-pointer'
+                : 'bg-slate-200 text-slate-500 border-3 border-slate-400 cursor-not-allowed shadow-none'
             }`}
           >
-            <Clapperboard className="w-4 h-4 text-black" />
+            <Clapperboard className="w-5 h-5 text-black" />
             <span>SUBMIT RATIO ({teamState.inputAnswer || '—'} {currentQ.correctUnit})</span>
           </button>
         )}

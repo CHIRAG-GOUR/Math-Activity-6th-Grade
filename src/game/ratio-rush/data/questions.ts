@@ -1,6 +1,6 @@
 // ============================================================
 // RATIO RUSH — GRADE 6 RATIO & PROPORTION QUESTIONS (SIMPLIFIED)
-// Engaging, 6th-grade friendly math scenarios with intuitive scaling
+// Clear, engaging 6th-grade math scenarios with intuitive scaling
 // ============================================================
 
 import { RatioQuestion } from '../types';
@@ -12,7 +12,7 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
     title: 'Stage 1: Camera Shot Ratio',
     scenario: 'Director framing Close-up shots and Wide shots.',
     mathPrompt:
-      'The director plans camera shots in a ratio of 2 : 3 (Close-up shots to Wide shots). If the crew films 6 Close-up shots, how many Wide shots are needed?',
+      'For every 2 Close-up shots, the camera team shoots 3 Wide shots (Ratio 2 : 3). If they shoot 6 Close-up shots, how many Wide shots are needed?',
     ratioA: 2,
     ratioB: 3,
     labelA: 'Close-Up Shots',
@@ -24,7 +24,7 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
     correctUnit: 'shots',
     options: [6, 8, 9, 12],
     unitRateExplanation:
-      '6 Close-ups is 3 times 2 parts (2 × 3 = 6). Multiply 3 Wide parts × 3 = 9 Wide shots (2 : 3 = 6 : 9).',
+      '6 Close-ups is 3 times the original 2 parts (2 × 3 = 6). Multiply 3 Wide parts × 3 = 9 Wide shots (2 : 3 = 6 : 9).',
     studioActionText: 'Camera Operator lines up the perfect 16:9 cinematic shot!',
     diagram: {
       blocksA: 2,
@@ -39,7 +39,7 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
       },
       {
         wrongAnswer: 8,
-        reason: 'Added 2+6 instead of multiplying the 3 parts by 3.',
+        reason: 'Added 2 + 6 instead of multiplying the 3 parts by 3.',
       },
       {
         wrongAnswer: 12,
@@ -50,41 +50,41 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
   {
     id: 'q2_chroma_paint',
     stage: 2,
-    title: 'Stage 2: Chroma Green Paint Mix',
-    scenario: 'Art Department mixing paint for the green screen.',
+    title: 'Stage 2: Green Screen Paint Mix',
+    scenario: 'Art Department mixing paint for the green screen backdrop.',
     mathPrompt:
-      'To mix green screen backdrop paint, the ratio of Blue dye to Green paint is 3 : 5. If the painter uses 20 liters of Green paint, how many liters of Blue dye are needed?',
-    ratioA: 3,
-    ratioB: 5,
-    labelA: 'Blue Dye (L)',
-    labelB: 'Green Paint (L)',
+      'To mix green screen backdrop paint, the painter uses 1 cup of Blue dye for every 3 cups of Green paint (Ratio 1 : 3). If they use 12 cups of Green paint, how many cups of Blue dye are needed?',
+    ratioA: 1,
+    ratioB: 3,
+    labelA: 'Blue Dye (cups)',
+    labelB: 'Green Paint (cups)',
     targetQuantityName: 'Blue Dye',
     givenQuantityName: 'Green Paint',
-    givenQuantityValue: 20,
-    correctAnswer: 12,
-    correctUnit: 'liters',
-    options: [8, 10, 12, 15],
+    givenQuantityValue: 12,
+    correctAnswer: 4,
+    correctUnit: 'cups',
+    options: [3, 4, 6, 9],
     unitRateExplanation:
-      'Green paint has 5 parts for 20 L, so 1 part = 20 ÷ 5 = 4 L. Blue dye is 3 parts × 4 L = 12 liters (3 : 5 = 12 : 20).',
+      '12 cups of Green paint is 4 times 3 parts (12 ÷ 3 = 4). So 1 cup of Blue dye × 4 = 4 cups (1 : 3 = 4 : 12).',
     studioActionText: 'Stagehands finish painting the bright green cyclorama wall!',
     diagram: {
-      blocksA: 3,
-      blocksB: 5,
+      blocksA: 1,
+      blocksB: 3,
       multiplier: 4,
-      totalUnits: 8,
+      totalUnits: 4,
     },
     misconceptions: [
       {
-        wrongAnswer: 8,
-        reason: 'Multiplied by 2.6 instead of the 4× scale factor.',
+        wrongAnswer: 3,
+        reason: 'Guessed 3 instead of dividing 12 by 3 to find the scale factor 4.',
       },
       {
-        wrongAnswer: 10,
-        reason: 'Estimated half of 20 instead of setting up the ratio 3 : 5.',
+        wrongAnswer: 6,
+        reason: 'Divided 12 by 2 instead of 3.',
       },
       {
-        wrongAnswer: 15,
-        reason: 'Subtracted 5 from 20 instead of multiplying 3 × 4.',
+        wrongAnswer: 9,
+        reason: 'Subtracted 12 - 3 instead of dividing 12 ÷ 3.',
       },
     ],
   },
@@ -94,7 +94,7 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
     title: 'Stage 3: Slow-Motion Action Stunt',
     scenario: 'Stunt Coordinator calculating slow-motion replay time.',
     mathPrompt:
-      'The slow-motion camera expands time in a ratio of 1 : 4 (1 real second = 4 slow-mo seconds). If a jump stunt takes 3 seconds in real time, how many seconds will it play in slow motion?',
+      'The slow-motion camera expands time in a ratio of 1 : 4 (1 second of real stunt = 4 seconds of slow-mo). If an actor jumps for 3 seconds in real time, how many seconds will it play in slow motion?',
     ratioA: 1,
     ratioB: 4,
     labelA: 'Real Seconds (s)',
@@ -135,7 +135,7 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
     title: 'Stage 4: Miniature Spaceship Prop',
     scenario: 'Prop master scaling a spaceship model for the set.',
     mathPrompt:
-      'A mini spaceship prop is built at a scale of 1 : 10 (1 cm model = 10 cm movie scale). If the miniature prop is 5 cm long, what is its movie scale length in cm?',
+      'A miniature spaceship prop is built at a scale ratio of 1 : 10 (1 cm on model = 10 cm in movie size). If the miniature prop is 5 cm long, what is its movie size in cm?',
     ratioA: 1,
     ratioB: 10,
     labelA: 'Mini Model (cm)',
@@ -174,41 +174,41 @@ export const RATIO_QUESTIONS: RatioQuestion[] = [
     id: 'q5_budget_split',
     stage: 5,
     title: 'Stage 5: Finale Budget Division',
-    scenario: 'Director sharing $50 between Actors and Crew.',
+    scenario: 'Director sharing $30 snack budget between Actors and Crew.',
     mathPrompt:
-      'The director shares a $50 snack budget between Actors and Crew in a ratio of 3 : 2 (3 parts for Actors, 2 parts for Crew). How many dollars do the Actors receive?',
-    ratioA: 3,
-    ratioB: 2,
+      'The director shares a $30 snack budget between Actors and Crew in a ratio of 2 : 1 (2 parts for Actors, 1 part for Crew). How many dollars do the Actors receive?',
+    ratioA: 2,
+    ratioB: 1,
     labelA: 'Actor Share ($)',
     labelB: 'Crew Share ($)',
     targetQuantityName: 'Actor Budget Share',
     givenQuantityName: 'Total Budget ($)',
-    givenQuantityValue: 50,
-    correctAnswer: 30,
+    givenQuantityValue: 30,
+    correctAnswer: 20,
     correctUnit: '$',
-    options: [20, 25, 30, 35],
+    options: [10, 15, 20, 25],
     unitRateExplanation:
-      'Total parts = 3 + 2 = 5 parts. 1 part = $50 ÷ 5 = $10. Actors get 3 parts × $10 = $30 (3 : 2 = $30 : $20).',
+      'Total parts = 2 + 1 = 3 parts. 1 part = $30 ÷ 3 = $10. Actors get 2 parts × $10 = $20 (2 : 1 = $20 : $10).',
     studioActionText:
       'Director shouts: "PICTURE READY! Camera speed, sound rolling... ACTION!"',
     diagram: {
-      blocksA: 3,
-      blocksB: 2,
+      blocksA: 2,
+      blocksB: 1,
       multiplier: 10,
-      totalUnits: 5,
+      totalUnits: 3,
     },
     misconceptions: [
       {
-        wrongAnswer: 20,
-        reason: 'Calculated the Crew share (2 parts = $20) instead of the Actor share (3 parts = $30).',
+        wrongAnswer: 10,
+        reason: 'Calculated the Crew share (1 part = $10) instead of the Actor share (2 parts = $20).',
+      },
+      {
+        wrongAnswer: 15,
+        reason: 'Split $30 equally in half (1 : 1) instead of using the 2 : 1 ratio.',
       },
       {
         wrongAnswer: 25,
-        reason: 'Split the $50 equally in half (1:1) instead of the 3:2 ratio.',
-      },
-      {
-        wrongAnswer: 35,
-        reason: 'Estimated without calculating the exact $10 per part value.',
+        reason: 'Estimated without calculating the exact $10 value per part.',
       },
     ],
   },

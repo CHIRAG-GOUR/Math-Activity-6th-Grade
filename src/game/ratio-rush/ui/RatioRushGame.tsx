@@ -62,12 +62,12 @@ export const RatioRushGame: React.FC = () => {
         {/* ── Side HUD Consoles (Left & Right — Always 2-Player Duel, Larger Size) ── */}
         <div className="absolute inset-x-4 bottom-3 top-14 pointer-events-none flex items-end justify-between gap-4 z-10">
           {/* Left Console: Blue Studio Crew */}
-          <div className="w-[390px] max-w-[46vw] h-auto max-h-[84vh] pointer-events-auto flex flex-col gap-2">
+          <div className="w-[430px] max-w-[48vw] h-auto max-h-[86vh] pointer-events-auto flex flex-col gap-2">
             <TeamStudioConsole team="blue" />
           </div>
 
           {/* Right Console: Red Studio Crew */}
-          <div className="w-[390px] max-w-[46vw] h-auto max-h-[84vh] pointer-events-auto flex flex-col gap-2">
+          <div className="w-[430px] max-w-[48vw] h-auto max-h-[86vh] pointer-events-auto flex flex-col gap-2">
             <TeamStudioConsole team="red" />
           </div>
         </div>
