@@ -420,6 +420,40 @@ export const RAW_ARCADE_CABINET_DATA: Omit<ArcadeCabinetConfig, 'position' | 'ro
       cardBorderColor: '#10b981',
     },
   },
+  // ── WING 4 (MACHINE #13 ONLY: RATIO RUSH) ──
+  {
+    id: 'ratio-rush',
+    number: '13',
+    title: 'RATIO RUSH',
+    subtitle: 'Movie Production House • Studio Film Shoot Duel',
+    topic: 'Ratios, Rates & Proportions',
+    grade: 'Grade 6',
+    category: '3D Film Studio Simulation',
+    status: 'active',
+    image: '/images/ratio-rush-card.jpg',
+    route: '/ratio-rush',
+    theme: {
+      cabinetColor: '#b91c1c',
+      secondaryColor: '#dc2626',
+      tMoldingColor: '#f59e0b',
+      tMoldingEmissive: '#d97706',
+      marqueeBg: '#7f1d1d',
+      marqueeTextColor: '#fef08a',
+      marqueeGlow: '#f59e0b',
+      screenBezelColor: '#450a0a',
+      screenGlowColor: '#f59e0b',
+      deckColor: '#991b1b',
+      joystickBallColor: '#f59e0b',
+      joystickBallEmissive: '#d97706',
+      buttonColors: ['#f59e0b', '#3b82f6', '#ef4444', '#10b981'],
+      coinDoorColor: '#7f1d1d',
+      sideArtAccent: '#fef08a',
+      floorGlowColor: '#b91c1c',
+      topicBadgeBg: '#fee2e2',
+      topicBadgeText: '#7f1d1d',
+      cardBorderColor: '#b91c1c',
+    },
+  },
 ];
 
 // Computed list with dynamic 3D continuous corridor positions
@@ -491,6 +525,26 @@ const ArcadeCameraRig: React.FC<{
       focusX = 1 * PAGE_SPACING + 4.0;
       focusZ = 6.8;
       targetLookX = 1 * PAGE_SPACING + 4.6;
+    } else if (selectedCategory.includes('#09')) {
+      focusX = 2 * PAGE_SPACING - 4.0;
+      focusZ = 6.8;
+      targetLookX = 2 * PAGE_SPACING - 4.6;
+    } else if (selectedCategory.includes('#10')) {
+      focusX = 2 * PAGE_SPACING - 1.3;
+      focusZ = 6.6;
+      targetLookX = 2 * PAGE_SPACING - 1.55;
+    } else if (selectedCategory.includes('#11')) {
+      focusX = 2 * PAGE_SPACING + 1.3;
+      focusZ = 6.6;
+      targetLookX = 2 * PAGE_SPACING + 1.55;
+    } else if (selectedCategory.includes('#12')) {
+      focusX = 2 * PAGE_SPACING + 4.0;
+      focusZ = 6.8;
+      targetLookX = 2 * PAGE_SPACING + 4.6;
+    } else if (selectedCategory.includes('#13')) {
+      focusX = 3 * PAGE_SPACING - 4.0;
+      focusZ = 6.8;
+      targetLookX = 3 * PAGE_SPACING - 4.6;
     }
 
     const parallaxX = pointer.x * 0.45;
@@ -536,7 +590,7 @@ const ArcadeRoomEnvironment: React.FC = () => {
     const tex = new THREE.CanvasTexture(canvas);
     tex.wrapS = THREE.RepeatWrapping;
     tex.wrapT = THREE.RepeatWrapping;
-    tex.repeat.set(14, 6);
+    tex.repeat.set(24, 6);
     tex.colorSpace = THREE.SRGBColorSpace;
     return tex;
   }, []);
@@ -568,25 +622,25 @@ const ArcadeRoomEnvironment: React.FC = () => {
       ))}
 
       {/* ── CONTINUOUS BACK ARCADE ACCENT WALL (`z = -2.2`) ── */}
-      <group position={[7, 3.5, -2.2]}>
+      <group position={[20, 3.5, -2.2]}>
         <mesh receiveShadow>
-          <planeGeometry args={[64, 10]} />
+          <planeGeometry args={[92, 10]} />
           <meshStandardMaterial color="#fef3c7" roughness={0.7} />
         </mesh>
 
         <mesh position={[0, -2.6, 0.05]} receiveShadow>
-          <boxGeometry args={[64, 2.2, 0.1]} />
+          <boxGeometry args={[92, 2.2, 0.1]} />
           <meshStandardMaterial color="#d97706" roughness={0.4} />
         </mesh>
 
         <mesh position={[0, -1.48, 0.12]}>
-          <boxGeometry args={[64, 0.08, 0.05]} />
+          <boxGeometry args={[92, 0.08, 0.05]} />
           <meshStandardMaterial color="#fbbf24" emissive="#f59e0b" emissiveIntensity={0.6} metalness={0.8} />
         </mesh>
 
         {/* Neon Accent Trim along the Hall */}
         {ARCADE_CABINET_DATA.map((cab, idx) => (
-          <group key={`neon-wall-${idx}`} position={[cab.position[0] - 7, 1.8, 0.08]}>
+          <group key={`neon-wall-${idx}`} position={[cab.position[0] - 20, 1.8, 0.08]}>
             <mesh>
               <boxGeometry args={[2.4, 0.06, 0.04]} />
               <meshStandardMaterial
@@ -601,7 +655,7 @@ const ArcadeRoomEnvironment: React.FC = () => {
 
       {/* ── CEILING STEEL TRUSSES ── */}
       <group position={[0, 6.8, 0]}>
-        {[-5, -2, 1, 4, 8, 12, 16, 20].map((tx, idx) => (
+        {[-5, -2, 1, 4, 8, 12, 16, 20, 24, 28, 32, 36, 40, 44, 48].map((tx, idx) => (
           <mesh key={`truss-${idx}`} position={[tx, 0, 0]}>
             <boxGeometry args={[0.08, 0.4, 12]} />
             <meshStandardMaterial color="#1e293b" metalness={0.8} roughness={0.3} />
@@ -610,8 +664,8 @@ const ArcadeRoomEnvironment: React.FC = () => {
       </group>
 
       {/* ── CONTINUOUS POLISHED HONEY WOOD FLOOR PLANE (`y = 0`) ── */}
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[7, 0, 0]} receiveShadow>
-        <planeGeometry args={[66, 22]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[20, 0, 0]} receiveShadow>
+        <planeGeometry args={[94, 22]} />
         <meshStandardMaterial
           map={woodFloorTexture || undefined}
           color={woodFloorTexture ? '#ffffff' : '#d97706'}
@@ -620,8 +674,8 @@ const ArcadeRoomEnvironment: React.FC = () => {
         />
       </mesh>
 
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[7, 0.01, -1.9]}>
-        <planeGeometry args={[64, 0.08]} />
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[20, 0.01, -1.9]}>
+        <planeGeometry args={[92, 0.08]} />
         <meshBasicMaterial color="#f59e0b" />
       </mesh>
     </group>

@@ -245,15 +245,36 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#67e8f9';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
-    } else if (config.id === 'solar-forge') {
+    } else if (config.id === 'chocolate-factory') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);
-      grad.addColorStop(0, '#78350f');
-      grad.addColorStop(0.5, '#d97706');
-      grad.addColorStop(1, '#92400e');
+      grad.addColorStop(0, '#5b2d12');
+      grad.addColorStop(0.5, '#84562b');
+      grad.addColorStop(1, '#4a2410');
       ctx.fillStyle = grad;
       ctx.fillRect(0, 0, 1024, 768);
 
-      ctx.strokeStyle = '#fde047';
+      ctx.strokeStyle = '#f0b429';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 54px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE CHOCOLATE FACTORY', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'graphworks') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#0c4a6e');
+      grad.addColorStop(0.5, '#0284c7');
+      grad.addColorStop(1, '#0369a1');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#38bdf8';
       ctx.lineWidth = 14;
       ctx.beginPath();
       ctx.arc(512, 340, 180, 0, Math.PI * 2);
@@ -262,7 +283,70 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.fillStyle = '#ffffff';
       ctx.font = 'bold 56px Arial, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('THE SOLAR FORGE', 512, 320);
+      ctx.fillText('GRAPHWORKS', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#e0f2fe';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'percentage-harvest') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#14532d');
+      grad.addColorStop(0.5, '#16a34a');
+      grad.addColorStop(1, '#052e16');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#facc15';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 54px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PERCENTAGE HARVEST', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'park-planner') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#064e3b');
+      grad.addColorStop(0.5, '#059669');
+      grad.addColorStop(1, '#065f46');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('PARK PLANNER', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
+    } else if (config.id === 'ratio-rush') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#450a0a');
+      grad.addColorStop(0.5, '#dc2626');
+      grad.addColorStop(1, '#7f1d1d');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#f59e0b';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('RATIO RUSH', 512, 320);
       ctx.font = 'bold 34px Arial, sans-serif';
       ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
@@ -329,6 +413,38 @@ export const ArcadeCabinet3D: React.FC<{
       bgGrad.addColorStop(0, '#1e3a8a');
       bgGrad.addColorStop(0.5, '#2563eb');
       bgGrad.addColorStop(1, '#1e3a8a');
+    } else if (config.id === 'pattern-racers') {
+      bgGrad.addColorStop(0, '#9a3412');
+      bgGrad.addColorStop(0.5, '#ea580c');
+      bgGrad.addColorStop(1, '#9a3412');
+    } else if (config.id === 'decimal-delivery') {
+      bgGrad.addColorStop(0, '#312e81');
+      bgGrad.addColorStop(0.5, '#4f46e5');
+      bgGrad.addColorStop(1, '#312e81');
+    } else if (config.id === 'solar-forge') {
+      bgGrad.addColorStop(0, '#78350f');
+      bgGrad.addColorStop(0.5, '#d97706');
+      bgGrad.addColorStop(1, '#78350f');
+    } else if (config.id === 'chocolate-factory') {
+      bgGrad.addColorStop(0, '#4a2410');
+      bgGrad.addColorStop(0.5, '#7c3f12');
+      bgGrad.addColorStop(1, '#4a2410');
+    } else if (config.id === 'graphworks') {
+      bgGrad.addColorStop(0, '#0c4a6e');
+      bgGrad.addColorStop(0.5, '#0284c7');
+      bgGrad.addColorStop(1, '#0c4a6e');
+    } else if (config.id === 'percentage-harvest') {
+      bgGrad.addColorStop(0, '#052e16');
+      bgGrad.addColorStop(0.5, '#15803d');
+      bgGrad.addColorStop(1, '#052e16');
+    } else if (config.id === 'park-planner') {
+      bgGrad.addColorStop(0, '#064e3b');
+      bgGrad.addColorStop(0.5, '#047857');
+      bgGrad.addColorStop(1, '#064e3b');
+    } else if (config.id === 'ratio-rush') {
+      bgGrad.addColorStop(0, '#450a0a');
+      bgGrad.addColorStop(0.5, '#b91c1c');
+      bgGrad.addColorStop(1, '#450a0a');
     } else {
       bgGrad.addColorStop(0, '#6b21a8');
       bgGrad.addColorStop(0.5, '#a855f7');
@@ -349,7 +465,7 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.strokeRect(36, 36, 1976, 608);
 
     // 1. Top Subheader: Grade & Cabinet (Clean, Simple Arial Font in Bright Yellow/Cyan)
-    ctx.fillStyle = config.id === 'number-railway' ? '#e0f2fe' : config.id === 'blueprint-blitz' ? '#e0f2fe' : '#fef08a';
+    ctx.fillStyle = '#fef08a';
     ctx.font = 'bold 52px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`★ CABINET #${config.number}  •  ${config.grade.toUpperCase()} ★`, 1024, 118);
@@ -362,17 +478,7 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.fillText(config.title, 1024, 294);
 
     // 3. Bottom Topic Badge: Solid High-Contrast Pill with Bold White Text (NOT black)
-    const pillBg = config.id === 'math-escape-vault' 
-      ? '#b45309' 
-      : config.id === 'number-railway' 
-      ? '#0369a1' 
-      : config.id === 'carnival-of-chance' 
-      ? '#7f1d1d' 
-      : config.id === 'blueprint-blitz'
-      ? '#075985'
-      : config.id === 'equation-mission-control'
-      ? '#1e3a8a'
-      : '#4c1d95';
+    const pillBg = config.theme.marqueeBg || '#1e293b';
 
     ctx.fillStyle = pillBg;
     ctx.beginPath();

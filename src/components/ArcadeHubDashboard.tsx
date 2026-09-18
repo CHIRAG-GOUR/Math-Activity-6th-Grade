@@ -134,7 +134,7 @@ export const ArcadeHubDashboard: React.FC = () => {
               PREV WING
             </div>
             <div className="text-xs font-black font-bank uppercase tracking-wider text-slate-950 leading-tight">
-              MACHINES 01 - 04
+              WING {activePage}
             </div>
           </div>
         </button>
@@ -152,7 +152,7 @@ export const ArcadeHubDashboard: React.FC = () => {
               NEXT WING
             </div>
             <div className="text-xs font-black font-bank uppercase tracking-wider text-slate-950 leading-tight">
-              MACHINES 05 - 08
+              {activePage === 2 ? 'MACHINE 13' : `WING ${activePage + 2}`}
             </div>
           </div>
           <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-amber-500 to-yellow-400 text-slate-950 flex items-center justify-center shadow-md group-hover:from-yellow-400 group-hover:to-amber-500 transition-colors">
