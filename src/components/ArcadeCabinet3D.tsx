@@ -512,7 +512,7 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.strokeRect(36, 36, 1976, 608);
 
     // 1. Top Subheader: Grade & Cabinet (Clean, Simple Arial Font in Bright Yellow/Cyan)
-    ctx.fillStyle = '#fef08a';
+    ctx.fillStyle = config.id === 'number-railway' || config.id === 'blueprint-blitz' || config.id === 'graphworks' ? '#e0f2fe' : '#fef08a';
     ctx.font = 'bold 52px Arial, sans-serif';
     ctx.textAlign = 'center';
     ctx.fillText(`★ CABINET #${config.number}  •  ${config.grade.toUpperCase()} ★`, 1024, 118);
@@ -534,8 +534,34 @@ export const ArcadeCabinet3D: React.FC<{
     ctx.fillStyle = '#ffffff';
     ctx.fillText(config.title, 1024, 294, 1850);
 
-    // 3. Bottom Topic Badge: Solid High-Contrast Pill with Bold White Text (NOT black)
-    const pillBg = config.theme.marqueeBg || '#1e293b';
+    // 3. Bottom Topic Badge: Solid High-Contrast Pill with Bold White Text (Complimenting each machine theme)
+    const pillBg = config.id === 'math-escape-vault'
+      ? '#b45309'
+      : config.id === 'number-railway'
+      ? '#0369a1'
+      : config.id === 'carnival-of-chance'
+      ? '#7f1d1d'
+      : config.id === 'blueprint-blitz'
+      ? '#075985'
+      : config.id === 'equation-mission-control'
+      ? '#1e3a8a'
+      : config.id === 'pattern-racers'
+      ? '#9a3412'
+      : config.id === 'decimal-delivery'
+      ? '#312e81'
+      : config.id === 'solar-forge'
+      ? '#92400e'
+      : config.id === 'chocolate-factory'
+      ? '#5b2d12'
+      : config.id === 'graphworks'
+      ? '#0369a1'
+      : config.id === 'percentage-harvest'
+      ? '#14532d'
+      : config.id === 'park-planner'
+      ? '#064e3b'
+      : config.id === 'ratio-rush'
+      ? '#7f1d1d'
+      : config.theme.marqueeBg || '#1e293b';
 
     ctx.fillStyle = pillBg;
     ctx.beginPath();
