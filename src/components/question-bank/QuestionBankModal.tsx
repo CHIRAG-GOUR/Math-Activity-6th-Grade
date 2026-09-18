@@ -444,10 +444,10 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
           </div>
 
           {/* Header Action Buttons */}
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex items-center gap-2 sm:gap-2.5">
             <button
               onClick={() => handleOpenAddForm()}
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl transition-all shadow-md hover:shadow-blue-500/30 flex items-center gap-1.5"
+              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-black text-xs rounded-xl transition-all shadow-md hover:shadow-blue-500/30 flex items-center gap-1.5"
             >
               <span>➕</span> Add Question
             </button>
@@ -460,19 +460,19 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
             </button>
 
             <button
-              onClick={handleExportExcel}
-              title="Export filtered questions to .xlsx"
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition-colors hidden md:flex items-center gap-1.5 border border-slate-700"
+              onClick={handleDownloadTemplate}
+              title="Download professional 4-sheet Excel template (.xlsx)"
+              className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-slate-900"
             >
-              <span>📤</span> Export
+              <span>📄</span> Download Excel Template
             </button>
 
             <button
-              onClick={handleDownloadTemplate}
-              title="Download empty Excel template"
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl transition-colors hidden sm:flex items-center gap-1.5 border border-slate-700"
+              onClick={handleExportExcel}
+              title="Export filtered questions to .xlsx"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold text-xs rounded-xl transition-colors hidden lg:flex items-center gap-1.5 border border-slate-700"
             >
-              <span>📄</span> Template
+              <span>📤</span> Export
             </button>
 
             <button
@@ -680,15 +680,29 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
               <h3 className="text-base font-black text-slate-800 uppercase tracking-wide">
                 No Questions Found
               </h3>
-              <p className="text-xs text-slate-500 max-w-md mt-1 mb-4">
-                No questions match your current activity/topic filters. Add a new question or clear filters!
+              <p className="text-xs text-slate-500 max-w-md mt-1 mb-5">
+                No questions match your current activity/topic filters. Add questions manually or bulk-import via Excel!
               </p>
-              <button
-                onClick={() => handleOpenAddForm()}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-all shadow-md"
-              >
-                ➕ Add Question Now
-              </button>
+              <div className="flex flex-wrap items-center justify-center gap-2.5">
+                <button
+                  onClick={() => handleOpenAddForm()}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <span>➕</span> Add Question
+                </button>
+                <button
+                  onClick={() => setIsExcelImportOpen(true)}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-black text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
+                >
+                  <span>📥</span> Import Excel
+                </button>
+                <button
+                  onClick={handleDownloadTemplate}
+                  className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5 border border-slate-900"
+                >
+                  <span>📄</span> Download Template
+                </button>
+              </div>
             </div>
           ) : filterState.groupByActivity ? (
             /* ── GROUPED VIEW BY ACTIVITY & TOPIC ── */
@@ -781,8 +795,20 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
         <ExcelImportModal
           isOpen={isExcelImportOpen}
           onClose={() => setIsExcelImportOpen(false)}
-          onImportComplete={(msg) => {
+          onImportComplete={(msg, _ids, primaryActId) => {
             reloadQuestions();
+            if (primaryActId) {
+              setFilterState((prev) => ({
+                ...prev,
+                activityId: primaryActId,
+                source: 'teacher',
+              }));
+            } else {
+              setFilterState((prev) => ({
+                ...prev,
+                source: 'teacher',
+              }));
+            }
             showToast(msg);
           }}
         />

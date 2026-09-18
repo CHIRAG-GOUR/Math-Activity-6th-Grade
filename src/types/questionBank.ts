@@ -43,7 +43,7 @@ export interface UniversalQuestion {
   updatedAt: number;
 }
 
-export interface ExcelImportRow {
+export interface ExcelParsedRow {
   rowNumber: number;
   rawActivity: string;
   rawTopic?: string;
@@ -56,29 +56,28 @@ export interface ExcelImportRow {
   rawExplanation?: string;
   rawDifficulty?: string;
   rawTags?: string;
-}
-
-export interface ExcelInvalidRow {
-  rowNumber: number;
-  data: Partial<ExcelImportRow>;
+  status: 'ready' | 'invalid' | 'mismatch' | 'duplicate';
   errors: string[];
   warning?: string;
-}
-
-export interface ExcelDuplicateRow {
-  rowNumber: number;
-  question: UniversalQuestion;
-  existingQuestion: UniversalQuestion;
+  matchedActivity?: ActivityDefinition | null;
+  expectedTopic?: string;
+  validatedQuestion?: UniversalQuestion;
+  existingDuplicate?: UniversalQuestion;
 }
 
 export interface ExcelValidationResult {
+  fileName: string;
+  sheetName: string;
   totalDetected: number;
   validCount: number;
   invalidCount: number;
+  mismatchCount: number;
   duplicateCount: number;
+  ignoredColumns: string[];
+  rows: ExcelParsedRow[];
   validQuestions: UniversalQuestion[];
-  invalidRows: ExcelInvalidRow[];
-  duplicateRows: ExcelDuplicateRow[];
+  invalidRows: ExcelParsedRow[];
+  duplicateRows: ExcelParsedRow[];
 }
 
 export interface GameSessionSetup {

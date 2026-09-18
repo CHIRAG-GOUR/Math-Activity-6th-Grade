@@ -13,8 +13,7 @@ import {
   AnswerOptionKey,
   GameQuestionCount,
   ExcelValidationResult,
-  ExcelInvalidRow,
-  ExcelDuplicateRow,
+  ExcelParsedRow,
   QuestionBankFilterState,
 } from '@/types/questionBank';
 import { BUILT_IN_QUESTIONS_SEED } from './builtInQuestionsSeed';
@@ -410,164 +409,393 @@ export function recordPlayedQuestions(activityId: string, questionIds: string[])
 }
 
 // ------------------------------------------------------------
-// Excel & CSV Import Validation & Execution
+// Excel & CSV Import Validation & Execution (Production Engine)
 // ------------------------------------------------------------
+
+export interface HeaderMapping {
+  activityCol?: string;
+  topicCol?: string;
+  questionCol?: string;
+  optionACol?: string;
+  optionBCol?: string;
+  optionCCol?: string;
+  optionDCol?: string;
+  correctCol?: string;
+  explanationCol?: string;
+  difficultyCol?: string;
+  tagsCol?: string;
+  ignoredCols: string[];
+}
+
+function normalizeHeaderKey(key: string): string {
+  return key
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .trim();
+}
+
+function detectColumnMapping(headers: string[]): HeaderMapping {
+  const mapping: HeaderMapping = { ignoredCols: [] };
+
+  const recognizedAliases: Record<keyof Omit<HeaderMapping, 'ignoredCols'>, string[]> = {
+    activityCol: [
+      'activity',
+      'activityname',
+      'game',
+      'gamename',
+      'cabinet',
+      'cab',
+      'activitytopic',
+      'targetactivity',
+      'arcadeactivity',
+      'activitycurriculum',
+    ],
+    topicCol: [
+      'topic',
+      'mathtopic',
+      'curriculumtopic',
+      'mathematicstopic',
+      'topicname',
+      'subjecttopic',
+      'mathconcept',
+      'concept',
+    ],
+    questionCol: [
+      'question',
+      'questiontext',
+      'mathquestion',
+      'prompt',
+      'questionprompt',
+      'problem',
+      'mathproblem',
+      'qtext',
+    ],
+    optionACol: ['optiona', 'a', 'choicea', 'choice1', 'option1', 'opt1', 'ansa', 'answera'],
+    optionBCol: ['optionb', 'b', 'choiceb', 'choice2', 'option2', 'opt2', 'ansb', 'answerb'],
+    optionCCol: ['optionc', 'c', 'choicec', 'choice3', 'option3', 'opt3', 'ansc', 'answerc'],
+    optionDCol: ['optiond', 'd', 'choiced', 'choice4', 'option4', 'opt4', 'ansd', 'answerd'],
+    correctCol: [
+      'correctanswer',
+      'correct',
+      'answer',
+      'key',
+      'correctoption',
+      'correctchoice',
+      'answerkey',
+      'ans',
+    ],
+    explanationCol: [
+      'explanation',
+      'learningfeedback',
+      'feedback',
+      'hint',
+      'reasoning',
+      'solution',
+      'stepbystep',
+      'solutionnotes',
+    ],
+    difficultyCol: ['difficulty', 'level', 'difficultylevel', 'gradelevel', 'challenge'],
+    tagsCol: ['tags', 'tag', 'keywords', 'categories', 'taglist', 'topicstags'],
+  };
+
+  for (const rawHeader of headers) {
+    const clean = normalizeHeaderKey(rawHeader);
+    if (!clean) continue;
+
+    let matched = false;
+    for (const [fieldKey, aliases] of Object.entries(recognizedAliases)) {
+      if (aliases.includes(clean) || aliases.some((a) => clean === a || clean.startsWith(a))) {
+        mapping[fieldKey as keyof Omit<HeaderMapping, 'ignoredCols'>] = rawHeader;
+        matched = true;
+        break;
+      }
+    }
+
+    if (!matched) {
+      mapping.ignoredCols.push(rawHeader);
+    }
+  }
+
+  return mapping;
+}
 
 export async function parseAndValidateExcel(file: File): Promise<ExcelValidationResult> {
   const buffer = await file.arrayBuffer();
   const workbook = XLSX.read(buffer, { type: 'array' });
-  const sheetName = workbook.SheetNames[0];
-  if (!sheetName) {
-    throw new Error('The uploaded file does not contain any sheets.');
+
+  if (!workbook.SheetNames || workbook.SheetNames.length === 0) {
+    throw new Error('The uploaded file does not contain any readable sheets.');
   }
 
-  const worksheet = workbook.Sheets[sheetName];
-  const rawRows: Record<string, any>[] = XLSX.utils.sheet_to_json(worksheet, { defval: '' });
+  // 1. Intelligent Sheet Selection: Prefer 'Questions' / 'Sheet1' and avoid 'Instructions' / 'Examples' / 'Activity List'
+  let targetSheetName = workbook.SheetNames[0];
+  const questionSheetCandidates = ['questions', 'teacher questions', 'question bank', 'questions sheet', 'sheet1', 'data'];
+  const skipSheets = ['instructions', 'instruction', 'examples', 'example', 'activity list', 'activities', 'reference'];
 
-  if (!rawRows || rawRows.length === 0) {
-    throw new Error('No data rows found in the sheet. Please make sure the file is not empty.');
+  for (const name of workbook.SheetNames) {
+    const cleanName = name.trim().toLowerCase();
+    if (questionSheetCandidates.includes(cleanName)) {
+      targetSheetName = name;
+      break;
+    }
   }
+
+  // If candidate is a skip sheet and there are other sheets, look for one that has headers
+  if (skipSheets.includes(targetSheetName.toLowerCase()) && workbook.SheetNames.length > 1) {
+    const alternate = workbook.SheetNames.find((n) => !skipSheets.includes(n.toLowerCase()));
+    if (alternate) targetSheetName = alternate;
+  }
+
+  const worksheet = workbook.Sheets[targetSheetName];
+  if (!worksheet) {
+    throw new Error(`Could not access sheet "${targetSheetName}".`);
+  }
+
+  // Convert to Array-of-Arrays first to locate the header row (in case title banner spans rows 1-3)
+  const rawMatrix: any[][] = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
+
+  if (!rawMatrix || rawMatrix.length === 0) {
+    throw new Error('The selected sheet is completely empty.');
+  }
+
+  // Find header row: Look for row containing "question" or "activity" or "option a"
+  let headerRowIndex = 0;
+  for (let r = 0; r < Math.min(rawMatrix.length, 10); r++) {
+    const rowValues = (rawMatrix[r] || []).map((c) => String(c).toLowerCase());
+    const hasQuestion = rowValues.some((v) => v.includes('question') || v.includes('prompt'));
+    const hasActivity = rowValues.some((v) => v.includes('activity') || v.includes('game'));
+    const hasOption = rowValues.some((v) => v.includes('option') || v.includes('choice') || v === 'a');
+
+    if ((hasQuestion && hasActivity) || (hasQuestion && hasOption) || (hasActivity && hasOption)) {
+      headerRowIndex = r;
+      break;
+    }
+  }
+
+  const rawHeaders = (rawMatrix[headerRowIndex] || []).map((h) => String(h).trim()).filter(Boolean);
+  const columnMapping = detectColumnMapping(rawHeaders);
+
+  // If question column wasn't identified, fallback to standard column names
+  if (!columnMapping.questionCol && rawHeaders.length > 2) {
+    columnMapping.activityCol = rawHeaders[0];
+    columnMapping.topicCol = rawHeaders[1];
+    columnMapping.questionCol = rawHeaders[2];
+    columnMapping.optionACol = rawHeaders[3];
+    columnMapping.optionBCol = rawHeaders[4];
+    columnMapping.optionCCol = rawHeaders[5];
+    columnMapping.optionDCol = rawHeaders[6];
+    columnMapping.correctCol = rawHeaders[7];
+  }
+
+  const dataRows = rawMatrix.slice(headerRowIndex + 1);
 
   const existingAll = getAllQuestions();
   const existingMap = new Map<string, UniversalQuestion>();
   for (const q of existingAll) {
-    // Key by activityId + normalized question text
     const key = `${q.activityId}:::${q.question.trim().toLowerCase()}`;
     existingMap.set(key, q);
   }
 
+  const parsedRows: ExcelParsedRow[] = [];
   const validQuestions: UniversalQuestion[] = [];
-  const invalidRows: ExcelInvalidRow[] = [];
-  const duplicateRows: ExcelDuplicateRow[] = [];
+  const internalDuplicateTracker = new Map<string, number>();
 
-  rawRows.forEach((row, index) => {
-    const rowNumber = index + 2; // Excel row index assuming row 1 is header
+  dataRows.forEach((rowArray, rIdx) => {
+    const excelRowNumber = headerRowIndex + 2 + rIdx;
+
+    // Check if entire row is empty
+    const nonBlankCells = rowArray.filter((c) => c !== null && c !== undefined && String(c).trim() !== '');
+    if (nonBlankCells.length === 0) return; // Ignore blank rows
+
+    // Map cell by column index or column mapping
+    const getVal = (colHeaderName?: string, defaultIdx: number = -1): string => {
+      if (colHeaderName) {
+        const idx = rawHeaders.indexOf(colHeaderName);
+        if (idx !== -1 && rowArray[idx] !== undefined) {
+          return String(rowArray[idx]).trim();
+        }
+      }
+      if (defaultIdx !== -1 && defaultIdx < rowArray.length) {
+        return String(rowArray[defaultIdx] || '').trim();
+      }
+      return '';
+    };
+
+    const rawActivity = getVal(columnMapping.activityCol, 0);
+    const rawTopic = getVal(columnMapping.topicCol, 1);
+    const rawQuestion = getVal(columnMapping.questionCol, 2);
+    const rawOptionA = getVal(columnMapping.optionACol, 3);
+    const rawOptionB = getVal(columnMapping.optionBCol, 4);
+    const rawOptionC = getVal(columnMapping.optionCCol, 5);
+    const rawOptionD = getVal(columnMapping.optionDCol, 6);
+    const rawCorrectAnswer = getVal(columnMapping.correctCol, 7);
+    const rawExplanation = getVal(columnMapping.explanationCol, 8);
+    const rawDifficulty = getVal(columnMapping.difficultyCol, 9);
+    const rawTags = getVal(columnMapping.tagsCol, 10);
+
+    // Filter out explicit example rows if teacher left template example notes
+    const combinedRowStr = `${rawActivity} ${rawTopic} ${rawQuestion}`.toLowerCase();
+    if (
+      combinedRowStr.includes('example — delete') ||
+      combinedRowStr.includes('example - delete') ||
+      combinedRowStr.includes('reference only') ||
+      combinedRowStr.includes('delete these rows')
+    ) {
+      return; // Skip example guidance rows cleanly
+    }
+
     const errors: string[] = [];
     let warning: string | undefined = undefined;
+    let expectedTopic: string | undefined = undefined;
 
-    // Extract fields with flexible column naming
-    const rawActivity = String(row['Activity'] || row['Activity Name'] || row['Game'] || row['Cabinet'] || '').trim();
-    const rawTopic = String(row['Topic'] || row['Math Topic'] || row['Curriculum Topic'] || '').trim();
-    const rawQuestion = String(row['Question'] || row['Question Text'] || row['Math Question'] || '').trim();
-    const rawOptionA = String(row['Option A'] || row['OptionA'] || row['A'] || row['Choice A'] || '').trim();
-    const rawOptionB = String(row['Option B'] || row['OptionB'] || row['B'] || row['Choice B'] || '').trim();
-    const rawOptionC = String(row['Option C'] || row['OptionC'] || row['C'] || row['Choice C'] || '').trim();
-    const rawOptionD = String(row['Option D'] || row['OptionD'] || row['D'] || row['Choice D'] || '').trim();
-    const rawCorrectAnswer = String(row['Correct Answer'] || row['Correct'] || row['Answer'] || row['Key'] || '').trim().toUpperCase();
-    const rawExplanation = String(row['Explanation'] || row['Learning Feedback'] || row['Hint'] || '').trim();
-    const rawDifficulty = String(row['Difficulty'] || row['Level'] || 'Easy').trim().toLowerCase();
-    const rawTags = String(row['Tags'] || row['Tag'] || row['Keywords'] || '').trim();
-
-    // 1. Resolve activity & validate Topic pairing
+    // 1. Resolve activity & Validate Topic
     const pairResult = validateActivityTopicPair(rawActivity || rawTopic, rawTopic);
     const activity = pairResult.matchedActivity;
 
     if (!activity) {
-      errors.push(`Activity not recognized: "${rawActivity || rawTopic}". Must match one of the 13 games.`);
-    } else if (pairResult.isMismatch && pairResult.expectedTopic) {
       errors.push(
-        `Activity/Topic mismatch: "${activity.name}" belongs to topic "${activity.topic}", but sheet says "${rawTopic}".`
+        rawActivity
+          ? `Activity not recognized: "${rawActivity}". Must match one of the 13 arcade games.`
+          : 'Activity is missing. Please select an activity.'
       );
+    } else if (pairResult.isMismatch && pairResult.expectedTopic) {
+      expectedTopic = pairResult.expectedTopic;
+      warning = `Activity/Topic mismatch: "${activity.name}" belongs to topic "${activity.topic}", but sheet says "${rawTopic}".`;
+      errors.push(`Activity/topic mismatch. Expected topic: "${expectedTopic}".`);
     }
 
-    // 2. Validate question text
+    // 2. Validate Question Text
     if (!rawQuestion) {
       errors.push('Question text is missing.');
     }
 
-    // 3. Validate options
-    const missingOptions: string[] = [];
-    if (!rawOptionA) missingOptions.push('Option A');
-    if (!rawOptionB) missingOptions.push('Option B');
-    if (!rawOptionC) missingOptions.push('Option C');
-    if (!rawOptionD) missingOptions.push('Option D');
-    if (missingOptions.length > 0) {
-      errors.push(`Missing answer choices: ${missingOptions.join(', ')} (Must have 4 options).`);
+    // 3. Validate 4 Options
+    const missingOpts: string[] = [];
+    if (!rawOptionA) missingOpts.push('Option A');
+    if (!rawOptionB) missingOpts.push('Option B');
+    if (!rawOptionC) missingOpts.push('Option C');
+    if (!rawOptionD) missingOpts.push('Option D');
+    if (missingOpts.length > 0) {
+      errors.push(`Missing answer choices: ${missingOpts.join(', ')} (Must have 4 options).`);
     }
 
-    // 4. Validate correct answer
+    // 4. Validate and Normalize Correct Answer
     let cleanCorrect: AnswerOptionKey | null = null;
-    if (rawCorrectAnswer === 'A' || rawCorrectAnswer === 'OPTION A' || rawCorrectAnswer === '1') cleanCorrect = 'A';
-    else if (rawCorrectAnswer === 'B' || rawCorrectAnswer === 'OPTION B' || rawCorrectAnswer === '2') cleanCorrect = 'B';
-    else if (rawCorrectAnswer === 'C' || rawCorrectAnswer === 'OPTION C' || rawCorrectAnswer === '3') cleanCorrect = 'C';
-    else if (rawCorrectAnswer === 'D' || rawCorrectAnswer === 'OPTION D' || rawCorrectAnswer === '4') cleanCorrect = 'D';
-    else if (rawCorrectAnswer === rawOptionA && rawOptionA) cleanCorrect = 'A';
-    else if (rawCorrectAnswer === rawOptionB && rawOptionB) cleanCorrect = 'B';
-    else if (rawCorrectAnswer === rawOptionC && rawOptionC) cleanCorrect = 'C';
-    else if (rawCorrectAnswer === rawOptionD && rawOptionD) cleanCorrect = 'D';
+    const normCorrect = rawCorrectAnswer.trim().toUpperCase();
+
+    if (normCorrect === 'A' || normCorrect === 'OPTION A' || normCorrect === '1' || normCorrect === 'CHOICE A') cleanCorrect = 'A';
+    else if (normCorrect === 'B' || normCorrect === 'OPTION B' || normCorrect === '2' || normCorrect === 'CHOICE B') cleanCorrect = 'B';
+    else if (normCorrect === 'C' || normCorrect === 'OPTION C' || normCorrect === '3' || normCorrect === 'CHOICE C') cleanCorrect = 'C';
+    else if (normCorrect === 'D' || normCorrect === 'OPTION D' || normCorrect === '4' || normCorrect === 'CHOICE D') cleanCorrect = 'D';
+    else if (rawCorrectAnswer && rawOptionA && rawCorrectAnswer.toLowerCase() === rawOptionA.toLowerCase()) cleanCorrect = 'A';
+    else if (rawCorrectAnswer && rawOptionB && rawCorrectAnswer.toLowerCase() === rawOptionB.toLowerCase()) cleanCorrect = 'B';
+    else if (rawCorrectAnswer && rawOptionC && rawCorrectAnswer.toLowerCase() === rawOptionC.toLowerCase()) cleanCorrect = 'C';
+    else if (rawCorrectAnswer && rawOptionD && rawCorrectAnswer.toLowerCase() === rawOptionD.toLowerCase()) cleanCorrect = 'D';
 
     if (!cleanCorrect) {
-      errors.push(`Invalid Correct Answer: "${rawCorrectAnswer}". Must be A, B, C, or D.`);
+      errors.push(
+        rawCorrectAnswer
+          ? `Invalid Correct Answer: "${rawCorrectAnswer}". Must be A, B, C, or D.`
+          : 'Correct Answer is missing. Must specify A, B, C, or D.'
+      );
     }
 
-    // 5. Validate difficulty
+    // 5. Normalize Difficulty
     let difficulty: QuestionDifficulty = 'easy';
-    if (rawDifficulty.includes('hard') || rawDifficulty.includes('3')) difficulty = 'hard';
-    else if (rawDifficulty.includes('med') || rawDifficulty.includes('2')) difficulty = 'medium';
+    const cleanDiff = rawDifficulty.toLowerCase();
+    if (cleanDiff.includes('hard') || cleanDiff.includes('3') || cleanDiff.includes('adv')) difficulty = 'hard';
+    else if (cleanDiff.includes('med') || cleanDiff.includes('2') || cleanDiff.includes('mod')) difficulty = 'medium';
     else difficulty = 'easy';
 
-    // Parse tags
+    // 6. Parse Tags
     const tags = rawTags
-      ? rawTags.split(/[,;|]/).map((t) => t.trim()).filter(Boolean)
+      ? rawTags
+          .split(/[,;|]/)
+          .map((t) => t.trim())
+          .filter(Boolean)
       : [];
 
+    // Check Duplicates
+    let status: 'ready' | 'invalid' | 'mismatch' | 'duplicate' = 'ready';
+    let existingDuplicate: UniversalQuestion | undefined = undefined;
+
     if (errors.length > 0 || !activity || !cleanCorrect || !rawQuestion) {
-      invalidRows.push({
-        rowNumber,
-        data: {
-          rawActivity,
-          rawTopic,
-          rawQuestion,
-          rawOptionA,
-          rawOptionB,
-          rawOptionC,
-          rawOptionD,
-          rawCorrectAnswer,
-          rawExplanation,
-          rawDifficulty,
-          rawTags,
-        },
-        errors,
-        warning,
-      });
-      return;
+      status = pairResult.isMismatch ? 'mismatch' : 'invalid';
+    } else {
+      const dupKey = `${activity.id}:::${rawQuestion.toLowerCase()}`;
+      if (existingMap.has(dupKey)) {
+        status = 'duplicate';
+        existingDuplicate = existingMap.get(dupKey);
+        warning = `Duplicate question already exists in your Question Bank.`;
+      } else if (internalDuplicateTracker.has(dupKey)) {
+        status = 'duplicate';
+        warning = `Duplicate of row #${internalDuplicateTracker.get(dupKey)} in this spreadsheet.`;
+      } else {
+        internalDuplicateTracker.set(dupKey, excelRowNumber);
+      }
     }
 
-    const newQ: UniversalQuestion = {
-      id: `tq-import-${Date.now()}-${index}-${Math.random().toString(36).substring(2, 6)}`,
-      source: 'teacher',
-      activityId: activity.id,
-      activityName: activity.name,
-      topicId: activity.topicId,
-      topicName: activity.topic,
-      question: rawQuestion,
-      options: [rawOptionA, rawOptionB, rawOptionC, rawOptionD],
-      correctAnswer: cleanCorrect,
-      explanation: rawExplanation || undefined,
-      difficulty,
-      tags,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    };
-
-    // Check duplicate
-    const dupKey = `${activity.id}:::${rawQuestion.toLowerCase()}`;
-    if (existingMap.has(dupKey)) {
-      duplicateRows.push({
-        rowNumber,
-        question: newQ,
-        existingQuestion: existingMap.get(dupKey)!,
-      });
+    let validatedQuestion: UniversalQuestion | undefined = undefined;
+    if (activity && cleanCorrect && rawQuestion) {
+      validatedQuestion = {
+        id: `tq-import-${Date.now()}-${rIdx}-${Math.random().toString(36).substring(2, 6)}`,
+        source: 'teacher',
+        activityId: activity.id,
+        activityName: activity.name,
+        topicId: activity.topicId,
+        topicName: activity.topic,
+        question: rawQuestion,
+        options: [rawOptionA, rawOptionB, rawOptionC, rawOptionD],
+        correctAnswer: cleanCorrect,
+        explanation: rawExplanation || undefined,
+        difficulty,
+        tags,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      };
+      if (status === 'ready' || status === 'duplicate') {
+        validQuestions.push(validatedQuestion);
+      }
     }
 
-    validQuestions.push(newQ);
+    parsedRows.push({
+      rowNumber: excelRowNumber,
+      rawActivity,
+      rawTopic,
+      rawQuestion,
+      rawOptionA,
+      rawOptionB,
+      rawOptionC,
+      rawOptionD,
+      rawCorrectAnswer,
+      rawExplanation,
+      rawDifficulty,
+      rawTags,
+      status,
+      errors,
+      warning,
+      matchedActivity: activity,
+      expectedTopic,
+      validatedQuestion,
+      existingDuplicate,
+    });
   });
 
+  const validRows = parsedRows.filter((r) => r.status === 'ready');
+  const invalidRows = parsedRows.filter((r) => r.status === 'invalid' || r.status === 'mismatch');
+  const duplicateRows = parsedRows.filter((r) => r.status === 'duplicate');
+  const mismatchCount = parsedRows.filter((r) => r.status === 'mismatch').length;
+
   return {
-    totalDetected: rawRows.length,
-    validCount: validQuestions.length,
+    fileName: file.name,
+    sheetName: targetSheetName,
+    totalDetected: parsedRows.length,
+    validCount: validRows.length,
     invalidCount: invalidRows.length,
+    mismatchCount,
     duplicateCount: duplicateRows.length,
+    ignoredColumns: columnMapping.ignoredCols,
+    rows: parsedRows,
     validQuestions,
     invalidRows,
     duplicateRows,
@@ -614,11 +842,85 @@ export function commitExcelImport(
 }
 
 // ------------------------------------------------------------
-// Template Generation & Export
+// Multi-Sheet Professional Template Generator
 // ------------------------------------------------------------
 
 export function generateExcelTemplateBlob(): Blob {
-  const templateRows = [
+  const workbook = XLSX.utils.book_new();
+
+  // ── SHEET 1: QUESTIONS (Clean Entry Sheet) ──
+  const questionsAOA: any[][] = [
+    ['SKILLIZEE ARCADE — TEACHER QUESTION IMPORT'],
+    ['Enter one question per row. Select the activity using the dropdown or exact name. Fill all 4 options and mark the correct answer with A, B, C, or D.'],
+    [], // Blank separator
+    [
+      'Activity',
+      'Topic',
+      'Question',
+      'Option A',
+      'Option B',
+      'Option C',
+      'Option D',
+      'Correct Answer',
+      'Explanation',
+      'Difficulty',
+      'Tags',
+    ],
+  ];
+
+  // Provide 20 pre-formatted clean entry rows with default 'Easy' difficulty
+  for (let i = 0; i < 20; i++) {
+    questionsAOA.push(['', '', '', '', '', '', '', '', '', 'Easy', '']);
+  }
+
+  const wsQuestions = XLSX.utils.aoa_to_sheet(questionsAOA);
+
+  wsQuestions['!cols'] = [
+    { wch: 32 }, // Activity
+    { wch: 28 }, // Topic
+    { wch: 55 }, // Question
+    { wch: 22 }, // Option A
+    { wch: 22 }, // Option B
+    { wch: 22 }, // Option C
+    { wch: 22 }, // Option D
+    { wch: 16 }, // Correct Answer
+    { wch: 45 }, // Explanation
+    { wch: 14 }, // Difficulty
+    { wch: 28 }, // Tags
+  ];
+
+  // Freeze top 4 header rows so titles & column headers stay fixed while scrolling
+  wsQuestions['!views'] = [{ state: 'frozen', ySplit: 4 }];
+
+  XLSX.utils.book_append_sheet(workbook, wsQuestions, 'Questions');
+
+  // ── SHEET 2: INSTRUCTIONS ──
+  const instructionsAOA: any[][] = [
+    ['SKILLIZEE ARCADE — TEACHER QUESTION IMPORT INSTRUCTIONS'],
+    ['Follow these simple 8 steps to import custom questions for your students.'],
+    [],
+    ['Step', 'Action', 'Details & Rules'],
+    ['Step 1', 'Choose the Activity', 'Select from the 13 official arcade games (e.g. "GraphWorks — Graphs" or "The Chocolate Factory — Fractions").'],
+    ['Step 2', 'Verify the Math Topic', 'The topic must match the activity\'s curriculum subject (refer to the "Activity List" sheet).'],
+    ['Step 3', 'Enter Your Question', 'Write the complete question prompt. Mathematical symbols (+, -, ×, ÷, ², √, etc.) are fully supported.'],
+    ['Step 4', 'Enter Four Options', 'You must provide all 4 distinct answer choices: Option A, Option B, Option C, and Option D.'],
+    ['Step 5', 'Select Correct Answer', 'Enter "A", "B", "C", or "D" under the Correct Answer column.'],
+    ['Step 6', 'Add Feedback & Difficulty', 'Optionally add an explanation (displayed as learning feedback) and set Difficulty to Easy, Medium, or Hard.'],
+    ['Step 7', 'Save the Workbook', 'Save your file as .xlsx or .csv.'],
+    ['Step 8', 'Upload into Arcade', 'Open the Question Manager in Skillizee Arcade, click "Import Excel", preview verified questions, and click Import!'],
+    [],
+    ['KEY SYSTEM RULES:'],
+    ['1. One Question = One Activity: Questions strictly belong to the activity you assign them to.'],
+    ['2. Teacher Priority: When you start a 5, 10, or 15 question game, your teacher questions are automatically prioritized.'],
+    ['3. Excel Tolerance: The importer ignores empty rows and automatically identifies columns by their header names.'],
+  ];
+
+  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsAOA);
+  wsInstructions['!cols'] = [{ wch: 12 }, { wch: 28 }, { wch: 75 }];
+  XLSX.utils.book_append_sheet(workbook, wsInstructions, 'Instructions');
+
+  // ── SHEET 3: EXAMPLES (Reference Questions) ──
+  const examplesData = [
     {
       Activity: 'Graphworks',
       Topic: 'Data Handling & Graphs',
@@ -628,27 +930,27 @@ export function generateExcelTemplateBlob(): Blob {
       'Option C': '(3, 0)',
       'Option D': '(0, 4)',
       'Correct Answer': 'B',
-      Explanation: 'Coordinates are always written as (x, y), so (3, 4).',
+      Explanation: 'Coordinates are written as (x, y). 3 units right is x = 3 and 4 units up is y = 4.',
       Difficulty: 'Easy',
       Tags: 'Coordinates, Grid, Plotting',
     },
     {
       Activity: 'The Chocolate Factory',
       Topic: 'Fractions',
-      Question: 'A chocolate batch uses 3/4 cup of cocoa powder. How much is needed for 3 full batches?',
+      Question: 'A chocolate batch uses 3/4 cup of melted cocoa. How much cocoa is needed for 3 full batches?',
       'Option A': '2 1/4 cups',
       'Option B': '1 1/2 cups',
       'Option C': '3 cups',
       'Option D': '9/4 cups',
       'Correct Answer': 'A',
-      Explanation: '3 × 3/4 = 9/4 = 2 1/4 cups.',
+      Explanation: '3 × 3/4 = 9/4 = 2 1/4 cups of cocoa.',
       Difficulty: 'Medium',
       Tags: 'Fractions, Multiplication, Mixed Numbers',
     },
     {
       Activity: 'Percentage Harvest',
       Topic: 'Percentages',
-      Question: 'What is 20% of 80 kg of harvest?',
+      Question: 'What is 20% of 80 kg of harvest apples?',
       'Option A': '12 kg',
       'Option B': '16 kg',
       'Option C': '18 kg',
@@ -656,7 +958,7 @@ export function generateExcelTemplateBlob(): Blob {
       'Correct Answer': 'B',
       Explanation: '20% of 80 = 0.2 × 80 = 16 kg.',
       Difficulty: 'Easy',
-      Tags: 'Percentages, Harvest',
+      Tags: 'Percentages, Harvest, Calculations',
     },
     {
       Activity: 'Park Planner',
@@ -667,48 +969,122 @@ export function generateExcelTemplateBlob(): Blob {
       'Option C': '(-2, -5)',
       'Option D': '(5, 2)',
       'Correct Answer': 'A',
-      Explanation: 'Reflecting over the y-axis changes the sign of the x-coordinate: (-2, 5).',
+      Explanation: 'Reflecting over the y-axis negates the x-coordinate while y remains unchanged: (-2, 5).',
       Difficulty: 'Medium',
       Tags: 'Transformations, Reflection, Coordinates',
     },
     {
       Activity: 'Ratio Rush',
       Topic: 'Ratios, Rates & Proportions',
-      Question: 'A movie studio uses 2 cameras for every 3 actors. If there are 12 actors, how many cameras are needed?',
+      Question: 'A film studio uses 2 cameras for every 3 actors. If there are 12 actors, how many cameras are needed?',
       'Option A': '6',
       'Option B': '8',
       'Option C': '9',
       'Option D': '10',
       'Correct Answer': 'B',
-      Explanation: 'Both terms scale by 4: (2 × 4) = 8 cameras.',
+      Explanation: 'Scale factor is 12 ÷ 3 = 4. Cameras = 2 × 4 = 8.',
       Difficulty: 'Easy',
-      Tags: 'Ratio, Scaling, Word Problem',
+      Tags: 'Ratio, Scaling, Unit Rate',
     },
   ];
 
-  const worksheet = XLSX.utils.json_to_sheet(templateRows);
-  
-  // Set column widths for comfortable reading
+  const wsExamples = XLSX.utils.json_to_sheet(examplesData);
+  wsExamples['!cols'] = [
+    { wch: 26 },
+    { wch: 28 },
+    { wch: 60 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 20 },
+    { wch: 16 },
+    { wch: 45 },
+    { wch: 14 },
+    { wch: 30 },
+  ];
+  XLSX.utils.book_append_sheet(workbook, wsExamples, 'Examples');
+
+  // ── SHEET 4: ACTIVITY LIST (Source of Truth) ──
+  const activityListData = ACTIVITIES_REGISTRY.map((act) => ({
+    'Cabinet #': `Cab #${act.number}`,
+    'Activity Name': act.name,
+    'Mathematics Topic': act.topic,
+    'Dropdown Value (Activity — Topic)': `${act.name} — ${act.shortTopic}`,
+    'Activity ID': act.id,
+    'Topic ID': act.topicId,
+  }));
+
+  const wsActivityList = XLSX.utils.json_to_sheet(activityListData);
+  wsActivityList['!cols'] = [
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 32 },
+    { wch: 36 },
+    { wch: 22 },
+    { wch: 22 },
+  ];
+  XLSX.utils.book_append_sheet(workbook, wsActivityList, 'Activity List');
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+// ------------------------------------------------------------
+// Error Report Generator (.xlsx)
+// ------------------------------------------------------------
+
+export function generateErrorReportBlob(invalidRows: ExcelParsedRow[]): Blob {
+  const reportRows = invalidRows.map((inv) => ({
+    'Row #': inv.rowNumber,
+    Status: inv.status === 'mismatch' ? 'Topic Mismatch' : 'Invalid Data',
+    'Errors / Issues Flagged': inv.errors.join('; '),
+    'Suggested Fix': inv.expectedTopic
+      ? `Change topic to "${inv.expectedTopic}" for ${inv.matchedActivity?.name || 'this activity'}`
+      : 'Provide all required fields (Activity, Question, Options A-D, and Correct Answer A/B/C/D)',
+    'Activity (Submitted)': inv.rawActivity || 'None',
+    'Topic (Submitted)': inv.rawTopic || 'None',
+    'Question Prompt': inv.rawQuestion || 'Missing',
+    'Option A': inv.rawOptionA || 'Missing',
+    'Option B': inv.rawOptionB || 'Missing',
+    'Option C': inv.rawOptionC || 'Missing',
+    'Option D': inv.rawOptionD || 'Missing',
+    'Correct Answer': inv.rawCorrectAnswer || 'Missing',
+    Explanation: inv.rawExplanation || '',
+    Difficulty: inv.rawDifficulty || 'Easy',
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(reportRows);
   worksheet['!cols'] = [
-    { wch: 24 }, // Activity
-    { wch: 28 }, // Topic
-    { wch: 60 }, // Question
-    { wch: 20 }, // Option A
-    { wch: 20 }, // Option B
-    { wch: 20 }, // Option C
-    { wch: 20 }, // Option D
-    { wch: 16 }, // Correct Answer
-    { wch: 45 }, // Explanation
-    { wch: 14 }, // Difficulty
-    { wch: 30 }, // Tags
+    { wch: 10 },
+    { wch: 16 },
+    { wch: 45 },
+    { wch: 45 },
+    { wch: 25 },
+    { wch: 25 },
+    { wch: 50 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 15 },
+    { wch: 35 },
+    { wch: 12 },
   ];
 
   const workbook = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(workbook, worksheet, 'Math_Questions_Template');
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Import_Errors_Report');
 
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  return new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
 }
+
+// ------------------------------------------------------------
+// Export Questions to Excel
+// ------------------------------------------------------------
 
 export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
   let list = getAllQuestions();
@@ -774,5 +1150,8 @@ export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
   XLSX.utils.book_append_sheet(workbook, worksheet, 'Questions_Bank');
 
   const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
-  return new Blob([excelBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+  return new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
 }
+
