@@ -327,7 +327,26 @@ export const ArcadeCabinet3D: React.FC<{
       ctx.textAlign = 'center';
       ctx.fillText('PARK PLANNER', 512, 320);
       ctx.font = 'bold 34px Arial, sans-serif';
-      ctx.fillStyle = '#fef3c7';
+    } else if (config.id === 'solar-forge') {
+      const grad = ctx.createLinearGradient(0, 0, 1024, 768);
+      grad.addColorStop(0, '#78350f');
+      grad.addColorStop(0.5, '#d97706');
+      grad.addColorStop(1, '#451a03');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1024, 768);
+
+      ctx.strokeStyle = '#fbbf24';
+      ctx.lineWidth = 14;
+      ctx.beginPath();
+      ctx.arc(512, 340, 180, 0, Math.PI * 2);
+      ctx.stroke();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.font = 'bold 56px Arial, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('THE SOLAR FORGE', 512, 320);
+      ctx.font = 'bold 34px Arial, sans-serif';
+      ctx.fillStyle = '#fef08a';
       ctx.fillText(`TOPIC: ${config.topic.toUpperCase()}`, 512, 390);
     } else if (config.id === 'ratio-rush') {
       const grad = ctx.createLinearGradient(0, 0, 1024, 768);

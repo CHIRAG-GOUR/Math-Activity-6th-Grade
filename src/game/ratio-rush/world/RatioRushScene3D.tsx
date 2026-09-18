@@ -13,7 +13,34 @@ import { StudioSoundstage3D } from './StudioSoundstage3D';
 import { StudioEquipment3D } from './StudioEquipment3D';
 import { StudioMovieSet3D } from './StudioMovieSet3D';
 import { StudioCharacters3D } from './StudioCharacters3D';
+import { StudioLiveFeedProvider } from './StudioLiveFeed';
+import { sceneClock, SCENE_LENGTH } from './StudioPerformance';
 import { useRatioStore } from '../store/ratioStore';
+
+// ============================================================
+// SHOT LIST — how the scene is covered while the camera is rolling.
+// Each entry holds until the next one starts, so the take is cut like a
+// real scene (wide, singles on whoever has the line, reverse, final wide)
+// instead of sitting on one locked-off angle for half a minute.
+// ============================================================
+const COVERAGE: { at: number; pos: [number, number, number]; look: [number, number, number] }[] = [
+  { at: 0.0, pos: [1.4, 2.1, 4.2], look: [-0.1, 1.45, -2.3] },   // establishing wide
+  { at: 3.4, pos: [-0.2, 1.7, 0.4], look: [-1.6, 1.55, -2.0] },  // single: the hero
+  { at: 8.2, pos: [-2.0, 1.7, 0.1], look: [-0.7, 1.52, -2.2] },  // reverse: the actress
+  { at: 12.4, pos: [0.2, 1.55, 0.2], look: [1.6, 1.6, -1.9] },   // low single: the villain
+  { at: 16.6, pos: [0.9, 1.65, -0.5], look: [-0.9, 1.55, -1.9] },// over the villain's shoulder
+  { at: 20.6, pos: [-0.6, 1.75, 0.9], look: [-1.1, 1.5, -2.0] }, // two-shot on the turn
+  { at: 23.6, pos: [0.5, 2.6, 3.4], look: [0.0, 1.4, -2.2] },    // crane out to the final wide
+];
+
+function shotAt(t: number) {
+  let shot = COVERAGE[0];
+  for (const c of COVERAGE) {
+    if (c.at > t) break;
+    shot = c;
+  }
+  return shot;
+}
 import { StudioCameraView } from '../types';
 
 // ============================================================
@@ -59,24 +86,42 @@ const StudioCameraRig: React.FC<{
     };
   }, []);
 
-  useFrame((_, delta) => {
-    const activePreset = presets[cameraView] || presets.overview;
+  const lastShotAt = useRef(-1);
 
-    // Subtle natural parallax
-    const parallaxX = pointer.x * 0.4;
-    const parallaxY = pointer.y * 0.2;
+  useFrame((_, delta) => {
+    const sceneTime = sceneClock.time;
+    const rolling = isFilming && sceneTime !== null && sceneTime < SCENE_LENGTH;
+
+    if (rolling) {
+      // Cut to whichever setup covers this beat, then hold it on the sticks.
+      const shot = shotAt(sceneTime as number);
+      targetCamPos.current.set(...shot.pos);
+      targetLookAt.current.set(...shot.look);
+
+      const t = Date.now() * 0.002;
+      targetCamPos.current.x += Math.sin(t * 1.5) * 0.02;
+      targetCamPos.current.y += Math.cos(t * 1.2) * 0.012;
+
+      // A cut is instant; only movement within a shot is eased.
+      if (shot.at !== lastShotAt.current) {
+        lastShotAt.current = shot.at;
+        camera.position.copy(targetCamPos.current);
+      } else {
+        camera.position.lerp(targetCamPos.current, THREE.MathUtils.clamp(delta * 3.0, 0.01, 0.12));
+      }
+      camera.lookAt(targetLookAt.current);
+      return;
+    }
+
+    lastShotAt.current = -1;
+    const activePreset = presets[cameraView] || presets.overview;
 
     targetCamPos.current.copy(activePreset.pos);
     targetLookAt.current.copy(activePreset.look);
 
-    if (isFilming) {
-      const time = Date.now() * 0.002;
-      targetCamPos.current.x += Math.sin(time * 1.5) * 0.08;
-      targetCamPos.current.y += Math.cos(time * 1.2) * 0.04;
-    } else {
-      targetCamPos.current.x += parallaxX;
-      targetCamPos.current.y += parallaxY;
-    }
+    // Subtle natural parallax
+    targetCamPos.current.x += pointer.x * 0.4;
+    targetCamPos.current.y += pointer.y * 0.2;
 
     const lerpSpeed = THREE.MathUtils.clamp(delta * 5.0, 0.01, 0.18);
     camera.position.lerp(targetCamPos.current, lerpSpeed);
@@ -94,6 +139,7 @@ export const RatioRushScene3D: React.FC = () => {
   const isFilmingActive = useRatioStore((s) => s.isFilmingActive);
   const isPremiereActive = useRatioStore((s) => s.isPremiereActive);
   const flashActive = useRatioStore((s) => s.flashActive);
+  const filmStartedAt = useRatioStore((s) => s.filmStartedAt);
   const blueLevel = useRatioStore((s) => s.blueTeam.productionLevel);
   const redLevel = useRatioStore((s) => s.redTeam.productionLevel);
   const globalLevel = Math.max(blueLevel, redLevel);
@@ -146,14 +192,17 @@ export const RatioRushScene3D: React.FC = () => {
         <StudioCameraRig cameraView={activeCameraView} isFilming={isFilmingActive} />
 
         {/* ── 3. WORLD COMPONENTS ── */}
-        <StudioSoundstage3D isFilming={isFilmingActive} isPremiere={isPremiereActive} />
-        <StudioEquipment3D isFilming={isFilmingActive} dollyProgress={isFilmingActive ? 0.8 : 0.2} />
-        <StudioMovieSet3D productionLevel={globalLevel} isFilming={isFilmingActive} />
-        <StudioCharacters3D
-          isFilming={isFilmingActive}
-          productionLevel={globalLevel}
-          dollyProgress={isFilmingActive ? 0.8 : 0.2}
-        />
+        <StudioLiveFeedProvider isFilming={isFilmingActive}>
+          <StudioSoundstage3D isFilming={isFilmingActive} isPremiere={isPremiereActive} />
+          <StudioEquipment3D isFilming={isFilmingActive} dollyProgress={isFilmingActive ? 0.8 : 0.2} />
+          <StudioMovieSet3D productionLevel={globalLevel} isFilming={isFilmingActive} />
+          <StudioCharacters3D
+            isFilming={isFilmingActive}
+            productionLevel={globalLevel}
+            dollyProgress={isFilmingActive ? 0.8 : 0.2}
+            filmStartedAt={filmStartedAt}
+          />
+        </StudioLiveFeedProvider>
       </Canvas>
     </div>
   );

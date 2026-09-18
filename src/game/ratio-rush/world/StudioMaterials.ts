@@ -29,13 +29,16 @@ export function getStudioMaterial(
   const key = `${color}_${roughness}_${metalness}_${emissive || 'none'}_${emissiveIntensity}`;
   let mat = standardMatCache.get(key);
   if (!mat) {
-    mat = new THREE.MeshStandardMaterial({
+    const params: THREE.MeshStandardMaterialParameters = {
       color: new THREE.Color(color),
       roughness,
       metalness,
-      emissive: emissive ? new THREE.Color(emissive) : undefined,
-      emissiveIntensity: emissive ? emissiveIntensity : 0,
-    });
+    };
+    if (emissive) {
+      params.emissive = new THREE.Color(emissive);
+      params.emissiveIntensity = emissiveIntensity;
+    }
+    mat = new THREE.MeshStandardMaterial(params);
     standardMatCache.set(key, mat);
   }
   return mat;

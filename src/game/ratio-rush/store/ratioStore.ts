@@ -8,6 +8,7 @@ import { create } from 'zustand';
 import { RatioGameState, StudioCameraView, StudioTeam, ProductionStage } from '../types';
 import { RATIO_QUESTIONS } from '../data/questions';
 import { ratioAudio } from '../engine/ratioAudio';
+import { SCENE_LENGTH } from '../world/StudioPerformance';
 
 const INITIAL_TEAM_STATE = (team: StudioTeam) => ({
   team,
@@ -22,6 +23,11 @@ const INITIAL_TEAM_STATE = (team: StudioTeam) => ({
   solvedStages: [],
   productionLevel: 0,
 });
+
+interface RatioRuntimeState {
+  /** performance.now() when 'ACTION' was called, so the 3D stage can drive the scene. */
+  filmStartedAt: number | null;
+}
 
 interface RatioStoreActions {
   setGameMode: (mode: 'duel' | 'solo') => void;
@@ -42,7 +48,8 @@ interface RatioStoreActions {
   decrementTimer: () => void;
 }
 
-export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, get) => ({
+export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioStoreActions>((set, get) => ({
+  filmStartedAt: null,
   gameMode: 'duel',
   activeCameraView: 'overview',
   isTimerRunning: true,
@@ -246,18 +253,21 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
   },
 
   startFilmingSequence: () => {
+    if (get().isFilmingActive) return;
     ratioAudio.playDirectorCall();
     set({
       isFilmingActive: true,
       activeCameraView: 'camera1',
       globalProductionStage: 'action_filming',
+      // The clapper board plays first; the cast start acting once it snaps.
+      filmStartedAt: (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 1000,
     });
     get().triggerClapper();
 
-    // After 6 seconds of filming action, transition to premiere
+    // Let the cast play the whole scene through before the premiere.
     setTimeout(() => {
       get().openPremiere();
-    }, 6000);
+    }, (SCENE_LENGTH + 1.4) * 1000);
   },
 
   openPremiere: () => {
@@ -308,6 +318,7 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
       clapperVisible: false,
       clapperTake: 1,
       flashActive: false,
+      filmStartedAt: null,
       blueTeam: INITIAL_TEAM_STATE('blue'),
       redTeam: INITIAL_TEAM_STATE('red'),
       winningTeam: null,

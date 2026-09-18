@@ -41,9 +41,12 @@ import {
   MAT_DIRECTOR_WOOD,
   MAT_DIRECTOR_CANVAS,
 } from './StudioMaterials';
+import { useLiveFeed } from './StudioLiveFeed';
 
 export const StudioSoundstage3D: React.FC<{ isFilming: boolean; isPremiere: boolean }> = React.memo(
   ({ isFilming, isPremiere }) => {
+    const feed = useLiveFeed();
+
     // Memoized costume palette for wardrobe racks
     const outfitColors = useMemo(
       () => [
@@ -339,12 +342,18 @@ export const StudioSoundstage3D: React.FC<{ isFilming: boolean; isPremiere: bool
           {/* Giant Premiere Projection Screen */}
           <group position={[0, 3.8, -7]}>
             <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[6.8, 4.4, 0.2]} />
-            <mesh
-              geometry={geoBox}
-              material={isPremiere ? MAT_SCREEN_RECORDING : MAT_SCREEN_GLOW}
-              scale={[6.4, 4.0, 0.08]}
-              position={[0, 0, 0.1]}
-            />
+            {/* The premiere plays back what the A-camera actually shot. */}
+            <mesh scale={[6.4, 4.0, 0.08]} position={[0, 0, 0.1]}>
+              <planeGeometry args={[1, 1]} />
+              {isPremiere && feed ? (
+                <primitive object={feed.screenMaterial} attach="material" />
+              ) : (
+                <primitive
+                  object={isPremiere ? MAT_SCREEN_RECORDING : MAT_SCREEN_GLOW}
+                  attach="material"
+                />
+              )}
+            </mesh>
           </group>
         </group>
       </group>

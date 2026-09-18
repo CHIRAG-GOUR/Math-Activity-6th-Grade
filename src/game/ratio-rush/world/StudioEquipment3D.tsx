@@ -32,6 +32,7 @@ import {
   MAT_STAGE_TAPE_RED,
   getStudioMaterial,
 } from './StudioMaterials';
+import { useLiveFeed } from './StudioLiveFeed';
 
 // Helper to generate dynamic live studio monitor canvas texture
 function createLiveStudioScreenTexture(isFilming: boolean, title = 'RATIO RUSH'): THREE.CanvasTexture {
@@ -387,10 +388,14 @@ export const StudioEquipment3D: React.FC<{
     { x: 3.5, y: 6.4, z: 2.0, type: 'cone', rotY: -0.2, rotX: 0.25, drop: 1.6 },
   ];
 
-  // Dynamic Live Monitor Textures
-  const liveTvMaterial = useMemo(() => {
+  // Every monitor on the floor shows the A-camera's real output, rendered
+  // from the camera's own position each frame. The painted card is only the
+  // colour-bars fallback for when the feed has not come up yet.
+  const feed = useLiveFeed();
+
+  const standbyMaterial = useMemo(() => {
     if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
-    const tex = createLiveStudioScreenTexture(isFilming, 'RATIO RUSH: STAGE 1');
+    const tex = createLiveStudioScreenTexture(isFilming, 'STANDBY');
     return new THREE.MeshStandardMaterial({
       map: tex,
       emissiveMap: tex,
@@ -400,17 +405,8 @@ export const StudioEquipment3D: React.FC<{
     });
   }, [isFilming]);
 
-  const liveCamMaterial = useMemo(() => {
-    if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
-    const tex = createLiveStudioScreenTexture(isFilming, 'CAM 1 VIEWFINDER');
-    return new THREE.MeshStandardMaterial({
-      map: tex,
-      emissiveMap: tex,
-      emissive: new THREE.Color('#ffffff'),
-      emissiveIntensity: 0.9,
-      roughness: 0.2,
-    });
-  }, [isFilming]);
+  const liveTvMaterial = feed ? feed.screenMaterial : standbyMaterial;
+  const liveCamMaterial = liveTvMaterial;
 
   return (
     <group>

@@ -15,6 +15,17 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
+  ActorRole,
+  beatAt,
+  markAt,
+  poseFor,
+  speechEnergy,
+  OPENING_MARKS,
+  PoseTargets,
+  lineAt,
+  sceneClock,
+} from './StudioPerformance';
+import {
   geoBox,
   geoCylinder8,
   geoCylinder12,
@@ -90,6 +101,17 @@ function createDirectorShirtBackTexture(): THREE.CanvasTexture {
   return texture;
 }
 
+/**
+ * Where each actor is standing right now, published by their own rig so the
+ * others can turn and look at whoever currently has the line.
+ */
+const ACTOR_STAGE_POS: Record<string, THREE.Vector2> = {
+  lead_actor: new THREE.Vector2(...OPENING_MARKS.lead_actor),
+  lead_actress: new THREE.Vector2(...OPENING_MARKS.lead_actress),
+  co_star: new THREE.Vector2(...OPENING_MARKS.co_star),
+  villain: new THREE.Vector2(...OPENING_MARKS.villain),
+};
+
 export interface BlenderHumanProps {
   position: [number, number, number];
   rotationY?: number;
@@ -109,6 +131,8 @@ export interface BlenderHumanProps {
   pose?: 'directing' | 'acting_dramatic' | 'acting_hero' | 'filming' | 'boom_mic' | 'photo' | 'idle';
   isFilming?: boolean;
   scale?: number;
+  /** Actors are driven by the scene script; crew keep their working poses. */
+  role?: ActorRole;
 }
 
 export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
@@ -121,11 +145,15 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
     pose = 'idle',
     isFilming = false,
     scale = 1,
+    role,
   }) => {
     const leftArmRef = useRef<THREE.Group>(null);
     const rightArmRef = useRef<THREE.Group>(null);
+    const leftElbowRef = useRef<THREE.Group>(null);
+    const rightElbowRef = useRef<THREE.Group>(null);
     const headRef = useRef<THREE.Group>(null);
     const bodyRootRef = useRef<THREE.Group>(null);
+    const stageRef = useRef<THREE.Group>(null);
 
     const directorShirtBackMaterial = useMemo(() => {
       if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
@@ -137,132 +165,129 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
       });
     }, []);
 
-    useFrame((state) => {
+    // Eased joint state, so the cast move INTO a pose instead of snapping to it.
+    const held = useRef<PoseTargets>({
+      lShoulderX: -0.06, lShoulderZ: 0.11, rShoulderX: -0.06, rShoulderZ: -0.11,
+      lElbow: 0.22, rElbow: 0.22, headPitch: 0, headYaw: 0, headRoll: 0,
+      torsoLean: 0, torsoTwist: 0,
+    });
+    const heldPos = useRef(new THREE.Vector2(position[0], position[2]));
+    const heldFacing = useRef(rotationY);
+
+    useFrame((state, delta) => {
       const t = state.clock.getElapsedTime();
       const breath = Math.sin(t * 2.0) * 0.015;
+      const k = 1 - Math.exp(-6 * Math.min(delta, 0.05));
 
-      // ── 1. ACTIVE PROCEDURAL ACTING & STAGE KINEMATICS ──
-      if (characterType === 'lead_actor') {
-        // Hero: Dynamic action hero acting! Stance sway, commanding hero arm point, passionate lines
-        if (bodyRootRef.current) {
-          bodyRootRef.current.position.y = breath * 1.5;
-          bodyRootRef.current.rotation.y = Math.sin(t * 1.5) * 0.12;
-          bodyRootRef.current.rotation.z = Math.cos(t * 1.8) * 0.04;
+      // ══ ACTORS — perform the scripted scene ══
+      if (role) {
+        const sceneTime = sceneClock.time;
+        const performing = sceneTime !== null;
+        const st = performing ? sceneTime : 0;
+        const beat = beatAt(st);
+        const speaking = performing && beat.speaker === role;
+        const gesture = performing ? beat.gesture[role] ?? 'rest' : 'rest';
+        const energy = speaking ? speechEnergy(t) : 0;
+
+        // 1. Walk onto the mark this beat calls for.
+        const mark = performing ? markAt(role, st) : OPENING_MARKS[role];
+        heldPos.current.x += (mark[0] - heldPos.current.x) * k * 0.5;
+        heldPos.current.y += (mark[1] - heldPos.current.y) * k * 0.5;
+        if (stageRef.current) {
+          stageRef.current.position.x = heldPos.current.x - position[0];
+          stageRef.current.position.z = heldPos.current.y - position[2];
         }
-        if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.28;
-          headRef.current.rotation.x = -0.05 + Math.cos(t * 2.0) * 0.08;
+        ACTOR_STAGE_POS[role] = heldPos.current;
+
+        // 2. Turn toward whoever they are playing the beat with.
+        const focus = performing ? beat.focus[role] : undefined;
+        let wantFacing = 0;
+        if (focus && focus !== 'camera') {
+          const other = ACTOR_STAGE_POS[focus];
+          if (other) {
+            wantFacing = Math.atan2(other.x - heldPos.current.x, other.y - heldPos.current.y);
+          }
         }
-        if (rightArmRef.current) {
-          // Dynamic dramatic point and sweeping delivery
-          rightArmRef.current.rotation.x = -1.25 + Math.sin(t * 2.2) * 0.35;
-          rightArmRef.current.rotation.y = 0.2;
-          rightArmRef.current.rotation.z = -0.42 + Math.cos(t * 2.2) * 0.15;
-        }
-        if (leftArmRef.current) {
-          // Hand on hip / open palm gesturing
-          leftArmRef.current.rotation.x = -0.65 + Math.cos(t * 1.8) * 0.25;
-          leftArmRef.current.rotation.z = 0.38;
-        }
-      } else if (characterType === 'lead_actress') {
-        // Heroine: Dramatic, emotional acting! Hand to heart, graceful sweeping plea, head tilts
-        if (bodyRootRef.current) {
-          bodyRootRef.current.position.y = breath * 1.4;
-          bodyRootRef.current.rotation.y = Math.cos(t * 1.3) * 0.09;
-          bodyRootRef.current.rotation.z = Math.sin(t * 1.6) * 0.035;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.y = -0.15 + Math.sin(t * 1.5) * 0.22;
-          headRef.current.rotation.z = Math.sin(t * 1.6) * 0.08;
-          headRef.current.rotation.x = Math.cos(t * 1.4) * 0.06;
-        }
-        if (rightArmRef.current) {
-          // Sweeps forward passionately in emotional dialogue
-          rightArmRef.current.rotation.x = -1.35 + Math.sin(t * 2.0) * 0.28;
-          rightArmRef.current.rotation.z = -0.45;
-        }
-        if (leftArmRef.current) {
-          // Hand brought up to heart / chest
-          leftArmRef.current.rotation.x = -1.6 + Math.cos(t * 1.6) * 0.12;
-          leftArmRef.current.rotation.z = 0.45;
-        }
-      } else if (characterType === 'co_star') {
-        // Co-Star / Friend: Lively conversation, banter gestures, active dialogue reactions
-        if (bodyRootRef.current) {
-          bodyRootRef.current.position.y = breath;
-          bodyRootRef.current.rotation.y = Math.sin(t * 2.0) * 0.12;
-        }
-        if (headRef.current) {
-          headRef.current.rotation.y = Math.cos(t * 2.2) * 0.25;
-          headRef.current.rotation.x = Math.sin(t * 2.5) * 0.08;
-        }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.1 + Math.sin(t * 3.0) * 0.3;
-          rightArmRef.current.rotation.z = -0.28;
-        }
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -0.8 + Math.cos(t * 2.8) * 0.25;
-          leftArmRef.current.rotation.z = 0.32;
-        }
-      } else if (characterType === 'villain') {
-        // Villain: Menacing monologue, cape swirling, dramatic laughing posture
+        let dFace = wantFacing - heldFacing.current;
+        while (dFace > Math.PI) dFace -= Math.PI * 2;
+        while (dFace < -Math.PI) dFace += Math.PI * 2;
+        heldFacing.current += dFace * k * 0.6;
+        if (stageRef.current) stageRef.current.rotation.y = heldFacing.current - rotationY;
+
+        // 3. Ease every joint toward the gesture for this beat.
+        const want = poseFor(gesture, energy, t);
+        const h = held.current;
+        (Object.keys(want) as (keyof PoseTargets)[]).forEach((key) => {
+          h[key] += (want[key] - h[key]) * k;
+        });
+
+        // 4. Apply, with breathing and a speaking head bob on top.
         if (bodyRootRef.current) {
           bodyRootRef.current.position.y = breath * 1.2;
-          bodyRootRef.current.rotation.y = Math.sin(t * 1.0) * 0.15;
+          bodyRootRef.current.rotation.x = h.torsoLean * 0.35;
+          bodyRootRef.current.rotation.y = h.torsoTwist;
+          bodyRootRef.current.rotation.z = Math.cos(t * 1.6) * 0.012;
         }
         if (headRef.current) {
-          headRef.current.rotation.x = 0.1 + Math.sin(t * 1.8) * 0.08;
-          headRef.current.rotation.y = -0.2 + Math.cos(t * 1.2) * 0.2;
+          const talkBob = speaking ? Math.sin(t * 5.2) * 0.05 * energy : 0;
+          headRef.current.rotation.x = h.headPitch + talkBob;
+          headRef.current.rotation.y = h.headYaw + Math.sin(t * 0.8) * 0.03;
+          headRef.current.rotation.z = h.headRoll;
         }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = -1.65 + Math.sin(t * 1.6) * 0.25;
-          rightArmRef.current.rotation.z = -0.52;
-        }
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -1.25;
-          leftArmRef.current.rotation.z = 0.45;
-        }
-      } else if (characterType === 'director') {
-        // Director: Holds golden megaphone to mouth, points instructions, inspects scene
+        if (leftArmRef.current) leftArmRef.current.rotation.set(h.lShoulderX, 0, h.lShoulderZ);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(h.rShoulderX, 0, h.rShoulderZ);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -h.lElbow;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = -h.rElbow;
+        return;
+      }
+
+      // ══ CREW — hands on their own gear, arms down otherwise ══
+      if (characterType === 'director') {
         if (bodyRootRef.current) {
           bodyRootRef.current.position.y = breath;
-          bodyRootRef.current.rotation.y = Math.sin(t * 1.6) * 0.08;
+          bodyRootRef.current.rotation.y = Math.sin(t * 1.6) * 0.06;
         }
         if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.22;
-          headRef.current.rotation.x = Math.cos(t * 1.8) * 0.06;
+          headRef.current.rotation.y = Math.sin(t * 1.4) * 0.18;
+          headRef.current.rotation.x = Math.cos(t * 1.8) * 0.05;
         }
-        if (rightArmRef.current) {
-          rightArmRef.current.rotation.x = isFilming ? -1.95 : -1.75 + Math.sin(t * 2.5) * 0.18;
-          rightArmRef.current.rotation.z = -0.32;
-        }
-        if (leftArmRef.current) {
-          leftArmRef.current.rotation.x = -0.85 + Math.cos(t * 2.0) * 0.25;
-          leftArmRef.current.rotation.z = 0.42;
-        }
+        // Megaphone comes up to the mouth only while the camera is rolling.
+        if (rightArmRef.current) rightArmRef.current.rotation.set(isFilming ? -1.15 : -0.35, 0, -0.2);
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = isFilming ? -1.7 : -0.7;
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-0.2 + Math.cos(t * 1.6) * 0.1, 0, 0.22);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -1.1;
       } else if (characterType === 'camera_op') {
-        // Camera Op: Steering tripod pan bars smoothly
         if (headRef.current) headRef.current.rotation.set(0.08, Math.sin(t * 1.2) * 0.08, 0);
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.1, 0.2 - Math.sin(t * 1.2) * 0.05, 0);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.1, -0.2 + Math.sin(t * 1.2) * 0.05, 0);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-0.72, 0.16, 0.16);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-0.72, -0.16, -0.16);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -1.15 - Math.sin(t * 1.2) * 0.05;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = -1.15 + Math.sin(t * 1.2) * 0.05;
       } else if (characterType === 'boom_op') {
-        // Boom Operator: Fine-adjusting boom pole over cast
         if (headRef.current) headRef.current.rotation.set(-0.15, Math.sin(t * 1.5) * 0.1, 0);
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-2.1 + Math.cos(t * 1.5) * 0.06, 0.15, -0.1);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.9 + Math.sin(t * 1.5) * 0.06, -0.15, 0.1);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-2.0 + Math.cos(t * 1.5) * 0.05, 0, 0.18);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.75 + Math.sin(t * 1.5) * 0.05, 0, -0.18);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -0.45;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = -0.6;
       } else if (characterType === 'photographer') {
-        // Photographer: Aiming DSLR & snapping BTS photos
-        if (headRef.current) headRef.current.rotation.set(0.05, Math.sin(t * 2.0) * 0.12, 0);
-        if (leftArmRef.current) leftArmRef.current.rotation.set(-1.5 + Math.sin(t * 2.0) * 0.1, 0.3, 0);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-1.6 + Math.sin(t * 2.0) * 0.1, -0.2, 0);
+        if (headRef.current) headRef.current.rotation.set(0.05, Math.sin(t * 2.0) * 0.1, 0);
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-0.85, 0.2, 0.2);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-0.9, -0.15, -0.2);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -1.5 - Math.sin(t * 2.0) * 0.06;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = -1.55;
       } else {
-        if (bodyRootRef.current) bodyRootRef.current.position.y = breath;
-        if (headRef.current) {
-          headRef.current.rotation.y = Math.sin(t * 1.2) * 0.06;
-          headRef.current.rotation.x = Math.cos(t * 1.5) * 0.03;
+        // Grips, inventor and anyone else: relaxed, shifting their weight.
+        if (bodyRootRef.current) {
+          bodyRootRef.current.position.y = breath;
+          bodyRootRef.current.rotation.y = Math.sin(t * 0.9) * 0.05;
         }
-        if (leftArmRef.current) leftArmRef.current.rotation.set(breath * 2, 0, 0.1);
-        if (rightArmRef.current) rightArmRef.current.rotation.set(-breath * 2, 0, -0.1);
+        if (headRef.current) {
+          headRef.current.rotation.y = Math.sin(t * 1.1) * 0.12;
+          headRef.current.rotation.x = Math.cos(t * 1.4) * 0.03;
+        }
+        if (leftArmRef.current) leftArmRef.current.rotation.set(-0.08 + breath, 0, 0.12);
+        if (rightArmRef.current) rightArmRef.current.rotation.set(-0.08 - breath, 0, -0.12);
+        if (leftElbowRef.current) leftElbowRef.current.rotation.x = -0.3;
+        if (rightElbowRef.current) rightElbowRef.current.rotation.x = -0.3;
       }
     });
 
@@ -295,6 +320,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
 
     return (
       <group position={position} rotation={[0, rotationY, 0]} scale={[scale, scale, scale]}>
+       <group ref={stageRef}>
         <group ref={bodyRootRef}>
           {/* ═════════════════════════════════════════════════════════ */}
           {/* 1. SOLID GROUNDED LEGS & SNEAKERS (From Y=0 to Y=0.88)     */}
@@ -552,27 +578,29 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
               scale={[0.055, 0.26, 0.055]}
               position={[0, -0.14, 0]}
             />
-            {/* Elbow Sphere */}
-            <mesh
-              geometry={geoSphere12}
-              material={skinMat}
-              scale={[0.055, 0.055, 0.055]}
-              position={[0, -0.28, 0]}
-            />
-            {/* Forearm */}
-            <mesh
-              geometry={geoCylinder16}
-              material={skinMat}
-              scale={[0.05, 0.24, 0.05]}
-              position={[0, -0.4, 0]}
-            />
-            {/* Hand & Palm */}
-            <mesh
-              geometry={geoSphere12}
-              material={skinMat}
-              scale={[0.055, 0.07, 0.045]}
-              position={[0, -0.54, 0]}
-            />
+            {/* Forearm pivots at the elbow, so hands can reach the chest and point */}
+            <group ref={leftElbowRef} position={[0, -0.28, 0]}>
+              {/* Elbow Sphere */}
+              <mesh
+                geometry={geoSphere12}
+                material={skinMat}
+                scale={[0.055, 0.055, 0.055]}
+              />
+              {/* Forearm */}
+              <mesh
+                geometry={geoCylinder16}
+                material={skinMat}
+                scale={[0.05, 0.24, 0.05]}
+                position={[0, -0.12, 0]}
+              />
+              {/* Hand & Palm */}
+              <mesh
+                geometry={geoSphere12}
+                material={skinMat}
+                scale={[0.055, 0.07, 0.045]}
+                position={[0, -0.26, 0]}
+              />
+            </group>
           </group>
 
           {/* Right Arm */}
@@ -584,24 +612,25 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
               scale={[0.055, 0.26, 0.055]}
               position={[0, -0.14, 0]}
             />
-            <mesh
-              geometry={geoSphere12}
-              material={skinMat}
-              scale={[0.055, 0.055, 0.055]}
-              position={[0, -0.28, 0]}
-            />
-            <mesh
-              geometry={geoCylinder16}
-              material={skinMat}
-              scale={[0.05, 0.24, 0.05]}
-              position={[0, -0.4, 0]}
-            />
-            <mesh
-              geometry={geoSphere12}
-              material={skinMat}
-              scale={[0.055, 0.07, 0.045]}
-              position={[0, -0.54, 0]}
-            />
+            <group ref={rightElbowRef} position={[0, -0.28, 0]}>
+              <mesh
+                geometry={geoSphere12}
+                material={skinMat}
+                scale={[0.055, 0.055, 0.055]}
+              />
+              <mesh
+                geometry={geoCylinder16}
+                material={skinMat}
+                scale={[0.05, 0.24, 0.05]}
+                position={[0, -0.12, 0]}
+              />
+              <mesh
+                geometry={geoSphere12}
+                material={skinMat}
+                scale={[0.055, 0.07, 0.045]}
+                position={[0, -0.26, 0]}
+              />
+            </group>
           </group>
 
           {/* ═════════════════════════════════════════════════════════ */}
@@ -885,12 +914,98 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
             )}
           </group>
         </group>
+       </group>
       </group>
     );
   }
 );
 
 BlenderHumanoid.displayName = 'BlenderHumanoid';
+
+/** Advances the shared scene clock; every actor rig reads it in the same frame. */
+const SceneClockDriver: React.FC<{ filmStartedAt: number | null }> = ({ filmStartedAt }) => {
+  useFrame(() => {
+    if (filmStartedAt === null) {
+      sceneClock.time = null;
+      return;
+    }
+    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+    const elapsed = (now - filmStartedAt) / 1000;
+    sceneClock.time = elapsed < 0 ? 0 : elapsed;
+  });
+  return null;
+};
+
+// ============================================================
+// DIALOGUE CAPTION — the line currently being delivered, floating over
+// the speaker so the audience (and the live camera feed) can follow the scene.
+// ============================================================
+const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
+  const groupRef = useRef<THREE.Group>(null);
+  const drawnFor = useRef<string>('');
+
+  const { texture, material } = useMemo(() => {
+    if (typeof document === 'undefined') {
+      return { texture: null as THREE.CanvasTexture | null, material: MAT_ROAD_CASE_BLACK };
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = 1024;
+    canvas.height = 192;
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.colorSpace = THREE.SRGBColorSpace;
+    return {
+      texture: tex,
+      material: new THREE.MeshBasicMaterial({
+        map: tex,
+        transparent: true,
+        depthWrite: false,
+        toneMapped: false,
+      }),
+    };
+  }, []);
+
+  useFrame(({ camera }) => {
+    const group = groupRef.current;
+    if (!group || !texture) return;
+
+    const spoken = sceneClock.time === null ? null : lineAt(sceneClock.time);
+    group.visible = spoken !== null;
+    if (!spoken) return;
+
+    if (drawnFor.current !== spoken.line) {
+      drawnFor.current = spoken.line;
+      const canvas = texture.image as HTMLCanvasElement;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, 1024, 192);
+        ctx.fillStyle = 'rgba(8, 11, 24, 0.82)';
+        ctx.fillRect(0, 36, 1024, 120);
+        ctx.fillStyle = '#facc15';
+        ctx.fillRect(0, 36, 1024, 7);
+        ctx.fillRect(0, 149, 1024, 7);
+        ctx.font = 'bold 54px "Arial Black", Impact, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(spoken.line, 512, 98, 960);
+      }
+      texture.needsUpdate = true;
+    }
+
+    const at = ACTOR_STAGE_POS[spoken.speaker];
+    if (at) group.position.set(at.x, baseY + 2.24, at.y);
+    group.quaternion.copy(camera.quaternion);
+  });
+
+  return (
+    <group ref={groupRef} visible={false}>
+      <mesh>
+        <planeGeometry args={[3.0, 0.56]} />
+        <primitive object={material} attach="material" />
+      </mesh>
+    </group>
+  );
+};
 
 // ============================================================
 // MASTER STUDIO CAST & CREW (Properly Positioned & Clear Line of Sight)
@@ -899,7 +1014,10 @@ export const StudioCharacters3D: React.FC<{
   isFilming: boolean;
   productionLevel: number;
   dollyProgress?: number;
-}> = React.memo(({ isFilming, productionLevel, dollyProgress = 0 }) => {
+  /** performance.now() at which 'ACTION' was called; null between takes. */
+  filmStartedAt?: number | null;
+}> = React.memo(({ isFilming, productionLevel, dollyProgress = 0, filmStartedAt = null }) => {
+  const stageY = productionLevel >= 1 ? 0.3 : 0;
   return (
     <group>
       {/* ── 1. THE DIRECTOR (Standing at Director Village, Looking at Actors on Stage) ── */}
@@ -921,46 +1039,45 @@ export const StudioCharacters3D: React.FC<{
         />
       </group>
 
-      {/* ── 2. THE MOVIE ACTORS & ACTRESSES (Facing Camera & Director on Green Stage) ── */}
-      {/* Lead Actor (Hero in Action Jacket) */}
+      {/* ── 2. THE CAST — staged on their opening marks and driven by the scene script ── */}
       <BlenderHumanoid
-        position={[-1.8, productionLevel >= 1 ? 0.3 : 0, -2.4]}
-        rotationY={0.15}
+        position={[OPENING_MARKS.lead_actor[0], stageY, OPENING_MARKS.lead_actor[1]]}
         characterType="lead_actor"
         skinMat={MAT_SKIN_PEACH}
         pose="acting_hero"
         isFilming={isFilming}
+        role="lead_actor"
       />
 
-      {/* Lead Actress (Heroine in Emerald Gown & Flowing Hair) */}
       <BlenderHumanoid
-        position={[-0.6, productionLevel >= 1 ? 0.3 : 0, -2.2]}
-        rotationY={0.02}
+        position={[OPENING_MARKS.lead_actress[0], stageY, OPENING_MARKS.lead_actress[1]]}
         characterType="lead_actress"
         skinMat={MAT_SKIN_WARM}
         pose="acting_dramatic"
         isFilming={isFilming}
+        role="lead_actress"
       />
 
-      {/* Co-Star / Actress (Friend in Chic Studio Outfit) */}
       <BlenderHumanoid
-        position={[0.6, productionLevel >= 1 ? 0.3 : 0, -2.2]}
-        rotationY={-0.08}
+        position={[OPENING_MARKS.co_star[0], stageY, OPENING_MARKS.co_star[1]]}
         characterType="co_star"
         skinMat={MAT_SKIN_PEACH}
         pose="acting_hero"
         isFilming={isFilming}
+        role="co_star"
       />
 
-      {/* Villain (In Purple Doublet & Crimson Cape) */}
       <BlenderHumanoid
-        position={[1.8, productionLevel >= 1 ? 0.3 : 0, -2.4]}
-        rotationY={-0.2}
+        position={[OPENING_MARKS.villain[0], stageY, OPENING_MARKS.villain[1]]}
         characterType="villain"
         skinMat={MAT_SKIN_BRONZE}
         pose="acting_dramatic"
         isFilming={isFilming}
+        role="villain"
       />
+
+      <SceneClockDriver filmStartedAt={filmStartedAt} />
+      <DialogueCaption3D baseY={stageY} />
 
       {/* ── 3. CAMERA OPERATOR (Behind Cinema Camera 1, Looking at Actors) ── */}
       <BlenderHumanoid
