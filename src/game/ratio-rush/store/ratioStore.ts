@@ -2,13 +2,15 @@
 // RATIO RUSH — ZUSTAND STATE MANAGEMENT
 // Central state store for movie studio production, question progression,
 // camera modes, audio synchronization, and duel competitions
+// Supports dynamic 5, 10, or 15 question session configurations!
 // ============================================================
 
 import { create } from 'zustand';
-import { RatioGameState, StudioCameraView, StudioTeam, ProductionStage } from '../types';
+import { RatioGameState, StudioCameraView, StudioTeam, ProductionStage, RatioQuestion } from '../types';
 import { RATIO_QUESTIONS } from '../data/questions';
 import { ratioAudio } from '../engine/ratioAudio';
 import { SCENE_LENGTH } from '../world/StudioPerformance';
+import { getActiveGameSession, finalizeGameQuestions, adaptUniversalToRatioQuestions } from '@/services/gameSessionService';
 
 const INITIAL_TEAM_STATE = (team: StudioTeam) => ({
   team,
@@ -27,12 +29,13 @@ const INITIAL_TEAM_STATE = (team: StudioTeam) => ({
 interface RatioRuntimeState {
   /** performance.now() when 'ACTION' was called, so the 3D stage can drive the scene. */
   filmStartedAt: number | null;
+  questions: RatioQuestion[];
 }
 
 interface RatioStoreActions {
   setGameMode: (mode: 'duel' | 'solo') => void;
   setActiveCameraView: (view: StudioCameraView) => void;
-  selectOption: (team: StudioTeam, option: number) => void;
+  selectOption: (team: StudioTeam, option: number | string) => void;
   setInputAnswer: (team: StudioTeam, val: string) => void;
   submitAnswer: (team: StudioTeam) => boolean;
   nextQuestion: (team: StudioTeam) => void;
@@ -46,16 +49,35 @@ interface RatioStoreActions {
   setTapeMultiplier: (mult: number) => void;
   resetGame: () => void;
   decrementTimer: () => void;
+  reloadSessionQuestions: () => void;
 }
+
+function getInitialQuestions(): RatioQuestion[] {
+  if (typeof window !== 'undefined') {
+    try {
+      const session = getActiveGameSession('ratio-rush');
+      if (session && Array.isArray(session.questions) && session.questions.length > 0) {
+        const finalized = finalizeGameQuestions(session);
+        return adaptUniversalToRatioQuestions(finalized);
+      }
+    } catch (err) {
+      console.warn('Failed to load active session for Ratio Rush, using built-in questions:', err);
+    }
+  }
+  return RATIO_QUESTIONS;
+}
+
+const initialQuestions = getInitialQuestions();
 
 export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioStoreActions>((set, get) => ({
   filmStartedAt: null,
+  questions: initialQuestions,
   gameMode: 'duel',
   activeCameraView: 'overview',
   isTimerRunning: true,
   timeRemaining: 300, // 5 minutes
   currentMovieStage: 0,
-  stageWinners: [null, null, null, null, null],
+  stageWinners: new Array(initialQuestions.length).fill(null),
   blueScenesWon: 0,
   redScenesWon: 0,
   globalProductionStage: 'prep',
@@ -73,6 +95,23 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   isMuted: false,
   isFullscreen: false,
 
+  reloadSessionQuestions: () => {
+    const qs = getInitialQuestions();
+    set({
+      questions: qs,
+      stageWinners: new Array(qs.length).fill(null),
+      currentMovieStage: 0,
+      blueTeam: INITIAL_TEAM_STATE('blue'),
+      redTeam: INITIAL_TEAM_STATE('red'),
+      blueScenesWon: 0,
+      redScenesWon: 0,
+      globalProductionStage: 'prep',
+      isFilmingActive: false,
+      isPremiereActive: false,
+      winningTeam: null,
+    });
+  },
+
   setGameMode: (gameMode) => {
     set({ gameMode });
   },
@@ -87,7 +126,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
     set({
       [key]: {
         ...current,
-        selectedOption: option,
+        selectedOption: typeof option === 'number' ? option : null,
         inputAnswer: option.toString(),
         feedbackStatus: 'idle',
       },
@@ -114,18 +153,27 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
     const teamState = state[key];
     const otherTeamState = state[otherKey];
     const stageIdx = state.currentMovieStage;
-    const currentQ = RATIO_QUESTIONS[stageIdx];
+    const questionsList = state.questions && state.questions.length > 0 ? state.questions : RATIO_QUESTIONS;
+    const currentQ = questionsList[stageIdx] || questionsList[0];
     if (!currentQ) return false;
 
-    const numVal = parseFloat(teamState.inputAnswer);
-    const isCorrect = !isNaN(numVal) && Math.abs(numVal - currentQ.correctAnswer) < 0.001;
+    const inputVal = teamState.inputAnswer.trim();
+    const numVal = parseFloat(inputVal);
+    const correctVal = currentQ.correctAnswer;
+    
+    let isCorrect = false;
+    if (typeof correctVal === 'number') {
+      isCorrect = !isNaN(numVal) && Math.abs(numVal - correctVal) < 0.001;
+    } else {
+      isCorrect = inputVal.toLowerCase() === String(correctVal).trim().toLowerCase();
+    }
 
     if (isCorrect) {
       ratioAudio.playCorrectChime();
       const nextScore = teamState.score + 100 + teamState.streak * 25;
       const nextStreak = teamState.streak + 1;
       const nextSolved = Array.from(new Set([...teamState.solvedStages, currentQ.stage]));
-      const nextLevel = Math.min(5, stageIdx + 1);
+      const nextLevel = Math.min(5, Math.ceil(((stageIdx + 1) / questionsList.length) * 5));
 
       const newStageWinners = [...state.stageWinners];
       let newBlueWon = state.blueScenesWon;
@@ -146,7 +194,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       else if (nextLevel === 4) newGlobalStage = 'sound_ready';
       else if (nextLevel >= 5) newGlobalStage = 'action_filming';
 
-      const isFinished = stageIdx >= RATIO_QUESTIONS.length - 1;
+      const isFinished = stageIdx >= questionsList.length - 1;
 
       set({
         [key]: {
@@ -156,7 +204,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
           solvedStages: nextSolved,
           productionLevel: nextLevel,
           feedbackStatus: 'correct',
-          feedbackMessage: `EXCELLENT! +1 SCENE DIRECTED (${currentQ.correctAnswer} ${currentQ.correctUnit})`,
+          feedbackMessage: `EXCELLENT! +1 SCENE DIRECTED (${currentQ.correctAnswer} ${currentQ.correctUnit || ''})`,
           isComplete: isFinished,
         },
         [otherKey]: {
@@ -178,7 +226,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       // Trigger clapper snap celebration
       get().triggerClapper();
 
-      // If all 5 stages finished, calculate winner by scene contributions
+      // If all stages finished, calculate winner by scene contributions
       if (isFinished) {
         const winner =
           newBlueWon > newRedWon
@@ -193,8 +241,9 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       return true;
     } else {
       ratioAudio.playIncorrectBuzz();
-      const miscon = currentQ.misconceptions.find((m) => m.wrongAnswer === numVal);
+      const miscon = currentQ.misconceptions?.find((m) => m.wrongAnswer === numVal);
       const msg = miscon
+
         ? miscon.reason
         : `Incorrect. Try scaling the ratio ${currentQ.ratioA} : ${currentQ.ratioB} using unit rates.`;
 
@@ -212,8 +261,9 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
 
   nextQuestion: (team) => {
     const state = get();
+    const questionsList = state.questions && state.questions.length > 0 ? state.questions : RATIO_QUESTIONS;
     const nextIdx = state.currentMovieStage + 1;
-    if (nextIdx < RATIO_QUESTIONS.length) {
+    if (nextIdx < questionsList.length) {
       set({
         currentMovieStage: nextIdx,
         blueTeam: {
@@ -259,12 +309,10 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       isFilmingActive: true,
       activeCameraView: 'camera1',
       globalProductionStage: 'action_filming',
-      // The clapper board plays first; the cast start acting once it snaps.
       filmStartedAt: (typeof performance !== 'undefined' ? performance.now() : Date.now()) + 1000,
     });
     get().triggerClapper();
 
-    // Let the cast play the whole scene through before the premiere.
     setTimeout(() => {
       get().openPremiere();
     }, (SCENE_LENGTH + 1.4) * 1000);
@@ -304,12 +352,13 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   },
 
   resetGame: () => {
+    const qs = get().questions || RATIO_QUESTIONS;
     set({
       activeCameraView: 'overview',
       isTimerRunning: true,
       timeRemaining: 300,
       currentMovieStage: 0,
-      stageWinners: [null, null, null, null, null],
+      stageWinners: new Array(qs.length).fill(null),
       blueScenesWon: 0,
       redScenesWon: 0,
       globalProductionStage: 'prep',

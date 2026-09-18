@@ -46,6 +46,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
   const selectOption = useRatioStore((s) => s.selectOption);
   const submitAnswer = useRatioStore((s) => s.submitAnswer);
   const nextQuestion = useRatioStore((s) => s.nextQuestion);
+  const questions = useRatioStore((s) => s.questions || RATIO_QUESTIONS);
 
   // Scratchpad / Rough Work State
   const [showScratchpad, setShowScratchpad] = useState(false);
@@ -56,7 +57,8 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
 
-  const currentQ = RATIO_QUESTIONS[currentMovieStage] || RATIO_QUESTIONS[0];
+  const currentQ = questions[currentMovieStage] || questions[0] || RATIO_QUESTIONS[0];
+
 
   // Canvas Drawing Handlers
   const startDrawing = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -177,9 +179,9 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
         </div>
       </div>
 
-      {/* ── 2. Shared 5-Stage Movie Progression Bar ── */}
+      {/* ── 2. Dynamic Movie Progression Bar ── */}
       <div className="flex items-center gap-1.5 my-3">
-        {RATIO_QUESTIONS.map((q, idx) => {
+        {questions.map((q, idx) => {
           const winner = stageWinners[idx];
           const isCurrent = idx === currentMovieStage;
           return (
@@ -201,6 +203,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
           );
         })}
       </div>
+
 
       {/* ── 3. INTERACTIVE ROUGH WORK DRAWING AREA (When Opened) ── */}
       {showScratchpad ? (
@@ -364,7 +367,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
               <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
               <span className="leading-tight">{teamState.feedbackMessage}</span>
             </div>
-            {currentMovieStage < RATIO_QUESTIONS.length - 1 ? (
+            {currentMovieStage < questions.length - 1 ? (
               <button
                 onClick={() => nextQuestion(team)}
                 className="px-3.5 py-1.5 rounded-xl bg-yellow-400 text-black font-black text-xs sm:text-sm flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_#000000] hover:bg-yellow-300 active:shadow-none transition-all cursor-pointer whitespace-nowrap ml-2"

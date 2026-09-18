@@ -15,10 +15,12 @@ export const RatioWorkspace: React.FC = () => {
   const blueTeam = useRatioStore((s) => s.blueTeam);
   const redTeam = useRatioStore((s) => s.redTeam);
   const gameMode = useRatioStore((s) => s.gameMode);
+  const questions = useRatioStore((s) => s.questions || RATIO_QUESTIONS);
 
   // Active question based on team progress
   const activeQIndex = Math.max(blueTeam.currentQuestionIndex, redTeam.currentQuestionIndex);
-  const question = RATIO_QUESTIONS[activeQIndex] || RATIO_QUESTIONS[0];
+  const question = questions[activeQIndex] || questions[0] || RATIO_QUESTIONS[0];
+
 
   const [activeTab, setActiveTab] = useState<'tape' | 'table' | 'unit_rate'>('tape');
   const [userMultiplier, setUserMultiplier] = useState<number>(question.diagram.multiplier);

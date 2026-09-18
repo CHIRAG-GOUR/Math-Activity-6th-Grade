@@ -6,8 +6,9 @@
 // - Physical 3D Cabinets in rich custom activity themes & colors
 // - Multi-Wing Support (Wing 1: 01-04, Wing 2: 05-08, Wing 3: 09-12, Wing 4: 13)
 // - Top Quick Wing Switchers + All 13 Games Catalog Modal
+// - Central Question Bank & Management System for Teachers
+// - Pre-Game Question Setup Modal (5 / 10 / 15 questions with Teacher Priority)
 // - Floating Left & Right Navigation Arrows with Machine Counters
-// - Overhead compact Name & Topic cards for instant readability
 // - Direct 3D Click-to-Play interaction
 // - Clean unified bottom dock bar with wing switchers & audio controls
 // ============================================================
@@ -21,16 +22,17 @@ import {
   VolumeX,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
   LayoutGrid,
-  Layers,
-  Flame,
-  CheckCircle2,
+  BookOpen,
+  Sparkles,
 } from 'lucide-react';
 import { ArcadeLobbyScene, ARCADE_CABINET_DATA, MACHINES_PER_PAGE } from './ArcadeLobbyScene';
 import { AllGamesCatalogModal } from './AllGamesCatalogModal';
+import { QuestionBankModal } from './question-bank/QuestionBankModal';
+import { GameQuestionSetupModal } from './question-bank/GameQuestionSetupModal';
 import { soundManager } from '@/utils/audio';
 import { useRouter } from 'next/navigation';
+import { GameSessionSetup } from '@/types/questionBank';
 
 export const ArcadeHubDashboard: React.FC = () => {
   const router = useRouter();
@@ -39,6 +41,10 @@ export const ArcadeHubDashboard: React.FC = () => {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [isMuted, setIsMuted] = useState(soundManager.getMuted());
   const [isCatalogOpen, setIsCatalogOpen] = useState(false);
+
+  // Question Management & Activity Setup Modals
+  const [isQuestionBankOpen, setIsQuestionBankOpen] = useState<boolean>(false);
+  const [setupActivityId, setSetupActivityId] = useState<string | null>(null);
 
   const totalPages = Math.ceil(ARCADE_CABINET_DATA.length / MACHINES_PER_PAGE);
 
@@ -70,8 +76,12 @@ export const ArcadeHubDashboard: React.FC = () => {
   // Keyboard Navigation: Left/Right arrow keys & Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isCatalogOpen) {
-        if (e.key === 'Escape') setIsCatalogOpen(false);
+      if (isCatalogOpen || isQuestionBankOpen || setupActivityId) {
+        if (e.key === 'Escape') {
+          setIsCatalogOpen(false);
+          setIsQuestionBankOpen(false);
+          setSetupActivityId(null);
+        }
         return;
       }
       if (e.key === 'ArrowRight') {
@@ -82,7 +92,7 @@ export const ArcadeHubDashboard: React.FC = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [goToNextPage, goToPrevPage, isCatalogOpen]);
+  }, [goToNextPage, goToPrevPage, isCatalogOpen, isQuestionBankOpen, setupActivityId]);
 
   // Fullscreen Listener
   useEffect(() => {
@@ -118,6 +128,20 @@ export const ArcadeHubDashboard: React.FC = () => {
     }
   };
 
+  const handleOpenGameSetup = (activityId: string) => {
+    soundManager.playClick();
+    setSetupActivityId(activityId);
+  };
+
+  const handleLaunchGameFromSetup = (sessionSetup: GameSessionSetup) => {
+    const cab = ARCADE_CABINET_DATA.find((c) => c.id === sessionSetup.activityId);
+    const targetRoute = cab ? cab.route : `/${sessionSetup.activityId}`;
+    soundManager.playArcadeGameStart();
+    setTimeout(() => {
+      router.push(targetRoute);
+    }, 200);
+  };
+
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-[#fffbeb] select-none text-slate-800 flex flex-col justify-between">
       
@@ -128,8 +152,7 @@ export const ArcadeHubDashboard: React.FC = () => {
         onSelectCabinet={(id) => {
           const target = ARCADE_CABINET_DATA.find((c) => c.id === id);
           if (target && target.status === 'active' && target.route !== '#') {
-            soundManager.playArcadeGameStart();
-            setTimeout(() => router.push(target.route), 260);
+            handleOpenGameSetup(target.id);
           } else {
             soundManager.playClick();
           }
@@ -186,8 +209,23 @@ export const ArcadeHubDashboard: React.FC = () => {
           })}
         </div>
 
-        {/* Right: ALL 13 GAMES GRID BUTTON */}
+        {/* Right: QUESTION BANK & ALL 13 GAMES GRID BUTTONS */}
         <div className="flex items-center gap-2">
+          {/* Question Bank Launcher */}
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              setIsQuestionBankOpen(true);
+            }}
+            className="flex items-center gap-2 px-3.5 py-2 rounded-2xl bg-white hover:bg-slate-50 border-2 border-slate-950 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] hover:translate-x-0.5 hover:translate-y-0.5 hover:shadow-[1px_1px_0px_0px_#0f172a] transition-all cursor-pointer font-black font-game text-xs uppercase tracking-wider group"
+            title="Open Central Question Manager (Teacher Questions, Excel Import)"
+          >
+            <BookOpen className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform" />
+            <span>QUESTION BANK</span>
+            <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+          </button>
+
+          {/* All 13 Games Catalog */}
           <button
             onClick={() => {
               soundManager.playClick();
@@ -197,7 +235,7 @@ export const ArcadeHubDashboard: React.FC = () => {
             title="Open Complete 13-Game Visual Grid Catalog"
           >
             <LayoutGrid className="w-4 h-4 group-hover:scale-110 transition-transform" />
-            <span>ALL 13 GAMES CATALOG</span>
+            <span>ALL 13 GAMES</span>
             <span className="px-1.5 py-0.5 rounded-md bg-slate-950 text-amber-300 text-[10px]">
               13
             </span>
@@ -260,7 +298,7 @@ export const ArcadeHubDashboard: React.FC = () => {
       {/* ── UNIFIED BOTTOM NAVIGATION DOCK ── */}
       <footer className="relative z-30 w-full max-w-7xl mx-auto px-3 sm:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 border-t-3 border-slate-950 bg-white/95 backdrop-blur-md rounded-t-3xl text-xs font-game tracking-wider text-slate-700 shadow-[0_-8px_25px_rgba(0,0,0,0.12)] pointer-events-auto mb-1">
         
-        {/* Left: Catalog Quick Launcher & Machine Overview */}
+        {/* Left: Quick Launchers */}
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={() => {
@@ -270,7 +308,19 @@ export const ArcadeHubDashboard: React.FC = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-slate-950 text-amber-400 hover:bg-slate-800 border-2 border-slate-950 font-black text-xs uppercase tracking-wider transition cursor-pointer shadow-sm"
           >
             <LayoutGrid className="w-4 h-4" />
-            <span>GRID VIEW</span>
+            <span>GRID</span>
+          </button>
+
+          <button
+            onClick={() => {
+              soundManager.playClick();
+              setIsQuestionBankOpen(true);
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-400 text-slate-950 hover:bg-amber-300 border-2 border-slate-950 font-black text-xs uppercase tracking-wider transition cursor-pointer shadow-sm"
+            title="Central Question Bank"
+          >
+            <BookOpen className="w-4 h-4" />
+            <span>QUESTIONS</span>
           </button>
         </div>
 
@@ -323,15 +373,14 @@ export const ArcadeHubDashboard: React.FC = () => {
                 key={cab.id}
                 onClick={() => {
                   if (isSelected && cab.status === 'active' && cab.route !== '#') {
-                    soundManager.playArcadeGameStart();
-                    setTimeout(() => router.push(cab.route), 260);
+                    handleOpenGameSetup(cab.id);
                   } else {
                     soundManager.playClick();
                     setActivePage(targetWing);
                     setSelectedCategory(`#${cab.number}`);
                   }
                 }}
-                title={cab.status === 'active' ? `Select ${cab.title} (${cab.topic})` : `${cab.title} (Coming Soon)`}
+                title={cab.status === 'active' ? `Setup & Play ${cab.title} (${cab.topic})` : `${cab.title} (Coming Soon)`}
                 className={`px-2.5 py-1.5 rounded-xl text-[10.5px] font-black font-game transition-all cursor-pointer whitespace-nowrap shrink-0 flex items-center gap-1.5 border-2 ${
                   isSelected
                     ? 'bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 text-slate-950 border-slate-950 shadow-[2px_2px_0px_0px_#0f172a] scale-[1.02]'
@@ -368,7 +417,7 @@ export const ArcadeHubDashboard: React.FC = () => {
                 {/* Active Play Indicator */}
                 {cab.status === 'active' && isSelected && (
                   <span className="text-[8.5px] font-black text-emerald-950 bg-emerald-300 px-1.5 py-0.5 rounded-md ml-0.5 animate-pulse">
-                    PLAY →
+                    SETUP & PLAY →
                   </span>
                 )}
               </button>
@@ -403,7 +452,33 @@ export const ArcadeHubDashboard: React.FC = () => {
         onClose={() => setIsCatalogOpen(false)}
         cabinets={ARCADE_CABINET_DATA}
         onSelectCabinetIn3D={handleSelectCabinetIn3D}
+        onOpenSetup={handleOpenGameSetup}
+        onOpenQuestionBank={() => setIsQuestionBankOpen(true)}
       />
+
+      {/* ── CENTRAL QUESTION BANK MODAL ── */}
+      <QuestionBankModal
+        isOpen={isQuestionBankOpen}
+        onClose={() => setIsQuestionBankOpen(false)}
+        onStartActivitySetup={(actId) => {
+          setIsQuestionBankOpen(false);
+          setSetupActivityId(actId);
+        }}
+      />
+
+      {/* ── PRE-GAME QUESTION SETUP MODAL (5 / 10 / 15 QS WITH TEACHER PRIORITY) ── */}
+      {setupActivityId && (
+        <GameQuestionSetupModal
+          isOpen={Boolean(setupActivityId)}
+          activityId={setupActivityId}
+          onClose={() => setSetupActivityId(null)}
+          onLaunchGame={handleLaunchGameFromSetup}
+          onOpenQuestionManager={() => {
+            setSetupActivityId(null);
+            setIsQuestionBankOpen(true);
+          }}
+        />
+      )}
 
     </main>
   );

@@ -21,6 +21,12 @@ export const RatioRushGame: React.FC = () => {
   const setGameMode = useRatioStore((s) => s.setGameMode);
   const decrementTimer = useRatioStore((s) => s.decrementTimer);
   const setShowBriefingModal = useRatioStore((s) => s.setShowBriefingModal);
+  const reloadSessionQuestions = useRatioStore((s) => s.reloadSessionQuestions);
+
+  // Reload active session questions on mount
+  useEffect(() => {
+    reloadSessionQuestions();
+  }, [reloadSessionQuestions]);
 
   // Countdown timer hook
   useEffect(() => {
@@ -29,6 +35,7 @@ export const RatioRushGame: React.FC = () => {
     }, 1000);
     return () => clearInterval(timer);
   }, [decrementTimer]);
+
 
   return (
     <main className="relative w-screen h-screen overflow-hidden bg-slate-100 select-none flex flex-col justify-between">
