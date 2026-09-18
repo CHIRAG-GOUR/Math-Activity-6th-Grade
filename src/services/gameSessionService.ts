@@ -56,6 +56,8 @@ export function getActiveGameSession(activityId: string): GameSessionSetup {
   const fallbackSetup: GameSessionSetup = {
     activityId,
     activityName: act ? act.name : activityId,
+    topicId: act ? act.topicId : 'general',
+    topicName: act ? act.topic : 'Mathematics',
     questionCount: 5,
     selectedQuestionIds: auto.selectedQuestions.map((q) => q.id),
     questions: auto.selectedQuestions,
@@ -65,6 +67,7 @@ export function getActiveGameSession(activityId: string): GameSessionSetup {
     randomizeAnswers: false,
     timestamp: Date.now(),
   };
+
 
   return fallbackSetup;
 }

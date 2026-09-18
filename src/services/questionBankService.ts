@@ -3,6 +3,7 @@
 // Persistent LocalStorage store for teacher questions, built-in questions,
 // recent play history, Excel import validation, template generator,
 // auto-selection with Teacher Priority, and full CRUD.
+// Core principle: 1 QUESTION -> 1 SPECIFIC ACTIVITY -> 1 SPECIFIC TOPIC
 // ============================================================
 
 import * as XLSX from 'xlsx';
@@ -17,8 +18,13 @@ import {
   QuestionBankFilterState,
 } from '@/types/questionBank';
 import { BUILT_IN_QUESTIONS_SEED } from './builtInQuestionsSeed';
-import { ACTIVITIES_REGISTRY, getActivityById, resolveActivity } from './activityRegistry';
-
+import {
+  ACTIVITIES_REGISTRY,
+  getActivityById,
+  getActivityByTopicId,
+  resolveActivity,
+  validateActivityTopicPair,
+} from './activityRegistry';
 
 const TEACHER_STORAGE_KEY = 'skillizee_teacher_questions_v1';
 const RECENT_HISTORY_KEY = 'skillizee_recent_questions_history_v1';
@@ -26,6 +32,19 @@ const RECENT_HISTORY_KEY = 'skillizee_recent_questions_history_v1';
 // In-memory cache synced with localStorage
 let teacherQuestionsCache: UniversalQuestion[] | null = null;
 let recentHistoryCache: Record<string, string[]> | null = null;
+
+function sanitizeQuestionTopic(q: UniversalQuestion): UniversalQuestion {
+  const act = getActivityById(q.activityId);
+  if (act) {
+    return {
+      ...q,
+      activityName: act.name,
+      topicId: act.topicId,
+      topicName: act.topic,
+    };
+  }
+  return q;
+}
 
 function loadTeacherQuestions(): UniversalQuestion[] {
   if (typeof window === 'undefined') return [];
@@ -39,8 +58,10 @@ function loadTeacherQuestions(): UniversalQuestion[] {
     }
     const parsed = JSON.parse(raw);
     if (Array.isArray(parsed)) {
-      teacherQuestionsCache = parsed;
-      return parsed;
+      // Auto-migrate to guarantee activity & topic synchronization
+      const sanitized = parsed.map(sanitizeQuestionTopic);
+      teacherQuestionsCache = sanitized;
+      return sanitized;
     }
   } catch (err) {
     console.error('Failed to load teacher questions from localStorage:', err);
@@ -50,10 +71,10 @@ function loadTeacherQuestions(): UniversalQuestion[] {
 }
 
 function saveTeacherQuestions(questions: UniversalQuestion[]): void {
-  teacherQuestionsCache = questions;
+  teacherQuestionsCache = questions.map(sanitizeQuestionTopic);
   if (typeof window === 'undefined') return;
   try {
-    localStorage.setItem(TEACHER_STORAGE_KEY, JSON.stringify(questions));
+    localStorage.setItem(TEACHER_STORAGE_KEY, JSON.stringify(teacherQuestionsCache));
   } catch (err) {
     console.error('Failed to save teacher questions to localStorage:', err);
   }
@@ -100,7 +121,6 @@ export function getBuiltInQuestions(): UniversalQuestion[] {
   return [...BUILT_IN_QUESTIONS_SEED];
 }
 
-
 export function getAllQuestions(): UniversalQuestion[] {
   return [...getTeacherQuestions(), ...getBuiltInQuestions()];
 }
@@ -110,6 +130,11 @@ export function getQuestionById(id: string): UniversalQuestion | null {
   return all.find((q) => q.id === id) || null;
 }
 
+/**
+ * STRICT QUESTION ISOLATION:
+ * Returns questions strictly assigned to this activity.
+ * Under no circumstances are questions from other activities returned.
+ */
 export function getQuestionsForActivity(activityId: string): {
   teacher: UniversalQuestion[];
   builtIn: UniversalQuestion[];
@@ -124,14 +149,36 @@ export function getQuestionsForActivity(activityId: string): {
   };
 }
 
-export function getQuestionCountsByActivity(): Record<string, { teacher: number; builtIn: number; total: number }> {
-  const result: Record<string, { teacher: number; builtIn: number; total: number }> = {};
+export function getQuestionsForTopic(topicId: string): {
+  teacher: UniversalQuestion[];
+  builtIn: UniversalQuestion[];
+  total: UniversalQuestion[];
+} {
+  const teacher = getTeacherQuestions().filter((q) => q.topicId === topicId);
+  const builtIn = getBuiltInQuestions().filter((q) => q.topicId === topicId);
+  return {
+    teacher,
+    builtIn,
+    total: [...teacher, ...builtIn],
+  };
+}
+
+export function getQuestionCountsByActivity(): Record<
+  string,
+  { teacher: number; builtIn: number; total: number; topic: string; activityName: string }
+> {
+  const result: Record<
+    string,
+    { teacher: number; builtIn: number; total: number; topic: string; activityName: string }
+  > = {};
   for (const act of ACTIVITIES_REGISTRY) {
     const { teacher, builtIn, total } = getQuestionsForActivity(act.id);
     result[act.id] = {
       teacher: teacher.length,
       builtIn: builtIn.length,
       total: total.length,
+      topic: act.topic,
+      activityName: act.name,
     };
   }
   return result;
@@ -154,7 +201,7 @@ export interface CreateQuestionPayload {
 export function createTeacherQuestion(payload: CreateQuestionPayload): UniversalQuestion {
   const activity = getActivityById(payload.activityId);
   if (!activity) {
-    throw new Error(`Invalid activity ID: ${payload.activityId}`);
+    throw new Error(`Invalid activity ID: ${payload.activityId}. A question must be assigned to an official activity.`);
   }
 
   // Validation
@@ -177,6 +224,8 @@ export function createTeacherQuestion(payload: CreateQuestionPayload): Universal
     source: 'teacher',
     activityId: activity.id,
     activityName: activity.name,
+    topicId: activity.topicId,
+    topicName: activity.topic,
     question: questionText,
     options: [cleanOptions[0], cleanOptions[1], cleanOptions[2], cleanOptions[3]],
     correctAnswer: payload.correctAnswer,
@@ -227,6 +276,8 @@ export function updateTeacherQuestion(
     ...existing,
     activityId: activity.id,
     activityName: activity.name,
+    topicId: activity.topicId,
+    topicName: activity.topic,
     question: questionText,
     options: [options[0], options[1], options[2], options[3]],
     correctAnswer,
@@ -279,6 +330,7 @@ export function deleteMultipleTeacherQuestions(ids: string[]): number {
 
 // ------------------------------------------------------------
 // Question Auto-Selection with Strict Teacher Priority
+// (STRICT: ONLY questions matching activityId are used)
 // ------------------------------------------------------------
 
 export function autoSelectQuestions(
@@ -391,9 +443,11 @@ export async function parseAndValidateExcel(file: File): Promise<ExcelValidation
   rawRows.forEach((row, index) => {
     const rowNumber = index + 2; // Excel row index assuming row 1 is header
     const errors: string[] = [];
+    let warning: string | undefined = undefined;
 
     // Extract fields with flexible column naming
-    const rawActivity = String(row['Activity'] || row['Activity Name'] || row['Topic'] || row['Game'] || row['Cabinet'] || '').trim();
+    const rawActivity = String(row['Activity'] || row['Activity Name'] || row['Game'] || row['Cabinet'] || '').trim();
+    const rawTopic = String(row['Topic'] || row['Math Topic'] || row['Curriculum Topic'] || '').trim();
     const rawQuestion = String(row['Question'] || row['Question Text'] || row['Math Question'] || '').trim();
     const rawOptionA = String(row['Option A'] || row['OptionA'] || row['A'] || row['Choice A'] || '').trim();
     const rawOptionB = String(row['Option B'] || row['OptionB'] || row['B'] || row['Choice B'] || '').trim();
@@ -404,10 +458,16 @@ export async function parseAndValidateExcel(file: File): Promise<ExcelValidation
     const rawDifficulty = String(row['Difficulty'] || row['Level'] || 'Easy').trim().toLowerCase();
     const rawTags = String(row['Tags'] || row['Tag'] || row['Keywords'] || '').trim();
 
-    // 1. Resolve activity
-    const activity = resolveActivity(rawActivity);
+    // 1. Resolve activity & validate Topic pairing
+    const pairResult = validateActivityTopicPair(rawActivity || rawTopic, rawTopic);
+    const activity = pairResult.matchedActivity;
+
     if (!activity) {
-      errors.push(`Activity not recognized: "${rawActivity}". Supported: Ratio Rush, Decimals, Fractions, etc.`);
+      errors.push(`Activity not recognized: "${rawActivity || rawTopic}". Must match one of the 13 games.`);
+    } else if (pairResult.isMismatch && pairResult.expectedTopic) {
+      errors.push(
+        `Activity/Topic mismatch: "${activity.name}" belongs to topic "${activity.topic}", but sheet says "${rawTopic}".`
+      );
     }
 
     // 2. Validate question text
@@ -456,6 +516,7 @@ export async function parseAndValidateExcel(file: File): Promise<ExcelValidation
         rowNumber,
         data: {
           rawActivity,
+          rawTopic,
           rawQuestion,
           rawOptionA,
           rawOptionB,
@@ -467,6 +528,7 @@ export async function parseAndValidateExcel(file: File): Promise<ExcelValidation
           rawTags,
         },
         errors,
+        warning,
       });
       return;
     }
@@ -476,6 +538,8 @@ export async function parseAndValidateExcel(file: File): Promise<ExcelValidation
       source: 'teacher',
       activityId: activity.id,
       activityName: activity.name,
+      topicId: activity.topicId,
+      topicName: activity.topic,
       question: rawQuestion,
       options: [rawOptionA, rawOptionB, rawOptionC, rawOptionD],
       correctAnswer: cleanCorrect,
@@ -556,19 +620,21 @@ export function commitExcelImport(
 export function generateExcelTemplateBlob(): Blob {
   const templateRows = [
     {
-      Activity: 'Ratio Rush',
-      Question: 'A movie studio uses 2 cameras for every 3 actors. If there are 12 actors, how many cameras are needed?',
-      'Option A': '6',
-      'Option B': '8',
-      'Option C': '9',
-      'Option D': '10',
+      Activity: 'Graphworks',
+      Topic: 'Data Handling & Graphs',
+      Question: 'Which ordered pair represents 3 units right on the x-axis and 4 units up on the y-axis?',
+      'Option A': '(4, 3)',
+      'Option B': '(3, 4)',
+      'Option C': '(3, 0)',
+      'Option D': '(0, 4)',
       'Correct Answer': 'B',
-      Explanation: 'Both terms scale by 4: (2 × 4) = 8 cameras.',
+      Explanation: 'Coordinates are always written as (x, y), so (3, 4).',
       Difficulty: 'Easy',
-      Tags: 'Ratio, Scaling, Word Problem',
+      Tags: 'Coordinates, Grid, Plotting',
     },
     {
       Activity: 'The Chocolate Factory',
+      Topic: 'Fractions',
       Question: 'A chocolate batch uses 3/4 cup of cocoa powder. How much is needed for 3 full batches?',
       'Option A': '2 1/4 cups',
       'Option B': '1 1/2 cups',
@@ -580,28 +646,43 @@ export function generateExcelTemplateBlob(): Blob {
       Tags: 'Fractions, Multiplication, Mixed Numbers',
     },
     {
-      Activity: 'Decimal Delivery',
-      Question: 'A delivery truck carries three parcels weighing 4.25 kg, 8.5 kg, and 12.05 kg. What is the total cargo weight?',
-      'Option A': '24.8 kg',
-      'Option B': '25.0 kg',
-      'Option C': '24.75 kg',
-      'Option D': '25.2 kg',
-      'Correct Answer': 'A',
-      Explanation: '4.25 + 8.50 + 12.05 = 24.80 kg.',
+      Activity: 'Percentage Harvest',
+      Topic: 'Percentages',
+      Question: 'What is 20% of 80 kg of harvest?',
+      'Option A': '12 kg',
+      'Option B': '16 kg',
+      'Option C': '18 kg',
+      'Option D': '20 kg',
+      'Correct Answer': 'B',
+      Explanation: '20% of 80 = 0.2 × 80 = 16 kg.',
       Difficulty: 'Easy',
-      Tags: 'Decimals, Addition, Real World',
+      Tags: 'Percentages, Harvest',
     },
     {
-      Activity: 'Math Escape Vault',
-      Question: 'In the number 847,239.51, what is the place value of the digit 7?',
-      'Option A': 'Thousands (7,000)',
-      'Option B': 'Ten Thousands (70,000)',
-      'Option C': 'Hundreds (700)',
-      'Option D': 'Tenths (0.7)',
+      Activity: 'Park Planner',
+      Topic: 'Position & Transformation',
+      Question: 'When the point (2, 5) is reflected over the y-axis, what are its new coordinates?',
+      'Option A': '(-2, 5)',
+      'Option B': '(2, -5)',
+      'Option C': '(-2, -5)',
+      'Option D': '(5, 2)',
       'Correct Answer': 'A',
-      Explanation: 'The 7 is in the thousands column (7 × 1,000 = 7,000).',
+      Explanation: 'Reflecting over the y-axis changes the sign of the x-coordinate: (-2, 5).',
+      Difficulty: 'Medium',
+      Tags: 'Transformations, Reflection, Coordinates',
+    },
+    {
+      Activity: 'Ratio Rush',
+      Topic: 'Ratios, Rates & Proportions',
+      Question: 'A movie studio uses 2 cameras for every 3 actors. If there are 12 actors, how many cameras are needed?',
+      'Option A': '6',
+      'Option B': '8',
+      'Option C': '9',
+      'Option D': '10',
+      'Correct Answer': 'B',
+      Explanation: 'Both terms scale by 4: (2 × 4) = 8 cameras.',
       Difficulty: 'Easy',
-      Tags: 'Place Value, Whole Numbers',
+      Tags: 'Ratio, Scaling, Word Problem',
     },
   ];
 
@@ -610,6 +691,7 @@ export function generateExcelTemplateBlob(): Blob {
   // Set column widths for comfortable reading
   worksheet['!cols'] = [
     { wch: 24 }, // Activity
+    { wch: 28 }, // Topic
     { wch: 60 }, // Question
     { wch: 20 }, // Option A
     { wch: 20 }, // Option B
@@ -635,6 +717,9 @@ export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
     if (filter.activityId && filter.activityId !== 'all') {
       list = list.filter((q) => q.activityId === filter.activityId);
     }
+    if (filter.topicId && filter.topicId !== 'all') {
+      list = list.filter((q) => q.topicId === filter.topicId);
+    }
     if (filter.source && filter.source !== 'all') {
       list = list.filter((q) => q.source === filter.source);
     }
@@ -646,6 +731,8 @@ export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
       list = list.filter(
         (q) =>
           q.question.toLowerCase().includes(qLower) ||
+          q.activityName.toLowerCase().includes(qLower) ||
+          q.topicName.toLowerCase().includes(qLower) ||
           q.options.some((o) => o.toLowerCase().includes(qLower)) ||
           q.tags.some((t) => t.toLowerCase().includes(qLower))
       );
@@ -655,6 +742,7 @@ export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
   const exportRows = list.map((q) => ({
     Source: q.source === 'teacher' ? 'My Questions (Teacher)' : 'Built-in Arcade',
     Activity: q.activityName,
+    Topic: q.topicName,
     Question: q.question,
     'Option A': q.options[0],
     'Option B': q.options[1],
@@ -670,6 +758,7 @@ export function exportQuestionsToExcel(filter?: QuestionBankFilterState): Blob {
   worksheet['!cols'] = [
     { wch: 22 },
     { wch: 26 },
+    { wch: 28 },
     { wch: 55 },
     { wch: 20 },
     { wch: 20 },

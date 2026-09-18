@@ -5,8 +5,10 @@
 // ============================================================
 
 import { UniversalQuestion } from '@/types/questionBank';
+import { ACTIVITIES_REGISTRY } from './activityRegistry';
 
-export const BUILT_IN_QUESTIONS_SEED: UniversalQuestion[] = [
+const RAW_BUILT_IN_QUESTIONS: Omit<UniversalQuestion, 'topicId' | 'topicName'>[] = [
+
   // ────────────────────────────────────────────────────────────
   // ACTIVITY 01: MATH ESCAPE VAULT (Place Value & Decimals)
   // ────────────────────────────────────────────────────────────
@@ -848,3 +850,14 @@ export const BUILT_IN_QUESTIONS_SEED: UniversalQuestion[] = [
     updatedAt: 1700000000000,
   },
 ];
+
+export const BUILT_IN_QUESTIONS_SEED: UniversalQuestion[] = RAW_BUILT_IN_QUESTIONS.map((q) => {
+  const act = ACTIVITIES_REGISTRY.find((a) => a.id === q.activityId);
+  return {
+    ...q,
+    activityName: act ? act.name : q.activityName,
+    topicId: act ? act.topicId : 'general',
+    topicName: act ? act.topic : 'Mathematics',
+  };
+});
+

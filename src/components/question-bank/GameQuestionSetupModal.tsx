@@ -138,6 +138,8 @@ export const GameQuestionSetupModal: React.FC<GameQuestionSetupModalProps> = ({
     const setup: GameSessionSetup = {
       activityId,
       activityName: activity ? activity.name : activityId,
+      topicId: activity ? activity.topicId : 'math-topic',
+      topicName: activity ? activity.topic : 'Mathematics Topic',
       questionCount,
       selectedQuestionIds: selectedIds,
       questions: selectedQuestions,

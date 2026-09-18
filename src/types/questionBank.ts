@@ -1,7 +1,8 @@
 // ============================================================
 // SKILLIZEE ARCADE — CENTRAL QUESTION MANAGEMENT SYSTEM TYPES
 // Universal question types, teacher/built-in sources, Excel schemas,
-// and 5/10/15 question game session interfaces for all 13 activities.
+// activity/topic registry, and 5/10/15 question session interfaces.
+// Core principle: ONE QUESTION -> ONE SPECIFIC ACTIVITY -> ONE SPECIFIC TOPIC
 // ============================================================
 
 export type QuestionSource = 'teacher' | 'built-in';
@@ -10,23 +11,28 @@ export type AnswerOptionKey = 'A' | 'B' | 'C' | 'D';
 export type GameQuestionCount = 5 | 10 | 15;
 
 export interface ActivityDefinition {
-  id: string;
-  number: string;
-  name: string;
-  topic: string;
+  id: string; // Stable slug e.g. 'graphworks', 'ratio-rush'
+  number: string; // '01' to '13'
+  name: string; // Canonical arcade game name
+  topicId: string; // Stable topic slug e.g. 'graphs', 'ratios-proportions'
+  topic: string; // Full human topic name
+  shortTopic: string; // Compact topic label
   grade: string;
   route: string;
   badgeBg: string;
   badgeText: string;
   accentColor: string;
   aliases: string[];
+  topicAliases: string[];
 }
 
 export interface UniversalQuestion {
   id: string;
   source: QuestionSource;
-  activityId: string;
+  activityId: string; // STRICT 1-to-1 binding
   activityName: string;
+  topicId: string; // STRICT 1-to-1 math topic binding
+  topicName: string;
   question: string;
   options: [string, string, string, string]; // [Option A, Option B, Option C, Option D]
   correctAnswer: AnswerOptionKey; // 'A' | 'B' | 'C' | 'D'
@@ -40,6 +46,7 @@ export interface UniversalQuestion {
 export interface ExcelImportRow {
   rowNumber: number;
   rawActivity: string;
+  rawTopic?: string;
   rawQuestion: string;
   rawOptionA: string;
   rawOptionB: string;
@@ -55,6 +62,7 @@ export interface ExcelInvalidRow {
   rowNumber: number;
   data: Partial<ExcelImportRow>;
   errors: string[];
+  warning?: string;
 }
 
 export interface ExcelDuplicateRow {
@@ -76,6 +84,8 @@ export interface ExcelValidationResult {
 export interface GameSessionSetup {
   activityId: string;
   activityName: string;
+  topicId: string;
+  topicName: string;
   questionCount: GameQuestionCount;
   selectedQuestionIds: string[];
   questions: UniversalQuestion[];
@@ -88,8 +98,10 @@ export interface GameSessionSetup {
 
 export interface QuestionBankFilterState {
   activityId: string; // 'all' | activityId
+  topicId: string; // 'all' | topicId
   source: 'all' | 'teacher' | 'built-in';
   difficulty: 'all' | 'easy' | 'medium' | 'hard';
   searchQuery: string;
   tag: string;
+  groupByActivity: boolean;
 }

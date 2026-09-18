@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { UniversalQuestion, AnswerOptionKey, QuestionDifficulty } from '@/types/questionBank';
 import { ACTIVITIES_REGISTRY, getActivityById } from '@/services/activityRegistry';
 import { createTeacherQuestion, updateTeacherQuestion } from '@/services/questionBankService';
+import { Gamepad2, Sparkles, BookOpen, Check, Search } from 'lucide-react';
 
 interface QuestionFormModalProps {
   isOpen: boolean;
@@ -23,6 +24,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
   const [activityId, setActivityId] = useState<string>(
     initialQuestion?.activityId || defaultActivityId || ACTIVITIES_REGISTRY[0].id
   );
+  const [activitySearch, setActivitySearch] = useState<string>('');
   const [questionText, setQuestionText] = useState<string>(initialQuestion?.question || '');
   const [optionA, setOptionA] = useState<string>(initialQuestion?.options[0] || '');
   const [optionB, setOptionB] = useState<string>(initialQuestion?.options[1] || '');
@@ -68,7 +70,22 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
       setTagsInput('');
     }
     setErrorMessage(null);
+    setActivitySearch('');
   }, [initialQuestion, defaultActivityId, isOpen]);
+
+  const selectedActivity = useMemo(() => getActivityById(activityId) || ACTIVITIES_REGISTRY[0], [activityId]);
+
+  const filteredActivities = useMemo(() => {
+    if (!activitySearch.trim()) return ACTIVITIES_REGISTRY;
+    const q = activitySearch.toLowerCase();
+    return ACTIVITIES_REGISTRY.filter(
+      (act) =>
+        act.name.toLowerCase().includes(q) ||
+        act.topic.toLowerCase().includes(q) ||
+        act.shortTopic.toLowerCase().includes(q) ||
+        act.number.includes(q)
+    );
+  }, [activitySearch]);
 
   if (!isOpen) return null;
 
@@ -79,7 +96,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
       const end = input.selectionEnd || 0;
       const val = input.value;
       const updated = val.substring(0, start) + sym + val.substring(end);
-      
+
       if (input.name === 'question') setQuestionText(updated);
       else if (input.name === 'optionA') setOptionA(updated);
       else if (input.name === 'optionB') setOptionB(updated);
@@ -121,12 +138,11 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
         .filter(Boolean);
 
       let saved: UniversalQuestion;
-      const activity = getActivityById(activityId);
-      const activityLabel = activity ? activity.name : 'Selected Activity';
+      const activity = getActivityById(activityId) || selectedActivity;
 
       if (initialQuestion && initialQuestion.source === 'teacher') {
         saved = updateTeacherQuestion(initialQuestion.id, {
-          activityId,
+          activityId: activity.id,
           question: questionText,
           options: [optionA, optionB, optionC, optionD],
           correctAnswer,
@@ -134,10 +150,10 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
           difficulty,
           tags: parsedTags,
         });
-        onSaved(saved, `✓ Question updated for ${activityLabel}`);
+        onSaved(saved, `✓ Question updated for ${activity.name} (${activity.topic})`);
       } else {
         saved = createTeacherQuestion({
-          activityId,
+          activityId: activity.id,
           question: questionText,
           options: [optionA, optionB, optionC, optionD],
           correctAnswer,
@@ -145,7 +161,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
           difficulty,
           tags: parsedTags,
         });
-        onSaved(saved, `✓ Question added to ${activityLabel}`);
+        onSaved(saved, `✓ Question assigned to ${activity.name} (${activity.topic})`);
       }
       onClose();
     } catch (err: any) {
@@ -155,30 +171,28 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
     }
   };
 
-  const selectedActivity = getActivityById(activityId);
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-3xl bg-white rounded-2xl shadow-2xl border-2 border-slate-800 overflow-hidden flex flex-col max-h-[92vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-md animate-fadeIn">
+      <div className="relative w-full max-w-4xl bg-white rounded-3xl shadow-2xl border-3 border-slate-900 overflow-hidden flex flex-col max-h-[92vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white border-b-2 border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-950 text-white border-b-2 border-slate-800">
           <div className="flex items-center gap-3">
-            <span className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center text-lg font-black text-white shadow-inner">
+            <span className="w-10 h-10 rounded-2xl bg-blue-600 flex items-center justify-center text-lg font-black text-white shadow-inner border border-blue-400/30">
               ✏️
             </span>
             <div>
-              <h2 className="text-base sm:text-lg font-black tracking-tight text-white">
-                {initialQuestion ? 'Edit Teacher Question' : 'Create Teacher Question'}
+              <h2 className="text-base sm:text-lg font-black tracking-tight text-white uppercase">
+                {initialQuestion ? 'Edit Question & Activity Assignment' : 'Assign Question to Activity & Topic'}
               </h2>
-              <p className="text-xs text-slate-300 font-medium">
-                Add custom curriculum questions for Grade 6 Mathematics Arcade
+              <p className="text-xs text-slate-400 font-medium">
+                Every teacher question belongs strictly to 1 arcade game & 1 mathematics topic
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
             type="button"
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition-colors border border-slate-700 font-black text-sm"
           >
             ✕
           </button>
@@ -187,57 +201,122 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
           {errorMessage && (
-            <div className="p-3.5 bg-rose-50 border-2 border-rose-400 rounded-xl text-xs font-black text-rose-800 flex items-center gap-2 animate-shake">
+            <div className="p-3.5 bg-rose-50 border-2 border-rose-400 rounded-2xl text-xs font-black text-rose-800 flex items-center gap-2 animate-shake">
               <span>⚠️</span>
               <span>{errorMessage}</span>
             </div>
           )}
 
-          {/* Activity Dropdown */}
-          <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
-              Target Arcade Activity <span className="text-rose-500">*</span>
-            </label>
-            <div className="relative">
-              <select
-                value={activityId}
-                onChange={(e) => setActivityId(e.target.value)}
-                className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-bold text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all cursor-pointer"
-              >
-                {ACTIVITIES_REGISTRY.map((act) => (
-                  <option key={act.id} value={act.id}>
-                    Cab {act.number} • {act.name} ({act.topic})
-                  </option>
-                ))}
-              </select>
+          {/* ── 1. PROMINENT ACTIVITY & TOPIC SELECTOR ── */}
+          <div className="bg-slate-50 border-2 border-slate-300 rounded-2xl p-4.5 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <label className="block text-xs font-black uppercase tracking-wider text-slate-900 flex items-center gap-1.5">
+                  <Gamepad2 className="w-4 h-4 text-blue-600" /> Choose Target Activity & Math Topic{' '}
+                  <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-[11px] text-slate-500 font-medium">
+                  Select the arcade game. Its official Grade 6 topic will be auto-assigned.
+                </p>
+              </div>
+
+              {/* Quick Search for 13 Activities */}
+              <div className="relative min-w-[200px] max-w-xs">
+                <Search className="absolute left-2.5 top-2 w-3.5 h-3.5 text-slate-400" />
+                <input
+                  type="text"
+                  value={activitySearch}
+                  onChange={(e) => setActivitySearch(e.target.value)}
+                  placeholder="Filter activity / topic..."
+                  className="w-full pl-8 pr-3 py-1 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:outline-none focus:border-blue-500"
+                />
+              </div>
             </div>
-            {selectedActivity && (
-              <div className="mt-1.5 flex items-center gap-2">
-                <span className="text-[11px] font-bold text-slate-500">Topic:</span>
-                <span
-                  className="text-[11px] font-black px-2 py-0.5 rounded-md"
-                  style={{ backgroundColor: selectedActivity.badgeBg, color: selectedActivity.badgeText }}
-                >
-                  {selectedActivity.topic}
+
+            {/* Visual Cards Grid for Activities */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 max-h-48 overflow-y-auto p-1 pr-2">
+              {filteredActivities.map((act) => {
+                const isSelected = activityId === act.id;
+                return (
+                  <button
+                    key={act.id}
+                    type="button"
+                    onClick={() => setActivityId(act.id)}
+                    className={`p-2.5 rounded-xl border-2 text-left transition-all flex items-start justify-between gap-2 ${
+                      isSelected
+                        ? 'bg-blue-50/90 border-blue-600 ring-2 ring-blue-500/20 shadow-sm'
+                        : 'bg-white border-slate-200 hover:border-slate-400 hover:bg-slate-50/80'
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] font-black px-1.5 py-0.5 rounded bg-slate-900 text-amber-300">
+                          #{act.number}
+                        </span>
+                        <span className="text-xs font-black text-slate-900 truncate">
+                          {act.name}
+                        </span>
+                      </div>
+                      <div className="mt-1 flex items-center gap-1">
+                        <span className="text-[10px] text-slate-400 font-bold">Topic:</span>
+                        <span
+                          className="text-[10px] font-extrabold px-1.5 py-0.5 rounded truncate"
+                          style={{ backgroundColor: act.badgeBg, color: act.badgeText }}
+                        >
+                          {act.topic}
+                        </span>
+                      </div>
+                    </div>
+
+                    {isSelected && (
+                      <span className="w-5 h-5 rounded-full bg-blue-600 text-white text-[11px] font-black flex items-center justify-center shrink-0 mt-0.5">
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Selected Activity & Auto-Populated Topic Confirmation Bar */}
+            <div className="mt-2 p-3 bg-white border-2 border-blue-200 rounded-xl flex flex-wrap items-center justify-between gap-3 shadow-xs">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-500 uppercase">Assigned Game:</span>
+                <span className="text-xs font-black text-blue-900 bg-blue-100 px-2 py-0.5 rounded-md">
+                  🎮 Cab #{selectedActivity.number} • {selectedActivity.name}
                 </span>
               </div>
-            )}
+
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-black text-slate-500 uppercase">Math Topic:</span>
+                <span
+                  className="text-xs font-black px-2.5 py-0.5 rounded-md border"
+                  style={{
+                    backgroundColor: selectedActivity.badgeBg,
+                    color: selectedActivity.badgeText,
+                    borderColor: selectedActivity.badgeText + '40',
+                  }}
+                >
+                  📐 {selectedActivity.topic}
+                </span>
+              </div>
+            </div>
           </div>
 
-          {/* Math Symbol Toolbar */}
+          {/* ── 2. MATH SYMBOLS & QUESTION PROMPT ── */}
           <div>
             <div className="flex items-center justify-between mb-1.5">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
                 Question Text <span className="text-rose-500">*</span>
               </label>
               <div className="flex items-center gap-1 overflow-x-auto py-0.5 max-w-[65%]">
-                <span className="text-[10px] font-bold text-slate-400 mr-1 hidden sm:inline">Symbols:</span>
+                <span className="text-[10px] font-bold text-slate-400 mr-1 hidden sm:inline">Insert:</span>
                 {MATH_SYMBOLS.map((sym) => (
                   <button
                     key={sym}
                     type="button"
                     onClick={() => insertSymbol(sym)}
-                    className="px-2 py-1 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-800 text-xs font-bold rounded border border-slate-300 transition-colors"
+                    className="px-2 py-0.5 bg-slate-100 hover:bg-blue-100 hover:text-blue-700 text-slate-800 text-xs font-bold rounded border border-slate-300 transition-colors"
                   >
                     {sym}
                   </button>
@@ -249,24 +328,24 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
               value={questionText}
               onChange={(e) => setQuestionText(e.target.value)}
               onFocus={(e) => (activeInputRef.current = e.target)}
-              placeholder="e.g. A movie studio uses 2 cameras for every 3 actors. If there are 12 actors, how many cameras are needed?"
+              placeholder={`e.g. Question strictly for ${selectedActivity.topic} (${selectedActivity.name})...`}
               rows={3}
-              className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
+              className="w-full px-4 py-3 bg-slate-50 border-2 border-slate-300 rounded-2xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 
-          {/* Answer Options (A, B, C, D) & Correct Answer Selector */}
+          {/* ── 3. FOUR OPTIONS & SINGLE CORRECT ANSWER ── */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-800">
                 Answer Choices & Correct Answer <span className="text-rose-500">*</span>
               </label>
               <span className="text-[11px] font-bold text-slate-500">
-                Click the circular badge to mark as Correct Answer
+                Click button to mark correct answer
               </span>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               {(
                 [
                   { key: 'A' as AnswerOptionKey, value: optionA, setter: setOptionA, name: 'optionA' },
@@ -279,9 +358,9 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                 return (
                   <div
                     key={key}
-                    className={`flex items-center gap-2.5 p-2 rounded-xl border-2 transition-all ${
+                    className={`flex items-center gap-2.5 p-2 rounded-2xl border-2 transition-all ${
                       isCorrect
-                        ? 'bg-emerald-50/80 border-emerald-500 ring-2 ring-emerald-400/30'
+                        ? 'bg-emerald-50 border-emerald-500 ring-2 ring-emerald-400/30'
                         : 'bg-white border-slate-300 focus-within:border-blue-500'
                     }`}
                   >
@@ -289,7 +368,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
                       type="button"
                       onClick={() => setCorrectAnswer(key)}
                       title={`Mark Option ${key} as correct answer`}
-                      className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-lg font-black text-xs transition-all ${
+                      className={`w-9 h-9 flex-shrink-0 flex items-center justify-center rounded-xl font-black text-xs transition-all ${
                         isCorrect
                           ? 'bg-emerald-600 text-white shadow-md scale-105'
                           : 'bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-300'
@@ -312,9 +391,9 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
             </div>
           </div>
 
-          {/* Explanation / Learning Feedback */}
+          {/* ── 4. EXPLANATION / LEARNING FEEDBACK ── */}
           <div>
-            <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5 flex items-center gap-1.5">
+            <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5 flex items-center gap-1.5">
               <span>💡</span> Explanation / Learning Feedback (Optional)
             </label>
             <textarea
@@ -322,17 +401,16 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
               value={explanation}
               onChange={(e) => setExplanation(e.target.value)}
               onFocus={(e) => (activeInputRef.current = e.target)}
-              placeholder="e.g. Scale factor is 4 (12 ÷ 3 = 4). Multiply 2 cameras × 4 = 8 cameras."
+              placeholder="e.g. Detailed step-by-step mathematical reasoning to display to students..."
               rows={2}
-              className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
+              className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-300 rounded-2xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
             />
           </div>
 
-          {/* Difficulty & Tags Grid */}
+          {/* ── 5. DIFFICULTY & TAGS ── */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {/* Difficulty */}
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5">
                 Difficulty Level
               </label>
               <div className="grid grid-cols-3 gap-2">
@@ -366,17 +444,16 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
               </div>
             </div>
 
-            {/* Tags */}
             <div>
-              <label className="block text-xs font-black uppercase tracking-wider text-slate-700 mb-1.5">
+              <label className="block text-xs font-black uppercase tracking-wider text-slate-800 mb-1.5">
                 Question Tags (Comma Separated)
               </label>
               <input
                 type="text"
                 value={tagsInput}
                 onChange={(e) => setTagsInput(e.target.value)}
-                placeholder="e.g. Ratio, Scaling, Word Problem"
-                className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-300 rounded-xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
+                placeholder="e.g. Word Problem, Scaling, Calculation"
+                className="w-full px-4 py-2.5 bg-slate-50 border-2 border-slate-300 rounded-2xl font-medium text-slate-900 text-sm focus:bg-white focus:border-blue-600 focus:outline-none transition-all placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -395,7 +472,7 @@ export const QuestionFormModal: React.FC<QuestionFormModalProps> = ({
               disabled={isSubmitting}
               className="px-7 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-black text-sm rounded-xl transition-all shadow-md hover:shadow-lg flex items-center gap-2"
             >
-              {isSubmitting ? 'Saving...' : initialQuestion ? '✓ Update Question' : '✓ Save Question'}
+              {isSubmitting ? 'Saving...' : initialQuestion ? '✓ Update Question' : `✓ Assign to ${selectedActivity.name}`}
             </button>
           </div>
         </form>

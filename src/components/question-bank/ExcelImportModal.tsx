@@ -287,23 +287,30 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               {validationResult.invalidRows.length > 0 && (
                 <div className="space-y-2">
                   <div className="text-xs font-black text-rose-800 uppercase tracking-wider flex items-center gap-1.5">
-                    <span>⚠️</span> Attention Required ({validationResult.invalidRows.length} invalid rows will be skipped)
+                    <span>⚠️</span> Attention Required ({validationResult.invalidRows.length} invalid rows / mismatches flagged)
                   </div>
-                  <div className="max-h-44 overflow-y-auto space-y-2 border-2 border-rose-200 rounded-xl p-3 bg-rose-50/50">
+                  <div className="max-h-48 overflow-y-auto space-y-2 border-2 border-rose-300 rounded-2xl p-3 bg-rose-50/70">
                     {validationResult.invalidRows.map((inv, idx) => (
                       <div
                         key={idx}
-                        className="p-2.5 bg-white border border-rose-300 rounded-lg text-xs space-y-1 shadow-xs"
+                        className="p-3 bg-white border border-rose-300 rounded-xl text-xs space-y-1.5 shadow-xs"
                       >
                         <div className="flex items-center justify-between font-bold text-slate-800">
-                          <span>Row #{inv.rowNumber}</span>
-                          <span className="text-rose-600 font-black">
+                          <span className="bg-rose-100 text-rose-900 px-2 py-0.5 rounded font-black text-[11px]">
+                            Row #{inv.rowNumber}
+                          </span>
+                          <span className="text-rose-700 font-black text-[11px] text-right">
                             {inv.errors.join(' • ')}
                           </span>
                         </div>
-                        <p className="text-slate-600 truncate">
-                          "{inv.data.rawQuestion || 'No question text'}" (Activity: {inv.data.rawActivity || 'None'})
+                        <p className="font-bold text-slate-900 line-clamp-1">
+                          "{inv.data.rawQuestion || 'No question text provided'}"
                         </p>
+                        <div className="flex flex-wrap items-center gap-2 text-[10px] text-slate-500 font-semibold bg-slate-50 p-1.5 rounded-lg border border-slate-200">
+                          <span>Activity in sheet: <strong className="text-slate-800">"{inv.data.rawActivity || 'None'}"</strong></span>
+                          <span>•</span>
+                          <span>Topic in sheet: <strong className="text-slate-800">"{inv.data.rawTopic || 'None'}"</strong></span>
+                        </div>
                       </div>
                     ))}
                   </div>
@@ -313,25 +320,37 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
               {/* Valid Rows Preview */}
               {validationResult.validQuestions.length > 0 && (
                 <div className="space-y-2">
-                  <div className="text-xs font-black text-slate-700 uppercase tracking-wider">
-                    Sample Valid Questions Preview
+                  <div className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center justify-between">
+                    <span>Sample Valid Questions Ready to Import</span>
+                    <span className="text-emerald-700 font-bold text-[11px]">
+                      {validationResult.validQuestions.length} Questions Verified
+                    </span>
                   </div>
-                  <div className="max-h-48 overflow-y-auto space-y-2 border-2 border-slate-200 rounded-xl p-3 bg-slate-50">
-                    {validationResult.validQuestions.slice(0, 5).map((q, idx) => (
+                  <div className="max-h-52 overflow-y-auto space-y-2.5 border-2 border-slate-200 rounded-2xl p-3 bg-slate-50">
+                    {validationResult.validQuestions.slice(0, 6).map((q, idx) => (
                       <div
                         key={idx}
-                        className="p-2.5 bg-white border border-slate-200 rounded-lg text-xs space-y-1 shadow-xs"
+                        className="p-3 bg-white border border-slate-200 rounded-xl text-xs space-y-1.5 shadow-xs"
                       >
-                        <div className="flex items-center justify-between">
-                          <span className="font-bold text-blue-700">{q.activityName}</span>
-                          <span className="font-black text-emerald-700">Correct: Option {q.correctAnswer}</span>
+                        <div className="flex flex-wrap items-center justify-between gap-1.5">
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-black text-slate-900 bg-slate-100 px-2 py-0.5 rounded text-[10px]">
+                              🎮 {q.activityName}
+                            </span>
+                            <span className="font-black text-blue-800 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded text-[10px]">
+                              📐 {q.topicName}
+                            </span>
+                          </div>
+                          <span className="font-black text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded text-[10px]">
+                            Correct: Option {q.correctAnswer}
+                          </span>
                         </div>
-                        <p className="font-bold text-slate-900 line-clamp-1">{q.question}</p>
+                        <p className="font-bold text-slate-900 line-clamp-2">{q.question}</p>
                       </div>
                     ))}
-                    {validationResult.validQuestions.length > 5 && (
+                    {validationResult.validQuestions.length > 6 && (
                       <div className="text-center text-[11px] font-bold text-slate-500 py-1">
-                        + {validationResult.validQuestions.length - 5} more valid questions ready to import
+                        + {validationResult.validQuestions.length - 6} more valid questions verified
                       </div>
                     )}
                   </div>

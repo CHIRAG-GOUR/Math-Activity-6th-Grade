@@ -24,32 +24,57 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-fadeIn">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl shadow-2xl border-2 border-slate-800 overflow-hidden flex flex-col max-h-[90vh]">
+      <div className="relative w-full max-w-2xl bg-white rounded-3xl shadow-2xl border-3 border-slate-900 overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 bg-slate-900 text-white border-b-2 border-slate-800">
+        <div className="flex items-center justify-between px-6 py-4 bg-slate-950 text-white border-b-2 border-slate-800">
           <div className="flex items-center gap-3">
             <span
               className={`px-2.5 py-1 text-xs font-black uppercase tracking-wider rounded-lg ${
                 isTeacher ? 'bg-amber-400 text-slate-950' : 'bg-blue-500 text-white'
               }`}
             >
-              {isTeacher ? '⭐ My Question (Teacher)' : '🕹️ Other Question (Built-in)'}
-            </span>
-            <span className="text-xs text-slate-300 font-bold">
-              {activity ? `${activity.number} • ${activity.name}` : question.activityName}
+              {isTeacher ? '⭐ Teacher Question' : '🕹️ Built-in Arcade Question'}
             </span>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white transition-colors border border-slate-700 font-black text-sm"
           >
             ✕
           </button>
         </div>
 
         {/* Content Body */}
-        <div className="p-6 overflow-y-auto space-y-6">
-          {/* Metadata badges */}
+        <div className="p-6 overflow-y-auto space-y-5">
+          {/* Game & Math Topic Association Card */}
+          <div className="p-4 bg-slate-50 border-2 border-slate-200 rounded-2xl flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                Assigned Arcade Activity
+              </div>
+              <div className="text-sm font-black text-slate-900 flex items-center gap-1.5 mt-0.5">
+                <span>🎮</span> {activity ? `Cab #${activity.number} • ${activity.name}` : question.activityName}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                Mathematics Topic
+              </div>
+              <div
+                className="text-xs font-black px-2.5 py-1 rounded-lg border mt-0.5 inline-block"
+                style={{
+                  backgroundColor: activity?.badgeBg || '#e0f2fe',
+                  color: activity?.badgeText || '#0369a1',
+                  borderColor: (activity?.badgeText || '#0369a1') + '30',
+                }}
+              >
+                📐 {question.topicName || activity?.topic || 'Mathematics Topic'}
+              </div>
+            </div>
+          </div>
+
+          {/* Difficulty & Tags */}
           <div className="flex flex-wrap items-center gap-2">
             <span
               className={`px-3 py-1 rounded-full text-xs font-black uppercase ${
@@ -60,20 +85,21 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
                   : 'bg-rose-100 text-rose-800 border border-rose-300'
               }`}
             >
-              Level: {question.difficulty}
+              Difficulty: {question.difficulty}
             </span>
-            {question.tags && question.tags.map((tag, idx) => (
-              <span
-                key={idx}
-                className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"
-              >
-                #{tag}
-              </span>
-            ))}
+            {question.tags &&
+              question.tags.map((tag, idx) => (
+                <span
+                  key={idx}
+                  className="px-2.5 py-0.5 rounded-md text-xs font-semibold bg-slate-100 text-slate-700 border border-slate-200"
+                >
+                  #{tag}
+                </span>
+              ))}
           </div>
 
           {/* Question Text */}
-          <div className="bg-slate-50 border-2 border-slate-200 rounded-xl p-5">
+          <div className="bg-white border-2 border-slate-300 rounded-2xl p-5 shadow-xs">
             <div className="text-xs font-black text-slate-400 uppercase tracking-wider mb-2">
               Question Prompt
             </div>
@@ -93,17 +119,15 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
                 return (
                   <div
                     key={key}
-                    className={`flex items-start gap-3 p-3.5 rounded-xl border-2 transition-all ${
+                    className={`flex items-start gap-3 p-3.5 rounded-2xl border-2 transition-all ${
                       isCorrect
                         ? 'bg-emerald-50 border-emerald-500 shadow-sm'
                         : 'bg-white border-slate-200'
                     }`}
                   >
                     <span
-                      className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-lg font-black text-xs ${
-                        isCorrect
-                          ? 'bg-emerald-600 text-white'
-                          : 'bg-slate-200 text-slate-700'
+                      className={`w-7 h-7 flex-shrink-0 flex items-center justify-center rounded-xl font-black text-xs ${
+                        isCorrect ? 'bg-emerald-600 text-white' : 'bg-slate-200 text-slate-700'
                       }`}
                     >
                       {key}
@@ -130,7 +154,7 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
 
           {/* Explanation */}
           {question.explanation && (
-            <div className="bg-indigo-50 border-2 border-indigo-200 rounded-xl p-4">
+            <div className="bg-indigo-50 border-2 border-indigo-200 rounded-2xl p-4">
               <div className="text-xs font-black text-indigo-700 uppercase tracking-wider mb-1 flex items-center gap-1.5">
                 <span>💡</span> Learning Feedback / Explanation
               </div>
@@ -150,7 +174,7 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
                   onClose();
                   onEdit(question);
                 }}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-black rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
               >
                 ✏️ Edit
               </button>
@@ -161,7 +185,7 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
                   onClose();
                   onDuplicate(question);
                 }}
-                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-black rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 text-xs font-black rounded-xl transition-colors flex items-center gap-1.5 shadow-sm"
               >
                 📋 Duplicate
               </button>
@@ -172,7 +196,7 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
                   onClose();
                   onDelete(question);
                 }}
-                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-black rounded-lg transition-colors flex items-center gap-1.5"
+                className="px-4 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 text-xs font-black rounded-xl transition-colors flex items-center gap-1.5"
               >
                 🗑️ Delete
               </button>
@@ -180,7 +204,7 @@ export const QuestionPreviewModal: React.FC<QuestionPreviewModalProps> = ({
           </div>
           <button
             onClick={onClose}
-            className="px-5 py-2 bg-slate-900 hover:bg-slate-800 text-white text-xs font-black rounded-lg transition-colors"
+            className="px-6 py-2 bg-slate-950 hover:bg-slate-800 text-white text-xs font-black rounded-xl transition-colors"
           >
             Close
           </button>
