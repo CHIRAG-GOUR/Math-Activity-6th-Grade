@@ -48,12 +48,6 @@ const LOGISTICS_LABEL: Record<Logistics, string> = {
   truck_out: 'TRUCK OUT FOR DELIVERY',
   at_customer: 'DELIVERING TO THE CUSTOMER',
   truck_back: 'TRUCK RETURNING',
-  // A heavy cocoa load comes over on the forklift instead of by hand.
-  cocoa_to_stack: 'FORKLIFT FETCHING THE COCOA PALLET',
-  cocoa_lift: 'LIFTING THE COCOA PALLET',
-  cocoa_to_tank: 'CARRYING COCOA TO THE TANK',
-  cocoa_pour: 'TIPPING THE PALLET INTO THE TANK',
-  cocoa_return: 'FORKLIFT RETURNING',
   cart_to_stack: 'LOADING WORKER FETCHING THE CART',
   cart_loading: 'LOADING BOXES ONTO THE CART',
   cart_to_truck: 'PUSHING THE CART TO THE TRUCK',
@@ -73,11 +67,9 @@ function crewLine(team: TeamId): string {
   if (s.phase !== 'running') return '';
   const busy = s.crew.find((w) => w.task?.production && w.state === 'WALK_TO_TARGET');
   if (busy && !s.machineOn) return `${busy.label} WALKING TO ${PLACE[busy.task!.station] ?? 'THE STATION'}`;
-  const carrying = s.handlers.find((w) => w.task?.type === 'TRANSFER_INGREDIENT' || w.task?.type === 'FETCH_INGREDIENT');
-  if (STEPS[s.stepIndex] === 'ingredients' && carrying) {
-    return carrying.state === 'PERFORM_TASK' && carrying.task?.type === 'TRANSFER_INGREDIENT'
-      ? 'TIPPING COCOA INTO THE TANK'
-      : carrying.carry === 'sack' ? 'CARRYING COCOA SACKS TO THE TANK' : 'FETCHING COCOA SACKS';
+  const atValve = s.handlers.find((w) => w.task?.type === 'OPERATE_VALVE');
+  if (STEPS[s.stepIndex] === 'ingredients' && atValve?.state === 'PERFORM_TASK') {
+    return 'HOLDING THE COCOA VALVE OPEN';
   }
   return '';
 }

@@ -30,7 +30,7 @@ export type WorkerState = 'IDLE' | 'WALK_TO_TARGET' | 'TURN_TO_WORK' | 'PERFORM_
 
 export type TaskType =
   // production — created by a correct fraction
-  | 'FETCH_INGREDIENT' | 'TRANSFER_INGREDIENT' | 'GUIDE_FORKLIFT'
+  | 'OPERATE_VALVE' | 'MONITOR_VALVE'
   | 'OPERATE_MIXER' | 'OPERATE_MOLDER' | 'START_COOLING' | 'CHECK_CUT'
   | 'PACKAGE_PRODUCT' | 'FETCH_CART' | 'LOAD_CART' | 'MOVE_PACKAGE' | 'LOAD_TRUCK'
   | 'RETURN_CART' | 'UNLOAD_FORKLIFT'

@@ -42,22 +42,17 @@ export const Forklift3D: React.FC<{ team: TeamId }> = ({ team }) => {
     // Forks ride at the height the simulation has lifted them to.
     if (forks.current) forks.current.position.y = 0.12 + s.forkLift * 0.75;
 
-    // The forks carry one of two loads: a pallet of cocoa sacks on the way to
-    // the tank, or the finished boxes on the way to the truck.
+    // The forks carry the finished boxes out to the truck — cocoa now comes
+    // in through the tank's own valve, so this is the forklift's only job.
     if (pallet.current) {
-      const cocoaRun = s.forkliftLoad === 'cocoa'
-        || s.logistics === 'cocoa_lift' || s.logistics === 'cocoa_pour';
-      const boxRun = f.carrying || s.logistics === 'fork_lift' || s.logistics === 'fork_unload';
-      const carrying = cocoaRun || boxRun;
+      const carrying = f.carrying || s.logistics === 'fork_lift' || s.logistics === 'fork_unload';
       pallet.current.visible = carrying;
-      // A cocoa pallet is always a full stack; a box pallet holds what was packed.
-      const onPallet = cocoaRun ? 5 : (s.logistics === 'fork_unload' ? s.boxesOnPallet : s.boxCount);
+      const onPallet = s.logistics === 'fork_unload' ? s.boxesOnPallet : s.boxCount;
       pallet.current.children.forEach((c, i) => {
         if (i === 0) return;            // the pallet deck itself
         c.visible = carrying && i <= onPallet;
-        // Cocoa sacks are plain jute; finished boxes carry the team's lid.
         const lid = (c as THREE.Group).children?.[1] as THREE.Mesh | undefined;
-        if (lid) lid.visible = !cocoaRun;
+        if (lid) lid.visible = true;
       });
     }
     if (beacon.current) {

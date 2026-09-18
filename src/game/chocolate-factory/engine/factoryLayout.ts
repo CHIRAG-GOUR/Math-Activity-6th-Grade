@@ -218,22 +218,6 @@ export function handlerToHome(team: TeamId, from: Vec3, index: number): Vec3[] {
   return [from, v(s.palletStack.x + sign * 2.2, 0, (from.z + home.z) / 2), home];
 }
 
-/** Forklift: home -> the cocoa pallet stack (for a big ingredient load). */
-export function forkliftCocoaRoute(team: TeamId, from: Vec3): Vec3[] {
-  const s = sideOf(team);
-  const sign = sideSign(team);
-  const stand = v(s.palletStack.x + sign * 2.6, 0, s.palletStack.z + 1.2);
-  return [from, v(stand.x, 0, stand.z - 3), stand];
-}
-
-/** Forklift: the loaded pallet -> alongside the measuring tank to tip it in. */
-export function forkliftCocoaToTank(team: TeamId, from: Vec3): Vec3[] {
-  const s = sideOf(team);
-  const sign = sideSign(team);
-  const stand = v(s.measuringTank.x + sign * 3.6, 0, s.tipPoint.z + 0.6);
-  return [from, v(stand.x + sign * 1.5, 0, (from.z + stand.z) / 2), stand];
-}
-
 /**
  * Forklifts use the OUTER lane (beyond the crew's inner aisle and clear of
  * every machine) and the front lane in front of the packing machine, so they

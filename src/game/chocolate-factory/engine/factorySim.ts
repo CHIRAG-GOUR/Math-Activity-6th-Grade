@@ -10,8 +10,8 @@
 //     -> the machine starts only once the worker is there operating it
 //     -> chocolate moves on to the next station
 //
-//   1 COCOA      loaders carry sacks from the store and tip them into the tank
-//                (a heavy load comes over on the forklift instead)
+//   1 COCOA      a loader works the tank's valve control panel while the
+//                other watches the gauge — the pipe does the carrying
 //   2 MIX        the operator walks to the mixer desk and runs the mixer
 //   3 MOLD       the operator walks to the molder and pours the molds
 //   4 COOL & CUT the inspector starts the tunnel, then checks the cutter
@@ -31,12 +31,12 @@ import type {
 } from '../types';
 import { toDecimal } from './fractionMath';
 import {
-  CARGO_SLOTS, forkliftCocoaRoute, forkliftCocoaToTank, forkliftHomeRoute,
+  CARGO_SLOTS, forkliftHomeRoute,
   forkliftPalletRoute, forkliftToTruck,
   sideOf, sideSign, truckLocalToWorld, truckReturnRoute, truckRoute, victoryRoute,
 } from './factoryLayout';
 import {
-  assignTasks, hasTask, isOnProduction, makeTask, makeWorker, stepWorker,
+  assignTasks, hasTask, makeTask, makeWorker, stepWorker,
   type CrewHooks, type CrewTask, type Worker,
 } from './crew';
 import { stationPos } from './crewNav';
@@ -79,9 +79,6 @@ export const MAX_MOLDS = 12;
 export const MAX_BARS = 20;
 export const MAX_BOXES = 5;
 
-/** Anything above this much of a tank is too heavy to carry by hand. */
-export const FORKLIFT_LOAD_THRESHOLD = 0.5;
-
 const REWORK_FLASH = 1.5;
 const TRUCK_SPEED = 18.0;
 const FORK_SPEED = 6.5;
@@ -89,14 +86,13 @@ const UNLOAD_PAUSE = 0.8;
 
 /** A machine waits this long for its worker before starting on its own. */
 const MACHINE_GATE_TIMEOUT = 16;
-/** Hand-carried cocoa: if the sacks are not in by now the feed valve finishes the job. */
+/** The valve panel: if it's not manned by now the feed line finishes the job itself. */
 const COCOA_TIMEOUT = 32;
 /** Cart loading: if the boxes are not aboard by now they are loaded directly. */
 const LOADING_TIMEOUT = 50;
 /** The forklift waits this long at the truck for the hauler before unloading itself. */
 const FORK_UNLOAD_WAIT = 12;
 
-const SACK_POUR_TIME = 1.3;
 const BOX_HANDLE_TIME = 0.55;
 
 // ── STATE ────────────────────────────────────────────────────────────────
@@ -107,8 +103,6 @@ export type Logistics =
   | 'fork_return' | 'truck_out' | 'at_customer' | 'truck_back'
   // The winner's truck has driven off down the highway — the shift is over.
   | 'victory_departed'
-  // A big cocoa load is brought over on the forklift instead of by hand.
-  | 'cocoa_to_stack' | 'cocoa_lift' | 'cocoa_to_tank' | 'cocoa_pour' | 'cocoa_return'
   // A small load of boxes goes out on the hauler's cart.
   | 'cart_to_stack' | 'cart_loading' | 'cart_to_truck' | 'truck_loading';
 
@@ -143,18 +137,11 @@ export interface SideSim {
 
   // ── quantities, each one set by the fraction answered at that step ──
   cocoaFill: number;
-  cocoaByForklift: boolean;
-  forkliftLoad: 'none' | 'cocoa' | 'boxes';
+  forkliftLoad: 'none' | 'boxes';
   mixAmount: number;
   moldCount: number;
   barCount: number;
   boxCount: number;
-
-  // ── hand-carried cocoa ──
-  sacksPlanned: number;
-  sacksTaken: number;
-  sacksPoured: number;
-  sackSize: number;
 
   // ── machine animation ──
   tankFill: number;
@@ -235,8 +222,7 @@ function makeSide(team: TeamId): SideSim {
     team,
     cycle: 0, stepIndex: 0, phase: 'awaiting', stepT: 0, stepStartAt: 0, answeredAt: 0, machineOn: false,
     order: null, attemptUsed: 1, lastCorrect: true, wrongFlashT: 0,
-    cocoaFill: 0, cocoaByForklift: false, forkliftLoad: 'none', mixAmount: 0, moldCount: 0, barCount: 0, boxCount: 0,
-    sacksPlanned: 0, sacksTaken: 0, sacksPoured: 0, sackSize: 0,
+    cocoaFill: 0, forkliftLoad: 'none', mixAmount: 0, moldCount: 0, barCount: 0, boxCount: 0,
     tankFill: 0, mixerSpin: 0, moldFill: 0, coolT: 0, cutT: 0, packT: 0, tipPour: 0,
     stepQuality: [], quality: 92, wasteUnits: 0, reworkCount: 0,
     logistics: 'idle', logisticsSince: 0, boxesOnPallet: 0, boxesInTruck: 0, forkLift: 0.2,
@@ -327,24 +313,12 @@ export function submitAnswer(
       side.cocoaFill = Math.min(1, value);
       side.tankFill = 0;
       side.tipPour = 0;
-      side.cocoaByForklift = side.cocoaFill >= FORKLIFT_LOAD_THRESHOLD;
-      if (side.cocoaByForklift) {
-        setLogistics(side, 'cocoa_to_stack');
-        side.forklift.task = 'to_cocoa';
-        side.forklift.path = forkliftCocoaRoute(side.team, side.forklift.pos);
-        side.forklift.travel = 0;
-        emit(side, 'forklift_beep');
-        // Loader A opens the tank hopper and guides the forklift in.
-        assignTasks(side.handlers[0], [makeTask('GUIDE_FORKLIFT', 'TIP_B', { anim: 'operate', production: true })]);
-      } else {
-        // Roughly a fifth of a tank per sack, at least one sack per loader.
-        side.sacksPlanned = Math.max(2, Math.ceil(side.cocoaFill / 0.2));
-        side.sackSize = side.cocoaFill / side.sacksPlanned;
-        side.sacksTaken = 0;
-        side.sacksPoured = 0;
-      }
-      // The tank itself is the machine for this step.
+      // The tank itself is the machine for this step: a loader works the
+      // valve control panel, the other watches the gauge — the pipe already
+      // built into the tank carries the cocoa in, nobody carries a sack.
       side.machineOn = true;
+      assignTasks(side.handlers[0], [makeTask('OPERATE_VALVE', 'TIP_A', { anim: 'operate', production: true })]);
+      assignTasks(side.handlers[1], [makeTask('MONITOR_VALVE', 'TIP_B', { anim: 'inspect', production: true })]);
       emit(side, 'valve_open');
       break;
     }
@@ -494,24 +468,9 @@ function runStep(side: SideSim, dt: number) {
 
 // ── THE FOREMAN: turns production state into worker tasks ───────────────
 
-function foreman(side: SideSim) {
-  const step = STEPS[side.stepIndex];
-
-  // Hand-carried cocoa: keep both loaders on sack runs until enough sacks are out.
-  if (side.phase === 'running' && step === 'ingredients' && !side.cocoaByForklift) {
-    side.handlers.forEach((l, i) => {
-      if (side.sacksTaken >= side.sacksPlanned) return;
-      if (isOnProduction(l)) return;
-      side.sacksTaken++;
-      const store = i === 0 ? 'STORE_A' : 'STORE_B';
-      const tip = i === 0 ? 'TIP_A' : 'TIP_B';
-      const tasks: CrewTask[] = [];
-      // Already walking a sack in from the warehouse? Take that one straight to the tank.
-      if (l.carry !== 'sack') tasks.push(makeTask('FETCH_INGREDIENT', store, { anim: 'pickup', production: true }));
-      tasks.push(makeTask('TRANSFER_INGREDIENT', tip, { anim: 'pour', pace: 'carry', production: true }));
-      assignTasks(l, tasks);
-    });
-  }
+function foreman(_side: SideSim) {
+  // Every step now hands its own tasks out the moment the fraction is
+  // answered (see submitAnswer) — nothing needs re-dispatching frame to frame.
 }
 
 /** After boxing: the cart for a small load, the forklift for a big one. */
@@ -566,32 +525,24 @@ function hooksFor(side: SideSim): CrewHooks {
       const step = STEPS[side.stepIndex];
       const running = side.phase === 'running';
       switch (task.type) {
-        // ── STEP 1 ──
-        case 'FETCH_INGREDIENT':
-          if (w.workT >= 0.9) { w.carry = 'sack'; return true; }
-          return false;
-
-        case 'TRANSFER_INGREDIENT': {
-          if (w.carry !== 'sack') return true;
-          // The feed valve already finished this batch (fallback): take the sack back.
-          if (step !== 'ingredients' || !running) return true;
+        // ── STEP 1: a worker at the panel holds the valve open; the pipe
+        //    already built into the tank does the actual carrying. ──
+        case 'OPERATE_VALVE': {
+          if (!(running && step === 'ingredients')) { side.tipPour = 0; return true; }
           side.tipPour = 1;
-          const give = Math.min(side.sackSize * (dt / SACK_POUR_TIME), side.sackSize - task.progress * side.sackSize);
-          task.progress = Math.min(1, task.progress + give / Math.max(1e-6, side.sackSize));
-          side.tankFill = Math.min(side.cocoaFill, side.tankFill + give);
-          if (task.progress >= 0.999) {
-            w.carry = 'none';
-            side.sacksPoured++;
-            if (!side.crew.some((o) => o !== w && o.task?.type === 'TRANSFER_INGREDIENT' && o.state === 'PERFORM_TASK')) side.tipPour = 0;
-            if (side.sacksPoured >= side.sacksPlanned) side.tankFill = side.cocoaFill;
+          const rate = side.cocoaFill / STEP_TIME.ingredients;
+          side.tankFill = Math.min(side.cocoaFill, side.tankFill + rate * dt);
+          if (side.tankFill >= side.cocoaFill - 1e-4) {
+            side.tankFill = side.cocoaFill;
+            side.tipPour = 0;
             emit(side, 'mold_fill');
             return true;
           }
           return false;
         }
 
-        case 'GUIDE_FORKLIFT':
-          return !(running && step === 'ingredients');
+        case 'MONITOR_VALVE':
+          return !(running && step === 'ingredients') || side.tankFill >= side.cocoaFill - 1e-4;
 
         // ── STEPS 2-5: stay at the machine for as long as it runs ──
         case 'OPERATE_MIXER':
@@ -775,56 +726,6 @@ function stepLogistics(side: SideSim, dt: number) {
   switch (side.logistics) {
     case 'idle':
       break;
-
-    // ── heavy cocoa by forklift ──
-    case 'cocoa_to_stack': {
-      if (follow(f, FORK_SPEED, dt)) {
-        setLogistics(side, 'cocoa_lift');
-        f.task = 'lifting';
-        side.forkLift = 0.2;
-      }
-      break;
-    }
-    case 'cocoa_lift': {
-      side.forkLift = Math.min(1.0, side.forkLift + dt * 1.3);
-      if (side.forkLift >= 0.95) {
-        f.carrying = true;
-        side.forkliftLoad = 'cocoa';
-        setLogistics(side, 'cocoa_to_tank');
-        f.task = 'hauling';
-        f.path = forkliftCocoaToTank(side.team, f.pos);
-        f.travel = 0;
-      }
-      break;
-    }
-    case 'cocoa_to_tank': {
-      if (follow(f, FORK_SPEED * 0.85, dt)) {
-        setLogistics(side, 'cocoa_pour');
-        f.task = 'pouring';
-      }
-      break;
-    }
-    case 'cocoa_pour': {
-      side.forkLift = Math.min(1.9, side.forkLift + dt * 0.7);
-      side.tipPour = 1;
-      side.tankFill = Math.min(side.cocoaFill, side.tankFill + (side.cocoaFill / 2.4) * dt);
-      if (side.cocoaFill - side.tankFill < 1e-4) side.tankFill = side.cocoaFill;
-      if (side.tankFill >= side.cocoaFill - 1e-4) {
-        side.tipPour = 0;
-        f.carrying = false;
-        side.forkliftLoad = 'none';
-        side.forkLift = 0.2;
-        setLogistics(side, 'cocoa_return');
-        f.task = 'returning';
-        f.path = forkliftHomeRoute(side.team, f.pos);
-        f.travel = 0;
-      }
-      break;
-    }
-    case 'cocoa_return': {
-      if (follow(f, FORK_SPEED, dt)) { f.task = 'idle'; setLogistics(side, 'idle'); }
-      break;
-    }
 
     // ── boxes by forklift ──
     case 'fork_to_pallet': {

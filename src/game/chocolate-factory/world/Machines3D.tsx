@@ -29,6 +29,7 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const liquid = useRef<THREE.Mesh>(null);
   const valveLamp = useRef<THREE.Mesh>(null);
   const flow = useRef<THREE.Mesh>(null);
+  const panelLamp = useRef<THREE.Mesh>(null);
   const readout = useMemo(() => new LiveDisplay(256, 128), []);
   const scaleTex = useMemo(() => makeTankScale(TEAM_HEX[team]), [team]);
 
@@ -42,7 +43,7 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
       liquid.current.position.y = 0.55 + h / 2;
       liquid.current.visible = fill > 0.004;
     }
-    // Cocoa pours in only while a handler is actually tipping a sack.
+    // Cocoa pours in only while the valve panel is actually held open.
     const filling = runningStep(team) === 'ingredients' && s.tipPour > 0.5;
     if (flow.current) {
       flow.current.visible = filling;
@@ -54,6 +55,9 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
     }
     if (valveLamp.current) {
       valveLamp.current.material = filling ? MAT.lampGreen : s.wrongFlashT > 0 ? MAT.lampRed : MAT.lampOff;
+    }
+    if (panelLamp.current) {
+      panelLamp.current.material = filling ? MAT.lampGreen : s.wrongFlashT > 0 ? MAT.lampRed : MAT.lampOff;
     }
 
     const pct = Math.round(fill * 100);
@@ -86,6 +90,18 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
       {/* the falling ingredient stream */}
       <mesh ref={flow} geometry={GEO.cyl} material={MAT.chocolateLiquid} position={[0, 6.2, 0]} scale={[0.26, 1.6, 0.26]} visible={false} />
 
+      {/* valve control panel — the worker presses this, not a sack */}
+      <group position={[-0.9, 1.35, TANK_R * 0.92]}>
+        <mesh geometry={GEO.box} material={MAT.steelDark} scale={[0.85, 0.68, 0.2]} castShadow />
+        <mesh geometry={GEO.box} material={MAT.steel} position={[0, 0.24, 0.11]} scale={[0.7, 0.14, 0.04]} />
+        <mesh ref={panelLamp} geometry={GEO.cylLow} material={MAT.lampOff}
+          position={[0, -0.08, 0.14]} rotation={[Math.PI / 2, 0, 0]} scale={[0.24, 0.1, 0.24]} castShadow />
+        {[-0.22, 0.22].map((x) => (
+          <mesh key={x} geometry={GEO.cylLow} material={MAT.steel}
+            position={[x, -0.2, 0.14]} rotation={[Math.PI / 2, 0, 0]} scale={[0.09, 0.06, 0.09]} />
+        ))}
+      </group>
+
       {/* level readout */}
       <mesh position={[sign * 1.9, 3.4, 0.4]} rotation={[0, sign * -0.5, 0]}>
         <planeGeometry args={[1.5, 0.75]} />
@@ -101,18 +117,22 @@ export const MeasuringTank3D: React.FC<{ team: TeamId }> = ({ team }) => {
 export const Mixer3D: React.FC<{ team: TeamId }> = ({ team }) => {
   const p = sideOf(team).mixer;
   const sign = sideSign(team);
+  const tankZ = sideOf(team).measuringTank.z;
+  /** Local-space distance back to the tank (tank sits at a more negative Z). */
+  const pipeLen = p.z - tankZ;
   const blades = useRef<THREE.Group>(null);
   const beacon = useRef<THREE.Mesh>(null);
   const choc = useRef<THREE.Mesh>(null);
+  const flowPulse = useRef<THREE.Mesh>(null);
   const gauge = useMemo(() => new LiveDisplay(256, 128), []);
   const tempGauge = useMemo(() => new LiveDisplay(256, 128), []);
 
   useFrame((state) => {
     const s = sim[team];
-    const mixing = runningStep(team) === 'mixing';
+    const step = runningStep(team);
+    const mixing = step === 'mixing';
     if (blades.current) blades.current.rotation.y = s.mixerSpin;
     if (choc.current) {
-      const step = runningStep(team);
       const amount = step === 'mixing' ? Math.min(1, s.mixAmount) * Math.min(1, s.stepT * 1.6)
         : step === 'molding' ? Math.min(1, s.mixAmount) * (1 - s.moldFill * 0.9)
           : 0;
@@ -120,6 +140,16 @@ export const Mixer3D: React.FC<{ team: TeamId }> = ({ team }) => {
       choc.current.scale.set(3.4, h, 3.4);
       choc.current.position.y = 1.5 + h / 2;
       choc.current.visible = amount > 0.01;
+    }
+    // A pulse of chocolate visibly arriving from the tank down the feed pipe,
+    // timed to reach the drum right as the level there starts to rise.
+    if (flowPulse.current) {
+      const arriving = mixing && s.stepT < 0.65;
+      flowPulse.current.visible = arriving;
+      if (arriving) {
+        const progress = Math.min(1, s.stepT / 0.625);
+        flowPulse.current.position.z = -pipeLen * (1 - progress);
+      }
     }
     if (beacon.current) {
       const on = (mixing || s.wrongFlashT > 0) && Math.sin(state.clock.elapsedTime * 9) > 0;
@@ -139,13 +169,13 @@ export const Mixer3D: React.FC<{ team: TeamId }> = ({ team }) => {
       {/* glass mixing drum */}
       <mesh geometry={GEO.cyl} material={MAT.glass} position={[0, 2.9, 0]} scale={[3.8, 3.2, 3.8]} />
       <mesh ref={choc} geometry={GEO.cyl} material={MAT.chocolateLiquid} position={[0, 1.6, 0]} scale={[3.4, 0.01, 3.4]} />
-      {/* rotating blades */}
+      {/* rotating blades — short paddles well clear of the glass wall */}
       <group ref={blades} position={[0, 2.6, 0]}>
         <mesh geometry={GEO.cyl} material={MAT.steel} scale={[0.26, 3.4, 0.26]} />
         {[0, Math.PI / 2, Math.PI, -Math.PI / 2].map((a, i) => (
           <mesh key={i} geometry={GEO.box} material={MAT.steelLight}
-            position={[Math.cos(a) * 1.3, -0.9, Math.sin(a) * 1.3]} rotation={[0, -a, 0.36]}
-            scale={[2.3, 0.1, 0.62]} castShadow />
+            position={[Math.cos(a) * 1.0, -0.9, Math.sin(a) * 1.0]} rotation={[0, -a, 0.36]}
+            scale={[1.3, 0.1, 0.58]} castShadow />
         ))}
       </group>
       {/* lid, motor housing and drive */}
@@ -181,8 +211,14 @@ export const Mixer3D: React.FC<{ team: TeamId }> = ({ team }) => {
         ))}
       </group>
 
-      {/* ingredient pipes coming in from the tank side */}
-      <mesh geometry={GEO.cyl} material={MAT.copper} position={[0, 5.2, sign * 0 - 5.4]} rotation={[Math.PI / 2, 0, 0]} scale={[0.36, 6.2, 0.36]} />
+      {/* feed pipe running all the way back to the measuring tank, so the
+          chocolate visibly arrives from the first machine rather than
+          appearing from nowhere */}
+      <mesh geometry={GEO.cyl} material={MAT.copper} position={[0, 5.2, -pipeLen / 2]} rotation={[Math.PI / 2, 0, 0]} scale={[0.36, pipeLen, 0.36]} castShadow />
+      {[0, -pipeLen].map((z, i) => (
+        <mesh key={i} geometry={GEO.cylLow} material={MAT.steel} position={[0, 5.2, z]} rotation={[Math.PI / 2, 0, 0]} scale={[0.44, 0.16, 0.44]} />
+      ))}
+      <mesh ref={flowPulse} geometry={GEO.sphereLow} material={MAT.chocolateLiquid} position={[0, 5.2, 0]} scale={[0.4, 0.4, 0.4]} visible={false} />
     </group>
   );
 };
