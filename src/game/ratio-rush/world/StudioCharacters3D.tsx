@@ -1077,7 +1077,6 @@ export const StudioCharacters3D: React.FC<{
       />
 
       <SceneClockDriver filmStartedAt={filmStartedAt} />
-      <DialogueCaption3D baseY={stageY} />
 
       {/* ── 3. CAMERA OPERATOR (Behind Cinema Camera 1, Looking at Actors) ── */}
       <BlenderHumanoid

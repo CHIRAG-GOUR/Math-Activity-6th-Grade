@@ -21,7 +21,6 @@ import {
 export const MoviePremiereOverlay: React.FC = () => {
   const router = useRouter();
   const isPremiereActive = useRatioStore((s) => s.isPremiereActive);
-  const isFilmingActive = useRatioStore((s) => s.isFilmingActive);
   const winningTeam = useRatioStore((s) => s.winningTeam);
   const blueScore = useRatioStore((s) => s.blueTeam.score);
   const redScore = useRatioStore((s) => s.redTeam.score);
@@ -31,51 +30,12 @@ export const MoviePremiereOverlay: React.FC = () => {
   const blueScenesWon = useRatioStore((s) => s.blueScenesWon);
   const redScenesWon = useRatioStore((s) => s.redScenesWon);
 
-  const [dialogueStep, setDialogueStep] = useState(0);
-
-  const dialogues = [
-    { speaker: 'DIRECTOR', text: '“Quiet on set... Camera speed, sound rolling... ACTION!”', color: 'text-amber-400' },
-    { speaker: 'HERO', text: '“The Ratio Energy Matrix is locked at 16 : 9! We have full panoramic sensor focus!”', color: 'text-sky-400' },
-    { speaker: 'INVENTOR', text: '“Chroma mix at 1 : 3 and scale model calculated to 50cm! The Generator is fully charged!”', color: 'text-yellow-300' },
-    { speaker: 'VILLAIN', text: '“No! My budget sabotage failed against your unit rate math!”', color: 'text-rose-400' },
-    { speaker: 'DIRECTOR', text: '“CUT! Print that! That’s a wrap on a Grade 6 Mathematical Blockbuster!”', color: 'text-amber-400' },
-  ];
-
-  useEffect(() => {
-    if (isFilmingActive && !isPremiereActive) {
-      const interval = setInterval(() => {
-        setDialogueStep((prev) => (prev < dialogues.length - 1 ? prev + 1 : prev));
-      }, 1200);
-      return () => clearInterval(interval);
-    }
-  }, [isFilmingActive, isPremiereActive, dialogues.length]);
-
-  if (!isFilmingActive && !isPremiereActive) return null;
+  if (!isPremiereActive) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 select-none animate-fadeIn">
-      {/* ── PHASE 1: ACTIVE FILMING DIALOGUE BANNER ── */}
-      {isFilmingActive && !isPremiereActive && (
-        <div className="w-full max-w-2xl bg-white border-4 border-black rounded-2xl p-5 shadow-[8px_8px_0px_#000000] text-center flex flex-col items-center gap-3">
-          <div className="flex items-center gap-2 px-3.5 py-1 rounded-md bg-yellow-400 border-2 border-black text-black text-xs font-black uppercase tracking-widest shadow-[2px_2px_0px_#000000] animate-pulse">
-            <span className="w-2.5 h-2.5 rounded-full bg-red-600 border border-black" />
-            LIVE SHOOTING • SCENE 1 TAKE 1
-          </div>
-
-          <div className="flex items-center gap-2 text-sm font-black uppercase tracking-wider text-black">
-            <Clapperboard className="w-5 h-5 text-black stroke-[2.5]" />
-            <span>{dialogues[dialogueStep].speaker}</span>
-          </div>
-
-          <p className="text-base sm:text-lg font-black text-black italic leading-relaxed px-4">
-            {dialogues[dialogueStep].text}
-          </p>
-        </div>
-      )}
-
-      {/* ── PHASE 2: GRAND CINEMA PREMIERE SHOWCASE ── */}
-      {isPremiereActive && (
-        <div className="w-full max-w-3xl bg-white border-4 border-black rounded-3xl p-6 shadow-[10px_10px_0px_#000000] text-center flex flex-col items-center gap-4 animate-scaleUp">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 select-none animate-fadeIn">
+      {/* ── GRAND CINEMA PREMIERE SHOWCASE (ONLY AFTER 5 SCENES WRAP) ── */}
+      <div className="w-full max-w-3xl bg-white border-4 border-black rounded-3xl p-6 shadow-[10px_10px_0px_#000000] text-center flex flex-col items-center gap-4 animate-scaleUp">
           {/* Cinema Marquee Title */}
           <div className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-yellow-400 border-2 border-black text-black text-xs font-black uppercase tracking-widest shadow-[3px_3px_0px_#000000]">
             <Sparkles className="w-4 h-4 stroke-[2.5]" />
@@ -211,7 +171,6 @@ export const MoviePremiereOverlay: React.FC = () => {
             </button>
           </div>
         </div>
-      )}
     </div>
   );
 };

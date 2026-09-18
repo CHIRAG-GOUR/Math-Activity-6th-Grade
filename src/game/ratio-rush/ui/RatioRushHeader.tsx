@@ -18,6 +18,8 @@ import {
   Shirt,
   RotateCcw,
   ArrowLeft,
+  HelpCircle,
+  Users,
 } from 'lucide-react';
 import { useRatioStore } from '../store/ratioStore';
 import { StudioCameraView } from '../types';
@@ -38,6 +40,7 @@ export const RatioRushHeader: React.FC = () => {
   const triggerFlash = useRatioStore((s) => s.triggerFlash);
   const triggerClapper = useRatioStore((s) => s.triggerClapper);
   const resetGame = useRatioStore((s) => s.resetGame);
+  const setShowBriefingModal = useRatioStore((s) => s.setShowBriefingModal);
 
   const formatTime = (secs: number) => {
     const m = Math.floor(secs / 60);
@@ -164,6 +167,15 @@ export const RatioRushHeader: React.FC = () => {
           title="Reset Production Shoot"
         >
           <RotateCcw className="w-4 h-4 text-black" />
+        </button>
+
+        {/* Production Briefing Guide */}
+        <button
+          onClick={() => setShowBriefingModal(true)}
+          className="p-1.5 rounded-lg bg-yellow-400 hover:bg-yellow-300 border-2 border-black text-black shadow-[2px_2px_0px_#000000] cursor-pointer"
+          title="Production Shoot Briefing & Rules"
+        >
+          <HelpCircle className="w-4 h-4 stroke-[2.5]" />
         </button>
 
         {/* Fullscreen Toggle */}
