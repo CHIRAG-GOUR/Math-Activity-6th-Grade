@@ -17,33 +17,34 @@ import { useRatioStore } from '../store/ratioStore';
 import { StudioCameraView } from '../types';
 
 // ============================================================
-// CAMERA RIG: Eye-Level Front View & Director Presets
+// ============================================================
+// CAMERA RIG: Panoramic Soundstage View & Director Presets
 // ============================================================
 const StudioCameraRig: React.FC<{
   cameraView: StudioCameraView;
   isFilming: boolean;
 }> = ({ cameraView, isFilming }) => {
   const { camera, pointer } = useThree();
-  const targetCamPos = useRef(new THREE.Vector3(0, 2.3, 7.8));
-  const targetLookAt = useRef(new THREE.Vector3(0, 1.8, -2.8));
+  const targetCamPos = useRef(new THREE.Vector3(0, 4.4, 11.8));
+  const targetLookAt = useRef(new THREE.Vector3(0, 1.6, -1.0));
 
-  // Front eye-level camera presets matching real film studio director monitors
+  // Cinematic camera presets showing the whole professional studio
   const presets = useMemo(() => {
     return {
       overview: {
-        // Front Studio Eye-Level View (Photo 1)
-        pos: new THREE.Vector3(0, 2.3, 7.8),
-        look: new THREE.Vector3(0, 1.8, -2.8),
+        // Whole Studio Panoramic View: Trusses, Cyclorama, Director Village, Cast & Crew
+        pos: new THREE.Vector3(0, 4.4, 11.8),
+        look: new THREE.Vector3(0, 1.6, -1.0),
       },
       director: {
-        // Director Chair & Video Village View
-        pos: new THREE.Vector3(2.8, 1.9, 6.2),
-        look: new THREE.Vector3(0, 1.6, -2.5),
+        // Director Chair & Video Village Over-The-Shoulder View
+        pos: new THREE.Vector3(-1.3, 2.4, 6.2),
+        look: new THREE.Vector3(0, 1.6, -2.4),
       },
       camera1: {
-        // Live Cinema Camera 1 Viewfinder Perspective (Photo 2)
-        pos: new THREE.Vector3(1.1, 1.7, 4.4),
-        look: new THREE.Vector3(0, 1.5, -2.5),
+        // Live Cinema Camera 1 Viewfinder Perspective
+        pos: new THREE.Vector3(1.4, 2.0, 5.0),
+        look: new THREE.Vector3(0, 1.5, -2.4),
       },
       wardrobe: {
         // Props & Wardrobe Room View
@@ -62,8 +63,8 @@ const StudioCameraRig: React.FC<{
     const activePreset = presets[cameraView] || presets.overview;
 
     // Subtle natural parallax
-    const parallaxX = pointer.x * 0.35;
-    const parallaxY = pointer.y * 0.15;
+    const parallaxX = pointer.x * 0.4;
+    const parallaxY = pointer.y * 0.2;
 
     targetCamPos.current.copy(activePreset.pos);
     targetLookAt.current.copy(activePreset.look);
@@ -100,7 +101,7 @@ export const RatioRushScene3D: React.FC = () => {
   return (
     <div className="relative w-full h-full select-none bg-[#f8fafc]">
       <Canvas
-        camera={{ position: [0, 2.3, 7.8], fov: 46, near: 0.1, far: 120 }}
+        camera={{ position: [0, 4.4, 11.8], fov: 52, near: 0.1, far: 120 }}
         dpr={[1, 1.35]}
         gl={{
           powerPreference: 'high-performance',

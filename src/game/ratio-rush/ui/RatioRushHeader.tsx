@@ -27,6 +27,9 @@ export const RatioRushHeader: React.FC = () => {
   const router = useRouter();
   const activeCameraView = useRatioStore((s) => s.activeCameraView);
   const setActiveCameraView = useRatioStore((s) => s.setActiveCameraView);
+  const currentMovieStage = useRatioStore((s) => s.currentMovieStage);
+  const blueScenesWon = useRatioStore((s) => s.blueScenesWon);
+  const redScenesWon = useRatioStore((s) => s.redScenesWon);
   const timeRemaining = useRatioStore((s) => s.timeRemaining);
   const isMuted = useRatioStore((s) => s.isMuted);
   const isFullscreen = useRatioStore((s) => s.isFullscreen);
@@ -99,6 +102,23 @@ export const RatioRushHeader: React.FC = () => {
             <span className="hidden lg:inline">{btn.label}</span>
           </button>
         ))}
+      </div>
+
+      {/* ── Shared Movie Duel Score Badge ── */}
+      <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-xl border-2 border-black shadow-[2px_2px_0px_#000000]">
+        <div className="flex items-center gap-1.5 text-xs font-black">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 border border-black" />
+          <span className="font-mono text-blue-800 font-black">{blueScenesWon}</span>
+          <span className="text-black/60 font-black text-[10px]">SCENES</span>
+          <span className="text-black font-black">🎬</span>
+          <span className="text-black/60 font-black text-[10px]">SCENES</span>
+          <span className="font-mono text-red-700 font-black">{redScenesWon}</span>
+          <span className="w-2.5 h-2.5 rounded-full bg-red-500 border border-black" />
+        </div>
+        <div className="h-3.5 w-px bg-black/30 mx-0.5" />
+        <span className="text-[10px] font-black uppercase tracking-wider bg-yellow-300 px-2 py-0.5 rounded border border-black">
+          SCENE {Math.min(5, currentMovieStage + 1)} / 5
+        </span>
       </div>
 
       {/* ── Right: Studio Action Triggers & System Tools ── */}

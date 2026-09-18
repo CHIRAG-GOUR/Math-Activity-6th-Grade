@@ -27,6 +27,8 @@ import {
   MAT_CABLE_RAMP,
   MAT_WARM_BULB,
   MAT_STUDIO_LIGHT_WHITE,
+  MAT_DIRECTOR_WOOD,
+  MAT_STAGE_TAPE_YELLOW,
   getStudioMaterial,
 } from './StudioMaterials';
 
@@ -429,9 +431,9 @@ export const StudioEquipment3D: React.FC<{
         </group>
       </group>
 
-      {/* ── 4. PRODUCTION MONITOR ON ROLLING RACK CART (Photo 1) ── */}
+      {/* ── 4. PRODUCTION MONITOR ON ROLLING RACK CART (Video Village) ── */}
       {/* 40" Client / Director Live Monitor displaying what is being shot! */}
-      <group position={[-1.8, 0, 3.2]}>
+      <group position={[-2.6, 0, 2.6]} rotation={[0, 0.35, 0]}>
         {/* Metal Cart Frame */}
         <mesh
           geometry={geoBox}
@@ -462,60 +464,84 @@ export const StudioEquipment3D: React.FC<{
         />
       </group>
 
-      {/* ── 5. STUDIO TALK-SHOW TABLE & ARMCHAIR (Photo 1) ── */}
-      {/* Black Modern Pedestal Table */}
-      <group position={[0, 0, 0.2]}>
+      {/* ── 5. AUTHENTIC FOLDING DIRECTOR CHAIR (Video Village) ── */}
+      <group position={[-1.9, 0, 3.2]} rotation={[0, 0.35, 0]}>
+        {/* Crossed Wooden Legs */}
         <mesh
-          geometry={geoCylinder12}
-          material={MAT_ROAD_CASE_BLACK}
-          scale={[0.4, 0.02, 0.4]}
-          position={[0, 0.01, 0]}
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.03, 1.1, 0.03]}
+          position={[-0.22, 0.45, 0]}
+          rotation={[0, 0, 0.22]}
         />
         <mesh
           geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.03, 1.1, 0.03]}
+          position={[0.22, 0.45, 0]}
+          rotation={[0, 0, -0.22]}
+        />
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.03, 1.1, 0.03]}
+          position={[-0.22, 0.45, -0.38]}
+          rotation={[0, 0, 0.22]}
+        />
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.03, 1.1, 0.03]}
+          position={[0.22, 0.45, -0.38]}
+          rotation={[0, 0, -0.22]}
+        />
+        {/* Footrest Bar */}
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.025, 0.48, 0.025]}
+          position={[0, 0.22, 0.02]}
+          rotation={[0, 0, Math.PI / 2]}
+        />
+        {/* Black Canvas Seat */}
+        <mesh
+          geometry={geoBox}
           material={MAT_ROAD_CASE_BLACK}
-          scale={[0.08, 0.75, 0.08]}
-          position={[0, 0.38, 0]}
+          scale={[0.52, 0.04, 0.46]}
+          position={[0, 0.78, -0.19]}
+        />
+        {/* Backrest Upright Posts */}
+        <mesh
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.028, 0.65, 0.028]}
+          position={[-0.24, 1.05, -0.38]}
         />
         <mesh
-          geometry={geoCylinder16}
+          geometry={geoCylinder8}
+          material={MAT_DIRECTOR_WOOD}
+          scale={[0.028, 0.65, 0.028]}
+          position={[0.24, 1.05, -0.38]}
+        />
+        {/* Black Canvas Backrest Banner */}
+        <mesh
+          geometry={geoBox}
           material={MAT_ROAD_CASE_BLACK}
-          scale={[0.65, 0.03, 0.65]}
-          position={[0, 0.75, 0]}
+          scale={[0.54, 0.22, 0.04]}
+          position={[0, 1.22, -0.38]}
         />
-      </group>
-
-      {/* Modern Studio Armchair in Light Cream Fabric */}
-      <group position={[3.6, 0, 0.4]} rotation={[0, -0.4, 0]}>
+        {/* Gold "DIRECTOR" Text Strip on Backrest */}
         <mesh
           geometry={geoBox}
-          material={getStudioMaterial('#f1f5f9', 0.8, 0.0)}
-          scale={[0.85, 0.4, 0.85]}
-          position={[0, 0.25, 0]}
-        />
-        <mesh
-          geometry={geoBox}
-          material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
-          scale={[0.85, 0.65, 0.25]}
-          position={[0, 0.65, -0.32]}
-        />
-        <mesh
-          geometry={geoBox}
-          material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
-          scale={[0.2, 0.45, 0.85]}
-          position={[-0.38, 0.5, 0]}
-        />
-        <mesh
-          geometry={geoBox}
-          material={getStudioMaterial('#e2e8f0', 0.8, 0.0)}
-          scale={[0.2, 0.45, 0.85]}
-          position={[0.38, 0.5, 0]}
+          material={MAT_STAGE_TAPE_YELLOW}
+          scale={[0.42, 0.06, 0.05]}
+          position={[0, 1.22, -0.38]}
         />
       </group>
 
       {/* ── 6. FLOOR C-STAND SOFTBOXES WITH SANDBAGS (Photo 2) ── */}
       {/* Left Stage Front Softbox */}
-      <group position={[-5.8, 0, 2.2]}>
+      <group position={[-6.2, 0, 1.5]}>
         <mesh
           geometry={geoCylinder8}
           material={MAT_STEEL_BRIGHT}
@@ -540,7 +566,7 @@ export const StudioEquipment3D: React.FC<{
       </group>
 
       {/* Right Stage Front Softbox */}
-      <group position={[6.5, 0, 2.2]}>
+      <group position={[6.8, 0, 1.5]}>
         <mesh
           geometry={geoCylinder8}
           material={MAT_STEEL_BRIGHT}
@@ -563,7 +589,6 @@ export const StudioEquipment3D: React.FC<{
           />
         </group>
       </group>
-
       {/* ── 7. GROUNDED CABLE RUNS WITH RAMPS ACROSS THE FLOOR ── */}
       <mesh
         geometry={geoBox}

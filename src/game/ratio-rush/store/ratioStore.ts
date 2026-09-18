@@ -47,6 +47,10 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
   activeCameraView: 'overview',
   isTimerRunning: true,
   timeRemaining: 300, // 5 minutes
+  currentMovieStage: 0,
+  stageWinners: [null, null, null, null, null],
+  blueScenesWon: 0,
+  redScenesWon: 0,
   globalProductionStage: 'prep',
   isFilmingActive: false,
   isPremiereActive: false,
@@ -99,8 +103,11 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
   submitAnswer: (team) => {
     const state = get();
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
+    const otherKey = team === 'blue' ? 'redTeam' : 'blueTeam';
     const teamState = state[key];
-    const currentQ = RATIO_QUESTIONS[teamState.currentQuestionIndex];
+    const otherTeamState = state[otherKey];
+    const stageIdx = state.currentMovieStage;
+    const currentQ = RATIO_QUESTIONS[stageIdx];
     if (!currentQ) return false;
 
     const numVal = parseFloat(teamState.inputAnswer);
@@ -110,22 +117,29 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
       ratioAudio.playCorrectChime();
       const nextScore = teamState.score + 100 + teamState.streak * 25;
       const nextStreak = teamState.streak + 1;
-      const nextSolved = [...teamState.solvedStages, currentQ.stage];
-      const nextLevel = Math.min(5, teamState.productionLevel + 1);
-      const isFinished = teamState.currentQuestionIndex >= RATIO_QUESTIONS.length - 1;
+      const nextSolved = Array.from(new Set([...teamState.solvedStages, currentQ.stage]));
+      const nextLevel = Math.min(5, stageIdx + 1);
 
-      // Update global stage according to highest team progress
+      const newStageWinners = [...state.stageWinners];
+      let newBlueWon = state.blueScenesWon;
+      let newRedWon = state.redScenesWon;
+
+      // Award scene credit if not already awarded
+      if (newStageWinners[stageIdx] === null) {
+        newStageWinners[stageIdx] = team;
+        if (team === 'blue') newBlueWon += 1;
+        else newRedWon += 1;
+      }
+
+      // Update global stage according to progress
       let newGlobalStage: ProductionStage = 'prep';
-      const highestLevel = Math.max(
-        nextLevel,
-        team === 'blue' ? state.redTeam.productionLevel : state.blueTeam.productionLevel
-      );
+      if (nextLevel === 1) newGlobalStage = 'set_building';
+      else if (nextLevel === 2) newGlobalStage = 'lights_camera';
+      else if (nextLevel === 3) newGlobalStage = 'props_placed';
+      else if (nextLevel === 4) newGlobalStage = 'sound_ready';
+      else if (nextLevel >= 5) newGlobalStage = 'action_filming';
 
-      if (highestLevel === 1) newGlobalStage = 'set_building';
-      else if (highestLevel === 2) newGlobalStage = 'lights_camera';
-      else if (highestLevel === 3) newGlobalStage = 'props_placed';
-      else if (highestLevel === 4) newGlobalStage = 'sound_ready';
-      else if (highestLevel >= 5) newGlobalStage = 'action_filming';
+      const isFinished = stageIdx >= RATIO_QUESTIONS.length - 1;
 
       set({
         [key]: {
@@ -135,32 +149,38 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
           solvedStages: nextSolved,
           productionLevel: nextLevel,
           feedbackStatus: 'correct',
-          feedbackMessage: `EXCELLENT! ${currentQ.studioActionText}`,
+          feedbackMessage: `EXCELLENT! +1 SCENE DIRECTED (${currentQ.correctAnswer} ${currentQ.correctUnit})`,
           isComplete: isFinished,
         },
+        [otherKey]: {
+          ...otherTeamState,
+          productionLevel: nextLevel,
+          solvedStages: nextSolved,
+          feedbackStatus: otherTeamState.feedbackStatus === 'correct' ? 'correct' : otherTeamState.feedbackStatus,
+          feedbackMessage:
+            otherTeamState.feedbackStatus === 'correct'
+              ? otherTeamState.feedbackMessage
+              : `Scene ${currentQ.stage} directed by ${team === 'blue' ? 'Blue' : 'Red'} Studio!`,
+        },
+        stageWinners: newStageWinners,
+        blueScenesWon: newBlueWon,
+        redScenesWon: newRedWon,
         globalProductionStage: newGlobalStage,
       });
 
-      // If finished, check victory
+      // Trigger clapper snap celebration
+      get().triggerClapper();
+
+      // If all 5 stages finished, calculate winner by scene contributions
       if (isFinished) {
-        if (state.gameMode === 'solo') {
-          set({ winningTeam: team });
-          get().startFilmingSequence();
-        } else {
-          const otherTeamKey = team === 'blue' ? 'redTeam' : 'blueTeam';
-          if (state[otherTeamKey].isComplete) {
-            const winner =
-              nextScore > state[otherTeamKey].score
-                ? team
-                : state[otherTeamKey].score > nextScore
-                ? team === 'blue'
-                  ? 'red'
-                  : 'blue'
-                : 'tie';
-            set({ winningTeam: winner });
-            get().startFilmingSequence();
-          }
-        }
+        const winner =
+          newBlueWon > newRedWon
+            ? 'blue'
+            : newRedWon > newBlueWon
+            ? 'red'
+            : 'tie';
+        set({ winningTeam: winner });
+        get().startFilmingSequence();
       }
 
       return true;
@@ -184,13 +204,21 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
   },
 
   nextQuestion: (team) => {
-    const key = team === 'blue' ? 'blueTeam' : 'redTeam';
-    const teamState = get()[key];
-    const nextIdx = teamState.currentQuestionIndex + 1;
+    const state = get();
+    const nextIdx = state.currentMovieStage + 1;
     if (nextIdx < RATIO_QUESTIONS.length) {
       set({
-        [key]: {
-          ...teamState,
+        currentMovieStage: nextIdx,
+        blueTeam: {
+          ...state.blueTeam,
+          currentQuestionIndex: nextIdx,
+          selectedOption: null,
+          inputAnswer: '',
+          feedbackStatus: 'idle',
+          feedbackMessage: '',
+        },
+        redTeam: {
+          ...state.redTeam,
           currentQuestionIndex: nextIdx,
           selectedOption: null,
           inputAnswer: '',
@@ -270,6 +298,10 @@ export const useRatioStore = create<RatioGameState & RatioStoreActions>((set, ge
       activeCameraView: 'overview',
       isTimerRunning: true,
       timeRemaining: 300,
+      currentMovieStage: 0,
+      stageWinners: [null, null, null, null, null],
+      blueScenesWon: 0,
+      redScenesWon: 0,
       globalProductionStage: 'prep',
       isFilmingActive: false,
       isPremiereActive: false,

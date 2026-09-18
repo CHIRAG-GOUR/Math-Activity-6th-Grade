@@ -735,17 +735,17 @@ export const StudioCharacters3D: React.FC<{
 }> = React.memo(({ isFilming, productionLevel, dollyProgress = 0 }) => {
   return (
     <group>
-      {/* ── 1. THE DIRECTOR (Standing at Video Village on Right, Holding Megaphone) ── */}
+      {/* ── 1. THE DIRECTOR (Standing at Director Village, Looking at Actors on Stage) ── */}
       <BlenderHumanoid
-        position={[2.6, 0, 5.0]}
-        rotationY={-0.35}
+        position={[-1.3, 0, 3.2]}
+        rotationY={Math.PI - 0.22}
         characterType="director"
         pose="directing"
         skinMat={MAT_SKIN_WARM}
         isFilming={isFilming}
       />
-      {/* Golden Megaphone in Director's Hand */}
-      <group position={[3.0, 1.25, 4.7]} rotation={[-0.4, -0.35, 0]}>
+      {/* Golden Megaphone in Director's Hand Pointing Toward Stage */}
+      <group position={[-1.1, 1.25, 2.7]} rotation={[0.4, Math.PI - 0.22, 0]}>
         <mesh
           geometry={geoCylinder12}
           material={MAT_STAGE_TAPE_YELLOW}
@@ -754,11 +754,11 @@ export const StudioCharacters3D: React.FC<{
         />
       </group>
 
-      {/* ── 2. THE MOVIE ACTORS & ACTRESSES (Facing Camera on Green Stage) ── */}
+      {/* ── 2. THE MOVIE ACTORS & ACTRESSES (Facing Camera & Director on Green Stage) ── */}
       {/* Lead Actor (Hero in Action Jacket) */}
       <BlenderHumanoid
-        position={[-2.4, productionLevel >= 1 ? 0.3 : 0, -2.4]}
-        rotationY={0.25}
+        position={[-1.8, productionLevel >= 1 ? 0.3 : 0, -2.4]}
+        rotationY={0.15}
         characterType="lead_actor"
         skinMat={MAT_SKIN_PEACH}
         pose={isFilming ? 'acting_hero' : 'idle'}
@@ -768,7 +768,7 @@ export const StudioCharacters3D: React.FC<{
       {/* Lead Actress (Heroine in Emerald Gown & Flowing Hair) */}
       <BlenderHumanoid
         position={[-0.6, productionLevel >= 1 ? 0.3 : 0, -2.2]}
-        rotationY={0.05}
+        rotationY={0.02}
         characterType="lead_actress"
         skinMat={MAT_SKIN_WARM}
         pose={isFilming ? 'acting_dramatic' : 'idle'}
@@ -777,8 +777,8 @@ export const StudioCharacters3D: React.FC<{
 
       {/* Co-Star / Actress (Friend in Chic Studio Outfit) */}
       <BlenderHumanoid
-        position={[1.2, productionLevel >= 1 ? 0.3 : 0, -2.2]}
-        rotationY={-0.2}
+        position={[0.6, productionLevel >= 1 ? 0.3 : 0, -2.2]}
+        rotationY={-0.08}
         characterType="co_star"
         skinMat={MAT_SKIN_PEACH}
         pose="idle"
@@ -787,46 +787,46 @@ export const StudioCharacters3D: React.FC<{
 
       {/* Villain (In Purple Doublet & Crimson Cape) */}
       <BlenderHumanoid
-        position={[3.0, productionLevel >= 1 ? 0.3 : 0, -2.6]}
-        rotationY={-0.4}
+        position={[1.8, productionLevel >= 1 ? 0.3 : 0, -2.4]}
+        rotationY={-0.2}
         characterType="villain"
         skinMat={MAT_SKIN_BRONZE}
         pose="acting_dramatic"
         isFilming={isFilming}
       />
 
-      {/* ── 3. CAMERA OPERATOR (Beside Camera 1, NOT Blocking Center View) ── */}
+      {/* ── 3. CAMERA OPERATOR (Behind Cinema Camera 1, Looking at Actors) ── */}
       <BlenderHumanoid
-        position={[2.05, 0, 4.5]}
-        rotationY={Math.PI - 0.25}
+        position={[1.8, 0, 2.9]}
+        rotationY={Math.PI + 0.33}
         characterType="camera_op"
         pose="filming"
         skinMat={MAT_SKIN_WARM}
         isFilming={isFilming}
       />
 
-      {/* ── 4. DOLLY GRIP (On Left Track) ── */}
+      {/* ── 4. DOLLY GRIP (On Left Track Looking at Set) ── */}
       <BlenderHumanoid
         position={[-5.6 + dollyProgress * 2.8, 0, 2.6]}
-        rotationY={Math.PI / 2}
+        rotationY={Math.PI - 0.72}
         characterType="dolly_grip"
         pose="filming"
         skinMat={MAT_SKIN_PEACH}
         isFilming={isFilming}
       />
 
-      {/* ── 5. SOUND BOOM OPERATOR (Stage Left) ── */}
-      <group position={[-3.8, 0, 1.2]}>
+      {/* ── 5. SOUND BOOM OPERATOR (Stage Left, Facing Actors) ── */}
+      <group position={[-3.4, 0, 0.8]}>
         <BlenderHumanoid
           position={[0, 0, 0]}
-          rotationY={0.65}
+          rotationY={Math.PI - 0.75}
           characterType="boom_op"
           pose="boom_mic"
           skinMat={MAT_SKIN_WARM}
           isFilming={isFilming}
         />
-        {/* Telescopic Carbon Fiber Boom Pole & Deadcat Mic */}
-        <group position={[0.2, 2.0, 0]} rotation={[0.4, 0.5, -0.2]}>
+        {/* Telescopic Carbon Fiber Boom Pole & Deadcat Mic Pointing Toward Actors */}
+        <group position={[0.2, 2.0, 0]} rotation={[-0.4, Math.PI - 0.75, 0.2]}>
           <mesh
             geometry={geoCylinder8}
             material={MAT_STEEL_DARK}
@@ -843,17 +843,17 @@ export const StudioCharacters3D: React.FC<{
         </group>
       </group>
 
-      {/* ── 6. SET PHOTOGRAPHER (Stage Right with DSLR) ── */}
-      <group position={[4.6, 0, 1.2]}>
+      {/* ── 6. SET PHOTOGRAPHER (Stage Right, Facing Actors with DSLR) ── */}
+      <group position={[3.6, 0, 0.8]}>
         <BlenderHumanoid
           position={[0, 0, 0]}
-          rotationY={-0.6}
+          rotationY={Math.PI + 0.45}
           characterType="photographer"
           pose="photo"
           skinMat={MAT_SKIN_PEACH}
           isFilming={isFilming}
         />
-        <group position={[-0.18, 1.48, -0.22]} rotation={[-0.1, -0.6, 0]}>
+        <group position={[-0.18, 1.48, -0.22]} rotation={[0.1, Math.PI + 0.45, 0]}>
           <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[0.18, 0.14, 0.12]} />
           <mesh
             geometry={geoCylinder12}

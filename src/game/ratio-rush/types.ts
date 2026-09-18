@@ -77,6 +77,10 @@ export interface RatioGameState {
   activeCameraView: StudioCameraView;
   isTimerRunning: boolean;
   timeRemaining: number;
+  currentMovieStage: number; // 0 to 4 (5 stages total)
+  stageWinners: (StudioTeam | null)[]; // Array of 5 elements recording which team won each scene
+  blueScenesWon: number; // Number of scenes directed by Blue (0 to 5)
+  redScenesWon: number; // Number of scenes directed by Red (0 to 5)
   globalProductionStage: ProductionStage;
   isFilmingActive: boolean;
   isPremiereActive: boolean;

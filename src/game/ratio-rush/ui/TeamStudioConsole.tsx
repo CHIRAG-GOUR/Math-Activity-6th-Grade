@@ -39,6 +39,10 @@ const PEN_COLORS = [
 export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
   const isBlue = team === 'blue';
   const teamState = useRatioStore((s) => (isBlue ? s.blueTeam : s.redTeam));
+  const currentMovieStage = useRatioStore((s) => s.currentMovieStage);
+  const stageWinners = useRatioStore((s) => s.stageWinners);
+  const blueScenesWon = useRatioStore((s) => s.blueScenesWon);
+  const redScenesWon = useRatioStore((s) => s.redScenesWon);
   const selectOption = useRatioStore((s) => s.selectOption);
   const submitAnswer = useRatioStore((s) => s.submitAnswer);
   const nextQuestion = useRatioStore((s) => s.nextQuestion);
@@ -52,7 +56,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const isDrawingRef = useRef(false);
 
-  const currentQ = RATIO_QUESTIONS[teamState.currentQuestionIndex];
+  const currentQ = RATIO_QUESTIONS[currentMovieStage] || RATIO_QUESTIONS[0];
 
   // Canvas Drawing Handlers
   const startDrawing = useCallback((e: React.PointerEvent<HTMLCanvasElement>) => {
@@ -118,7 +122,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
     <div
       className="w-full flex flex-col justify-between p-4 sm:p-5 rounded-2xl bg-white border-4 border-black shadow-[10px_10px_0px_#000000] text-black transition-all select-none"
     >
-      {/* ── 1. Team Header, Score & Rough Work Button ── */}
+      {/* ── 1. Team Header, Shared Movie Score & Rough Work Button ── */}
       <div className="flex items-center justify-between border-b-3 border-black pb-3">
         <div className="flex items-center gap-2.5">
           <div
@@ -139,12 +143,12 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
               </span>
             </div>
             <div className="text-xs text-black font-black mt-1">
-              Stage {currentQ.stage} of 5 • {currentQ.title.split(':')[1] || currentQ.title}
+              Scene {currentQ.stage} of 5 • {currentQ.title.split(':')[1] || currentQ.title}
             </div>
           </div>
         </div>
 
-        {/* Right Tools: Score & Rough Work Toggle */}
+        {/* Right Tools: Shared Movie Score & Rough Work Toggle */}
         <div className="flex items-center gap-2">
           {/* Rough Work Canvas Toggle */}
           <button
@@ -158,38 +162,42 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
             title="Open Rough Work Canvas"
           >
             <Edit3 className="w-4 h-4 stroke-[2.5]" />
-            <span>ROUGH WORK</span>
+            <span>ROUGH</span>
           </button>
 
-          {/* Score Box */}
-          <div className="px-3 py-1 rounded-xl bg-yellow-300 border-3 border-black shadow-[3px_3px_0px_#000000] text-right leading-none">
-            <div className="text-lg font-black font-mono text-black">
-              {teamState.score}
+          {/* Movie Scene Credits Scoreboard (e.g. 3 - 2) */}
+          <div className="px-3 py-1 rounded-xl bg-yellow-300 border-3 border-black shadow-[3px_3px_0px_#000000] text-center leading-none">
+            <div className="text-base font-black font-mono text-black flex items-center gap-1">
+              <span className="text-blue-700">{blueScenesWon}</span>
+              <span className="text-black text-xs">🎬</span>
+              <span className="text-red-700">{redScenesWon}</span>
             </div>
-            <div className="text-[9px] text-black font-black uppercase">PTS</div>
+            <div className="text-[8.5px] text-black font-black uppercase tracking-wider">SCENES</div>
           </div>
         </div>
       </div>
 
-      {/* ── 2. Production Stage Progress Indicator ── */}
+      {/* ── 2. Shared 5-Stage Movie Progression Bar ── */}
       <div className="flex items-center gap-1.5 my-3">
         {RATIO_QUESTIONS.map((q, idx) => {
-          const isSolved = teamState.solvedStages.includes(q.stage);
-          const isCurrent = idx === teamState.currentQuestionIndex;
+          const winner = stageWinners[idx];
+          const isCurrent = idx === currentMovieStage;
           return (
             <div
               key={`stage-bar-${idx}`}
-              className={`flex-1 h-3.5 rounded-lg border-2 border-black transition-all ${
-                isSolved
-                  ? isBlue
-                    ? 'bg-blue-500 shadow-[1px_1px_0px_#000000]'
-                    : 'bg-red-500 shadow-[1px_1px_0px_#000000]'
+              className={`flex-1 h-5 rounded-lg border-2 border-black flex items-center justify-center text-[10px] font-black transition-all ${
+                winner === 'blue'
+                  ? 'bg-blue-500 text-white shadow-[2px_2px_0px_#000000]'
+                  : winner === 'red'
+                  ? 'bg-red-500 text-white shadow-[2px_2px_0px_#000000]'
                   : isCurrent
-                  ? 'bg-yellow-400 animate-pulse shadow-[2px_2px_0px_#000000]'
-                  : 'bg-slate-100'
+                  ? 'bg-yellow-400 text-black animate-pulse shadow-[2px_2px_0px_#000000]'
+                  : 'bg-slate-100 text-slate-400'
               }`}
-              title={`Stage ${q.stage}: ${q.title}`}
-            />
+              title={`Scene ${q.stage}: ${q.title} — ${winner ? (winner === 'blue' ? 'Blue' : 'Red') : 'In Progress'}`}
+            >
+              {winner === 'blue' ? 'B' : winner === 'red' ? 'R' : idx + 1}
+            </div>
           );
         })}
       </div>
@@ -356,14 +364,14 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
               <CheckCircle2 className="w-5 h-5 text-black shrink-0" />
               <span className="leading-tight">{teamState.feedbackMessage}</span>
             </div>
-            {teamState.currentQuestionIndex < RATIO_QUESTIONS.length - 1 && (
+            {currentMovieStage < RATIO_QUESTIONS.length - 1 ? (
               <button
                 onClick={() => nextQuestion(team)}
                 className="px-3.5 py-1.5 rounded-xl bg-yellow-400 text-black font-black text-xs sm:text-sm flex items-center gap-1 border-2 border-black shadow-[2px_2px_0px_#000000] hover:bg-yellow-300 active:shadow-none transition-all cursor-pointer whitespace-nowrap ml-2"
               >
-                NEXT <ArrowRight className="w-4 h-4 stroke-[3]" />
+                NEXT SCENE <ArrowRight className="w-4 h-4 stroke-[3]" />
               </button>
-            )}
+            ) : null}
           </div>
         )}
 
