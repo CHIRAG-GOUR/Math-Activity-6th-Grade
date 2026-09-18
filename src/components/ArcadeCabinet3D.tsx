@@ -626,8 +626,9 @@ export const ArcadeCabinet3D: React.FC<{
     }
 
     if (screenMeshRef.current && screenMeshRef.current.material) {
-      const mat = screenMeshRef.current.material as THREE.MeshStandardMaterial;
-      mat.emissiveIntensity = hovered ? 0.45 : 0.2;
+      if ('emissiveIntensity' in screenMeshRef.current.material) {
+        (screenMeshRef.current.material as THREE.MeshStandardMaterial).emissiveIntensity = hovered ? 0.6 : 0.3;
+      }
     }
   });
 
@@ -878,24 +879,25 @@ export const ArcadeCabinet3D: React.FC<{
           </mesh>
         ))}
 
+        {/* 3D CRT Monitor Screen Mesh with Official Game Artwork */}
         <mesh ref={screenMeshRef} position={[0, 0, 0.125]}>
           <planeGeometry args={[1.22, 0.94]} />
-          {activeScreenTexture && (
-            <meshStandardMaterial
+          {activeScreenTexture ? (
+            <meshBasicMaterial
               map={activeScreenTexture}
-              emissive="#ffffff"
-              emissiveMap={activeScreenTexture}
-              emissiveIntensity={0.25}
-              roughness={0.2}
+              toneMapped={false}
             />
+          ) : (
+            <meshStandardMaterial color="#000000" />
           )}
         </mesh>
 
-        <mesh position={[0, 0, 0.13]}>
+        {/* CRT Glass Reflection / Gloss Overlay */}
+        <mesh position={[0, 0, 0.128]}>
           <planeGeometry args={[1.22, 0.94]} />
           <meshStandardMaterial
             transparent
-            opacity={0.15}
+            opacity={hovered ? 0.08 : 0.14}
             roughness={0.1}
             color="#ffffff"
           />
@@ -1016,17 +1018,6 @@ export const ArcadeCabinet3D: React.FC<{
               <span>•</span>
               <span className="text-amber-600 font-bold">{config.grade}</span>
             </div>
-
-            {/* Game Artwork Thumbnail directly on Overhead Card */}
-            {config.image && (
-              <div className="relative w-full h-12 rounded-lg overflow-hidden border border-slate-900 shadow-inner bg-slate-900 my-0.5">
-                <img
-                  src={config.image}
-                  alt={config.title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
 
             {/* Main Machine Name - Full title with clean wrapping */}
             <h3 className="text-[9.5px] font-black font-bank uppercase tracking-tight text-slate-950 leading-tight">
