@@ -1,5 +1,5 @@
-// ============================================================
-// PARK PLANNER — 3D Park Citizens & Living Visitors
+﻿// ============================================================
+// PARK PLANNER â€” 3D Park Citizens & Living Visitors
 // Stylized humans: Children, Joggers, Cyclists, Bench Sitters
 // Natural kinematic animations with waypoint paths.
 // ============================================================
@@ -40,23 +40,23 @@ export const ActiveJogger3D: React.FC<{ speed?: number }> = ({ speed = 0.8 }) =>
   return (
     <group ref={joggerRef} position={[0, 0, 0]}>
       {/* Jogging Shorts & Legs */}
-      <mesh ref={leftLegRef} castShadow position={[-0.1, 0.35, 0]}>
+      <mesh ref={leftLegRef} position={[-0.1, 0.35, 0]}>
         <cylinderGeometry args={[0.06, 0.07, 0.7, 8]} />
         <meshStandardMaterial color="#0284c7" />
       </mesh>
-      <mesh ref={rightLegRef} castShadow position={[0.1, 0.35, 0]}>
+      <mesh ref={rightLegRef} position={[0.1, 0.35, 0]}>
         <cylinderGeometry args={[0.06, 0.07, 0.7, 8]} />
         <meshStandardMaterial color="#0284c7" />
       </mesh>
 
       {/* Running Tank Top Torso */}
-      <mesh castShadow position={[0, 0.95, 0]}>
+      <mesh position={[0, 0.95, 0]}>
         <boxGeometry args={[0.34, 0.5, 0.2]} />
         <meshStandardMaterial color="#ec4899" />
       </mesh>
 
       {/* Head & Headband */}
-      <mesh castShadow position={[0, 1.32, 0]}>
+      <mesh position={[0, 1.32, 0]}>
         <sphereGeometry args={[0.12, 12, 12]} />
         <meshStandardMaterial color="#fcd34d" />
       </mesh>
@@ -147,7 +147,7 @@ export const BenchSitter3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Seated Torso */}
-      <mesh castShadow position={[0, 0.62, -0.05]}>
+      <mesh position={[0, 0.62, -0.05]}>
         <boxGeometry args={[0.3, 0.38, 0.2]} />
         <meshStandardMaterial color="#10b981" />
       </mesh>
@@ -166,7 +166,7 @@ export const BenchSitter3D: React.FC<{
         <meshStandardMaterial color="#1e3a8a" />
       </mesh>
       {/* Head */}
-      <mesh castShadow position={[0, 0.92, -0.05]}>
+      <mesh position={[0, 0.92, -0.05]}>
         <sphereGeometry args={[0.11, 10, 10]} />
         <meshStandardMaterial color="#fcd34d" />
       </mesh>

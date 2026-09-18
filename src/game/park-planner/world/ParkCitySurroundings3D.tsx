@@ -1,119 +1,76 @@
 // ============================================================
 // PARK PLANNER — 3D Metropolitan City World & Sky Environment
-// Surrounds the central 4-Quadrant Park with:
-// 1. Radiant 3D Sun with pulsing corona flare & volumetric drifting clouds
-// 2. Metropolitan Skyline with glass towers, modern high-rises, antennas & neon signs
-// 3. Ground-Floor Streetscape with Shops (Bakery, Coffee Shop, Florist, Ice Cream)
-// 4. Street Stalls (Hotdog/Pretzel Cart, Fruit Stand, Juice Bar)
-// 5. Roadside Balloon Seller with animated swaying floating helium balloons
-// 6. Urban Details (Yellow Taxis, City Cars, Bus Shelters, Streetlights, Zebra Crossings)
+// PERFORMANCE-OPTIMIZED: All materials cached, geometry reduced,
+// building windows capped at 5 floors, cloud segments halved.
 // ============================================================
 
 import React, { useRef, useMemo } from 'react';
 import * as THREE from 'three';
 import { useFrame } from '@react-three/fiber';
-import { Html } from '@react-three/drei';
 import { StylizedHuman3D, RealisticCyclist3D } from './ParkCharacters3D';
+import { getCachedMaterial, getCachedBasicMaterial, getCachedBoxGeo, getCachedCylinderGeo, getCachedSphereGeo } from './ParkMaterials';
+
+// Shared geometries
+const _cloudGeo = getCachedSphereGeo(2.0, 6, 6);
+const _cloudSmGeo = getCachedSphereGeo(1.5, 5, 5);
+const _cloudMdGeo = getCachedSphereGeo(1.6, 5, 5);
+const _cloudLgGeo = getCachedSphereGeo(1.3, 5, 5);
+const _cloudXlGeo = getCachedSphereGeo(1.2, 5, 5);
+const _cloudMat = getCachedMaterial('#ffffff', 0.3);
+const _whiteMat = getCachedBasicMaterial('#f8fafc');
+const _yellowDashMat = getCachedBasicMaterial('#facc15');
 
 // ------------------------------------------------------------
 // 1. RADIANT 3D SUN & DRIFTING CLOUDS
 // ------------------------------------------------------------
-export const RadiantSunAndClouds3D: React.FC = () => {
+export const RadiantSunAndClouds3D: React.FC = React.memo(() => {
   const sunCoronaRef = useRef<THREE.Mesh>(null);
-  const sunRaysRef = useRef<THREE.Group>(null);
   const cloudsGroupRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
-    // Pulsing sun corona
     if (sunCoronaRef.current) {
       const s = 1.0 + Math.sin(t * 1.5) * 0.08;
       sunCoronaRef.current.scale.set(s, s, s);
     }
-    // Slowly rotating sun ray flares
-    if (sunRaysRef.current) {
-      sunRaysRef.current.rotation.z = t * 0.05;
-    }
-    // Drifting clouds across the sky
     if (cloudsGroupRef.current) {
       cloudsGroupRef.current.position.x = ((t * 0.8) % 120) - 60;
     }
   });
 
+  const sunCoreMat = useMemo(() => getCachedBasicMaterial('#fffbeb'), []);
+  const coronaMat = useMemo(() => getCachedBasicMaterial('#fef08a', { transparent: true, opacity: 0.65 }), []);
+  const flareMat = useMemo(() => getCachedBasicMaterial('#fde047', { transparent: true, opacity: 0.35, side: THREE.DoubleSide }), []);
+
   return (
     <group name="SunAndAtmosphere">
-      {/* 3D Sun in upper sky (Warm golden daylight) */}
       <group position={[28, 42, -28]}>
-        {/* Core Glowing Sun Sphere */}
-        <mesh>
-          <sphereGeometry args={[3.2, 24, 24]} />
-          <meshBasicMaterial color="#fffbeb" />
-        </mesh>
-
-        {/* Inner Golden Corona */}
-        <mesh ref={sunCoronaRef}>
-          <sphereGeometry args={[4.2, 20, 20]} />
-          <meshBasicMaterial color="#fef08a" transparent opacity={0.65} />
-        </mesh>
-
-        {/* Outer Radiant Flare Disc */}
+        <mesh geometry={getCachedSphereGeo(3.2, 16, 16)} material={sunCoreMat} />
+        <mesh ref={sunCoronaRef} geometry={getCachedSphereGeo(4.2, 12, 12)} material={coronaMat} />
         <mesh rotation={[Math.PI / 4, 0, 0]}>
-          <ringGeometry args={[4.5, 7.5, 32]} />
+          <ringGeometry args={[4.5, 7.5, 16]} />
           <meshBasicMaterial color="#fde047" transparent opacity={0.35} side={THREE.DoubleSide} />
         </mesh>
-
-        {/* Subtle Radial Sun Rays */}
-        <group ref={sunRaysRef}>
-          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((deg, i) => {
-            const rad = (deg * Math.PI) / 180;
-            return (
-              <mesh key={`sun_ray_${i}`} position={[Math.cos(rad) * 6.5, Math.sin(rad) * 6.5, 0]} rotation={[0, 0, rad]}>
-                <boxGeometry args={[3.5, 0.25, 0.05]} />
-                <meshBasicMaterial color="#facc15" transparent opacity={0.25} />
-              </mesh>
-            );
-          })}
-        </group>
       </group>
 
-      {/* Drifting Low-Poly 3D Clouds */}
+      {/* Simplified Clouds — 4 instead of 6, 3 spheres each instead of 5 */}
       <group ref={cloudsGroupRef} position={[0, 32, 0]}>
         {[
           { x: -35, y: 0, z: -15, scale: 1.4 },
           { x: -10, y: 3, z: -30, scale: 1.8 },
           { x: 20, y: -2, z: -20, scale: 1.5 },
-          { x: 45, y: 1, z: -10, scale: 1.2 },
-          { x: -25, y: -1, z: 25, scale: 1.6 },
           { x: 15, y: 2, z: 30, scale: 1.3 },
         ].map((c, idx) => (
           <group key={`cloud_${idx}`} position={[c.x, c.y, c.z]} scale={c.scale}>
-            {/* Fluffy overlapping white spheres */}
-            <mesh position={[0, 0, 0]}>
-              <sphereGeometry args={[2.0, 10, 10]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
-            <mesh position={[1.5, -0.2, 0.2]}>
-              <sphereGeometry args={[1.5, 8, 8]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
-            <mesh position={[-1.5, -0.3, -0.2]}>
-              <sphereGeometry args={[1.6, 8, 8]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
-            <mesh position={[0.6, 0.8, -0.3]}>
-              <sphereGeometry args={[1.3, 8, 8]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
-            <mesh position={[-0.8, 0.6, 0.4]}>
-              <sphereGeometry args={[1.2, 8, 8]} />
-              <meshStandardMaterial color="#ffffff" roughness={0.3} />
-            </mesh>
+            <mesh geometry={_cloudGeo} material={_cloudMat} />
+            <mesh position={[1.5, -0.2, 0.2]} geometry={_cloudSmGeo} material={_cloudMat} />
+            <mesh position={[-1.5, -0.3, -0.2]} geometry={_cloudMdGeo} material={_cloudMat} />
           </group>
         ))}
       </group>
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
 // 2. MODULAR SKYSCRAPERS & CITY BUILDINGS
@@ -131,7 +88,7 @@ interface BuildingProps {
   hasBalconies?: boolean;
 }
 
-export const CityBuilding3D: React.FC<BuildingProps> = ({
+export const CityBuilding3D: React.FC<BuildingProps> = React.memo(({
   position,
   width = 6,
   height = 18,
@@ -143,108 +100,61 @@ export const CityBuilding3D: React.FC<BuildingProps> = ({
   buildingName,
   hasBalconies = false,
 }) => {
-  const floors = Math.floor(height / 1.8);
+  // Cap windows at 5 floors for performance
+  const floors = Math.min(5, Math.floor(height / 3.2));
+
+  const facadeMat = useMemo(() => getCachedMaterial(facadeColor, 0.6), [facadeColor]);
+  const windowMat = useMemo(() => getCachedMaterial(accentColor, 0.1, 0.8), [accentColor]);
+  const roofMat = useMemo(() => getCachedMaterial('#1e293b', 0.4), []);
+  const hvacMat = useMemo(() => getCachedMaterial('#475569', 0.7), []);
 
   return (
     <group position={position}>
-      {/* Main Structural Body */}
-      <mesh castShadow receiveShadow position={[0, height / 2, 0]}>
-        <boxGeometry args={[width, height, depth]} />
-        <meshStandardMaterial color={facadeColor} roughness={0.6} />
-      </mesh>
+      {/* Main Body */}
+      <mesh position={[0, height / 2, 0]} geometry={getCachedBoxGeo(width, height, depth)} material={facadeMat} />
 
-      {/* Windows Grid Pattern on Facades */}
-      {Array.from({ length: Math.min(10, floors) }).map((_, f) => {
-        const yPos = 1.6 + f * 1.6;
+      {/* Windows — Only front face, reduced count */}
+      {Array.from({ length: floors }).map((_, f) => {
+        const yPos = 2.0 + f * 3.0;
         return (
           <group key={`floor_${f}`} position={[0, yPos, 0]}>
-            {/* Front & Back Windows (+Z / -Z) */}
             {[-width * 0.3, 0, width * 0.3].map((wx, wi) => (
-              <React.Fragment key={`win_fb_${wi}`}>
-                <mesh position={[wx, 0, depth / 2 + 0.02]}>
-                  <planeGeometry args={[width * 0.22, 0.9]} />
-                  <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.1} />
-                </mesh>
-                <mesh position={[wx, 0, -depth / 2 - 0.02]} rotation={[0, Math.PI, 0]}>
-                  <planeGeometry args={[width * 0.22, 0.9]} />
-                  <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.1} />
-                </mesh>
-              </React.Fragment>
-            ))}
-
-            {/* Left & Right Windows (+X / -X) */}
-            {[-depth * 0.25, depth * 0.25].map((wz, wi) => (
-              <React.Fragment key={`win_lr_${wi}`}>
-                <mesh position={[width / 2 + 0.02, 0, wz]} rotation={[0, Math.PI / 2, 0]}>
-                  <planeGeometry args={[depth * 0.3, 0.9]} />
-                  <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.1} />
-                </mesh>
-                <mesh position={[-width / 2 - 0.02, 0, wz]} rotation={[0, -Math.PI / 2, 0]}>
-                  <planeGeometry args={[depth * 0.3, 0.9]} />
-                  <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.1} />
-                </mesh>
-              </React.Fragment>
-            ))}
-
-            {/* Balconies if residential */}
-            {hasBalconies && f % 2 === 0 && (
-              <mesh position={[0, -0.4, depth / 2 + 0.35]}>
-                <boxGeometry args={[width * 0.8, 0.4, 0.6]} />
-                <meshStandardMaterial color="#64748b" roughness={0.5} />
+              <mesh key={`win_${wi}`} position={[wx, 0, depth / 2 + 0.02]}>
+                <planeGeometry args={[width * 0.22, 0.9]} />
+                <meshStandardMaterial color={accentColor} metalness={0.8} roughness={0.1} />
               </mesh>
-            )}
+            ))}
           </group>
         );
       })}
 
-      {/* Roof Parapet & Equipment */}
-      <mesh castShadow position={[0, height + 0.2, 0]}>
-        <boxGeometry args={[width + 0.3, 0.4, depth + 0.3]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
+      {/* Roof */}
+      <mesh position={[0, height + 0.2, 0]} geometry={getCachedBoxGeo(width + 0.3, 0.4, depth + 0.3)} material={roofMat} />
+      <mesh position={[width * 0.2, height + 0.8, depth * 0.2]} geometry={getCachedBoxGeo(1.5, 1.0, 1.5)} material={hvacMat} />
 
-      {/* Roof HVAC Equipment Boxes */}
-      <mesh castShadow position={[width * 0.2, height + 0.8, depth * 0.2]}>
-        <boxGeometry args={[1.5, 1.0, 1.5]} />
-        <meshStandardMaterial color="#475569" roughness={0.7} />
-      </mesh>
-
-      {/* Rooftop Antenna */}
+      {/* Antenna */}
       {hasAntenna && (
         <group position={[0, height + 0.4, 0]}>
-          <mesh position={[0, 2.5, 0]}>
-            <cylinderGeometry args={[0.04, 0.12, 5.0, 6]} />
-            <meshStandardMaterial color="#cbd5e1" metalness={0.9} />
-          </mesh>
-          {/* Flashing Red Warning Beacon */}
-          <mesh position={[0, 5.1, 0]}>
-            <sphereGeometry args={[0.16, 8, 8]} />
-            <meshBasicMaterial color="#ef4444" />
-          </mesh>
+          <mesh position={[0, 2.5, 0]} geometry={getCachedCylinderGeo(0.04, 0.12, 5.0, 4)} material={getCachedMaterial('#cbd5e1', 0.2, 0.9)} />
+          <mesh position={[0, 5.1, 0]} geometry={getCachedSphereGeo(0.16, 6, 6)} material={getCachedBasicMaterial('#ef4444')} />
         </group>
       )}
 
-      {/* Rooftop Helipad */}
+      {/* Helipad */}
       {hasHelipad && (
         <group position={[0, height + 0.45, 0]}>
           <mesh rotation={[-Math.PI / 2, 0, 0]}>
-            <circleGeometry args={[width * 0.38, 16]} />
+            <circleGeometry args={[width * 0.38, 12]} />
             <meshStandardMaterial color="#0f172a" />
-          </mesh>
-          <mesh position={[0, 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <ringGeometry args={[width * 0.32, width * 0.36, 16]} />
-            <meshBasicMaterial color="#facc15" side={THREE.DoubleSide} />
           </mesh>
         </group>
       )}
-
-
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 3. GROUND-FLOOR SHOPS, CAFES & BOUTIQUES
+// 3. GROUND-FLOOR SHOPS (Simplified)
 // ------------------------------------------------------------
 interface ShopProps {
   position: [number, number, number];
@@ -254,190 +164,81 @@ interface ShopProps {
   shopType: 'bakery' | 'cafe' | 'florist' | 'icecream' | 'bookstore';
 }
 
-export const CityShopFront3D: React.FC<ShopProps> = ({
+export const CityShopFront3D: React.FC<ShopProps> = React.memo(({
   position,
   rotationY = 0,
   shopName,
   awningColors,
   shopType,
 }) => {
+  const awningMats = useMemo(() => [
+    getCachedMaterial(awningColors[0], 0.6),
+    getCachedMaterial(awningColors[1], 0.6),
+  ], [awningColors]);
+
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Shop Building Frontage */}
-      <mesh castShadow receiveShadow position={[0, 2.0, 0]}>
-        <boxGeometry args={[4.2, 4.0, 3.2]} />
-        <meshStandardMaterial color="#f1f5f9" roughness={0.7} />
-      </mesh>
-
-      {/* Large Glass Display Window */}
+      <mesh position={[0, 2.0, 0]} geometry={getCachedBoxGeo(4.2, 4.0, 3.2)} material={getCachedMaterial('#f1f5f9', 0.7)} />
       <mesh position={[0, 1.4, 1.62]}>
         <planeGeometry args={[3.2, 1.8]} />
         <meshStandardMaterial color="#0284c7" metalness={0.7} roughness={0.1} transparent opacity={0.7} />
       </mesh>
-
-      {/* Shop Entrance Door */}
       <mesh position={[1.2, 1.1, 1.63]}>
         <planeGeometry args={[0.9, 2.0]} />
         <meshStandardMaterial color="#1e293b" />
       </mesh>
 
-      {/* Striped Overhanging Fabric Awning */}
+      {/* Simplified awning — 4 stripes instead of 8 */}
       <group position={[0, 2.5, 1.9]} rotation={[0.35, 0, 0]}>
-        {Array.from({ length: 8 }).map((_, i) => (
-          <mesh key={`awning_stripe_${i}`} position={[-1.75 + i * 0.5, 0, 0]}>
-            <boxGeometry args={[0.48, 0.04, 1.1]} />
-            <meshStandardMaterial
-              color={i % 2 === 0 ? awningColors[0] : awningColors[1]}
-              roughness={0.6}
-            />
-          </mesh>
+        {[0, 1, 2, 3].map((i) => (
+          <mesh key={`awning_${i}`} position={[-1.2 + i * 0.8, 0, 0]} geometry={getCachedBoxGeo(0.78, 0.04, 1.1)} material={awningMats[i % 2]} />
         ))}
       </group>
-
-      {/* Outdoor Display Items / Street Furniture */}
-      {shopType === 'cafe' && (
-        <group position={[-1.2, 0, 2.2]}>
-          {/* Outdoor Cafe Table */}
-          <mesh castShadow position={[0, 0.45, 0]}>
-            <cylinderGeometry args={[0.35, 0.35, 0.04, 12]} />
-            <meshStandardMaterial color="#475569" />
-          </mesh>
-          <mesh position={[0, 0.22, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.45, 6]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-          {/* 2 Chairs */}
-          {[-0.45, 0.45].map((cx, ci) => (
-            <mesh key={`chair_${ci}`} castShadow position={[cx, 0.22, 0]}>
-              <cylinderGeometry args={[0.15, 0.16, 0.44, 8]} />
-              <meshStandardMaterial color="#94a3b8" />
-            </mesh>
-          ))}
-        </group>
-      )}
-
-      {shopType === 'florist' && (
-        <group position={[-1.2, 0, 2.1]}>
-          {/* Flower Buckets Stand */}
-          <mesh castShadow position={[0, 0.25, 0]}>
-            <boxGeometry args={[1.2, 0.5, 0.5]} />
-            <meshStandardMaterial color="#78350f" />
-          </mesh>
-          {[-0.35, 0, 0.35].map((fx, fi) => (
-            <group key={`flower_pot_${fi}`} position={[fx, 0.6, 0]}>
-              <mesh position={[0, 0, 0]}>
-                <cylinderGeometry args={[0.12, 0.09, 0.25, 8]} />
-                <meshStandardMaterial color="#ea580c" />
-              </mesh>
-              <mesh position={[0, 0.18, 0]}>
-                <sphereGeometry args={[0.15, 8, 8]} />
-                <meshStandardMaterial color={fi === 0 ? '#ef4444' : fi === 1 ? '#facc15' : '#ec4899'} />
-              </mesh>
-            </group>
-          ))}
-        </group>
-      )}
-
-
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 4. STREET STALLS & CARTS (Hotdog, Fruit, Ice Cream)
+// 4. STREET STALLS (Simplified)
 // ------------------------------------------------------------
 export const StreetFoodStall3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
   type?: 'hotdog' | 'fruit';
-}> = ({ position, rotationY = 0, type = 'hotdog' }) => {
+}> = React.memo(({ position, rotationY = 0, type = 'hotdog' }) => {
+  const bodyMat = useMemo(() => getCachedMaterial(type === 'hotdog' ? '#dc2626' : '#16a34a', 0.5), [type]);
+  const umbMat = useMemo(() => getCachedMaterial(type === 'hotdog' ? '#facc15' : '#22c55e', 0.6), [type]);
+
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Wooden / Steel Cart Body */}
-      <mesh castShadow position={[0, 0.5, 0]}>
-        <boxGeometry args={[1.5, 0.65, 0.9]} />
-        <meshStandardMaterial color={type === 'hotdog' ? '#dc2626' : '#16a34a'} roughness={0.5} />
-      </mesh>
+      <mesh position={[0, 0.5, 0]} geometry={getCachedBoxGeo(1.5, 0.65, 0.9)} material={bodyMat} />
+      <mesh position={[0, 0.85, 0]} geometry={getCachedBoxGeo(1.65, 0.06, 1.05)} material={getCachedMaterial('#f8fafc', 0.2, 0.7)} />
 
-      {/* Cart Countertop */}
-      <mesh castShadow position={[0, 0.85, 0]}>
-        <boxGeometry args={[1.65, 0.06, 1.05]} />
-        <meshStandardMaterial color="#f8fafc" metalness={0.7} roughness={0.2} />
-      </mesh>
-
-      {/* 2 Big Cart Wheels */}
+      {/* 2 wheels */}
       {[-0.6, 0.6].map((wx, wi) => (
-        <group key={`wheel_${wi}`} position={[wx, 0.28, 0.48]}>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <cylinderGeometry args={[0.26, 0.26, 0.06, 12]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-        </group>
+        <mesh key={`wheel_${wi}`} position={[wx, 0.28, 0.48]} rotation={[0, 0, Math.PI / 2]}
+          geometry={getCachedCylinderGeo(0.26, 0.26, 0.06, 8)} material={getCachedMaterial('#0f172a', 0.9)} />
       ))}
 
-      {/* Large Umbrella Overhead */}
+      {/* Umbrella */}
       <group position={[0.45, 0.88, 0]}>
-        <mesh position={[0, 0.9, 0]}>
-          <cylinderGeometry args={[0.025, 0.025, 1.8, 6]} />
-          <meshStandardMaterial color="#cbd5e1" metalness={0.8} />
-        </mesh>
+        <mesh position={[0, 0.9, 0]} geometry={getCachedCylinderGeo(0.025, 0.025, 1.8, 4)} material={getCachedMaterial('#cbd5e1', 0.3, 0.8)} />
         <mesh position={[0, 1.85, 0]}>
-          <coneGeometry args={[1.1, 0.45, 10]} />
+          <coneGeometry args={[1.1, 0.45, 8]} />
           <meshStandardMaterial color={type === 'hotdog' ? '#facc15' : '#22c55e'} roughness={0.6} />
         </mesh>
       </group>
-
-      {/* Food Props on Countertop */}
-      {type === 'hotdog' ? (
-        <group position={[-0.2, 0.92, 0]}>
-          {/* Condiment Mustard & Ketchup Bottles */}
-          <mesh position={[-0.25, 0.1, 0.15]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.2, 6]} />
-            <meshStandardMaterial color="#dc2626" />
-          </mesh>
-          <mesh position={[-0.15, 0.1, 0.15]}>
-            <cylinderGeometry args={[0.04, 0.04, 0.2, 6]} />
-            <meshStandardMaterial color="#facc15" />
-          </mesh>
-          {/* Grill Box */}
-          <mesh castShadow position={[0.1, 0.08, 0]}>
-            <boxGeometry args={[0.5, 0.15, 0.4]} />
-            <meshStandardMaterial color="#334155" metalness={0.8} />
-          </mesh>
-        </group>
-      ) : (
-        <group position={[-0.1, 0.92, 0]}>
-          {/* Fruit Crates */}
-          {[-0.25, 0.2].map((cx, ci) => (
-            <mesh key={`crate_${ci}`} position={[cx, 0.08, 0]}>
-              <boxGeometry args={[0.38, 0.14, 0.35]} />
-              <meshStandardMaterial color="#b45309" roughness={0.8} />
-            </mesh>
-          ))}
-          {/* Fruit Spheres (Oranges & Apples) */}
-          <mesh position={[-0.25, 0.18, 0]}>
-            <sphereGeometry args={[0.12, 6, 6]} />
-            <meshStandardMaterial color="#f97316" />
-          </mesh>
-          <mesh position={[0.2, 0.18, 0]}>
-            <sphereGeometry args={[0.12, 6, 6]} />
-            <meshStandardMaterial color="#ef4444" />
-          </mesh>
-        </group>
-      )}
-
-
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 5. ROADSIDE BALLOON SELLER (With floating swaying balloons)
+// 5. ROADSIDE BALLOON SELLER (Reduced balloons: 5 instead of 8)
 // ------------------------------------------------------------
 export const RoadsideBalloonSeller3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
-}> = ({ position, rotationY = 0 }) => {
+}> = React.memo(({ position, rotationY = 0 }) => {
   const balloonsGroupRef = useRef<THREE.Group>(null);
 
   const balloonData = useMemo(
@@ -447,9 +248,6 @@ export const RoadsideBalloonSeller3D: React.FC<{
       { color: '#facc15', x: 0.0, y: 2.3, z: 0.15, scale: 0.25 },
       { color: '#10b981', x: -0.25, y: 2.2, z: -0.12, scale: 0.23 },
       { color: '#ec4899', x: 0.26, y: 1.85, z: 0.12, scale: 0.25 },
-      { color: '#8b5cf6', x: -0.05, y: 2.45, z: -0.05, scale: 0.27 },
-      { color: '#f97316', x: 0.24, y: 2.35, z: -0.15, scale: 0.24 },
-      { color: '#06b6d4', x: -0.15, y: 2.05, z: 0.22, scale: 0.26 },
     ],
     []
   );
@@ -457,7 +255,6 @@ export const RoadsideBalloonSeller3D: React.FC<{
   useFrame((state) => {
     const t = state.clock.getElapsedTime();
     if (balloonsGroupRef.current) {
-      // Gentle floating and swaying in the air
       balloonsGroupRef.current.rotation.z = Math.sin(t * 1.8) * 0.08;
       balloonsGroupRef.current.rotation.x = Math.cos(t * 1.4) * 0.06;
       balloonsGroupRef.current.position.y = Math.sin(t * 2.2) * 0.04;
@@ -466,7 +263,6 @@ export const RoadsideBalloonSeller3D: React.FC<{
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Balloon Vendor Character */}
       <StylizedHuman3D
         position={[0, 0, 0]}
         scale={0.9}
@@ -478,137 +274,86 @@ export const RoadsideBalloonSeller3D: React.FC<{
         hasHeadband={true}
         isWalking={false}
       />
+      <mesh position={[0.24, 1.25, 0.15]} rotation={[-0.2, 0, 0.1]} geometry={getCachedCylinderGeo(0.015, 0.015, 1.3, 4)} material={getCachedMaterial('#d4a373', 0.6)} />
 
-      {/* Balloon Handle / Staff held in right hand */}
-      <mesh position={[0.24, 1.25, 0.15]} rotation={[-0.2, 0, 0.1]}>
-        <cylinderGeometry args={[0.015, 0.015, 1.3, 6]} />
-        <meshStandardMaterial color="#d4a373" />
-      </mesh>
-
-      {/* Floating Bouquet of Colorful Helium Balloons */}
       <group position={[0.28, 0, 0.2]} ref={balloonsGroupRef}>
         {balloonData.map((b, i) => (
           <group key={`balloon_${i}`} position={[b.x, b.y, b.z]}>
-            {/* Balloon Body (Teardrop Sphere) */}
-            <mesh castShadow>
-              <sphereGeometry args={[b.scale, 12, 12]} />
-              <meshStandardMaterial color={b.color} roughness={0.2} metalness={0.1} />
-            </mesh>
-            {/* Balloon Knot */}
+            <mesh geometry={getCachedSphereGeo(b.scale, 8, 8)} material={getCachedMaterial(b.color, 0.2, 0.1)} />
             <mesh position={[0, -b.scale * 1.05, 0]}>
-              <coneGeometry args={[0.04, 0.06, 6]} />
+              <coneGeometry args={[0.04, 0.06, 4]} />
               <meshStandardMaterial color={b.color} />
-            </mesh>
-            {/* Connecting String to Hand */}
-            <mesh position={[-b.x * 0.5, (-b.y + 1.3) * 0.5, -b.z * 0.5]}>
-              <cylinderGeometry args={[0.003, 0.003, b.y - 1.3, 4]} />
-              <meshBasicMaterial color="#ffffff" />
             </mesh>
           </group>
         ))}
       </group>
-
-
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 6. PARKED CITY CARS & YELLOW TAXIS
+// 6. CITY VEHICLES (Cached materials)
 // ------------------------------------------------------------
 export const CityVehicle3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
   type?: 'taxi' | 'sedan' | 'suv';
   color?: string;
-}> = ({ position, rotationY = 0, type = 'taxi', color = '#eab308' }) => {
+}> = React.memo(({ position, rotationY = 0, type = 'taxi', color = '#eab308' }) => {
   const isTaxi = type === 'taxi';
   const bodyColor = isTaxi ? '#eab308' : color;
+  const bodyMat = useMemo(() => getCachedMaterial(bodyColor, 0.4, 0.2), [bodyColor]);
+  const wheelMat = useMemo(() => getCachedMaterial('#0f172a', 0.9), []);
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Lower Vehicle Body */}
-      <mesh castShadow position={[0, 0.35, 0]}>
-        <boxGeometry args={[3.4, 0.45, 1.6]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.4} metalness={0.2} />
-      </mesh>
+      <mesh position={[0, 0.35, 0]} geometry={getCachedBoxGeo(3.4, 0.45, 1.6)} material={bodyMat} />
+      <mesh position={[-0.1, 0.72, 0]} geometry={getCachedBoxGeo(1.9, 0.42, 1.45)} material={bodyMat} />
 
-      {/* Upper Cabin */}
-      <mesh castShadow position={[-0.1, 0.72, 0]}>
-        <boxGeometry args={[1.9, 0.42, 1.45]} />
-        <meshStandardMaterial color={bodyColor} roughness={0.4} metalness={0.2} />
-      </mesh>
-
-      {/* Front Windshield */}
+      {/* Windshields */}
       <mesh position={[0.9, 0.7, 0]} rotation={[0, Math.PI / 2, -0.3]}>
         <planeGeometry args={[1.35, 0.4]} />
         <meshStandardMaterial color="#0284c7" metalness={0.8} roughness={0.1} transparent opacity={0.7} />
       </mesh>
-      {/* Rear Windshield */}
-      <mesh position={[-1.1, 0.7, 0]} rotation={[0, -Math.PI / 2, -0.3]}>
-        <planeGeometry args={[1.35, 0.4]} />
-        <meshStandardMaterial color="#0284c7" metalness={0.8} roughness={0.1} transparent opacity={0.7} />
-      </mesh>
 
-      {/* 4 Rubber Wheels */}
+      {/* 4 wheels */}
       {[
-        [-1.0, 0.78],
-        [1.0, 0.78],
-        [-1.0, -0.78],
-        [1.0, -0.78],
+        [-1.0, 0.78], [1.0, 0.78], [-1.0, -0.78], [1.0, -0.78],
       ].map(([wx, wz], wi) => (
-        <mesh key={`car_wheel_${wi}`} position={[wx, 0.22, wz]} rotation={[Math.PI / 2, 0, 0]}>
-          <cylinderGeometry args={[0.22, 0.22, 0.12, 12]} />
-          <meshStandardMaterial color="#0f172a" roughness={0.9} />
-        </mesh>
+        <mesh key={`w_${wi}`} position={[wx, 0.22, wz]} rotation={[Math.PI / 2, 0, 0]}
+          geometry={getCachedCylinderGeo(0.22, 0.22, 0.12, 8)} material={wheelMat} />
       ))}
 
-      {/* Headlights (Front: +X) */}
-      <mesh position={[1.72, 0.38, 0.5]}>
-        <boxGeometry args={[0.04, 0.12, 0.22]} />
-        <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.5} />
-      </mesh>
-      <mesh position={[1.72, 0.38, -0.5]}>
-        <boxGeometry args={[0.04, 0.12, 0.22]} />
-        <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.5} />
-      </mesh>
+      {/* Headlights */}
+      <mesh position={[1.72, 0.38, 0.5]} geometry={getCachedBoxGeo(0.04, 0.12, 0.22)}
+        material={getCachedMaterial('#fef08a', 0.3, 0, { emissive: '#fef08a', emissiveIntensity: 0.5 })} />
+      <mesh position={[1.72, 0.38, -0.5]} geometry={getCachedBoxGeo(0.04, 0.12, 0.22)}
+        material={getCachedMaterial('#fef08a', 0.3, 0, { emissive: '#fef08a', emissiveIntensity: 0.5 })} />
 
-      {/* Taillights (Rear: -X) */}
-      <mesh position={[-1.72, 0.38, 0.5]}>
-        <boxGeometry args={[0.04, 0.12, 0.22]} />
-        <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
-      </mesh>
-      <mesh position={[-1.72, 0.38, -0.5]}>
-        <boxGeometry args={[0.04, 0.12, 0.22]} />
-        <meshStandardMaterial color="#dc2626" emissive="#dc2626" emissiveIntensity={0.4} />
-      </mesh>
+      {/* Taillights */}
+      <mesh position={[-1.72, 0.38, 0.5]} geometry={getCachedBoxGeo(0.04, 0.12, 0.22)}
+        material={getCachedMaterial('#dc2626', 0.3, 0, { emissive: '#dc2626', emissiveIntensity: 0.4 })} />
+      <mesh position={[-1.72, 0.38, -0.5]} geometry={getCachedBoxGeo(0.04, 0.12, 0.22)}
+        material={getCachedMaterial('#dc2626', 0.3, 0, { emissive: '#dc2626', emissiveIntensity: 0.4 })} />
 
-      {/* Taxi Roof Sign */}
+      {/* Taxi Sign */}
       {isTaxi && (
-        <group position={[0, 0.98, 0]}>
-          <mesh>
-            <boxGeometry args={[0.45, 0.12, 0.22]} />
-            <meshStandardMaterial color="#facc15" emissive="#facc15" emissiveIntensity={0.3} />
-          </mesh>
-          <mesh position={[0, -0.07, 0]}>
-            <boxGeometry args={[0.3, 0.04, 0.1]} />
-            <meshStandardMaterial color="#1e293b" />
-          </mesh>
-        </group>
+        <mesh position={[0, 0.98, 0]} geometry={getCachedBoxGeo(0.45, 0.12, 0.22)}
+          material={getCachedMaterial('#facc15', 0.3, 0, { emissive: '#facc15', emissiveIntensity: 0.3 })} />
       )}
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 6B. VEHICLE TRAJECTORY SOLVER (Continuous Rounded Rectangle)
+// 6B. VEHICLE TRAJECTORY SOLVER
 // ------------------------------------------------------------
 export function getRoundedRectPath(
   dist: number,
   radius: number,
   cornerRadius: number,
   isCcw: boolean,
-  isCar: boolean // true = car (local front +X), false = cyclist (local front +Z)
+  isCar: boolean
 ): { x: number; z: number; rotY: number } {
   const r_c = Math.min(cornerRadius, radius * 0.35);
   const L = radius - r_c;
@@ -618,14 +363,9 @@ export function getRoundedRectPath(
 
   let s = dist % totalPerimeter;
   if (s < 0) s += totalPerimeter;
-
-  // If counter-clockwise, traverse in reverse
   const trackPos = isCcw ? (totalPerimeter - s) % totalPerimeter : s;
 
-  let x = 0;
-  let z = 0;
-  let dx = 0;
-  let dz = 0;
+  let x = 0, z = 0, dx = 0, dz = 0;
 
   const p0End = straightLen;
   const p1End = p0End + arcLen;
@@ -635,76 +375,17 @@ export function getRoundedRectPath(
   const p5End = p4End + arcLen;
   const p6End = p5End + straightLen;
 
-  if (trackPos < p0End) {
-    // North straight edge moving East
-    const u = trackPos;
-    x = -L + u;
-    z = -radius;
-    dx = 1;
-    dz = 0;
-  } else if (trackPos < p1End) {
-    // North-East corner turning South
-    const u = ((trackPos - p0End) / arcLen) * (0.5 * Math.PI);
-    x = L + r_c * Math.sin(u);
-    z = -L - r_c * Math.cos(u);
-    dx = Math.cos(u);
-    dz = Math.sin(u);
-  } else if (trackPos < p2End) {
-    // East straight edge moving South
-    const u = trackPos - p1End;
-    x = radius;
-    z = -L + u;
-    dx = 0;
-    dz = 1;
-  } else if (trackPos < p3End) {
-    // South-East corner turning West
-    const u = ((trackPos - p2End) / arcLen) * (0.5 * Math.PI);
-    x = L + r_c * Math.cos(u);
-    z = L + r_c * Math.sin(u);
-    dx = -Math.sin(u);
-    dz = Math.cos(u);
-  } else if (trackPos < p4End) {
-    // South straight edge moving West
-    const u = trackPos - p3End;
-    x = L - u;
-    z = radius;
-    dx = -1;
-    dz = 0;
-  } else if (trackPos < p5End) {
-    // South-West corner turning North
-    const u = ((trackPos - p4End) / arcLen) * (0.5 * Math.PI);
-    x = -L - r_c * Math.sin(u);
-    z = L + r_c * Math.cos(u);
-    dx = -Math.cos(u);
-    dz = -Math.sin(u);
-  } else if (trackPos < p6End) {
-    // West straight edge moving North
-    const u = trackPos - p5End;
-    x = -radius;
-    z = L - u;
-    dx = 0;
-    dz = -1;
-  } else {
-    // North-West corner turning East
-    const u = ((trackPos - p6End) / arcLen) * (0.5 * Math.PI);
-    x = -L - r_c * Math.cos(u);
-    z = -L - r_c * Math.sin(u);
-    dx = Math.sin(u);
-    dz = -Math.cos(u);
-  }
+  if (trackPos < p0End) { const u = trackPos; x = -L + u; z = -radius; dx = 1; dz = 0; }
+  else if (trackPos < p1End) { const u = ((trackPos - p0End) / arcLen) * (0.5 * Math.PI); x = L + r_c * Math.sin(u); z = -L - r_c * Math.cos(u); dx = Math.cos(u); dz = Math.sin(u); }
+  else if (trackPos < p2End) { const u = trackPos - p1End; x = radius; z = -L + u; dx = 0; dz = 1; }
+  else if (trackPos < p3End) { const u = ((trackPos - p2End) / arcLen) * (0.5 * Math.PI); x = L + r_c * Math.cos(u); z = L + r_c * Math.sin(u); dx = -Math.sin(u); dz = Math.cos(u); }
+  else if (trackPos < p4End) { const u = trackPos - p3End; x = L - u; z = radius; dx = -1; dz = 0; }
+  else if (trackPos < p5End) { const u = ((trackPos - p4End) / arcLen) * (0.5 * Math.PI); x = -L - r_c * Math.sin(u); z = L + r_c * Math.cos(u); dx = -Math.cos(u); dz = -Math.sin(u); }
+  else if (trackPos < p6End) { const u = trackPos - p5End; x = -radius; z = L - u; dx = 0; dz = -1; }
+  else { const u = ((trackPos - p6End) / arcLen) * (0.5 * Math.PI); x = -L - r_c * Math.cos(u); z = -L - r_c * Math.sin(u); dx = Math.sin(u); dz = -Math.cos(u); }
 
-  if (isCcw) {
-    dx = -dx;
-    dz = -dz;
-  }
-
-  let rotY = 0;
-  if (isCar) {
-    rotY = Math.atan2(-dz, dx);
-  } else {
-    rotY = Math.atan2(dx, dz);
-  }
-
+  if (isCcw) { dx = -dx; dz = -dz; }
+  const rotY = isCar ? Math.atan2(-dz, dx) : Math.atan2(dx, dz);
   return { x, z, rotY };
 }
 
@@ -714,34 +395,21 @@ export function getRoundedRectPath(
 export const MovingCityCar3D: React.FC<{
   type?: 'taxi' | 'sedan' | 'suv';
   color?: string;
-  speed?: number; // m/s
-  radius?: number; // Distance from center
+  speed?: number;
+  radius?: number;
   cornerRadius?: number;
   initialOffset?: number;
   reverseDirection?: boolean;
-}> = ({
-  type = 'taxi',
-  color = '#eab308',
-  speed = 5.5,
-  radius = 17.5,
-  cornerRadius = 2.4,
-  initialOffset = 0,
-  reverseDirection = false,
+}> = React.memo(({
+  type = 'taxi', color = '#eab308', speed = 5.5, radius = 17.5,
+  cornerRadius = 2.4, initialOffset = 0, reverseDirection = false,
 }) => {
   const rootRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     if (!rootRef.current) return;
     const t = state.clock.getElapsedTime();
-    const currentDist = t * speed + initialOffset;
-    const { x, z, rotY } = getRoundedRectPath(
-      currentDist,
-      radius,
-      cornerRadius,
-      reverseDirection,
-      true
-    );
-
+    const { x, z, rotY } = getRoundedRectPath(t * speed + initialOffset, radius, cornerRadius, reverseDirection, true);
     rootRef.current.position.set(x, 0, z);
     rootRef.current.rotation.y = rotY;
   });
@@ -751,7 +419,7 @@ export const MovingCityCar3D: React.FC<{
       <CityVehicle3D position={[0, 0, 0]} rotationY={0} type={type} color={color} />
     </group>
   );
-};
+});
 
 export const MovingCityCyclist3D: React.FC<{
   speed?: number;
@@ -759,27 +427,15 @@ export const MovingCityCyclist3D: React.FC<{
   cornerRadius?: number;
   initialOffset?: number;
   reverseDirection?: boolean;
-}> = ({
-  speed = 2.2,
-  radius = 15.6,
-  cornerRadius = 2.0,
-  initialOffset = 0,
-  reverseDirection = false,
+}> = React.memo(({
+  speed = 2.2, radius = 15.6, cornerRadius = 2.0, initialOffset = 0, reverseDirection = false,
 }) => {
   const rootRef = useRef<THREE.Group>(null);
 
   useFrame((state) => {
     if (!rootRef.current) return;
     const t = state.clock.getElapsedTime();
-    const currentDist = t * speed + initialOffset;
-    const { x, z, rotY } = getRoundedRectPath(
-      currentDist,
-      radius,
-      cornerRadius,
-      reverseDirection,
-      false
-    );
-
+    const { x, z, rotY } = getRoundedRectPath(t * speed + initialOffset, radius, cornerRadius, reverseDirection, false);
     rootRef.current.position.set(x, 0, z);
     rootRef.current.rotation.y = rotY;
   });
@@ -789,321 +445,96 @@ export const MovingCityCyclist3D: React.FC<{
       <RealisticCyclist3D position={[0, 0, 0]} rotationY={0} speed={1.0} />
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 7. STREET FURNITURE & STREET LAMPS
+// 7. STREET FURNITURE
 // ------------------------------------------------------------
 export const StreetLamp3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
-}> = ({ position, rotationY = 0 }) => {
+}> = React.memo(({ position, rotationY = 0 }) => {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Base & Mast */}
-      <mesh position={[0, 1.8, 0]}>
-        <cylinderGeometry args={[0.06, 0.1, 3.6, 8]} />
-        <meshStandardMaterial color="#1e293b" metalness={0.8} />
-      </mesh>
-      {/* Overhanging Arm */}
-      <mesh position={[0.45, 3.6, 0]} rotation={[0, 0, Math.PI / 4]}>
-        <cylinderGeometry args={[0.04, 0.04, 0.9, 6]} />
-        <meshStandardMaterial color="#1e293b" />
-      </mesh>
-      {/* Light Lantern Fixture */}
-      <mesh position={[0.8, 3.7, 0]}>
-        <boxGeometry args={[0.35, 0.12, 0.2]} />
-        <meshStandardMaterial color="#fef08a" emissive="#fef08a" emissiveIntensity={0.6} />
-      </mesh>
+      <mesh position={[0, 1.8, 0]} geometry={getCachedCylinderGeo(0.06, 0.1, 3.6, 6)} material={getCachedMaterial('#1e293b', 0.3, 0.8)} />
+      <mesh position={[0.45, 3.6, 0]} rotation={[0, 0, Math.PI / 4]} geometry={getCachedCylinderGeo(0.04, 0.04, 0.9, 4)} material={getCachedMaterial('#1e293b', 0.3)} />
+      <mesh position={[0.8, 3.7, 0]} geometry={getCachedBoxGeo(0.35, 0.12, 0.2)} material={getCachedMaterial('#fef08a', 0.3, 0, { emissive: '#fef08a', emissiveIntensity: 0.6 })} />
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
-// 7B. BUS STOP SHELTER
+// 7B. BUS STOP SHELTER (Simplified)
 // ------------------------------------------------------------
 export const BusStopShelter3D: React.FC<{
   position: [number, number, number];
   rotationY?: number;
-}> = ({ position, rotationY = 0 }) => {
+}> = React.memo(({ position, rotationY = 0 }) => {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
-      {/* Base Platform */}
-      <mesh receiveShadow position={[0, 0.04, 0]}>
-        <boxGeometry args={[3.2, 0.08, 1.4]} />
-        <meshStandardMaterial color="#64748b" roughness={0.7} />
-      </mesh>
-
-      {/* 4 Steel Support Columns */}
-      {[-1.4, 1.4].map((px, pi) =>
-        [-0.55, 0.55].map((pz, pzi) => (
-          <mesh key={`shelter_col_${pi}_${pzi}`} position={[px, 1.2, pz]}>
-            <cylinderGeometry args={[0.04, 0.04, 2.3, 8]} />
-            <meshStandardMaterial color="#0f172a" metalness={0.8} />
-          </mesh>
-        ))
-      )}
-
-      {/* Glass Back Wall */}
-      <mesh position={[0, 1.2, -0.55]}>
-        <boxGeometry args={[2.7, 1.8, 0.03]} />
-        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
-      </mesh>
-
-      {/* Glass Side Walls */}
-      <mesh position={[-1.4, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[1.1, 1.8, 0.03]} />
-        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
-      </mesh>
-      <mesh position={[1.4, 1.2, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <boxGeometry args={[1.1, 1.8, 0.03]} />
-        <meshStandardMaterial color="#38bdf8" transparent opacity={0.45} metalness={0.7} roughness={0.1} />
-      </mesh>
-
-      {/* Curved Modern Canopy Roof */}
-      <mesh position={[0, 2.38, 0]}>
-        <boxGeometry args={[3.4, 0.08, 1.6]} />
-        <meshStandardMaterial color="#1e293b" roughness={0.3} metalness={0.8} />
-      </mesh>
-
-      {/* Interior Wooden Waiting Bench */}
-      <group position={[0, 0.45, -0.3]}>
-        <mesh position={[0, 0, 0]}>
-          <boxGeometry args={[2.2, 0.08, 0.35]} />
-          <meshStandardMaterial color="#b45309" roughness={0.6} />
-        </mesh>
-        {[-0.9, 0.9].map((lx, li) => (
-          <mesh key={`shelter_bench_leg_${li}`} position={[lx, -0.2, 0]}>
-            <cylinderGeometry args={[0.03, 0.03, 0.4, 8]} />
-            <meshStandardMaterial color="#0f172a" />
-          </mesh>
-        ))}
-      </group>
-
-
+      <mesh position={[0, 0.04, 0]} geometry={getCachedBoxGeo(3.2, 0.08, 1.4)} material={getCachedMaterial('#64748b', 0.7)} />
+      {[-1.4, 1.4].map((px, pi) => (
+        <mesh key={`col_${pi}`} position={[px, 1.2, 0]} geometry={getCachedCylinderGeo(0.04, 0.04, 2.3, 6)} material={getCachedMaterial('#0f172a', 0.3, 0.8)} />
+      ))}
+      <mesh position={[0, 1.2, -0.55]} geometry={getCachedBoxGeo(2.7, 1.8, 0.03)} material={getCachedMaterial('#38bdf8', 0.1, 0.7, { transparent: true, opacity: 0.45 })} />
+      <mesh position={[0, 2.38, 0]} geometry={getCachedBoxGeo(3.4, 0.08, 1.6)} material={getCachedMaterial('#1e293b', 0.3, 0.8)} />
     </group>
   );
-};
+});
 
 // ------------------------------------------------------------
 // 8. MASTER CITY WORLD SURROUNDINGS COMPONENT
 // ------------------------------------------------------------
-export const ParkCitySurroundings3D: React.FC = () => {
+export const ParkCitySurroundings3D: React.FC = React.memo(() => {
   return (
     <group name="MetropolitanCitySurroundings">
-      {/* 1. Sun & Atmospheric Clouds */}
       <RadiantSunAndClouds3D />
 
-      {/* ============================================================ */}
-      {/* 2. NORTH CITY BLOCK (Z = -26m to -36m) */}
-      {/* ============================================================ */}
-      {/* Skyscrapers & High Rises */}
-      <CityBuilding3D
-        position={[-14, 0, -29]}
-        width={7}
-        height={26}
-        depth={7}
-        facadeColor="#1e293b"
-        accentColor="#38bdf8"
-        hasAntenna={true}
-        buildingName="METRO TOWER"
-      />
-      <CityBuilding3D
-        position={[-6, 0, -30]}
-        width={6.5}
-        height={20}
-        depth={6}
-        facadeColor="#334155"
-        accentColor="#a5f3fc"
-        hasHelipad={true}
-      />
-      <CityBuilding3D
-        position={[6, 0, -30]}
-        width={7}
-        height={24}
-        depth={6.5}
-        facadeColor="#0f172a"
-        accentColor="#67e8f9"
-        buildingName="CENTRAL PLAZA"
-      />
-      <CityBuilding3D
-        position={[15, 0, -29]}
-        width={6.5}
-        height={19}
-        depth={7}
-        facadeColor="#475569"
-        accentColor="#bae6fd"
-        hasBalconies={true}
-      />
+      {/* NORTH CITY BLOCK */}
+      <CityBuilding3D position={[-14, 0, -29]} width={7} height={26} depth={7} facadeColor="#1e293b" accentColor="#38bdf8" hasAntenna={true} />
+      <CityBuilding3D position={[-6, 0, -30]} width={6.5} height={20} depth={6} facadeColor="#334155" accentColor="#a5f3fc" hasHelipad={true} />
+      <CityBuilding3D position={[6, 0, -30]} width={7} height={24} depth={6.5} facadeColor="#0f172a" accentColor="#67e8f9" />
+      <CityBuilding3D position={[15, 0, -29]} width={6.5} height={19} depth={7} facadeColor="#475569" accentColor="#bae6fd" hasBalconies={true} />
 
-      {/* North Sidewalk Shops (at z = -23.5m) */}
-      <CityShopFront3D
-        position={[-8, 0, -23.5]}
-        rotationY={0}
-        shopName="🥐 CROISSANT & CO. BAKERY"
-        awningColors={['#ec4899', '#ffffff']}
-        shopType="bakery"
-      />
-      <CityShopFront3D
-        position={[8, 0, -23.5]}
-        rotationY={0}
-        shopName="☕ ARTISAN COFFEE ROASTERS"
-        awningColors={['#78350f', '#d97706']}
-        shopType="cafe"
-      />
-
-      {/* North Roadside Hotdog Stall & Roadside Balloon Seller (at z = -22.5m) */}
+      {/* North Shops */}
+      <CityShopFront3D position={[-8, 0, -23.5]} rotationY={0} shopName="Bakery" awningColors={['#ec4899', '#ffffff']} shopType="bakery" />
+      <CityShopFront3D position={[8, 0, -23.5]} rotationY={0} shopName="Coffee" awningColors={['#78350f', '#d97706']} shopType="cafe" />
       <StreetFoodStall3D position={[-2.8, 0, -22.5]} rotationY={0} type="hotdog" />
       <RoadsideBalloonSeller3D position={[3.2, 0, -22.5]} rotationY={0} />
 
-      {/* ============================================================ */}
-      {/* 3. SOUTH CITY BLOCK (Z = +26m to +36m) */}
-      {/* ============================================================ */}
-      <CityBuilding3D
-        position={[-14, 0, 29]}
-        width={7}
-        height={22}
-        depth={7}
-        facadeColor="#1e3a8a"
-        accentColor="#93c5fd"
-        buildingName="INNOVATION LAB"
-      />
-      <CityBuilding3D
-        position={[-5, 0, 30]}
-        width={6}
-        height={18}
-        depth={6}
-        facadeColor="#334155"
-        accentColor="#67e8f9"
-        hasBalconies={true}
-      />
-      <CityBuilding3D
-        position={[6, 0, 30]}
-        width={7}
-        height={28}
-        depth={7}
-        facadeColor="#0f172a"
-        accentColor="#38bdf8"
-        hasAntenna={true}
-        buildingName="INFINITY TOWER"
-      />
-      <CityBuilding3D
-        position={[15, 0, 29]}
-        width={6.5}
-        height={21}
-        depth={6.5}
-        facadeColor="#1e293b"
-        accentColor="#7dd3fc"
-      />
+      {/* SOUTH CITY BLOCK */}
+      <CityBuilding3D position={[-14, 0, 29]} width={7} height={22} depth={7} facadeColor="#1e3a8a" accentColor="#93c5fd" />
+      <CityBuilding3D position={[-5, 0, 30]} width={6} height={18} depth={6} facadeColor="#334155" accentColor="#67e8f9" hasBalconies={true} />
+      <CityBuilding3D position={[6, 0, 30]} width={7} height={28} depth={7} facadeColor="#0f172a" accentColor="#38bdf8" hasAntenna={true} />
+      <CityBuilding3D position={[15, 0, 29]} width={6.5} height={21} depth={6.5} facadeColor="#1e293b" accentColor="#7dd3fc" />
 
-      {/* South Sidewalk Shops (at z = 23.5m) */}
-      <CityShopFront3D
-        position={[-8, 0, 23.5]}
-        rotationY={Math.PI}
-        shopName="🌸 BLOOM & BLOSSOM FLORIST"
-        awningColors={['#16a34a', '#ffffff']}
-        shopType="florist"
-      />
-      <CityShopFront3D
-        position={[8, 0, 23.5]}
-        rotationY={Math.PI}
-        shopName="🍦 GELATO DREAMS PARLOR"
-        awningColors={['#0284c7', '#f43f5e']}
-        shopType="icecream"
-      />
-
-      {/* South Fruit Stall (at z = 22.5m) */}
+      {/* South Shops */}
+      <CityShopFront3D position={[-8, 0, 23.5]} rotationY={Math.PI} shopName="Florist" awningColors={['#16a34a', '#ffffff']} shopType="florist" />
+      <CityShopFront3D position={[8, 0, 23.5]} rotationY={Math.PI} shopName="Gelato" awningColors={['#0284c7', '#f43f5e']} shopType="icecream" />
       <StreetFoodStall3D position={[2.8, 0, 22.5]} rotationY={Math.PI} type="fruit" />
 
-      {/* ============================================================ */}
-      {/* 4. WEST CITY BLOCK (X = -26m to -36m) */}
-      {/* ============================================================ */}
-      <CityBuilding3D
-        position={[-29, 0, -9]}
-        width={6.5}
-        height={23}
-        depth={7}
-        facadeColor="#334155"
-        accentColor="#38bdf8"
-      />
-      <CityBuilding3D
-        position={[-30, 0, 0]}
-        width={7}
-        height={25}
-        depth={6.5}
-        facadeColor="#0f172a"
-        accentColor="#a5f3fc"
-        hasHelipad={true}
-        buildingName="GRAND HOTEL"
-      />
-      <CityBuilding3D
-        position={[-29, 0, 9]}
-        width={6.5}
-        height={20}
-        depth={7}
-        facadeColor="#1e293b"
-        accentColor="#7dd3fc"
-        hasBalconies={true}
-      />
-
-      {/* West Bus Stop (at x = -22.8m) */}
+      {/* WEST CITY BLOCK */}
+      <CityBuilding3D position={[-29, 0, -9]} width={6.5} height={23} depth={7} facadeColor="#334155" accentColor="#38bdf8" />
+      <CityBuilding3D position={[-30, 0, 0]} width={7} height={25} depth={6.5} facadeColor="#0f172a" accentColor="#a5f3fc" hasHelipad={true} />
+      <CityBuilding3D position={[-29, 0, 9]} width={6.5} height={20} depth={7} facadeColor="#1e293b" accentColor="#7dd3fc" hasBalconies={true} />
       <BusStopShelter3D position={[-22.8, 0, 3.5]} rotationY={Math.PI / 2} />
 
-      {/* ============================================================ */}
-      {/* 5. EAST CITY BLOCK (X = +26m to +36m) */}
-      {/* ============================================================ */}
-      <CityBuilding3D
-        position={[29, 0, -9]}
-        width={6.5}
-        height={21}
-        depth={7}
-        facadeColor="#1e293b"
-        accentColor="#38bdf8"
-        hasAntenna={true}
-      />
-      <CityBuilding3D
-        position={[30, 0, 0]}
-        width={7}
-        height={27}
-        depth={6.5}
-        facadeColor="#0f172a"
-        accentColor="#67e8f9"
-        buildingName="TECH HUB"
-      />
-      <CityBuilding3D
-        position={[29, 0, 9]}
-        width={6.5}
-        height={22}
-        depth={7}
-        facadeColor="#334155"
-        accentColor="#93c5fd"
-        hasBalconies={true}
-      />
+      {/* EAST CITY BLOCK */}
+      <CityBuilding3D position={[29, 0, -9]} width={6.5} height={21} depth={7} facadeColor="#1e293b" accentColor="#38bdf8" hasAntenna={true} />
+      <CityBuilding3D position={[30, 0, 0]} width={7} height={27} depth={6.5} facadeColor="#0f172a" accentColor="#67e8f9" />
+      <CityBuilding3D position={[29, 0, 9]} width={6.5} height={22} depth={7} facadeColor="#334155" accentColor="#93c5fd" hasBalconies={true} />
 
-      {/* 4 Perimeter Streetlights at Corner Crosswalks (at |x|=21.5m, |z|=21.5m) */}
+      {/* Streetlights */}
       <StreetLamp3D position={[-21.5, 0, -21.5]} rotationY={Math.PI / 4} />
       <StreetLamp3D position={[21.5, 0, -21.5]} rotationY={-Math.PI / 4} />
       <StreetLamp3D position={[-21.5, 0, 21.5]} rotationY={(3 * Math.PI) / 4} />
       <StreetLamp3D position={[21.5, 0, 21.5]} rotationY={(-3 * Math.PI) / 4} />
 
-      {/* ============================================================ */}
-      {/* 6. DYNAMIC MOVING CITY TRAFFIC (Cars & Cyclists in Motion) */}
-      {/* ============================================================ */}
-      {/* 1. Yellow NYC Taxi (Inner Lane R=17.5m, Clockwise) */}
+      {/* TRAFFIC — Reduced to 3 cars and 1 cyclist */}
       <MovingCityCar3D type="taxi" speed={5.5} radius={17.4} cornerRadius={2.2} initialOffset={0} />
-
-      {/* 2. Cherry Red Sports Coupe (Inner Lane R=17.5m, Clockwise) */}
       <MovingCityCar3D type="sedan" color="#dc2626" speed={6.5} radius={17.4} cornerRadius={2.2} initialOffset={70} />
-
-      {/* 3. Electric Blue Sedan (Outer Lane R=19.6m, Counter-Clockwise) */}
       <MovingCityCar3D type="sedan" color="#0284c7" speed={5.2} radius={19.6} cornerRadius={2.6} initialOffset={35} reverseDirection={true} />
-
-      {/* 4. White Express Delivery Van (Outer Lane R=19.6m, Counter-Clockwise) */}
-      <MovingCityCar3D type="suv" color="#f8fafc" speed={4.8} radius={19.6} cornerRadius={2.6} initialOffset={105} reverseDirection={true} />
-
-      {/* 5. Commuter City Cyclists on Dedicated Outer Perimeter Track (R=15.6m) */}
       <MovingCityCyclist3D speed={2.2} radius={15.6} cornerRadius={1.8} initialOffset={15} />
-      <MovingCityCyclist3D speed={2.4} radius={15.6} cornerRadius={1.8} initialOffset={80} reverseDirection={true} />
     </group>
   );
-};
+});

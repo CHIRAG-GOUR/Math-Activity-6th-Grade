@@ -4,6 +4,7 @@ import { Html } from '@react-three/drei';
 import { UNIT_SIZE, GRID_EXTENT, coordToWorld } from '../engine/coordinateMath';
 import { Coordinate2D } from '../types';
 import { TieredFountain3D } from './ParkBotanicalGarden3D';
+import { getCachedMaterial, getCachedBasicMaterial, getCachedBoxGeo, getCachedCylinderGeo, getCachedSphereGeo } from './ParkMaterials';
 
 interface ParkTerrain3DProps {
   selectedPoint?: Coordinate2D | null;
@@ -54,147 +55,65 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* 1. SURROUNDING CITY STREET / ROAD */}
       {/* ============================================================ */}
       {/* Asphalt Ground Plane */}
-      <mesh receiveShadow position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.06, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[75, 75]} />
         <meshStandardMaterial color="#334155" roughness={0.8} />
       </mesh>
 
       {/* 2-Lane Asphalt Road Ribbon Surface */}
-      <mesh receiveShadow position={[0, -0.055, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.055, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[44, 44]} />
         <meshStandardMaterial color="#1e293b" roughness={0.7} />
       </mesh>
 
-      {/* Outer White Road Edge Lines (at R = 20.8m) */}
-      <mesh position={[0, -0.05, -20.8]}>
-        <boxGeometry args={[41.6, 0.01, 0.12]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[0, -0.05, 20.8]}>
-        <boxGeometry args={[41.6, 0.01, 0.12]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[-20.8, -0.05, 0]}>
-        <boxGeometry args={[0.12, 0.01, 41.6]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[20.8, -0.05, 0]}>
-        <boxGeometry args={[0.12, 0.01, 41.6]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
+      {/* Outer White Road Edge Lines */}
+      <mesh position={[0, -0.05, -20.8]} geometry={getCachedBoxGeo(41.6, 0.01, 0.12)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[0, -0.05, 20.8]} geometry={getCachedBoxGeo(41.6, 0.01, 0.12)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[-20.8, -0.05, 0]} geometry={getCachedBoxGeo(0.12, 0.01, 41.6)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[20.8, -0.05, 0]} geometry={getCachedBoxGeo(0.12, 0.01, 41.6)} material={getCachedBasicMaterial('#f8fafc')} />
 
-      {/* Inner White Road Edge Lines (at R = 16.2m) */}
-      <mesh position={[0, -0.05, -16.2]}>
-        <boxGeometry args={[32.4, 0.01, 0.12]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[0, -0.05, 16.2]}>
-        <boxGeometry args={[32.4, 0.01, 0.12]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[-16.2, -0.05, 0]}>
-        <boxGeometry args={[0.12, 0.01, 32.4]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
-      <mesh position={[16.2, -0.05, 0]}>
-        <boxGeometry args={[0.12, 0.01, 32.4]} />
-        <meshBasicMaterial color="#f8fafc" />
-      </mesh>
+      {/* Inner White Road Edge Lines */}
+      <mesh position={[0, -0.05, -16.2]} geometry={getCachedBoxGeo(32.4, 0.01, 0.12)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[0, -0.05, 16.2]} geometry={getCachedBoxGeo(32.4, 0.01, 0.12)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[-16.2, -0.05, 0]} geometry={getCachedBoxGeo(0.12, 0.01, 32.4)} material={getCachedBasicMaterial('#f8fafc')} />
+      <mesh position={[16.2, -0.05, 0]} geometry={getCachedBoxGeo(0.12, 0.01, 32.4)} material={getCachedBasicMaterial('#f8fafc')} />
 
       {/* Surrounding City Sidewalks underneath Buildings */}
-      {/* North Sidewalk (starts at z = -21m, extends to -33m) */}
-      <mesh receiveShadow position={[0, -0.02, -27]}>
-        <boxGeometry args={[72, 0.08, 12]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
-      </mesh>
-      {/* South Sidewalk (starts at z = 21m, extends to 33m) */}
-      <mesh receiveShadow position={[0, -0.02, 27]}>
-        <boxGeometry args={[72, 0.08, 12]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
-      </mesh>
-      {/* West Sidewalk (starts at x = -21m, extends to -33m) */}
-      <mesh receiveShadow position={[-27, -0.02, 0]}>
-        <boxGeometry args={[12, 0.08, 72]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
-      </mesh>
-      {/* East Sidewalk (starts at x = 21m, extends to 33m) */}
-      <mesh receiveShadow position={[27, -0.02, 0]}>
-        <boxGeometry args={[12, 0.08, 72]} />
-        <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
-      </mesh>
+      {/* Sidewalks */}
+      <mesh position={[0, -0.02, -27]} geometry={getCachedBoxGeo(72, 0.08, 12)} material={getCachedMaterial('#cbd5e1', 0.7)} />
+      <mesh position={[0, -0.02, 27]} geometry={getCachedBoxGeo(72, 0.08, 12)} material={getCachedMaterial('#cbd5e1', 0.7)} />
+      <mesh position={[-27, -0.02, 0]} geometry={getCachedBoxGeo(12, 0.08, 72)} material={getCachedMaterial('#cbd5e1', 0.7)} />
+      <mesh position={[27, -0.02, 0]} geometry={getCachedBoxGeo(12, 0.08, 72)} material={getCachedMaterial('#cbd5e1', 0.7)} />
 
       {/* Road Lane Centerline Markings (Yellow Dashed Lines at R = 18.5m) */}
-      {/* North Road Centerline */}
-      {[-12, -8, -4, 0, 4, 8, 12].map((cx, i) => (
-        <mesh key={`rd_dash_n_${i}`} position={[cx, -0.05, -18.5]}>
-          <boxGeometry args={[2.2, 0.01, 0.15]} />
-          <meshBasicMaterial color="#facc15" />
-        </mesh>
+      {/* Road Centerline Dashes — Using cached geometry and materials */}
+      {[-12, -4, 4, 12].map((cx, i) => (
+        <React.Fragment key={`rd_dash_ns_${i}`}>
+          <mesh position={[cx, -0.05, -18.5]} geometry={getCachedBoxGeo(2.2, 0.01, 0.15)} material={getCachedBasicMaterial('#facc15')} />
+          <mesh position={[cx, -0.05, 18.5]} geometry={getCachedBoxGeo(2.2, 0.01, 0.15)} material={getCachedBasicMaterial('#facc15')} />
+        </React.Fragment>
       ))}
-      {/* South Road Centerline */}
-      {[-12, -8, -4, 0, 4, 8, 12].map((cx, i) => (
-        <mesh key={`rd_dash_s_${i}`} position={[cx, -0.05, 18.5]}>
-          <boxGeometry args={[2.2, 0.01, 0.15]} />
-          <meshBasicMaterial color="#facc15" />
-        </mesh>
-      ))}
-      {/* East Road Centerline */}
-      {[-12, -8, -4, 0, 4, 8, 12].map((cz, i) => (
-        <mesh key={`rd_dash_e_${i}`} position={[18.5, -0.05, cz]}>
-          <boxGeometry args={[0.15, 0.01, 2.2]} />
-          <meshBasicMaterial color="#facc15" />
-        </mesh>
-      ))}
-      {/* West Road Centerline */}
-      {[-12, -8, -4, 0, 4, 8, 12].map((cz, i) => (
-        <mesh key={`rd_dash_w_${i}`} position={[-18.5, -0.05, cz]}>
-          <boxGeometry args={[0.15, 0.01, 2.2]} />
-          <meshBasicMaterial color="#facc15" />
-        </mesh>
+      {[-12, -4, 4, 12].map((cz, i) => (
+        <React.Fragment key={`rd_dash_ew_${i}`}>
+          <mesh position={[18.5, -0.05, cz]} geometry={getCachedBoxGeo(0.15, 0.01, 2.2)} material={getCachedBasicMaterial('#facc15')} />
+          <mesh position={[-18.5, -0.05, cz]} geometry={getCachedBoxGeo(0.15, 0.01, 2.2)} material={getCachedBasicMaterial('#facc15')} />
+        </React.Fragment>
       ))}
 
       {/* 4 Pedestrian Zebra Crossings connecting City Sidewalk to Park Gates */}
-      {/* North Gate Crosswalk */}
-      <group position={[0, -0.03, -18.5]}>
-        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
-          <mesh key={`crosswalk_n_${ci}`} position={[cx, 0, 0]}>
-            <boxGeometry args={[0.4, 0.01, 4.8]} />
-            <meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ))}
-      </group>
-      {/* South Gate Crosswalk */}
-      <group position={[0, -0.03, 18.5]}>
-        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
-          <mesh key={`crosswalk_s_${ci}`} position={[cx, 0, 0]}>
-            <boxGeometry args={[0.4, 0.01, 4.8]} />
-            <meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ))}
-      </group>
-      {/* East Gate Crosswalk */}
-      <group position={[18.5, -0.03, 0]} rotation={[0, Math.PI / 2, 0]}>
-        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
-          <mesh key={`crosswalk_e_${ci}`} position={[cx, 0, 0]}>
-            <boxGeometry args={[0.4, 0.01, 4.8]} />
-            <meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ))}
-      </group>
-      {/* West Gate Crosswalk */}
-      <group position={[-18.5, -0.03, 0]} rotation={[0, Math.PI / 2, 0]}>
-        {[-1.5, -0.9, -0.3, 0.3, 0.9, 1.5].map((cx, ci) => (
-          <mesh key={`crosswalk_w_${ci}`} position={[cx, 0, 0]}>
-            <boxGeometry args={[0.4, 0.01, 4.8]} />
-            <meshBasicMaterial color="#ffffff" />
-          </mesh>
-        ))}
-      </group>
+      {/* Crosswalks — Reduced to 3 stripes each, cached geometry */}
+      {[[0, -18.5, 0], [0, 18.5, 0], [18.5, 0, Math.PI / 2], [-18.5, 0, Math.PI / 2]].map(([px, pz, ry], gi) => (
+        <group key={`cw_${gi}`} position={[px, -0.03, pz]} rotation={[0, ry || 0, 0]}>
+          {[-0.9, 0, 0.9].map((cx, ci) => (
+            <mesh key={`cs_${ci}`} position={[cx, 0, 0]} geometry={getCachedBoxGeo(0.5, 0.01, 4.8)} material={getCachedBasicMaterial('#ffffff')} />
+          ))}
+        </group>
+      ))}
 
       {/* ============================================================ */}
       {/* 2. OUTER SIDEWALK / PEDESTRIAN FOOTPATH */}
       {/* ============================================================ */}
-      <mesh receiveShadow position={[0, -0.01, 0]}>
+      <mesh position={[0, -0.01, 0]}>
         <boxGeometry args={[outerFootpathRadius * 2 + 1.8, 0.08, outerFootpathRadius * 2 + 1.8]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
       </mesh>
@@ -220,12 +139,11 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* ============================================================ */}
       {/* 3. DEDICATED BRICK-RED CYCLING LANE */}
       {/* ============================================================ */}
-      <mesh receiveShadow position={[0, 0.015, 0]}>
+      <mesh position={[0, 0.015, 0]}>
         <boxGeometry args={[cycleTrackRadius * 2 + 0.6, 0.04, cycleTrackRadius * 2 + 0.6]} />
         <meshStandardMaterial color="#b91c1c" roughness={0.8} />
       </mesh>
-      {/* Cycle Lane Inner Cutout Base */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[cycleTrackRadius * 2 - 1.2, 0.04, cycleTrackRadius * 2 - 1.2]} />
         <meshStandardMaterial color="#4f9a3e" roughness={0.88} />
       </mesh>
@@ -398,55 +316,34 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
       {/* ============================================================ */}
       {/* 5. MAIN CARTESIAN PROMENADES (X-Axis & Y-Axis) */}
       {/* ============================================================ */}
-      {/* X-Axis: East-West Grand Promenade */}
-      <mesh receiveShadow position={[0, 0.03, 0]}>
+      {/* Promenades */}
+      <mesh position={[0, 0.03, 0]}>
         <boxGeometry args={[parkInnerSize, 0.05, UNIT_SIZE * 0.95]} />
         <meshStandardMaterial color="#e5ded0" roughness={0.65} />
       </mesh>
-      {/* X-Axis Curbs */}
-      <mesh position={[0, 0.055, UNIT_SIZE * 0.48]}>
-        <boxGeometry args={[parkInnerSize, 0.08, 0.1]} />
-        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
-      </mesh>
-      <mesh position={[0, 0.055, -UNIT_SIZE * 0.48]}>
-        <boxGeometry args={[parkInnerSize, 0.08, 0.1]} />
-        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
-      </mesh>
-
-      {/* Y-Axis: North-South Grand Promenade */}
-      <mesh receiveShadow position={[0, 0.03, 0]}>
+      <mesh position={[0, 0.055, UNIT_SIZE * 0.48]} geometry={getCachedBoxGeo(parkInnerSize, 0.08, 0.1)} material={getCachedMaterial('#a8a29e', 0.6)} />
+      <mesh position={[0, 0.055, -UNIT_SIZE * 0.48]} geometry={getCachedBoxGeo(parkInnerSize, 0.08, 0.1)} material={getCachedMaterial('#a8a29e', 0.6)} />
+      <mesh position={[0, 0.03, 0]}>
         <boxGeometry args={[UNIT_SIZE * 0.95, 0.05, parkInnerSize]} />
         <meshStandardMaterial color="#e5ded0" roughness={0.65} />
       </mesh>
-      {/* Y-Axis Curbs */}
-      <mesh position={[UNIT_SIZE * 0.48, 0.055, 0]}>
-        <boxGeometry args={[0.1, 0.08, parkInnerSize]} />
-        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
-      </mesh>
-      <mesh position={[-UNIT_SIZE * 0.48, 0.055, 0]}>
-        <boxGeometry args={[0.1, 0.08, parkInnerSize]} />
-        <meshStandardMaterial color="#a8a29e" roughness={0.6} />
-      </mesh>
+      <mesh position={[UNIT_SIZE * 0.48, 0.055, 0]} geometry={getCachedBoxGeo(0.1, 0.08, parkInnerSize)} material={getCachedMaterial('#a8a29e', 0.6)} />
+      <mesh position={[-UNIT_SIZE * 0.48, 0.055, 0]} geometry={getCachedBoxGeo(0.1, 0.08, parkInnerSize)} material={getCachedMaterial('#a8a29e', 0.6)} />
 
       {/* ============================================================ */}
       {/* 6. CENTRAL ORIGIN PLAZA & GRAND TIERED FOUNTAIN (0, 0) */}
       {/* ============================================================ */}
       <group position={[0, 0, 0]}>
-        {/* Raised Solid 3D Stone Dais Pavilion (eliminates any flat-plane z-fighting) */}
-        <mesh receiveShadow position={[0, 0.045, 0]}>
-          <cylinderGeometry args={[UNIT_SIZE * 1.35, UNIT_SIZE * 1.42, 0.08, 32]} />
+        {/* Stone Dais */}
+        <mesh position={[0, 0.045, 0]}>
+          <cylinderGeometry args={[UNIT_SIZE * 1.35, UNIT_SIZE * 1.42, 0.08, 16]} />
           <meshStandardMaterial color="#f5f0e6" roughness={0.5} />
         </mesh>
-        {/* Carved Granite Outer Trim Ring */}
-        <mesh receiveShadow position={[0, 0.05, 0]}>
-          <cylinderGeometry args={[UNIT_SIZE * 1.42, UNIT_SIZE * 1.46, 0.09, 32]} />
+        <mesh position={[0, 0.05, 0]}>
+          <cylinderGeometry args={[UNIT_SIZE * 1.42, UNIT_SIZE * 1.46, 0.09, 16]} />
           <meshStandardMaterial color="#78716c" roughness={0.6} />
         </mesh>
-        {/* Embedded Polished Brass Compass Medallion */}
-        <mesh position={[0, 0.096, 0]}>
-          <cylinderGeometry args={[0.7, 0.7, 0.01, 16]} />
-          <meshStandardMaterial color="#d97706" metalness={0.85} roughness={0.2} />
-        </mesh>
+        <mesh position={[0, 0.096, 0]} geometry={getCachedCylinderGeo(0.7, 0.7, 0.01, 12)} material={getCachedMaterial('#d97706', 0.2, 0.85)} />
 
         {/* Central Major Tiered Fountain (Activates upon Question 4) */}
         <TieredFountain3D position={[0, 0.06, 0]} isFlowing={fountainActive} />
@@ -550,13 +447,10 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
             }}
           >
             {/* Subtle stone node */}
-            <mesh position={[0, 0.01, 0]}>
-              <cylinderGeometry args={[0.09, 0.1, 0.02, 8]} />
-              <meshStandardMaterial
-                color={isSelected || isPolySelected ? '#2563eb' : isHovered ? '#60a5fa' : '#6b7280'}
-                roughness={0.5}
-              />
-            </mesh>
+            <mesh position={[0, 0.01, 0]}
+              geometry={getCachedCylinderGeo(0.09, 0.1, 0.02, 6)}
+              material={getCachedMaterial(isSelected || isPolySelected ? '#2563eb' : isHovered ? '#60a5fa' : '#6b7280', 0.5)}
+            />
 
             {/* Surveyor Flag Pin when selected */}
             {(isSelected || isPolySelected) && (
@@ -565,10 +459,7 @@ export const ParkTerrain3D: React.FC<ParkTerrain3DProps> = ({
                   <cylinderGeometry args={[0.02, 0.02, 0.8, 8]} />
                   <meshStandardMaterial color="#f59e0b" metalness={0.8} roughness={0.2} />
                 </mesh>
-                <mesh position={[0, 0.8, 0]}>
-                  <sphereGeometry args={[0.12, 16, 16]} />
-                  <meshStandardMaterial color="#3b82f6" emissive="#2563eb" emissiveIntensity={0.6} />
-                </mesh>
+                <mesh position={[0, 0.8, 0]} geometry={getCachedSphereGeo(0.12, 8, 8)} material={getCachedMaterial('#3b82f6', 0.3, 0, { emissive: '#2563eb', emissiveIntensity: 0.6 })} />
                 <Html position={[0, 1.15, 0]} center distanceFactor={14}>
                   <div className="bg-blue-600 text-white font-extrabold text-xs px-2 py-0.5 rounded-full shadow-lg border border-blue-200 select-none pointer-events-none whitespace-nowrap animate-bounce">
                     ({coord.x}, {coord.y})

@@ -1,6 +1,7 @@
 // ============================================================
 // PARK PLANNER — Shared Three.js Materials & Palettes
 // Curated, harmonious visual palette for high aesthetic standards
+// ALL materials are singletons — never recreate per-render-cycle
 // ============================================================
 
 import * as THREE from 'three';
@@ -144,3 +145,95 @@ export const Materials = {
     roughness: 0.8,
   }),
 };
+
+// ============================================================
+// SHARED MATERIAL CACHE — Used by Characters, Vehicles, City, etc.
+// Eliminates per-frame material re-creation that kills FPS.
+// ============================================================
+const _matCache = new Map<string, THREE.MeshStandardMaterial>();
+const _basicMatCache = new Map<string, THREE.MeshBasicMaterial>();
+
+/**
+ * Returns a cached MeshStandardMaterial for the given color + roughness + metalness.
+ * Same parameters always return the exact same object instance.
+ */
+export function getCachedMaterial(
+  color: string,
+  roughness = 0.7,
+  metalness = 0,
+  opts?: { transparent?: boolean; opacity?: number; emissive?: string; emissiveIntensity?: number; wireframe?: boolean; side?: THREE.Side }
+): THREE.MeshStandardMaterial {
+  const key = `${color}_${roughness}_${metalness}_${opts?.transparent || false}_${opts?.opacity ?? 1}_${opts?.emissive || ''}_${opts?.emissiveIntensity ?? 0}_${opts?.wireframe || false}_${opts?.side ?? ''}`;
+  let mat = _matCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshStandardMaterial({
+      color,
+      roughness,
+      metalness,
+      transparent: opts?.transparent,
+      opacity: opts?.opacity,
+      emissive: opts?.emissive ? new THREE.Color(opts.emissive) : undefined,
+      emissiveIntensity: opts?.emissiveIntensity,
+      wireframe: opts?.wireframe,
+      side: opts?.side,
+    });
+    _matCache.set(key, mat);
+  }
+  return mat;
+}
+
+/**
+ * Returns a cached MeshBasicMaterial for the given color.
+ */
+export function getCachedBasicMaterial(
+  color: string,
+  opts?: { transparent?: boolean; opacity?: number; side?: THREE.Side }
+): THREE.MeshBasicMaterial {
+  const key = `${color}_${opts?.transparent || false}_${opts?.opacity ?? 1}_${opts?.side ?? ''}`;
+  let mat = _basicMatCache.get(key);
+  if (!mat) {
+    mat = new THREE.MeshBasicMaterial({
+      color,
+      transparent: opts?.transparent,
+      opacity: opts?.opacity,
+      side: opts?.side,
+    });
+    _basicMatCache.set(key, mat);
+  }
+  return mat;
+}
+
+// ============================================================
+// SHARED GEOMETRY CACHE — Prevents re-creating identical geometries
+// ============================================================
+const _geoCache = new Map<string, THREE.BufferGeometry>();
+
+export function getCachedBoxGeo(w: number, h: number, d: number): THREE.BoxGeometry {
+  const key = `box_${w}_${h}_${d}`;
+  let g = _geoCache.get(key);
+  if (!g) {
+    g = new THREE.BoxGeometry(w, h, d);
+    _geoCache.set(key, g);
+  }
+  return g as THREE.BoxGeometry;
+}
+
+export function getCachedCylinderGeo(rTop: number, rBot: number, h: number, seg: number): THREE.CylinderGeometry {
+  const key = `cyl_${rTop}_${rBot}_${h}_${seg}`;
+  let g = _geoCache.get(key);
+  if (!g) {
+    g = new THREE.CylinderGeometry(rTop, rBot, h, seg);
+    _geoCache.set(key, g);
+  }
+  return g as THREE.CylinderGeometry;
+}
+
+export function getCachedSphereGeo(r: number, wSeg: number, hSeg: number): THREE.SphereGeometry {
+  const key = `sph_${r}_${wSeg}_${hSeg}`;
+  let g = _geoCache.get(key);
+  if (!g) {
+    g = new THREE.SphereGeometry(r, wSeg, hSeg);
+    _geoCache.set(key, g);
+  }
+  return g as THREE.SphereGeometry;
+}

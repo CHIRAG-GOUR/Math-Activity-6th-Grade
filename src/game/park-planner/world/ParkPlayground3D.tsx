@@ -1,5 +1,5 @@
-// ============================================================
-// PARK PLANNER — High-Graphics 3D Playground Equipment (Quadrant I)
+﻿// ============================================================
+// PARK PLANNER â€” High-Graphics 3D Playground Equipment (Quadrant I)
 // Timber swings with swinging children, adventure slide tower, geodesic climbing dome,
 // seesaw, coiled spring rider, realistic 3D pond, rubber safety turf, fences, parent benches,
 // and believable active children & parents locomotion.
@@ -36,7 +36,7 @@ export const SwingSet3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Rubberized Safety Mulch Turf */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[3.6, 0.04, 2.8]} />
         <meshStandardMaterial color="#854d0e" roughness={0.9} />
       </mesh>
@@ -52,11 +52,11 @@ export const SwingSet3D: React.FC<{
 
       {/* Left A-Frame Post */}
       <group position={[-1.4, 0, 0]}>
-        <mesh castShadow position={[0, 1.15, 0.42]} rotation={[0.2, 0, 0]}>
+        <mesh position={[0, 1.15, 0.42]} rotation={[0.2, 0, 0]}>
           <cylinderGeometry args={[0.07, 0.08, 2.4, 8]} />
           <meshStandardMaterial color="#78350f" roughness={0.7} />
         </mesh>
-        <mesh castShadow position={[0, 1.15, -0.42]} rotation={[-0.2, 0, 0]}>
+        <mesh position={[0, 1.15, -0.42]} rotation={[-0.2, 0, 0]}>
           <cylinderGeometry args={[0.07, 0.08, 2.4, 8]} />
           <meshStandardMaterial color="#78350f" roughness={0.7} />
         </mesh>
@@ -68,11 +68,11 @@ export const SwingSet3D: React.FC<{
 
       {/* Right A-Frame Post */}
       <group position={[1.4, 0, 0]}>
-        <mesh castShadow position={[0, 1.15, 0.42]} rotation={[0.2, 0, 0]}>
+        <mesh position={[0, 1.15, 0.42]} rotation={[0.2, 0, 0]}>
           <cylinderGeometry args={[0.07, 0.08, 2.4, 8]} />
           <meshStandardMaterial color="#78350f" roughness={0.7} />
         </mesh>
-        <mesh castShadow position={[0, 1.15, -0.42]} rotation={[-0.2, 0, 0]}>
+        <mesh position={[0, 1.15, -0.42]} rotation={[-0.2, 0, 0]}>
           <cylinderGeometry args={[0.07, 0.08, 2.4, 8]} />
           <meshStandardMaterial color="#78350f" roughness={0.7} />
         </mesh>
@@ -83,7 +83,7 @@ export const SwingSet3D: React.FC<{
       </group>
 
       {/* Top Heavy Steel Crossbar */}
-      <mesh castShadow position={[0, 2.3, 0]} rotation={[0, 0, Math.PI / 2]}>
+      <mesh position={[0, 2.3, 0]} rotation={[0, 0, Math.PI / 2]}>
         <cylinderGeometry args={[0.08, 0.08, 3.1, 12]} />
         <meshStandardMaterial color="#0284c7" metalness={0.6} roughness={0.3} />
       </mesh>
@@ -98,7 +98,7 @@ export const SwingSet3D: React.FC<{
           <cylinderGeometry args={[0.012, 0.012, 1.8, 6]} />
           <meshStandardMaterial color="#94a3b8" metalness={0.8} />
         </mesh>
-        <mesh castShadow position={[0, -1.8, 0]}>
+        <mesh position={[0, -1.8, 0]}>
           <boxGeometry args={[0.5, 0.05, 0.24]} />
           <meshStandardMaterial color="#0284c7" roughness={0.4} />
         </mesh>
@@ -126,7 +126,7 @@ export const SwingSet3D: React.FC<{
           <cylinderGeometry args={[0.012, 0.012, 1.8, 6]} />
           <meshStandardMaterial color="#94a3b8" metalness={0.8} />
         </mesh>
-        <mesh castShadow position={[0, -1.8, 0]}>
+        <mesh position={[0, -1.8, 0]}>
           <boxGeometry args={[0.5, 0.05, 0.24]} />
           <meshStandardMaterial color="#e11d48" roughness={0.4} />
         </mesh>
@@ -180,7 +180,7 @@ export const SlideTower3D: React.FC<{
     let isSeatedPose = false;
 
     if (t < 2.2) {
-      // ── Phase 1: Climbing up the ladder (South side) ──
+      // â”€â”€ Phase 1: Climbing up the ladder (South side) â”€â”€
       const climbProg = t / 2.2;
       posX = 0;
       posY = 0.05 + climbProg * 1.85;
@@ -189,7 +189,7 @@ export const SlideTower3D: React.FC<{
       rotX = -0.15; // Leaning into ladder rungs
       legSwing = Math.sin(climbProg * Math.PI * 8) * 0.45;
     } else if (t < 3.4) {
-      // ── Phase 2: Reached top platform & STOPPED (Prepares to slide) ──
+      // â”€â”€ Phase 2: Reached top platform & STOPPED (Prepares to slide) â”€â”€
       const platProg = Math.min(1, (t - 2.2) / 0.8);
       posX = 0;
       posY = 1.95;
@@ -205,7 +205,7 @@ export const SlideTower3D: React.FC<{
         legSwing = Math.sin(platProg * Math.PI * 4) * 0.35;
       }
     } else if (t < 4.6) {
-      // ── Phase 3: Sliding down the chute (North side) ──
+      // â”€â”€ Phase 3: Sliding down the chute (North side) â”€â”€
       const slideProg = (t - 3.4) / 1.2;
       posX = 0;
       posY = 1.88 - slideProg * 1.82; // Glide from Y=1.88 down to Y=0.06
@@ -215,7 +215,7 @@ export const SlideTower3D: React.FC<{
       legSwing = 0; // Legs extend forward, NOT walking!
       isSeatedPose = true;
     } else if (t < 5.6) {
-      // ── Phase 4: Landed at bottom & STOPPED (Celebration pause) ──
+      // â”€â”€ Phase 4: Landed at bottom & STOPPED (Celebration pause) â”€â”€
       posX = 0;
       posY = 0.02;
       posZ = -3.1;
@@ -224,7 +224,7 @@ export const SlideTower3D: React.FC<{
       legSwing = 0; // STOPPED COMPLETELY (standing happily)
       isSeatedPose = false;
     } else {
-      // ── Phase 5: Walking back around to the ladder ──
+      // â”€â”€ Phase 5: Walking back around to the ladder â”€â”€
       const walkProg = (t - 5.6) / 1.4;
       if (walkProg < 0.3) {
         // Step out to the side
@@ -272,7 +272,7 @@ export const SlideTower3D: React.FC<{
       {/* Platform Heavy Timber Posts */}
       {[-0.65, 0.65].map((x, i) =>
         [-0.65, 0.65].map((z, j) => (
-          <mesh key={`post_${i}_${j}`} castShadow position={[x, 0.95, z]}>
+          <mesh key={`post_${i}_${j}`} position={[x, 0.95, z]}>
             <cylinderGeometry args={[0.07, 0.07, 1.9, 8]} />
             <meshStandardMaterial color="#78350f" roughness={0.7} />
           </mesh>
@@ -280,7 +280,7 @@ export const SlideTower3D: React.FC<{
       )}
 
       {/* Timber Floor Platform (Elevated at Y = 1.9m) */}
-      <mesh castShadow receiveShadow position={[0, 1.9, 0]}>
+      <mesh position={[0, 1.9, 0]}>
         <boxGeometry args={[1.5, 0.08, 1.5]} />
         <meshStandardMaterial color="#b45309" roughness={0.6} />
       </mesh>
@@ -295,7 +295,7 @@ export const SlideTower3D: React.FC<{
         <meshStandardMaterial color="#f59e0b" metalness={0.3} roughness={0.4} />
       </mesh>
 
-      {/* ── 1. ACCESS LADDER (SOUTH SIDE: Z = +0.75m) ── */}
+      {/* â”€â”€ 1. ACCESS LADDER (SOUTH SIDE: Z = +0.75m) â”€â”€ */}
       <group position={[0, 0.95, 0.75]} rotation={[0.2, 0, 0]}>
         <mesh position={[-0.32, 0, 0]}>
           <cylinderGeometry args={[0.035, 0.035, 2.0, 8]} />
@@ -313,7 +313,7 @@ export const SlideTower3D: React.FC<{
         ))}
       </group>
 
-      {/* ── 2. SLIDE CHUTE (NORTH SIDE: OPPOSITE OF LADDER, Z = -0.75m to -3.1m) ── */}
+      {/* â”€â”€ 2. SLIDE CHUTE (NORTH SIDE: OPPOSITE OF LADDER, Z = -0.75m to -3.1m) â”€â”€ */}
       <group position={[0, 0, 0]}>
         {/* Chute Arch Entrance at North Platform Lip */}
         <mesh position={[0, 2.22, -0.75]}>
@@ -322,7 +322,7 @@ export const SlideTower3D: React.FC<{
         </mesh>
 
         {/* Slide Chute Bed: Smooth straight downward slope directly opposite ladder */}
-        <mesh castShadow position={[0, 0.98, -1.9]} rotation={[0.66, 0, 0]}>
+        <mesh position={[0, 0.98, -1.9]} rotation={[0.66, 0, 0]}>
           <boxGeometry args={[0.68, 0.06, 2.65]} />
           <meshStandardMaterial color="#0284c7" roughness={0.25} metalness={0.15} />
         </mesh>
@@ -355,20 +355,20 @@ export const SlideTower3D: React.FC<{
       </group>
 
       {/* Pyramid Shingled Play Tower Roof */}
-      <mesh castShadow position={[0, 2.9, 0]} rotation={[0, Math.PI / 4, 0]}>
+      <mesh position={[0, 2.9, 0]} rotation={[0, Math.PI / 4, 0]}>
         <coneGeometry args={[1.3, 0.8, 4]} />
         <meshStandardMaterial color="#ef4444" roughness={0.5} />
       </mesh>
 
-      {/* ── 3. REALISTIC ACTIVE SLIDING CHILD ── */}
+      {/* â”€â”€ 3. REALISTIC ACTIVE SLIDING CHILD â”€â”€ */}
       {hasActiveChild && (
         <group ref={childGroupRef} position={[0, 0.05, 1.15]} scale={0.54}>
           {/* Torso & Head */}
-          <mesh castShadow position={[0, 0.62, 0]}>
+          <mesh position={[0, 0.62, 0]}>
             <boxGeometry args={[0.32, 0.42, 0.2]} />
             <meshStandardMaterial color="#ec4899" />
           </mesh>
-          <mesh castShadow position={[0, 0.98, 0]}>
+          <mesh position={[0, 0.98, 0]}>
             <sphereGeometry args={[0.13, 10, 10]} />
             <meshStandardMaterial color="#fcd34d" />
           </mesh>
@@ -423,7 +423,7 @@ export const ClimbingDome3D: React.FC<{
         <meshStandardMaterial color="#0284c7" roughness={0.4} />
       </mesh>
       {/* Geodesic Dome Steel Struts */}
-      <mesh castShadow position={[0, 0.85, 0]}>
+      <mesh position={[0, 0.85, 0]}>
         <sphereGeometry args={[1.2, 10, 6, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
         <meshStandardMaterial
           color="#f59e0b"
@@ -478,7 +478,7 @@ export const Seesaw3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Heavy Steel Fulcrum Base */}
-      <mesh castShadow position={[0, 0.32, 0]}>
+      <mesh position={[0, 0.32, 0]}>
         <cylinderGeometry args={[0.09, 0.32, 0.65, 4]} />
         <meshStandardMaterial color="#1e293b" metalness={0.7} />
       </mesh>
@@ -489,7 +489,7 @@ export const Seesaw3D: React.FC<{
 
       {/* Balanced Seesaw Plank & Seats */}
       <group position={[0, 0.58, 0]} ref={plankRef}>
-        <mesh castShadow position={[0, 0.04, 0]}>
+        <mesh position={[0, 0.04, 0]}>
           <boxGeometry args={[2.5, 0.08, 0.3]} />
           <meshStandardMaterial color="#f59e0b" roughness={0.5} />
         </mesh>
@@ -574,12 +574,12 @@ export const SpringRider3D: React.FC<{
       {/* Animated Rocker Animal Body */}
       <group position={[0, 0.65, 0]} ref={rockerRef}>
         {/* Horse/Pony Saddle Body */}
-        <mesh castShadow position={[0, 0.15, 0]}>
+        <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[0.75, 0.35, 0.28]} />
           <meshStandardMaterial color="#e11d48" roughness={0.4} />
         </mesh>
         {/* Pony Head & Ears */}
-        <mesh castShadow position={[0.38, 0.42, 0]} rotation={[0, 0, -0.3]}>
+        <mesh position={[0.38, 0.42, 0]} rotation={[0, 0, -0.3]}>
           <boxGeometry args={[0.32, 0.45, 0.24]} />
           <meshStandardMaterial color="#f59e0b" roughness={0.4} />
         </mesh>
@@ -631,7 +631,7 @@ export const PlaygroundPond3D: React.FC<{
   return (
     <group position={position}>
       {/* Sandy/Pebble Shoreline Base (Radius 1.45m) */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <cylinderGeometry args={[1.35, 1.45, 0.04, 16]} />
         <meshStandardMaterial color="#d4a373" roughness={0.9} />
       </mesh>
@@ -644,7 +644,7 @@ export const PlaygroundPond3D: React.FC<{
         const z = Math.sin(angle) * r;
         const s = 0.22 + (i % 3) * 0.04;
         return (
-          <mesh key={`pond_rock_${i}`} castShadow position={[x, 0.1, z]} scale={[s, s * 0.7, s]}>
+          <mesh key={`pond_rock_${i}`} position={[x, 0.1, z]} scale={[s, s * 0.7, s]}>
             <dodecahedronGeometry args={[0.7, 0]} />
             <meshStandardMaterial color="#64748b" roughness={0.9} />
           </mesh>
@@ -708,7 +708,7 @@ export const FullQuadrant1Playground3D: React.FC<{
   if (!isBuilding && !isBuilt) {
     return (
       <group position={[6, 0, -6]}>
-        <mesh receiveShadow position={[0, 0.01, 0]}>
+        <mesh position={[0, 0.01, 0]}>
           <boxGeometry args={[9.5, 0.02, 9.5]} />
           <meshStandardMaterial color="#3f6212" roughness={0.9} opacity={0.6} transparent />
         </mesh>
@@ -733,12 +733,12 @@ export const FullQuadrant1Playground3D: React.FC<{
   return (
     <group position={[6, 0, -6]}>
       {/* 1. Large Rubber Safety Flooring Plaza */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[9.4, 0.04, 9.4]} />
         <meshStandardMaterial color="#15803d" roughness={0.85} />
       </mesh>
       {/* Rubber Tile Section */}
-      <mesh receiveShadow position={[-0.5, 0.03, 0.5]}>
+      <mesh position={[-0.5, 0.03, 0.5]}>
         <boxGeometry args={[6.8, 0.02, 6.8]} />
         <meshStandardMaterial color="#047857" roughness={0.8} />
       </mesh>

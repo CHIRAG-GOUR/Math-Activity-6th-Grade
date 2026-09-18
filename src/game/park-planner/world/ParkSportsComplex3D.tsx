@@ -1,10 +1,10 @@
-// ============================================================
-// PARK PLANNER — High-Graphics 3D Sports Complex (Quadrant III)
+﻿// ============================================================
+// PARK PLANNER â€” High-Graphics 3D Sports Complex (Quadrant III)
 // Contains 2 distinct, spatially separated grounds:
-// 1. Cricket Ground — mowed-stripe outfield, clay pitch with full creases,
+// 1. Cricket Ground â€” mowed-stripe outfield, clay pitch with full creases,
 //    sightscreen, scoreboard, boundary rope with flag markers, a fuller
 //    fielding side and a bat that actually swings.
-// 2. Football Ground — mowed-stripe pitch, full regulation markings
+// 2. Football Ground â€” mowed-stripe pitch, full regulation markings
 //    (penalty box, goal box, corner arcs), proper enclosed goal nets,
 //    two kits on the pitch plus a referee.
 // Plus coach with sports bags, water cooler, spectator bleachers, a
@@ -25,19 +25,19 @@ const WHITE = '#f8fafc';
 // the rest of the park's flat-shaded, low-poly house style.
 // ------------------------------------------------------------
 
-/** Concentric alternating rings — how a circular cricket outfield is actually mown. */
+/** Concentric alternating rings â€” how a circular cricket outfield is actually mown. */
 const CricketTurf: React.FC<{ radius: number; bands?: number }> = ({ radius, bands = 5 }) => {
   const step = radius / bands;
   const light = '#2f9e46';
   const dark = '#227a37';
   return (
     <group>
-      <mesh receiveShadow position={[0, 0.018, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.018, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <circleGeometry args={[step, 28]} />
         <meshStandardMaterial color={dark} roughness={0.82} />
       </mesh>
       {Array.from({ length: bands - 1 }, (_, i) => (
-        <mesh key={i} receiveShadow position={[0, 0.019, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <mesh key={i} position={[0, 0.019, 0]} rotation={[-Math.PI / 2, 0, 0]}>
           <ringGeometry args={[step * (i + 1), step * (i + 2), 28]} />
           <meshStandardMaterial color={i % 2 === 0 ? light : dark} roughness={0.82} />
         </mesh>
@@ -46,7 +46,7 @@ const CricketTurf: React.FC<{ radius: number; bands?: number }> = ({ radius, ban
   );
 };
 
-/** Alternating longitudinal bands — the classic stadium mowing pattern. */
+/** Alternating longitudinal bands â€” the classic stadium mowing pattern. */
 const FootballTurf: React.FC<{ length: number; width: number; stripes?: number }> = ({ length, width, stripes = 9 }) => {
   const stripeW = length / stripes;
   const light = '#1c7a3f';
@@ -54,7 +54,7 @@ const FootballTurf: React.FC<{ length: number; width: number; stripes?: number }
   return (
     <group>
       {Array.from({ length: stripes }, (_, i) => (
-        <mesh key={i} receiveShadow position={[-length / 2 + stripeW * (i + 0.5), 0.019, 0]}>
+        <mesh key={i} position={[-length / 2 + stripeW * (i + 0.5), 0.019, 0]}>
           <boxGeometry args={[stripeW + 0.01, 0.006, width]} />
           <meshStandardMaterial color={i % 2 === 0 ? light : dark} roughness={0.82} />
         </mesh>
@@ -216,7 +216,7 @@ export const CricketGround3D: React.FC<{
       })}
 
       {/* Central Clay Pitch Strip */}
-      <mesh receiveShadow position={[0, 0.03, 0]}>
+      <mesh position={[0, 0.03, 0]}>
         <boxGeometry args={[2.6, 0.03, 0.7]} />
         <meshStandardMaterial color="#d4a373" roughness={0.85} />
       </mesh>
@@ -241,7 +241,7 @@ export const CricketGround3D: React.FC<{
 
       {/* Sightscreen behind the bowler's arm */}
       <group position={[-2.55, 0, 0]}>
-        <mesh castShadow position={[0, 0.9, 0]}>
+        <mesh position={[0, 0.9, 0]}>
           <boxGeometry args={[0.06, 1.1, 1.7]} />
           <meshStandardMaterial color={WHITE} roughness={0.6} />
         </mesh>
@@ -255,7 +255,7 @@ export const CricketGround3D: React.FC<{
 
       {/* Scoreboard on the side boundary */}
       <group position={[0, 0, -2.55]}>
-        <mesh castShadow position={[0, 0.7, 0]}>
+        <mesh position={[0, 0.7, 0]}>
           <boxGeometry args={[1.4, 0.9, 0.08]} />
           <meshStandardMaterial color="#0f172a" roughness={0.5} />
         </mesh>
@@ -278,7 +278,7 @@ export const CricketGround3D: React.FC<{
       </group>
 
       {/* Red Leather Cricket Ball */}
-      <mesh ref={ballRef} castShadow position={[-1.0, 0.3, 0]}>
+      <mesh ref={ballRef} position={[-1.0, 0.3, 0]}>
         <sphereGeometry args={[0.055, 8, 8]} />
         <meshStandardMaterial color="#b91c1c" roughness={0.3} metalness={0.2} />
       </mesh>
@@ -337,7 +337,7 @@ export const CricketGround3D: React.FC<{
 const Wickets: React.FC<{ position: [number, number, number] }> = ({ position }) => (
   <group position={position}>
     {[-0.05, 0, 0.05].map((z, j) => (
-      <mesh key={j} castShadow position={[0, 0.28, z]}>
+      <mesh key={j} position={[0, 0.28, z]}>
         <cylinderGeometry args={[0.012, 0.012, 0.56, 6]} />
         <meshStandardMaterial color="#fef08a" roughness={0.4} />
       </mesh>
@@ -501,7 +501,7 @@ export const FootballGround3D: React.FC<{
       ))}
 
       {/* Classic Soccer Ball */}
-      <mesh ref={soccerBallRef} castShadow position={[0, 0.12, 0]}>
+      <mesh ref={soccerBallRef} position={[0, 0.12, 0]}>
         <sphereGeometry args={[0.1, 10, 10]} />
         <meshStandardMaterial color={WHITE} roughness={0.3} />
       </mesh>
@@ -540,12 +540,12 @@ const Goal3D: React.FC<{ x: number; facing: 1 | -1 }> = ({ x, facing }) => {
   return (
     <group position={[x, 0, 0]}>
       {[-0.65, 0.65].map((z, i) => (
-        <mesh key={i} castShadow position={[0, 0.65, z]}>
+        <mesh key={i} position={[0, 0.65, z]}>
           <cylinderGeometry args={[0.04, 0.04, 1.3, 6]} />
           <meshStandardMaterial color={WHITE} />
         </mesh>
       ))}
-      <mesh castShadow position={[0, 1.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 1.3, 0]} rotation={[Math.PI / 2, 0, 0]}>
         <cylinderGeometry args={[0.04, 0.04, 1.35, 6]} />
         <meshStandardMaterial color={WHITE} />
       </mesh>
@@ -582,7 +582,7 @@ export const FullQuadrant3Sports3D: React.FC<{
   if (!isBuilding && !isBuilt) {
     return (
       <group position={[-6, 0, 6]}>
-        <mesh receiveShadow position={[0, 0.01, 0]}>
+        <mesh position={[0, 0.01, 0]}>
           <boxGeometry args={[9.5, 0.02, 9.5]} />
           <meshStandardMaterial color="#1e293b" roughness={0.9} opacity={0.6} transparent />
         </mesh>
@@ -607,7 +607,7 @@ export const FullQuadrant3Sports3D: React.FC<{
   return (
     <group position={[-6, 0, 6]}>
       {/* 1. Full Open Sports Turf Ground (Zero trees behind ground) */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[9.4, 0.04, 9.4]} />
         <meshStandardMaterial color="#15803d" roughness={0.85} />
       </mesh>
@@ -621,7 +621,7 @@ export const FullQuadrant3Sports3D: React.FC<{
         </mesh>
         {/* Raised Steel & Netting Partition Fence (Height 1.1m) */}
         {[-4.2, -3.0, -1.8, -0.6, 0.6, 1.8, 3.0, 4.2].map((px, idx) => (
-          <mesh key={`fence_post_${idx}`} castShadow position={[px, 0.55, 0]}>
+          <mesh key={`fence_post_${idx}`} position={[px, 0.55, 0]}>
             <cylinderGeometry args={[0.035, 0.035, 1.1, 6]} />
             <meshStandardMaterial color="#0f172a" metalness={0.7} />
           </mesh>
@@ -652,7 +652,7 @@ export const FullQuadrant3Sports3D: React.FC<{
                 const px = fx === 0 ? along : fx;
                 const pz = fz === 0 ? along : fz;
                 return (
-                  <mesh key={j} castShadow position={[px, 0.22, pz]}>
+                  <mesh key={j} position={[px, 0.22, pz]}>
                     <cylinderGeometry args={[0.025, 0.025, 0.44, 4]} />
                     <meshStandardMaterial color={WHITE} roughness={0.6} />
                   </mesh>
@@ -698,7 +698,7 @@ export const FullQuadrant3Sports3D: React.FC<{
 
           {/* Water Station */}
           <group position={[3.8, 0, 0]}>
-            <mesh castShadow position={[0, 0.45, 0]}>
+            <mesh position={[0, 0.45, 0]}>
               <cylinderGeometry args={[0.2, 0.2, 0.9, 8]} />
               <meshStandardMaterial color="#0284c7" roughness={0.4} />
             </mesh>
@@ -709,7 +709,7 @@ export const FullQuadrant3Sports3D: React.FC<{
           </group>
 
           {/* Sports Bags */}
-          <mesh castShadow position={[-3.2, 0.12, 0]}>
+          <mesh position={[-3.2, 0.12, 0]}>
             <boxGeometry args={[0.45, 0.22, 0.28]} />
             <meshStandardMaterial color="#ea580c" roughness={0.6} />
           </mesh>

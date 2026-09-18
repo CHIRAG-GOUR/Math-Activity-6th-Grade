@@ -1,5 +1,5 @@
-// ============================================================
-// PARK PLANNER — 3D Construction Workers & Utility Carts
+﻿// ============================================================
+// PARK PLANNER â€” 3D Construction Workers & Utility Carts
 // Real human worker models with hard hats, safety vests, tools,
 // and believable walking / construction animations.
 // ============================================================
@@ -44,18 +44,18 @@ export const ConstructionWorker3D: React.FC<{
   return (
     <group position={position} ref={workerGroupRef}>
       {/* Boots / Left Leg */}
-      <mesh ref={leftLegRef} castShadow position={[-0.12, 0.35, 0]}>
+      <mesh ref={leftLegRef} position={[-0.12, 0.35, 0]}>
         <cylinderGeometry args={[0.07, 0.08, 0.7, 8]} />
         <meshStandardMaterial color="#1e3a8a" roughness={0.8} />
       </mesh>
       {/* Boots / Right Leg */}
-      <mesh ref={rightLegRef} castShadow position={[0.12, 0.35, 0]}>
+      <mesh ref={rightLegRef} position={[0.12, 0.35, 0]}>
         <cylinderGeometry args={[0.07, 0.08, 0.7, 8]} />
         <meshStandardMaterial color="#1e3a8a" roughness={0.8} />
       </mesh>
 
       {/* Safety Vest Torso */}
-      <mesh castShadow position={[0, 0.95, 0]}>
+      <mesh position={[0, 0.95, 0]}>
         <boxGeometry args={[0.38, 0.52, 0.22]} />
         <meshStandardMaterial color="#ea580c" roughness={0.5} />
       </mesh>
@@ -70,14 +70,14 @@ export const ConstructionWorker3D: React.FC<{
       </mesh>
 
       {/* Left Arm (holding clipboard or resting) */}
-      <mesh castShadow position={[-0.24, 0.9, 0]} rotation={[0, 0, -0.1]}>
+      <mesh position={[-0.24, 0.9, 0]} rotation={[0, 0, -0.1]}>
         <cylinderGeometry args={[0.05, 0.05, 0.45, 8]} />
         <meshStandardMaterial color="#ea580c" />
       </mesh>
 
       {/* Right Arm (Holding Hammer / Tool) */}
       <group position={[0.24, 1.1, 0]} ref={rightArmRef}>
-        <mesh castShadow position={[0, -0.22, 0]}>
+        <mesh position={[0, -0.22, 0]}>
           <cylinderGeometry args={[0.05, 0.05, 0.45, 8]} />
           <meshStandardMaterial color="#ea580c" />
         </mesh>
@@ -95,14 +95,14 @@ export const ConstructionWorker3D: React.FC<{
       </group>
 
       {/* Head */}
-      <mesh castShadow position={[0, 1.35, 0]}>
+      <mesh position={[0, 1.35, 0]}>
         <sphereGeometry args={[0.13, 12, 12]} />
         <meshStandardMaterial color="#fcd34d" roughness={0.6} />
       </mesh>
 
       {/* Yellow Safety Hard Hat */}
       <group position={[0, 1.45, 0]}>
-        <mesh castShadow>
+        <mesh>
           <sphereGeometry args={[0.16, 12, 12, 0, Math.PI * 2, 0, Math.PI * 0.5]} />
           <meshStandardMaterial color="#facc15" roughness={0.3} metalness={0.2} />
         </mesh>
@@ -126,7 +126,7 @@ export const ConstructionCart3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Chassis Body */}
-      <mesh castShadow position={[0, 0.3, 0]}>
+      <mesh position={[0, 0.3, 0]}>
         <boxGeometry args={[1.6, 0.35, 0.9]} />
         <meshStandardMaterial color="#0284c7" roughness={0.4} />
       </mesh>
@@ -143,7 +143,7 @@ export const ConstructionCart3D: React.FC<{
       </mesh>
 
       {/* Cargo Bed in Rear with Tool Chest */}
-      <mesh castShadow position={[-0.35, 0.55, 0]}>
+      <mesh position={[-0.35, 0.55, 0]}>
         <boxGeometry args={[0.7, 0.25, 0.8]} />
         <meshStandardMaterial color="#334155" roughness={0.8} />
       </mesh>

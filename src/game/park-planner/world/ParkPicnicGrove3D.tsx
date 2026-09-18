@@ -1,5 +1,5 @@
-// ============================================================
-// PARK PLANNER — High-Graphics 3D Picnic Grove & Relaxation (Quadrant IV)
+﻿// ============================================================
+// PARK PLANNER â€” High-Graphics 3D Picnic Grove & Relaxation (Quadrant IV)
 // Handcrafted cedar picnic tables with picnic props, large shade umbrellas with seating,
 // stepped geometric pyramid square seating platforms, mature shade trees,
 // and families actively relaxing, eating, and conversing.
@@ -22,13 +22,13 @@ export const PicnicTable3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Stone Paver Base */}
-      <mesh receiveShadow position={[0, 0.025, 0]}>
+      <mesh position={[0, 0.025, 0]}>
         <boxGeometry args={[2.4, 0.04, 2.2]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
       </mesh>
 
       {/* Table Top Timber Planks */}
-      <mesh castShadow receiveShadow position={[0, 0.78, 0]}>
+      <mesh position={[0, 0.78, 0]}>
         <boxGeometry args={[1.9, 0.07, 0.9]} />
         <meshStandardMaterial color="#9a3412" roughness={0.6} />
       </mesh>
@@ -36,11 +36,11 @@ export const PicnicTable3D: React.FC<{
       {/* A-Frame Legs Left & Right */}
       {[-0.7, 0.7].map((x, i) => (
         <group key={`picnic_legs_${i}`} position={[x, 0.4, 0]}>
-          <mesh castShadow position={[0, 0, 0.48]} rotation={[0.2, 0, 0]}>
+          <mesh position={[0, 0, 0.48]} rotation={[0.2, 0, 0]}>
             <boxGeometry args={[0.08, 0.78, 0.08]} />
             <meshStandardMaterial color="#7c2d12" />
           </mesh>
-          <mesh castShadow position={[0, 0, -0.48]} rotation={[-0.2, 0, 0]}>
+          <mesh position={[0, 0, -0.48]} rotation={[-0.2, 0, 0]}>
             <boxGeometry args={[0.08, 0.78, 0.08]} />
             <meshStandardMaterial color="#7c2d12" />
           </mesh>
@@ -53,11 +53,11 @@ export const PicnicTable3D: React.FC<{
       ))}
 
       {/* Bench Planks (Front & Rear) */}
-      <mesh castShadow position={[0, 0.46, 0.7]}>
+      <mesh position={[0, 0.46, 0.7]}>
         <boxGeometry args={[1.9, 0.055, 0.3]} />
         <meshStandardMaterial color="#9a3412" roughness={0.6} />
       </mesh>
-      <mesh castShadow position={[0, 0.46, -0.7]}>
+      <mesh position={[0, 0.46, -0.7]}>
         <boxGeometry args={[1.9, 0.055, 0.3]} />
         <meshStandardMaterial color="#9a3412" roughness={0.6} />
       </mesh>
@@ -65,7 +65,7 @@ export const PicnicTable3D: React.FC<{
       {/* Picnic Props on Table: Juice Carafes, Cups with Straws, Sandwiches, Fruit Bowl */}
       <group position={[0, 0.82, 0]}>
         {/* Wicker Picnic Basket */}
-        <mesh castShadow position={[-0.55, 0.12, 0]}>
+        <mesh position={[-0.55, 0.12, 0]}>
           <boxGeometry args={[0.35, 0.22, 0.25]} />
           <meshStandardMaterial color="#d97706" roughness={0.9} />
         </mesh>
@@ -76,7 +76,7 @@ export const PicnicTable3D: React.FC<{
 
         {/* Fresh Orange Juice Carafe */}
         <group position={[0.2, 0.14, 0.12]}>
-          <mesh castShadow>
+          <mesh>
             <cylinderGeometry args={[0.045, 0.055, 0.28, 12]} />
             <meshStandardMaterial color="#ea580c" roughness={0.1} transparent opacity={0.85} />
           </mesh>
@@ -88,7 +88,7 @@ export const PicnicTable3D: React.FC<{
         </group>
 
         {/* Berry Smoothie Bottle */}
-        <mesh castShadow position={[-0.1, 0.12, 0.18]}>
+        <mesh position={[-0.1, 0.12, 0.18]}>
           <cylinderGeometry args={[0.035, 0.04, 0.24, 10]} />
           <meshStandardMaterial color="#db2777" roughness={0.15} transparent opacity={0.85} />
         </mesh>
@@ -99,7 +99,7 @@ export const PicnicTable3D: React.FC<{
           { pos: [0.35, 0.06, -0.2], cupCol: '#4ade80', strawCol: '#ef4444' },
         ].map((item, idx) => (
           <group key={`cup_${idx}`} position={item.pos as [number, number, number]}>
-            <mesh castShadow>
+            <mesh>
               <cylinderGeometry args={[0.035, 0.025, 0.12, 10]} />
               <meshStandardMaterial color={item.cupCol} transparent opacity={0.8} />
             </mesh>
@@ -113,7 +113,7 @@ export const PicnicTable3D: React.FC<{
 
         {/* Fruit Platter with Watermelon & Orange Wedges */}
         <group position={[0.0, 0.02, -0.1]}>
-          <mesh receiveShadow>
+          <mesh>
             <cylinderGeometry args={[0.16, 0.16, 0.02, 16]} />
             <meshStandardMaterial color="#ffffff" roughness={0.3} />
           </mesh>
@@ -130,12 +130,12 @@ export const PicnicTable3D: React.FC<{
 
         {/* Sandwich Plate */}
         <group position={[-0.25, 0.02, 0.15]}>
-          <mesh receiveShadow>
+          <mesh>
             <boxGeometry args={[0.18, 0.02, 0.18]} />
             <meshStandardMaterial color="#f8fafc" />
           </mesh>
           {/* Triangular Sandwiches */}
-          <mesh castShadow position={[0, 0.03, 0]} rotation={[0, 0.3, 0]}>
+          <mesh position={[0, 0.03, 0]} rotation={[0, 0.3, 0]}>
             <boxGeometry args={[0.12, 0.04, 0.1]} />
             <meshStandardMaterial color="#fde047" roughness={0.7} />
           </mesh>
@@ -182,13 +182,13 @@ export const LargeCanopyUmbrella3D: React.FC<{
   return (
     <group position={position}>
       {/* Center Steel Mast */}
-      <mesh castShadow position={[0, 1.4, 0]}>
+      <mesh position={[0, 1.4, 0]}>
         <cylinderGeometry args={[0.04, 0.05, 2.8, 8]} />
         <meshStandardMaterial color="#334155" metalness={0.7} />
       </mesh>
 
       {/* Large Conical Canvas Umbrella Canopy */}
-      <mesh castShadow position={[0, 2.65, 0]}>
+      <mesh position={[0, 2.65, 0]}>
         <coneGeometry args={[1.5, 0.65, 12, 1, true]} />
         <meshStandardMaterial color={canopyColor} roughness={0.7} side={THREE.DoubleSide} />
       </mesh>
@@ -199,8 +199,8 @@ export const LargeCanopyUmbrella3D: React.FC<{
         <meshStandardMaterial color="#0f172a" />
       </mesh>
 
-      {/* Circular Café Table Beneath */}
-      <mesh castShadow position={[0, 0.75, 0]}>
+      {/* Circular CafÃ© Table Beneath */}
+      <mesh position={[0, 0.75, 0]}>
         <cylinderGeometry args={[0.65, 0.65, 0.05, 16]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.3} />
       </mesh>
@@ -222,7 +222,7 @@ export const LargeCanopyUmbrella3D: React.FC<{
           <meshStandardMaterial color="#38bdf8" />
         </mesh>
         {/* Soda Can */}
-        <mesh castShadow position={[0.18, 0.06, -0.08]}>
+        <mesh position={[0.18, 0.06, -0.08]}>
           <cylinderGeometry args={[0.03, 0.03, 0.12, 10]} />
           <meshStandardMaterial color="#ef4444" metalness={0.6} />
         </mesh>
@@ -235,7 +235,7 @@ export const LargeCanopyUmbrella3D: React.FC<{
 
       {/* 2 Curved Outdoor Stools */}
       {[-0.8, 0.8].map((x, i) => (
-        <mesh key={`stool_${i}`} castShadow position={[x, 0.22, 0]}>
+        <mesh key={`stool_${i}`} position={[x, 0.22, 0]}>
           <cylinderGeometry args={[0.22, 0.24, 0.44, 12]} />
           <meshStandardMaterial color="#0f172a" roughness={0.5} />
         </mesh>
@@ -267,7 +267,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
   return (
     <group position={position}>
       {/* Tier 1 (Base): 3.2m wide, 0.25m height (Top surface Y = 0.25) */}
-      <mesh castShadow receiveShadow position={[0, 0.125, 0]}>
+      <mesh position={[0, 0.125, 0]}>
         <boxGeometry args={[3.2, 0.25, 3.2]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
       </mesh>
@@ -278,7 +278,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
       </mesh>
 
       {/* Tier 2: 2.4m wide, 0.25m height (Top surface Y = 0.50) */}
-      <mesh castShadow receiveShadow position={[0, 0.375, 0]}>
+      <mesh position={[0, 0.375, 0]}>
         <boxGeometry args={[2.4, 0.25, 2.4]} />
         <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
       </mesh>
@@ -288,7 +288,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
       </mesh>
 
       {/* Tier 3: 1.6m wide, 0.25m height (Top surface Y = 0.75) */}
-      <mesh castShadow receiveShadow position={[0, 0.625, 0]}>
+      <mesh position={[0, 0.625, 0]}>
         <boxGeometry args={[1.6, 0.25, 1.6]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
       </mesh>
@@ -298,7 +298,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
       </mesh>
 
       {/* Tier 4 (Top Platform): 0.8m wide, 0.25m height (Top surface Y = 1.00m) */}
-      <mesh castShadow receiveShadow position={[0, 0.875, 0]}>
+      <mesh position={[0, 0.875, 0]}>
         <boxGeometry args={[0.8, 0.25, 0.8]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.4} />
       </mesh>
@@ -311,7 +311,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
       <group position={[0, 0, 0]}>
         {/* Tier 4 Top Refreshment: Fresh Juice Carton & Cup next to top person */}
         <group position={[0.22, 1.01, 0.22]}>
-          <mesh castShadow position={[0, 0.07, 0]}>
+          <mesh position={[0, 0.07, 0]}>
             <boxGeometry args={[0.08, 0.14, 0.08]} />
             <meshStandardMaterial color="#ea580c" />
           </mesh>
@@ -388,14 +388,14 @@ export const PicnicBlanketFamily3D: React.FC<{
   return (
     <group position={position}>
       {/* Red & White Checkered Blanket */}
-      <mesh receiveShadow position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0.2]}>
+      <mesh position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0.2]}>
         <planeGeometry args={[2.2, 2.0]} />
         <meshStandardMaterial color="#dc2626" roughness={0.8} />
       </mesh>
 
       {/* Picnic Basket & Props */}
       <group position={[-0.5, 0, 0]}>
-        <mesh castShadow position={[0, 0.15, 0]}>
+        <mesh position={[0, 0.15, 0]}>
           <boxGeometry args={[0.4, 0.25, 0.3]} />
           <meshStandardMaterial color="#b45309" roughness={0.8} />
         </mesh>
@@ -404,11 +404,11 @@ export const PicnicBlanketFamily3D: React.FC<{
       {/* Delicious Food & Juices on the Picnic Blanket */}
       <group position={[0, 0.04, 0]}>
         {/* Juice Bottles (Tropical Mango & Berry Punch) */}
-        <mesh castShadow position={[-0.15, 0.12, -0.2]}>
+        <mesh position={[-0.15, 0.12, -0.2]}>
           <cylinderGeometry args={[0.04, 0.045, 0.24, 10]} />
           <meshStandardMaterial color="#f97316" transparent opacity={0.85} />
         </mesh>
-        <mesh castShadow position={[0.05, 0.11, -0.25]}>
+        <mesh position={[0.05, 0.11, -0.25]}>
           <cylinderGeometry args={[0.035, 0.04, 0.22, 10]} />
           <meshStandardMaterial color="#ec4899" transparent opacity={0.85} />
         </mesh>
@@ -427,7 +427,7 @@ export const PicnicBlanketFamily3D: React.FC<{
 
         {/* Fresh Fruit Dish (Watermelon Slices) */}
         <group position={[0.25, 0.02, 0.05]}>
-          <mesh receiveShadow>
+          <mesh>
             <cylinderGeometry args={[0.14, 0.14, 0.02, 14]} />
             <meshStandardMaterial color="#ffffff" />
           </mesh>
@@ -473,11 +473,11 @@ export const ParkBench3D: React.FC<{
     <group position={position} rotation={[0, rotationY, 0]}>
       {[-0.7, 0.7].map((x, i) => (
         <group key={`bench_frame_${i}`} position={[x, 0.3, 0]}>
-          <mesh castShadow position={[0, 0, 0.22]}>
+          <mesh position={[0, 0, 0.22]}>
             <boxGeometry args={[0.05, 0.58, 0.05]} />
             <meshStandardMaterial color="#0f172a" metalness={0.8} />
           </mesh>
-          <mesh castShadow position={[0, 0.22, -0.22]} rotation={[-0.1, 0, 0]}>
+          <mesh position={[0, 0.22, -0.22]} rotation={[-0.1, 0, 0]}>
             <boxGeometry args={[0.05, 0.98, 0.05]} />
             <meshStandardMaterial color="#0f172a" metalness={0.8} />
           </mesh>
@@ -489,14 +489,14 @@ export const ParkBench3D: React.FC<{
       ))}
 
       {[-0.14, -0.03, 0.08, 0.19].map((z, idx) => (
-        <mesh key={`seat_slat_${idx}`} castShadow position={[0, 0.44, z]}>
+        <mesh key={`seat_slat_${idx}`} position={[0, 0.44, z]}>
           <boxGeometry args={[1.45, 0.032, 0.085]} />
           <meshStandardMaterial color="#b45309" roughness={0.6} />
         </mesh>
       ))}
 
       {[0.58, 0.7, 0.82].map((y, idx) => (
-        <mesh key={`back_slat_${idx}`} castShadow position={[0, y, -0.24]} rotation={[-0.1, 0, 0]}>
+        <mesh key={`back_slat_${idx}`} position={[0, y, -0.24]} rotation={[-0.1, 0, 0]}>
           <boxGeometry args={[1.45, 0.085, 0.032]} />
           <meshStandardMaterial color="#b45309" roughness={0.6} />
         </mesh>
@@ -527,19 +527,19 @@ export const ShadyTree3D: React.FC<{
 }> = ({ position = [0, 0, 0], scale = 1 }) => {
   return (
     <group position={position} scale={[scale, scale, scale]}>
-      <mesh castShadow position={[0, 1.3, 0]}>
+      <mesh position={[0, 1.3, 0]}>
         <cylinderGeometry args={[0.2, 0.28, 2.6, 8]} />
         <meshStandardMaterial color="#5c3a21" roughness={0.9} />
       </mesh>
-      <mesh castShadow position={[0, 2.8, 0]}>
+      <mesh position={[0, 2.8, 0]}>
         <dodecahedronGeometry args={[1.4, 1]} />
         <meshStandardMaterial color="#2d6a4f" roughness={0.8} />
       </mesh>
-      <mesh castShadow position={[0.45, 3.3, 0.35]}>
+      <mesh position={[0.45, 3.3, 0.35]}>
         <dodecahedronGeometry args={[1.0, 1]} />
         <meshStandardMaterial color="#40916c" roughness={0.8} />
       </mesh>
-      <mesh castShadow position={[-0.45, 3.0, -0.35]}>
+      <mesh position={[-0.45, 3.0, -0.35]}>
         <dodecahedronGeometry args={[1.1, 1]} />
         <meshStandardMaterial color="#1b4332" roughness={0.8} />
       </mesh>
@@ -558,7 +558,7 @@ export const FullQuadrant4Picnic3D: React.FC<{
   if (!isBuilding && !isBuilt) {
     return (
       <group position={[6, 0, 6]}>
-        <mesh receiveShadow position={[0, 0.01, 0]}>
+        <mesh position={[0, 0.01, 0]}>
           <boxGeometry args={[9.5, 0.02, 9.5]} />
           <meshStandardMaterial color="#78350f" roughness={0.9} opacity={0.6} transparent />
         </mesh>
@@ -583,7 +583,7 @@ export const FullQuadrant4Picnic3D: React.FC<{
   return (
     <group position={[6, 0, 6]}>
       {/* Warm Meadow Grass Base */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[9.4, 0.04, 9.4]} />
         <meshStandardMaterial color="#4d7c0f" roughness={0.85} />
       </mesh>

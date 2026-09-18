@@ -1,5 +1,5 @@
-// ============================================================
-// PARK PLANNER — High-Graphics Botanical Gardens & Nature (Quadrant II)
+﻿// ============================================================
+// PARK PLANNER â€” High-Graphics Botanical Gardens & Nature (Quadrant II)
 // Professional botanical garden with 4 distinct zones:
 // Zone A: Formal Parterre Flower Gardens (roses, tulips, marigolds)
 // Zone B: Tropical Plants (palms, broadleaf, ferns)
@@ -57,7 +57,7 @@ export const TieredFountain3D: React.FC<{
   return (
     <group position={position}>
       {/* 1. Octagonal Carved Granite Dais Foundation */}
-      <mesh receiveShadow position={[0, 0.06, 0]}>
+      <mesh position={[0, 0.06, 0]}>
         <cylinderGeometry args={[2.3, 2.45, 0.12, 8]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.5} />
       </mesh>
@@ -68,7 +68,7 @@ export const TieredFountain3D: React.FC<{
       </mesh>
 
       {/* 2. Main Grand Lower Basin (Radius 2.05m) */}
-      <mesh castShadow receiveShadow position={[0, 0.38, 0]}>
+      <mesh position={[0, 0.38, 0]}>
         <cylinderGeometry args={[1.95, 2.05, 0.52, 32, 1, true]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.15} metalness={0.1} />
       </mesh>
@@ -130,14 +130,14 @@ export const TieredFountain3D: React.FC<{
       </group>
 
       {/* 4. Center Fluted Classical Pedestal */}
-      <mesh castShadow position={[0, 0.95, 0]}>
+      <mesh position={[0, 0.95, 0]}>
         <cylinderGeometry args={[0.34, 0.48, 1.1, 20]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.2} />
       </mesh>
 
       {/* 5. Middle Floating Marble Basin (Radius 1.2m) */}
       <group position={[0, 1.5, 0]}>
-        <mesh castShadow position={[0, 0, 0]}>
+        <mesh position={[0, 0, 0]}>
           <cylinderGeometry args={[1.2, 0.5, 0.35, 24]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.15} />
         </mesh>
@@ -154,12 +154,12 @@ export const TieredFountain3D: React.FC<{
       </group>
 
       {/* 6. Upper Spire Column & Top Urn Bowl (Radius 0.65m) */}
-      <mesh castShadow position={[0, 2.0, 0]}>
+      <mesh position={[0, 2.0, 0]}>
         <cylinderGeometry args={[0.2, 0.28, 0.8, 16]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.2} />
       </mesh>
       <group position={[0, 2.45, 0]}>
-        <mesh castShadow>
+        <mesh>
           <cylinderGeometry args={[0.65, 0.25, 0.25, 20]} />
           <meshStandardMaterial color="#f8fafc" roughness={0.15} />
         </mesh>
@@ -242,13 +242,13 @@ export const GreenhouseConservatory3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Brick Foundation Base */}
-      <mesh castShadow receiveShadow position={[0, 0.2, 0]}>
+      <mesh position={[0, 0.2, 0]}>
         <boxGeometry args={[3.2, 0.4, 2.2]} />
         <meshStandardMaterial color="#991b1b" roughness={0.8} />
       </mesh>
 
       {/* Green Painted Cast Iron Arched Frame */}
-      <mesh castShadow position={[0, 1.3, 0]}>
+      <mesh position={[0, 1.3, 0]}>
         <boxGeometry args={[3.1, 1.8, 2.1]} />
         <meshStandardMaterial color="#064e3b" roughness={0.4} wireframe wireframeLinewidth={2} />
       </mesh>
@@ -267,7 +267,7 @@ export const GreenhouseConservatory3D: React.FC<{
       </mesh>
 
       {/* Gable / Arched Roof Glass */}
-      <mesh castShadow position={[0, 2.5, 0]} rotation={[0, 0, 0]}>
+      <mesh position={[0, 2.5, 0]} rotation={[0, 0, 0]}>
         <cylinderGeometry args={[0.05, 1.6, 0.7, 4]} />
         <meshStandardMaterial color="#064e3b" roughness={0.5} wireframe />
       </mesh>
@@ -279,11 +279,11 @@ export const GreenhouseConservatory3D: React.FC<{
       {/* Interior Exotic Potted Palms */}
       {[-0.8, 0, 0.8].map((x, i) => (
         <group key={`greenhouse_plant_${i}`} position={[x, 0.45, 0]}>
-          <mesh castShadow position={[0, 0.2, 0]}>
+          <mesh position={[0, 0.2, 0]}>
             <cylinderGeometry args={[0.18, 0.14, 0.35, 8]} />
             <meshStandardMaterial color="#78350f" />
           </mesh>
-          <mesh castShadow position={[0, 0.65, 0]}>
+          <mesh position={[0, 0.65, 0]}>
             <dodecahedronGeometry args={[0.38, 0]} />
             <meshStandardMaterial color="#059669" roughness={0.7} />
           </mesh>
@@ -308,7 +308,7 @@ export const TropicalPlantsZone3D: React.FC<{
   return (
     <group position={position}>
       {/* Stone Border Bed */}
-      <mesh castShadow receiveShadow position={[0, 0.08, 0]}>
+      <mesh position={[0, 0.08, 0]}>
         <boxGeometry args={[2.8, 0.16, 2.2]} />
         <meshStandardMaterial color="#78716c" roughness={0.7} />
       </mesh>
@@ -321,7 +321,7 @@ export const TropicalPlantsZone3D: React.FC<{
       {/* 2 Tall Fan Palms */}
       {[-0.7, 0.7].map((x, i) => (
         <group key={`palm_${i}`} position={[x, 0.16, (i % 2 === 0 ? 0.4 : -0.4)]}>
-          <mesh castShadow position={[0, 1.1, 0]}>
+          <mesh position={[0, 1.1, 0]}>
             <cylinderGeometry args={[0.08, 0.12, 2.2, 8]} />
             <meshStandardMaterial color="#5c3a21" roughness={0.8} />
           </mesh>
@@ -362,7 +362,7 @@ export const FlowerBed3D: React.FC<{
   return (
     <group position={position}>
       {/* Sculpted Stone Border Kerb */}
-      <mesh castShadow receiveShadow position={[0, 0.1, 0]}>
+      <mesh position={[0, 0.1, 0]}>
         <boxGeometry args={[2.2, 0.2, 1.6]} />
         <meshStandardMaterial color="#94a3b8" roughness={0.7} />
       </mesh>
@@ -398,7 +398,7 @@ export const FlowerBed3D: React.FC<{
                 <cylinderGeometry args={[0.015, 0.015, height, 6]} />
                 <meshStandardMaterial color="#15803d" />
               </mesh>
-              <mesh castShadow position={[0, height + 0.04, 0]}>
+              <mesh position={[0, height + 0.04, 0]}>
                 <sphereGeometry args={[0.075, 8, 8]} />
                 <meshStandardMaterial color={col} roughness={0.4} />
               </mesh>
@@ -450,13 +450,13 @@ export const VictorianGazebo3D: React.FC<{
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Octagonal Cut-Stone Base Plinth */}
-      <mesh castShadow receiveShadow position={[0, 0.16, 0]}>
+      <mesh position={[0, 0.16, 0]}>
         <cylinderGeometry args={[radius + 0.25, radius + 0.3, 0.32, postsCount]} />
         <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
       </mesh>
 
       {/* Cedar Wood Parquet Floor */}
-      <mesh receiveShadow position={[0, 0.33, 0]}>
+      <mesh position={[0, 0.33, 0]}>
         <cylinderGeometry args={[radius + 0.12, radius + 0.12, 0.04, postsCount]} />
         <meshStandardMaterial color="#9a3412" roughness={0.7} />
       </mesh>
@@ -469,7 +469,7 @@ export const VictorianGazebo3D: React.FC<{
 
         return (
           <group key={`gazebo_col_${i}`} position={[x, 0.33, z]}>
-            <mesh castShadow position={[0, 1.15, 0]}>
+            <mesh position={[0, 1.15, 0]}>
               <cylinderGeometry args={[0.055, 0.065, 2.3, 8]} />
               <meshStandardMaterial color="#ffffff" roughness={0.4} />
             </mesh>
@@ -502,7 +502,7 @@ export const VictorianGazebo3D: React.FC<{
       })}
 
       {/* Steeple Shingled Teal Roof */}
-      <mesh castShadow position={[0, 3.0, 0]}>
+      <mesh position={[0, 3.0, 0]}>
         <cylinderGeometry args={[0.1, radius + 0.4, 1.3, postsCount]} />
         <meshStandardMaterial color="#0f766e" roughness={0.6} />
       </mesh>
@@ -525,7 +525,7 @@ export const KoiPond3D: React.FC<{
   return (
     <group position={position}>
       {/* Stone Flagstone Viewing Perimeter Border */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <cylinderGeometry args={[1.7, 1.8, 0.03, 24]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.7} />
       </mesh>
@@ -541,7 +541,7 @@ export const KoiPond3D: React.FC<{
         return (
           <mesh
             key={`pond_rock_${i}`}
-            castShadow
+           
             position={[x, 0.12, z]}
             scale={[rockScale, rockScale * 0.8, rockScale]}
           >
@@ -621,7 +621,7 @@ export const FullQuadrant2Botanical3D: React.FC<{
   if (!isBuilding && !isBuilt) {
     return (
       <group position={[-6, 0, -6]}>
-        <mesh receiveShadow position={[0, 0.01, 0]}>
+        <mesh position={[0, 0.01, 0]}>
           <boxGeometry args={[9.5, 0.02, 9.5]} />
           <meshStandardMaterial color="#1e3a24" roughness={0.9} opacity={0.6} transparent />
         </mesh>
@@ -646,7 +646,7 @@ export const FullQuadrant2Botanical3D: React.FC<{
   return (
     <group position={[-6, 0, -6]}>
       {/* 1. Lush Manicured Turf Base with Winding Stone Promenade */}
-      <mesh receiveShadow position={[0, 0.02, 0]}>
+      <mesh position={[0, 0.02, 0]}>
         <boxGeometry args={[9.4, 0.04, 9.4]} />
         <meshStandardMaterial color="#166534" roughness={0.8} />
       </mesh>
