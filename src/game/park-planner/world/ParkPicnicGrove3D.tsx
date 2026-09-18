@@ -62,23 +62,84 @@ export const PicnicTable3D: React.FC<{
         <meshStandardMaterial color="#9a3412" roughness={0.6} />
       </mesh>
 
-      {/* Picnic Props on Table: Basket, Juice Bottle, Cups */}
-      <group position={[0.3, 0.82, 0]}>
-        {/* Wicker Basket */}
-        <mesh castShadow position={[-0.4, 0.12, 0]}>
+      {/* Picnic Props on Table: Juice Carafes, Cups with Straws, Sandwiches, Fruit Bowl */}
+      <group position={[0, 0.82, 0]}>
+        {/* Wicker Picnic Basket */}
+        <mesh castShadow position={[-0.55, 0.12, 0]}>
           <boxGeometry args={[0.35, 0.22, 0.25]} />
           <meshStandardMaterial color="#d97706" roughness={0.9} />
         </mesh>
-        {/* Juice Bottle */}
-        <mesh position={[0.2, 0.14, 0.1]}>
-          <cylinderGeometry args={[0.04, 0.04, 0.26, 8]} />
-          <meshStandardMaterial color="#ea580c" roughness={0.2} transparent opacity={0.8} />
+        <mesh position={[-0.55, 0.25, 0]}>
+          <cylinderGeometry args={[0.02, 0.02, 0.25, 6]} />
+          <meshStandardMaterial color="#b45309" />
         </mesh>
-        {/* Plates */}
-        <mesh position={[-0.05, 0.02, -0.15]}>
-          <cylinderGeometry args={[0.1, 0.1, 0.02, 12]} />
-          <meshStandardMaterial color="#ffffff" />
+
+        {/* Fresh Orange Juice Carafe */}
+        <group position={[0.2, 0.14, 0.12]}>
+          <mesh castShadow>
+            <cylinderGeometry args={[0.045, 0.055, 0.28, 12]} />
+            <meshStandardMaterial color="#ea580c" roughness={0.1} transparent opacity={0.85} />
+          </mesh>
+          {/* Carafe Cap */}
+          <mesh position={[0, 0.15, 0]}>
+            <cylinderGeometry args={[0.025, 0.025, 0.04, 8]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+        </group>
+
+        {/* Berry Smoothie Bottle */}
+        <mesh castShadow position={[-0.1, 0.12, 0.18]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.24, 10]} />
+          <meshStandardMaterial color="#db2777" roughness={0.15} transparent opacity={0.85} />
         </mesh>
+
+        {/* Juice Cups with Colorful Straws */}
+        {[
+          { pos: [-0.3, 0.06, -0.2], cupCol: '#38bdf8', strawCol: '#facc15' },
+          { pos: [0.35, 0.06, -0.2], cupCol: '#4ade80', strawCol: '#ef4444' },
+        ].map((item, idx) => (
+          <group key={`cup_${idx}`} position={item.pos as [number, number, number]}>
+            <mesh castShadow>
+              <cylinderGeometry args={[0.035, 0.025, 0.12, 10]} />
+              <meshStandardMaterial color={item.cupCol} transparent opacity={0.8} />
+            </mesh>
+            {/* Straw */}
+            <mesh position={[0.015, 0.07, 0]} rotation={[0, 0, -0.2]}>
+              <cylinderGeometry args={[0.005, 0.005, 0.16, 6]} />
+              <meshStandardMaterial color={item.strawCol} />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Fruit Platter with Watermelon & Orange Wedges */}
+        <group position={[0.0, 0.02, -0.1]}>
+          <mesh receiveShadow>
+            <cylinderGeometry args={[0.16, 0.16, 0.02, 16]} />
+            <meshStandardMaterial color="#ffffff" roughness={0.3} />
+          </mesh>
+          {/* Watermelon Slices */}
+          <mesh position={[-0.04, 0.03, 0]} rotation={[0, 0.4, 0]}>
+            <coneGeometry args={[0.07, 0.05, 3]} />
+            <meshStandardMaterial color="#ef4444" />
+          </mesh>
+          <mesh position={[0.05, 0.03, 0.02]} rotation={[0, -0.6, 0]}>
+            <coneGeometry args={[0.06, 0.04, 3]} />
+            <meshStandardMaterial color="#f97316" />
+          </mesh>
+        </group>
+
+        {/* Sandwich Plate */}
+        <group position={[-0.25, 0.02, 0.15]}>
+          <mesh receiveShadow>
+            <boxGeometry args={[0.18, 0.02, 0.18]} />
+            <meshStandardMaterial color="#f8fafc" />
+          </mesh>
+          {/* Triangular Sandwiches */}
+          <mesh castShadow position={[0, 0.03, 0]} rotation={[0, 0.3, 0]}>
+            <boxGeometry args={[0.12, 0.04, 0.1]} />
+            <meshStandardMaterial color="#fde047" roughness={0.7} />
+          </mesh>
+        </group>
       </group>
 
       {/* Seated Picnickers */}
@@ -111,7 +172,7 @@ export const PicnicTable3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 2. LARGE OUTDOOR CANOPY UMBRELLA WITH SEATING
+// 2. LARGE OUTDOOR CANOPY UMBRELLA WITH SEATING & REFRESHMENTS
 // ------------------------------------------------------------
 export const LargeCanopyUmbrella3D: React.FC<{
   position?: [number, number, number];
@@ -143,6 +204,34 @@ export const LargeCanopyUmbrella3D: React.FC<{
         <cylinderGeometry args={[0.65, 0.65, 0.05, 16]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.3} />
       </mesh>
+      <mesh position={[0, 0.38, 0]}>
+        <cylinderGeometry args={[0.05, 0.05, 0.75, 8]} />
+        <meshStandardMaterial color="#64748b" metalness={0.6} />
+      </mesh>
+
+      {/* Refreshments on Cafe Table: Lemonade Juice, Cold Cans, Snack Dish */}
+      <group position={[0, 0.78, 0]}>
+        {/* Lemonade Glass */}
+        <mesh position={[-0.15, 0.07, 0.1]}>
+          <cylinderGeometry args={[0.035, 0.025, 0.14, 8]} />
+          <meshStandardMaterial color="#facc15" transparent opacity={0.8} />
+        </mesh>
+        {/* Straw */}
+        <mesh position={[-0.14, 0.15, 0.1]} rotation={[0, 0, -0.2]}>
+          <cylinderGeometry args={[0.005, 0.005, 0.16, 6]} />
+          <meshStandardMaterial color="#38bdf8" />
+        </mesh>
+        {/* Soda Can */}
+        <mesh castShadow position={[0.18, 0.06, -0.08]}>
+          <cylinderGeometry args={[0.03, 0.03, 0.12, 10]} />
+          <meshStandardMaterial color="#ef4444" metalness={0.6} />
+        </mesh>
+        {/* Pretzel / Snack Dish */}
+        <mesh position={[0.02, 0.015, -0.15]}>
+          <cylinderGeometry args={[0.08, 0.06, 0.03, 12]} />
+          <meshStandardMaterial color="#f8fafc" />
+        </mesh>
+      </group>
 
       {/* 2 Curved Outdoor Stools */}
       {[-0.8, 0.8].map((x, i) => (
@@ -169,7 +258,7 @@ export const LargeCanopyUmbrella3D: React.FC<{
 };
 
 // ------------------------------------------------------------
-// 3. STEPPED PYRAMID / TIERED SQUARE STONE SEATING
+// 3. STEPPED PYRAMID / TIERED SQUARE STONE SEATING (Sitting on top cleanly)
 // ------------------------------------------------------------
 export const PyramidTieredSquareSeating3D: React.FC<{
   position?: [number, number, number];
@@ -177,7 +266,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
 }> = ({ position = [0, 0, 0], hasVisitors = true }) => {
   return (
     <group position={position}>
-      {/* Tier 1 (Base): 3.2m wide, 0.25m height */}
+      {/* Tier 1 (Base): 3.2m wide, 0.25m height (Top surface Y = 0.25) */}
       <mesh castShadow receiveShadow position={[0, 0.125, 0]}>
         <boxGeometry args={[3.2, 0.25, 3.2]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
@@ -188,7 +277,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
         <meshStandardMaterial color="#94a3b8" roughness={0.5} />
       </mesh>
 
-      {/* Tier 2: 2.4m wide, 0.25m height (Y = 0.375) */}
+      {/* Tier 2: 2.4m wide, 0.25m height (Top surface Y = 0.50) */}
       <mesh castShadow receiveShadow position={[0, 0.375, 0]}>
         <boxGeometry args={[2.4, 0.25, 2.4]} />
         <meshStandardMaterial color="#e2e8f0" roughness={0.6} />
@@ -198,7 +287,7 @@ export const PyramidTieredSquareSeating3D: React.FC<{
         <meshStandardMaterial color="#94a3b8" roughness={0.5} />
       </mesh>
 
-      {/* Tier 3: 1.6m wide, 0.25m height (Y = 0.625) */}
+      {/* Tier 3: 1.6m wide, 0.25m height (Top surface Y = 0.75) */}
       <mesh castShadow receiveShadow position={[0, 0.625, 0]}>
         <boxGeometry args={[1.6, 0.25, 1.6]} />
         <meshStandardMaterial color="#cbd5e1" roughness={0.6} />
@@ -208,17 +297,52 @@ export const PyramidTieredSquareSeating3D: React.FC<{
         <meshStandardMaterial color="#94a3b8" roughness={0.5} />
       </mesh>
 
-      {/* Tier 4 (Top Platform): 0.8m wide, 0.25m height (Y = 0.875) */}
+      {/* Tier 4 (Top Platform): 0.8m wide, 0.25m height (Top surface Y = 1.00m) */}
       <mesh castShadow receiveShadow position={[0, 0.875, 0]}>
         <boxGeometry args={[0.8, 0.25, 0.8]} />
         <meshStandardMaterial color="#f8fafc" roughness={0.4} />
       </mesh>
+      <mesh position={[0, 0.99, 0]}>
+        <boxGeometry args={[0.82, 0.02, 0.82]} />
+        <meshStandardMaterial color="#94a3b8" roughness={0.4} />
+      </mesh>
+
+      {/* Delicious Refreshments on Pyramid Steps (Juice Boxes, Fruits, Cups) */}
+      <group position={[0, 0, 0]}>
+        {/* Tier 4 Top Refreshment: Fresh Juice Carton & Cup next to top person */}
+        <group position={[0.22, 1.01, 0.22]}>
+          <mesh castShadow position={[0, 0.07, 0]}>
+            <boxGeometry args={[0.08, 0.14, 0.08]} />
+            <meshStandardMaterial color="#ea580c" />
+          </mesh>
+          <mesh position={[0, 0.14, 0]}>
+            <cylinderGeometry args={[0.004, 0.004, 0.1, 6]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+        </group>
+
+        {/* Tier 2 Drink & Fruit Plate */}
+        <group position={[-0.8, 0.51, 0.6]}>
+          <mesh position={[0, 0.01, 0]}>
+            <cylinderGeometry args={[0.08, 0.08, 0.02, 12]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+          <mesh position={[0.02, 0.03, 0]}>
+            <sphereGeometry args={[0.03, 8, 8]} />
+            <meshStandardMaterial color="#ef4444" />
+          </mesh>
+          <mesh position={[-0.03, 0.03, 0.02]}>
+            <sphereGeometry args={[0.025, 8, 8]} />
+            <meshStandardMaterial color="#84cc16" />
+          </mesh>
+        </group>
+      </group>
 
       {/* People Seated and Gathering on the Stepped Pyramid Ledges */}
       {hasVisitors && (
         <group>
-          {/* Seated on Tier 1 Front */}
-          <group position={[0.6, -0.05, 1.4]} rotation={[0, 0, 0]}>
+          {/* Seated on Tier 1 Front Ledge (Y = 0.25m) */}
+          <group position={[0.7, 0.24, 1.35]} rotation={[0, 0, 0]}>
             <StylizedHuman3D
               scale={0.78}
               shirtColor="#f59e0b"
@@ -228,8 +352,8 @@ export const PyramidTieredSquareSeating3D: React.FC<{
             />
           </group>
 
-          {/* Seated on Tier 2 Left */}
-          <group position={[-1.0, 0.18, 0]} rotation={[0, Math.PI / 2, 0]}>
+          {/* Seated on Tier 2 Left Ledge (Y = 0.50m) */}
+          <group position={[-0.95, 0.48, 0]} rotation={[0, Math.PI / 2, 0]}>
             <StylizedHuman3D
               scale={0.78}
               shirtColor="#06b6d4"
@@ -239,8 +363,8 @@ export const PyramidTieredSquareSeating3D: React.FC<{
             />
           </group>
 
-          {/* Seated on Top Platform */}
-          <group position={[0, 0.68, 0]} rotation={[0, -Math.PI / 4, 0]}>
+          {/* Seated PROPERLY on Top Platform (Tier 4 top surface Y = 1.00m) */}
+          <group position={[0, 0.98, 0]} rotation={[0, -Math.PI / 4, 0]}>
             <StylizedHuman3D
               scale={0.75}
               shirtColor="#8b5cf6"
@@ -251,14 +375,12 @@ export const PyramidTieredSquareSeating3D: React.FC<{
           </group>
         </group>
       )}
-
-
     </group>
   );
 };
 
 // ------------------------------------------------------------
-// 4. PICNIC BLANKET WITH FAMILY
+// 4. PICNIC BLANKET WITH FAMILY & JUICE PICNIC FEAST
 // ------------------------------------------------------------
 export const PicnicBlanketFamily3D: React.FC<{
   position?: [number, number, number];
@@ -267,18 +389,57 @@ export const PicnicBlanketFamily3D: React.FC<{
     <group position={position}>
       {/* Red & White Checkered Blanket */}
       <mesh receiveShadow position={[0, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0.2]}>
-        <planeGeometry args={[2.0, 1.8]} />
+        <planeGeometry args={[2.2, 2.0]} />
         <meshStandardMaterial color="#dc2626" roughness={0.8} />
       </mesh>
 
       {/* Picnic Basket & Props */}
-      <mesh castShadow position={[-0.4, 0.15, 0]}>
-        <boxGeometry args={[0.4, 0.25, 0.3]} />
-        <meshStandardMaterial color="#b45309" roughness={0.8} />
-      </mesh>
+      <group position={[-0.5, 0, 0]}>
+        <mesh castShadow position={[0, 0.15, 0]}>
+          <boxGeometry args={[0.4, 0.25, 0.3]} />
+          <meshStandardMaterial color="#b45309" roughness={0.8} />
+        </mesh>
+      </group>
 
-      {/* Mother & Child Seated on Blanket */}
-      <group position={[0.3, 0.04, 0.3]} rotation={[0, -0.6, 0]}>
+      {/* Delicious Food & Juices on the Picnic Blanket */}
+      <group position={[0, 0.04, 0]}>
+        {/* Juice Bottles (Tropical Mango & Berry Punch) */}
+        <mesh castShadow position={[-0.15, 0.12, -0.2]}>
+          <cylinderGeometry args={[0.04, 0.045, 0.24, 10]} />
+          <meshStandardMaterial color="#f97316" transparent opacity={0.85} />
+        </mesh>
+        <mesh castShadow position={[0.05, 0.11, -0.25]}>
+          <cylinderGeometry args={[0.035, 0.04, 0.22, 10]} />
+          <meshStandardMaterial color="#ec4899" transparent opacity={0.85} />
+        </mesh>
+
+        {/* Cups with Straws */}
+        <group position={[-0.05, 0.06, 0.15]}>
+          <mesh>
+            <cylinderGeometry args={[0.03, 0.02, 0.11, 8]} />
+            <meshStandardMaterial color="#38bdf8" transparent opacity={0.75} />
+          </mesh>
+          <mesh position={[0.01, 0.07, 0]} rotation={[0, 0, -0.2]}>
+            <cylinderGeometry args={[0.004, 0.004, 0.14, 6]} />
+            <meshStandardMaterial color="#fde047" />
+          </mesh>
+        </group>
+
+        {/* Fresh Fruit Dish (Watermelon Slices) */}
+        <group position={[0.25, 0.02, 0.05]}>
+          <mesh receiveShadow>
+            <cylinderGeometry args={[0.14, 0.14, 0.02, 14]} />
+            <meshStandardMaterial color="#ffffff" />
+          </mesh>
+          <mesh position={[0, 0.03, 0]} rotation={[0, 0.5, 0]}>
+            <coneGeometry args={[0.06, 0.04, 3]} />
+            <meshStandardMaterial color="#ef4444" />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Mother & Child Seated Joyfully on Blanket */}
+      <group position={[0.45, 0.04, 0.35]} rotation={[0, -0.6, 0]}>
         <StylizedHuman3D
           scale={0.82}
           shirtColor="#f43f5e"
@@ -287,7 +448,7 @@ export const PicnicBlanketFamily3D: React.FC<{
           isSeated={true}
         />
       </group>
-      <group position={[0.2, 0.04, -0.3]} rotation={[0, 0.8, 0]}>
+      <group position={[0.35, 0.04, -0.35]} rotation={[0, 0.8, 0]}>
         <StylizedHuman3D
           scale={0.52}
           shirtColor="#facc15"

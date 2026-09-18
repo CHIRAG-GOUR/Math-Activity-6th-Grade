@@ -669,11 +669,11 @@ export const FullQuadrant2Botanical3D: React.FC<{
         </group>
       )}
 
-      {/* 5. Tree Garden, Benches & Botanical Staff */}
+      {/* 5. Tree Garden, Benches & Botanical Staff (Trees strictly at backside perimeter) */}
       {showComplete && (
         <group scale={[stageScale, stageScale, stageScale]}>
           <ShadyTree3D position={[-3.8, 0, -3.8]} scale={1.15} />
-          <ShadyTree3D position={[3.8, 0, 3.8]} scale={1.2} />
+          <ShadyTree3D position={[-3.8, 0, -1.6]} scale={1.05} />
           <ParkBench3D position={[0, 0, -3.8]} rotationY={0} hasVisitor={showStaff} />
           <ParkBench3D position={[3.8, 0, 0]} rotationY={-Math.PI / 2} hasVisitor={showStaff} />
         </group>

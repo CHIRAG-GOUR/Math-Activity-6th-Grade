@@ -336,6 +336,42 @@ const MASTER_CROWD_DEFINITIONS: Array<{
     targetActivity: 'Viewing Grand Tiered Fountain',
     speed: 0.9,
   },
+  {
+    id: 'crowd_cyclist_kid_1',
+    name: 'Toby (Cycle Kid)',
+    type: 'cyclist',
+    spawnRound: 4,
+    waitingPos: [-0.75, 0.02, -22.6], // Waiting in left line outside gate
+    waitingRotY: 0,
+    shirtColor: '#0284c7',
+    pantsColor: '#1e293b',
+    hairColor: '#451a03',
+    skinColor: '#fcd34d',
+    hasHeadband: false,
+    enterPath: [
+      'gate_north',
+      'axis_y_n2',
+      'axis_y_n1',
+      'plaza_n',
+      'plaza_e',
+      'axis_x_e1',
+      'axis_x_e2',
+      'gate_east',
+      'cycle_east_mid',
+      'cycle_se_1',
+      'cycle_se_2',
+      'cycle_south_mid',
+      'cycle_sw_1',
+      'cycle_sw_2',
+      'cycle_west_mid',
+      'cycle_nw_1',
+      'cycle_nw_2',
+      'cycle_north_mid',
+      'gate_north',
+    ],
+    targetActivity: 'Cycling along paved park promenades and cycle lane',
+    speed: 2.0,
+  },
 ];
 
 export class ParkSimulationEngine {
@@ -558,7 +594,7 @@ export class ParkSimulationEngine {
       citizen.currentPath = [...def.enterPath];
       citizen.pathIndex = 0;
       citizen.segmentProgress = 0;
-      citizen.state = def.type === 'child' ? 'jogging' : 'walking';
+      citizen.state = def.type === 'cyclist' ? 'cycling' : def.type === 'child' ? 'jogging' : 'walking';
       citizen.restTimer = 0;
     }
   }

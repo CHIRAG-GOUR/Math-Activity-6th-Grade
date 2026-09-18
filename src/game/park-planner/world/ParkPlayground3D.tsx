@@ -770,9 +770,6 @@ export const FullQuadrant1Playground3D: React.FC<{
         <group scale={[stageScale, stageScale, stageScale]}>
           {/* Beautiful Pond (compact and centered in lawn) */}
           <PlaygroundPond3D position={[2.2, 0, 2.4]} />
-          {/* Shade Trees */}
-          <ShadyTree3D position={[-3.8, 0, -3.8]} scale={1.1} />
-          <ShadyTree3D position={[-3.8, 0, 3.8]} scale={1.0} />
           {/* Parent Viewing Benches */}
           <ParkBench3D position={[0, 0, -3.8]} rotationY={0} hasVisitor={showActiveChildren} />
           <ParkBench3D position={[-3.8, 0, 0]} rotationY={Math.PI / 2} hasVisitor={showActiveChildren} />

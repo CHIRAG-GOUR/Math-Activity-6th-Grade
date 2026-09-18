@@ -254,22 +254,15 @@ export const ParkScene3D: React.FC<ParkScene3DProps> = ({ onCoordinateClick }) =
             isBuilt={qb?.q4Built || false}
           />
 
-          {/* Outer Perimeter Street Trees */}
+          {/* Outer Perimeter Street Trees (Quadrant 4 shade trees & Quadrant 2 backside trees only; zero trees behind Q3 sports complex, zero in Q1, zero near fountain) */}
           {[
-            [-15, -15],
-            [15, -15],
-            [-15, 15],
-            [15, 15],
-            [-15, 0],
-            [15, 0],
-            [0, -15],
-            [0, 15],
-            [-11, -7],
-            [11, -7],
-            [-11, 7],
-            [11, 7],
+            [15, 15],   // Quadrant IV sidewalk shade
+            [11, 7],    // Quadrant IV boundary shade
+            [15, 0],    // Quadrant IV street shade
+            [-15, -15], // Quadrant II far backside corner
+            [-11, -7],  // Quadrant II backside perimeter
           ].map(([tx, tz], i) => (
-            <ShadyTree3D key={`outer_tree_${i}`} position={[tx, 0, tz]} scale={1.0 + (i % 3) * 0.15} />
+            <ShadyTree3D key={`outer_tree_${i}`} position={[tx, 0, tz]} scale={1.0 + (i % 2) * 0.15} />
           ))}
 
           {/* Living Park Citizens & Grand Opening Traffic Simulation */}
