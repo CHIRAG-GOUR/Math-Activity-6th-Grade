@@ -41,33 +41,33 @@ export const RatioRushGame: React.FC = () => {
           <RatioRushScene3D />
         </div>
 
-        {/* Floating Top 2-Player Production Status & Help (Light Theme) */}
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white/95 backdrop-blur-md px-3.5 py-1.5 rounded-2xl border border-slate-300 shadow-xl">
-          <div className="px-3 py-1 rounded-xl bg-amber-500 text-slate-950 text-xs font-black uppercase tracking-wider flex items-center gap-1.5 shadow-sm">
-            <Users className="w-3.5 h-3.5" />
+        {/* Floating Top 2-Player Production Status & Help (Neo-Brutalism) */}
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 bg-white px-3.5 py-1.5 rounded-xl border-3 border-black shadow-[4px_4px_0px_#000000]">
+          <div className="px-3 py-1 rounded-lg bg-yellow-400 text-black text-xs font-black uppercase tracking-wider flex items-center gap-1.5 border-2 border-black shadow-[2px_2px_0px_#000000]">
+            <Users className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>2-PLAYER STUDIO DUEL</span>
           </div>
 
-          <div className="w-[1px] h-4 bg-slate-300 mx-0.5" />
+          <div className="w-[2px] h-5 bg-black mx-0.5" />
 
           <button
             onClick={() => setShowBriefingModal(true)}
-            className="p-1 rounded-lg text-amber-700 hover:bg-amber-50 transition-all cursor-pointer"
+            className="p-1 rounded-lg bg-white hover:bg-yellow-200 border-2 border-black text-black shadow-[2px_2px_0px_#000000] active:shadow-none transition-all cursor-pointer"
             title="Production Shoot Briefing"
           >
-            <HelpCircle className="w-4 h-4" />
+            <HelpCircle className="w-4 h-4 stroke-[2.5]" />
           </button>
         </div>
 
-        {/* ── Side HUD Consoles (Left & Right — Always 2-Player Duel) ── */}
-        <div className="absolute inset-x-3 bottom-3 top-14 pointer-events-none flex items-end justify-between gap-4 z-10">
+        {/* ── Side HUD Consoles (Left & Right — Always 2-Player Duel, Larger Size) ── */}
+        <div className="absolute inset-x-4 bottom-3 top-14 pointer-events-none flex items-end justify-between gap-4 z-10">
           {/* Left Console: Blue Studio Crew */}
-          <div className="w-[340px] max-w-[45vw] h-auto max-h-[82vh] pointer-events-auto flex flex-col gap-2">
+          <div className="w-[390px] max-w-[46vw] h-auto max-h-[84vh] pointer-events-auto flex flex-col gap-2">
             <TeamStudioConsole team="blue" />
           </div>
 
           {/* Right Console: Red Studio Crew */}
-          <div className="w-[340px] max-w-[45vw] h-auto max-h-[82vh] pointer-events-auto flex flex-col gap-2">
+          <div className="w-[390px] max-w-[46vw] h-auto max-h-[84vh] pointer-events-auto flex flex-col gap-2">
             <TeamStudioConsole team="red" />
           </div>
         </div>
