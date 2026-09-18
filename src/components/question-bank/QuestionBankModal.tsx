@@ -13,6 +13,7 @@ import {
   duplicateTeacherQuestion,
   exportQuestionsToExcel,
   generateExcelTemplateBlob,
+  generateExcelDemoBlob,
 } from '@/services/questionBankService';
 import {
   ACTIVITIES_REGISTRY,
@@ -239,12 +240,16 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
 
   const handleDownloadDemoExcel = () => {
     try {
+      const blob = generateExcelDemoBlob();
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = '/templates/Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      a.href = url;
       a.download = 'Skillizee_Grade6_Math_Questions_Demo.xlsx';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+      showToast('✓ Grade 6 Demo Excel sheet downloaded!');
     } catch (err: any) {
       alert('Demo download failed: ' + err.message);
     }
@@ -477,7 +482,15 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
               title="Download professional 4-sheet Excel template (.xlsx)"
               className="px-3.5 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-slate-900"
             >
-              <span>📄</span> Download Excel Template
+              <span>📄</span> Template
+            </button>
+
+            <button
+              onClick={handleDownloadDemoExcel}
+              title="Download pre-filled Grade 6 Demo Excel sheet (.xlsx)"
+              className="px-3.5 py-2 bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-emerald-700"
+            >
+              <span>✨</span> Demo Sheet
             </button>
 
             <button

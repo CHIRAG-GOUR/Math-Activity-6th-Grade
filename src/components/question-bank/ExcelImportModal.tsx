@@ -4,6 +4,7 @@ import {
   parseAndValidateExcel,
   commitExcelImport,
   generateExcelTemplateBlob,
+  generateExcelDemoBlob,
   generateErrorReportBlob,
 } from '@/services/questionBankService';
 import { ACTIVITIES_REGISTRY, getActivityById, validateActivityTopicPair } from '@/services/activityRegistry';
@@ -48,12 +49,15 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
   const handleDownloadDemoExcel = () => {
     try {
+      const blob = generateExcelDemoBlob();
+      const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
-      a.href = '/templates/Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      a.href = url;
       a.download = 'Skillizee_Grade6_Math_Questions_Demo.xlsx';
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     } catch (err: any) {
       setErrorMessage('Failed to download demo sheet: ' + err.message);
     }

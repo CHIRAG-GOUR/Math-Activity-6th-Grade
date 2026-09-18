@@ -1032,6 +1032,455 @@ export function generateExcelTemplateBlob(): Blob {
 }
 
 // ------------------------------------------------------------
+// Multi-Sheet Pre-Filled Demo Excel Sheet Generator
+// ------------------------------------------------------------
+
+export function generateExcelDemoBlob(): Blob {
+  const workbook = XLSX.utils.book_new();
+
+  // ── SHEET 1: QUESTIONS (Pre-filled with 26 Grade 6 demo questions across all 13 activities) ──
+  const questionsAOA: any[][] = [
+    ['SKILLIZEE ARCADE — GRADE 6 DEMO QUESTIONS DATASET'],
+    ['This demo sheet contains pre-filled questions across all 13 arcade activities for testing and direct import into Skillizee Arcade.'],
+    [], // Blank separator
+    [
+      'Activity',
+      'Topic',
+      'Question',
+      'Option A',
+      'Option B',
+      'Option C',
+      'Option D',
+      'Correct Answer',
+      'Explanation',
+      'Difficulty',
+      'Tags',
+    ],
+    // 01: Math Escape Vault
+    [
+      'Math Escape Vault',
+      'Place Value & Decimals',
+      'In the number 542,891, what is the place value of the digit 4?',
+      '400',
+      '4,000',
+      '40,000',
+      '400,000',
+      'C',
+      'The digit 4 is in the ten thousands place, so its value is 40,000.',
+      'Easy',
+      'Place Value, Decimals, Vault',
+    ],
+    [
+      'Math Escape Vault',
+      'Place Value & Decimals',
+      'Evaluate the vault security pin code: 0.6 × 0.08',
+      '0.48',
+      '0.048',
+      '0.0048',
+      '4.8',
+      'B',
+      '6 × 8 = 48. With 1 + 2 = 3 decimal places, the answer is 0.048.',
+      'Medium',
+      'Decimals, Multiplication',
+    ],
+    // 02: The Chocolate Factory
+    [
+      'The Chocolate Factory',
+      'Fractions',
+      'A master chocolatier uses 3/4 kg of cocoa for one batch. How much cocoa is needed for 4 batches?',
+      '2 kg',
+      '2 1/2 kg',
+      '3 kg',
+      '3 1/4 kg',
+      'C',
+      '4 × 3/4 = 12/4 = 3 kg.',
+      'Easy',
+      'Fractions, Multiplication, Chocolate',
+    ],
+    [
+      'The Chocolate Factory',
+      'Fractions',
+      'Simplify the fraction ratio of caramel fudge: 18/24',
+      '2/3',
+      '3/4',
+      '5/6',
+      '7/8',
+      'B',
+      'Dividing numerator and denominator by GCD (6) gives 3/4.',
+      'Easy',
+      'Fractions, Simplification',
+    ],
+    // 03: Ratio Rush
+    [
+      'Ratio Rush',
+      'Ratios, Rates & Proportions',
+      'A film crew has 3 lighting rigs for every 5 cameras. If there are 25 cameras, how many lighting rigs are on set?',
+      '10',
+      '12',
+      '15',
+      '18',
+      'C',
+      'Scale factor = 25 ÷ 5 = 5. Rigs = 3 × 5 = 15.',
+      'Easy',
+      'Ratio, Scaling, Film Studio',
+    ],
+    [
+      'Ratio Rush',
+      'Ratios, Rates & Proportions',
+      'A soundstage boom mic records 180 audio frames in 3 seconds. What is the recording rate per second?',
+      '45 frames/s',
+      '50 frames/s',
+      '60 frames/s',
+      '90 frames/s',
+      'C',
+      'Unit rate = 180 ÷ 3 = 60 frames per second.',
+      'Easy',
+      'Unit Rate, Speed, Audio',
+    ],
+    // 04: Shape Shifter Arena
+    [
+      'Shape Shifter Arena',
+      'Geometry & Symmetry',
+      'What is the area of a neon battle arena rectangle with length 14 m and width 6 m?',
+      '72 m²',
+      '80 m²',
+      '84 m²',
+      '96 m²',
+      'C',
+      'Area = length × width = 14 × 6 = 84 m².',
+      'Easy',
+      'Area, Geometry, Rectangle',
+    ],
+    [
+      'Shape Shifter Arena',
+      'Geometry & Symmetry',
+      'How many lines of symmetry does a regular hexagon shield possess?',
+      '3',
+      '4',
+      '5',
+      '6',
+      'D',
+      'A regular polygon with n sides has n lines of symmetry. For a hexagon, n = 6.',
+      'Medium',
+      'Symmetry, Polygons, Hexagon',
+    ],
+    // 05: Time Warp Train
+    [
+      'Time Warp Train',
+      'Time & Measurement',
+      'The express steam train departs at 08:45 and reaches the next station at 11:15. How long was the journey?',
+      '2 hours 15 mins',
+      '2 hours 30 mins',
+      '2 hours 45 mins',
+      '3 hours',
+      'B',
+      'From 08:45 to 11:15 is 2 hours and 30 minutes.',
+      'Easy',
+      'Elapsed Time, Clock, Train',
+    ],
+    [
+      'Time Warp Train',
+      'Time & Measurement',
+      'Convert 4.5 kilometers of railway track into meters.',
+      '450 m',
+      '4,050 m',
+      '4,500 m',
+      '45,000 m',
+      'C',
+      '1 km = 1,000 m. 4.5 × 1,000 = 4,500 m.',
+      'Easy',
+      'Metric Conversion, Distance',
+    ],
+    // 06: Formula 1 Speedway
+    [
+      'Formula 1 Speedway',
+      'Algebra & Sequences',
+      'Solve for the race car turbo boost level: 3x + 7 = 28',
+      'x = 5',
+      'x = 6',
+      'x = 7',
+      'x = 8',
+      'C',
+      '3x = 28 - 7 = 21, therefore x = 21 ÷ 3 = 7.',
+      'Medium',
+      'Linear Equations, Algebra, Racing',
+    ],
+    [
+      'Formula 1 Speedway',
+      'Algebra & Sequences',
+      'Find the next term in the pit stop speed pattern: 4, 9, 14, 19, ___',
+      '23',
+      '24',
+      '25',
+      '26',
+      'B',
+      'The sequence increases by +5 each step: 19 + 5 = 24.',
+      'Easy',
+      'Number Sequences, Patterns',
+    ],
+    // 07: Deep Sea Diver
+    [
+      'Deep Sea Diver',
+      'Integers & Negative Numbers',
+      'A submarine dives from -45 meters down to -120 meters. What is the change in submarine depth?',
+      '-165 m',
+      '-75 m',
+      '+75 m',
+      '+165 m',
+      'B',
+      'Change = -120 - (-45) = -120 + 45 = -75 meters.',
+      'Medium',
+      'Integers, Subtraction, Submarine',
+    ],
+    [
+      'Deep Sea Diver',
+      'Integers & Negative Numbers',
+      'Calculate the submarine cabin pressure differential: (-15) + (-28)',
+      '-13',
+      '-43',
+      '13',
+      '43',
+      'B',
+      'Adding two negatives: -15 + -28 = -43.',
+      'Easy',
+      'Negative Numbers, Addition',
+    ],
+    // 08: Percentage Harvest
+    [
+      'Percentage Harvest',
+      'Percentages',
+      'Out of 250 freshly harvested golden apples, 20% are packed for VIP delivery. How many apples is that?',
+      '40',
+      '45',
+      '50',
+      '60',
+      'C',
+      '20% of 250 = 0.20 × 250 = 50 apples.',
+      'Easy',
+      'Percentages, Harvest, Apples',
+    ],
+    [
+      'Percentage Harvest',
+      'Percentages',
+      'A farm basket price of $80 is discounted by 15%. What is the new sale price?',
+      '$65',
+      '$68',
+      '$70',
+      '$72',
+      'B',
+      'Discount = 15% of $80 = $12. New price = $80 - $12 = $68.',
+      'Medium',
+      'Discount, Percentages, Sale',
+    ],
+    // 09: Castle Defender
+    [
+      'Castle Defender',
+      'Factors, Multiples & Primes',
+      'What is the Greatest Common Divisor (GCD) of 36 and 54 to reinforce the fortress gate?',
+      '9',
+      '12',
+      '18',
+      '27',
+      'C',
+      'Factors of 36: 1, 2, 3, 4, 6, 9, 12, 18, 36. Factors of 54: 1, 2, 3, 6, 9, 18, 27, 54. GCD = 18.',
+      'Medium',
+      'GCD, Factors, Castle',
+    ],
+    [
+      'Castle Defender',
+      'Factors, Multiples & Primes',
+      'Which of the following numbers is prime?',
+      '51',
+      '57',
+      '61',
+      '63',
+      'C',
+      '61 has only 1 and 61 as factors. (51 = 3×17, 57 = 3×19, 63 = 3×21).',
+      'Medium',
+      'Prime Numbers, Factors',
+    ],
+    // 10: Space Station Alpha
+    [
+      'Space Station Alpha',
+      'Angles & Triangles',
+      'Two angles of a navigation triangle measure 65° and 45°. What is the third angle?',
+      '60°',
+      '70°',
+      '80°',
+      '90°',
+      'B',
+      'Sum of angles in a triangle = 180°. Third angle = 180° - (65° + 45°) = 180° - 110° = 70°.',
+      'Easy',
+      'Triangles, Angles, Space Station',
+    ],
+    [
+      'Space Station Alpha',
+      'Angles & Triangles',
+      'What type of angle measures exactly 135°?',
+      'Acute angle',
+      'Right angle',
+      'Obtuse angle',
+      'Reflex angle',
+      'C',
+      'An angle between 90° and 180° is an obtuse angle.',
+      'Easy',
+      'Angle Classification, Geometry',
+    ],
+    // 11: Market Tycoon
+    [
+      'Market Tycoon',
+      'Money, Profit & Loss',
+      'A shopkeeper buys a trading card for $45 and sells it for $63. What is the profit made?',
+      '$16',
+      '$18',
+      '$20',
+      '$22',
+      'B',
+      'Profit = Selling Price - Cost Price = $63 - $45 = $18.',
+      'Easy',
+      'Profit and Loss, Money, Trading',
+    ],
+    [
+      'Market Tycoon',
+      'Money, Profit & Loss',
+      'If 6 arcade game tokens cost $9.00, what is the cost of 10 tokens?',
+      '$13.50',
+      '$15.00',
+      '$16.00',
+      '$18.00',
+      'B',
+      'Cost per token = $9.00 ÷ 6 = $1.50. Cost for 10 = $1.50 × 10 = $15.00.',
+      'Easy',
+      'Unit Price, Proportions, Money',
+    ],
+    // 12: Park Planner
+    [
+      'Park Planner',
+      'Position & Transformation',
+      'When the fountain coordinate (4, -3) is translated 3 units left and 5 units up, what is its new location?',
+      '(1, 2)',
+      '(7, 2)',
+      '(1, -8)',
+      '(7, -8)',
+      'A',
+      'New x = 4 - 3 = 1. New y = -3 + 5 = 2. New position = (1, 2).',
+      'Medium',
+      'Transformations, Translation, Grid',
+    ],
+    [
+      'Park Planner',
+      'Position & Transformation',
+      'In which quadrant does the park bench coordinate (-5, 6) lie?',
+      'Quadrant I',
+      'Quadrant II',
+      'Quadrant III',
+      'Quadrant IV',
+      'B',
+      'Negative x and positive y is located in Quadrant II.',
+      'Easy',
+      'Cartesian Plane, Quadrants, Coordinates',
+    ],
+    // 13: GraphWorks
+    [
+      'GraphWorks',
+      'Data Handling & Graphs',
+      'Find the median of this dataset of student high scores: 12, 15, 18, 22, 29, 31, 35',
+      '18',
+      '20',
+      '22',
+      '29',
+      'C',
+      'The numbers are in order; the middle value (4th of 7 items) is 22.',
+      'Easy',
+      'Statistics, Median, Graphs',
+    ],
+    [
+      'GraphWorks',
+      'Data Handling & Graphs',
+      'A bar chart shows daily arcade visits: Mon (40), Tue (50), Wed (60), Thu (70), Fri (80). What is the mean daily visit count?',
+      '55 visits',
+      '60 visits',
+      '65 visits',
+      '70 visits',
+      'B',
+      'Mean = (40 + 50 + 60 + 70 + 80) ÷ 5 = 300 ÷ 5 = 60 visits.',
+      'Easy',
+      'Mean, Data Handling, Bar Chart',
+    ],
+  ];
+
+  const wsQuestions = XLSX.utils.aoa_to_sheet(questionsAOA);
+
+  wsQuestions['!cols'] = [
+    { wch: 28 }, // Activity
+    { wch: 28 }, // Topic
+    { wch: 65 }, // Question
+    { wch: 20 }, // Option A
+    { wch: 20 }, // Option B
+    { wch: 20 }, // Option C
+    { wch: 20 }, // Option D
+    { wch: 16 }, // Correct Answer
+    { wch: 55 }, // Explanation
+    { wch: 14 }, // Difficulty
+    { wch: 30 }, // Tags
+  ];
+
+  wsQuestions['!views'] = [{ state: 'frozen', ySplit: 4 }];
+  XLSX.utils.book_append_sheet(workbook, wsQuestions, 'Questions');
+
+  // ── SHEET 2: INSTRUCTIONS ──
+  const instructionsAOA: any[][] = [
+    ['SKILLIZEE ARCADE — TEACHER QUESTION IMPORT INSTRUCTIONS'],
+    ['Follow these simple steps to import custom questions for your students.'],
+    [],
+    ['Step', 'Action', 'Details & Rules'],
+    ['Step 1', 'Choose the Activity', 'Select from the 13 official arcade games (e.g. "GraphWorks" or "The Chocolate Factory").'],
+    ['Step 2', 'Verify the Math Topic', 'The topic must match the activity\'s curriculum subject (refer to the "Activity List" sheet).'],
+    ['Step 3', 'Enter Your Question', 'Write the complete question prompt. Mathematical symbols (+, -, ×, ÷, ², √, etc.) are fully supported.'],
+    ['Step 4', 'Enter Four Options', 'You must provide all 4 distinct answer choices: Option A, Option B, Option C, and Option D.'],
+    ['Step 5', 'Select Correct Answer', 'Enter "A", "B", "C", or "D" under the Correct Answer column.'],
+    ['Step 6', 'Add Feedback & Difficulty', 'Optionally add an explanation (displayed as learning feedback) and set Difficulty to Easy, Medium, or Hard.'],
+    ['Step 7', 'Save the Workbook', 'Save your file as .xlsx or .csv.'],
+    ['Step 8', 'Upload into Arcade', 'Open the Question Manager in Skillizee Arcade, click "Import Excel", preview verified questions, and click Import!'],
+    [],
+    ['KEY SYSTEM RULES:'],
+    ['1. One Question = One Activity: Questions strictly belong to the activity you assign them to.'],
+    ['2. Teacher Priority: When you start a 5, 10, or 15 question game, your teacher questions are automatically prioritized.'],
+    ['3. Excel Tolerance: The importer ignores empty rows and automatically identifies columns by their header names.'],
+  ];
+
+  const wsInstructions = XLSX.utils.aoa_to_sheet(instructionsAOA);
+  wsInstructions['!cols'] = [{ wch: 12 }, { wch: 28 }, { wch: 75 }];
+  XLSX.utils.book_append_sheet(workbook, wsInstructions, 'Instructions');
+
+  // ── SHEET 3: ACTIVITY LIST (Source of Truth) ──
+  const activityListData = ACTIVITIES_REGISTRY.map((act) => ({
+    'Cabinet #': `Cab #${act.number}`,
+    'Activity Name': act.name,
+    'Mathematics Topic': act.topic,
+    'Dropdown Value (Activity — Topic)': `${act.name} — ${act.shortTopic}`,
+    'Activity ID': act.id,
+    'Topic ID': act.topicId,
+  }));
+
+  const wsActivityList = XLSX.utils.json_to_sheet(activityListData);
+  wsActivityList['!cols'] = [
+    { wch: 12 },
+    { wch: 30 },
+    { wch: 32 },
+    { wch: 36 },
+    { wch: 22 },
+    { wch: 22 },
+  ];
+  XLSX.utils.book_append_sheet(workbook, wsActivityList, 'Activity List');
+
+  const excelBuffer = XLSX.write(workbook, { bookType: 'xlsx', type: 'array' });
+  return new Blob([excelBuffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  });
+}
+
+// ------------------------------------------------------------
 // Error Report Generator (.xlsx)
 // ------------------------------------------------------------
 
