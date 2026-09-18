@@ -237,6 +237,19 @@ export const QuestionBankModal: React.FC<QuestionBankModalProps> = ({
     }
   };
 
+  const handleDownloadDemoExcel = () => {
+    try {
+      const a = document.createElement('a');
+      a.href = '/templates/Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      a.download = 'Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err: any) {
+      alert('Demo download failed: ' + err.message);
+    }
+  };
+
   const toggleTeacherSelect = (id: string) => {
     setSelectedTeacherIds((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id]

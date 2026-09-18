@@ -46,6 +46,19 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleDownloadDemoExcel = () => {
+    try {
+      const a = document.createElement('a');
+      a.href = '/templates/Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      a.download = 'Skillizee_Grade6_Math_Questions_Demo.xlsx';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    } catch (err: any) {
+      setErrorMessage('Failed to download demo sheet: ' + err.message);
+    }
+  };
+
   const handleDownloadTemplate = () => {
     try {
       const blob = generateExcelTemplateBlob();
@@ -360,13 +373,22 @@ export const ExcelImportModal: React.FC<ExcelImportModalProps> = ({
                     Download our multi-sheet template with step-by-step instructions, clean entry rows, reference examples, and activity dropdowns.
                   </p>
                 </div>
-                <button
-                  onClick={handleDownloadTemplate}
-                  type="button"
-                  className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-2 whitespace-nowrap"
-                >
-                  <Download className="w-4 h-4" /> Download .xlsx Template
-                </button>
+                <div className="flex flex-wrap items-center gap-2">
+                  <button
+                    onClick={handleDownloadTemplate}
+                    type="button"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 whitespace-nowrap"
+                  >
+                    <Download className="w-3.5 h-3.5" /> Download .xlsx Template
+                  </button>
+                  <button
+                    onClick={handleDownloadDemoExcel}
+                    type="button"
+                    className="px-4 py-2 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5 border border-slate-900 whitespace-nowrap"
+                  >
+                    <FileSpreadsheet className="w-3.5 h-3.5" /> Download Demo Sheet (.xlsx)
+                  </button>
+                </div>
               </div>
 
               {/* Upload Dropzone */}
