@@ -2,11 +2,10 @@
 // RATIO RUSH — THE SCENE & QUESTION REHEARSAL THE CAST PERFORMS
 //
 // Continuous, purposeful acting in EVERY question and scene:
-// 1. Question Phase: Actors actively rehearse and discuss the current
-//    question, walk between stage marks, gesture expressively, react to
-//    answers (celebrating on correct, recalculating on incorrect), and display
-//    comic dialogue balloons.
-// 2. Filming Take Phase: The complete scripted 26-second movie scene.
+// 1. Question Phase: Actors actively rehearse and perform the specific
+//    scene corresponding to the 5 questions (1: Rendezvous, 2: Warning,
+//    3: Villain Confrontation, 4: UFC 1v1 Round 1, 5: Knockout Climax).
+// 2. Filming Take Phase: The complete continuous 30-second master film.
 // ============================================================
 
 import * as THREE from 'three';
@@ -24,10 +23,12 @@ export const sceneClock: { time: number | null } = { time: null };
 /** Active question context updated dynamically per question */
 export const activeQuestionContext: {
   question: RatioQuestion | null;
+  stageNumber: number;
   feedbackStatus: 'idle' | 'correct' | 'incorrect';
   feedbackMessage: string;
 } = {
   question: null,
+  stageNumber: 1,
   feedbackStatus: 'idle',
   feedbackMessage: '',
 };
@@ -68,7 +69,7 @@ export interface Beat {
   gesture: Partial<Record<ActorRole, Gesture>>;
 }
 
-/** Opening marks — spacious, professional cinematic staging (no crowding!) */
+/** Opening marks — spacious, professional cinematic staging (2.7m clearance!) */
 export const OPENING_MARKS: Record<ActorRole, [number, number]> = {
   lead_actor: [-1.6, -2.2],
   lead_actress: [1.1, -2.2],
@@ -89,7 +90,7 @@ export const ACTOR_STAGE_POS: Record<ActorRole, THREE.Vector2> = {
 export const SCENE_LENGTH = 30;
 export const QUESTION_CYCLE_LENGTH = 16;
 
-/** Master scripted scene: Full cinematic story & 10-second UFC 1v1 fight sequence */
+/** Master scripted scene: Full 30-second continuous movie story & 10-second UFC 1v1 fight sequence */
 export const SCENE: Beat[] = [
   // ── 1. THE RENDEZVOUS (0.0s – 4.5s) ──
   {
@@ -191,36 +192,132 @@ export const SCENE: Beat[] = [
   },
 ];
 
-/** Real movie dialogue & stunt rehearsal banter for each question */
+/** 
+ * Dedicated scene shoots for each of the 5 questions in the movie production:
+ * Question 1 -> Scene 1: The Rendezvous & Master Reel
+ * Question 2 -> Scene 2: The Catwalk Warning & Blackout Threat
+ * Question 3 -> Scene 3: Villain Storms the Set & Death Threat
+ * Question 4 -> Scene 4: Hero Shields Heroine & 1v1 UFC Fight Round 1 (Slip, Weave & Strikes)
+ * Question 5 -> Scene 5: 1v1 UFC Fight Round 2 (Knockout Uppercut & Victory)
+ */
 export function questionBeatsFor(
   q: RatioQuestion | null,
-  feedback: 'idle' | 'correct' | 'incorrect'
+  feedback: 'idle' | 'correct' | 'incorrect',
+  stageNumber = 1
 ): Beat[] {
+  const stage = q?.stage || stageNumber || activeQuestionContext.stageNumber || 1;
+
+  // ── Correct Answer Celebration Beats ──
   if (feedback === 'correct') {
-    return [
-      {
-        start: 0,
-        end: 2.0,
-        label: 'TAKE APPROVED — HIGH FIVE',
-        speaker: 'lead_actor',
-        line: 'BOOM! Perfect stunt timing! Ready for the camera take!',
-        marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
-        focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
-        gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
-      },
-      {
-        start: 2.0,
-        end: 4.0,
-        label: 'TAKE APPROVED — CELEBRATION',
-        speaker: 'lead_actress',
-        line: 'Scene approved! Advancing to the next stunt cue!',
-        marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
-        focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
-        gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'recoil' },
-      },
-    ];
+    if (stage === 1) {
+      return [
+        {
+          start: 0, end: 2.0,
+          label: 'SCENE 1 APPROVED — HIGH FIVE',
+          speaker: 'lead_actor',
+          line: 'SCENE 1 APPROVED! Master reel secured in the vault!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+          gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
+        },
+        {
+          start: 2.0, end: 4.0,
+          label: 'SCENE 1 APPROVED — CELEBRATION',
+          speaker: 'lead_actress',
+          line: 'Direct cut! Advancing to Scene 2: The Warning!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+          gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'recoil' },
+        },
+      ];
+    } else if (stage === 2) {
+      return [
+        {
+          start: 0, end: 2.0,
+          label: 'SCENE 2 APPROVED — HIGH FIVE',
+          speaker: 'lead_actress',
+          line: 'SCENE 2 APPROVED! Stage lights restored and perimeter safe!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+          gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
+        },
+        {
+          start: 2.0, end: 4.0,
+          label: 'SCENE 2 APPROVED — CELEBRATION',
+          speaker: 'lead_actor',
+          line: 'Awesome work! Cueing Scene 3: Villain Confrontation!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+          gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'recoil' },
+        },
+      ];
+    } else if (stage === 3) {
+      return [
+        {
+          start: 0, end: 2.0,
+          label: 'SCENE 3 APPROVED — DEFENSE READY',
+          speaker: 'lead_actor',
+          line: 'SCENE 3 APPROVED! Defenses holding strong!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+          gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
+        },
+        {
+          start: 2.0, end: 4.0,
+          label: 'SCENE 3 APPROVED — READY FOR FIGHT',
+          speaker: 'lead_actress',
+          line: 'He is closing in! Prepare for the 1v1 UFC battle!',
+          marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
+          focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+          gesture: { lead_actor: 'combat_stance', lead_actress: 'triumph', co_star: 'cheer', villain: 'menace' },
+        },
+      ];
+    } else if (stage === 4) {
+      return [
+        {
+          start: 0, end: 2.0,
+          label: 'SCENE 4 APPROVED — COMBAT STRIKE',
+          speaker: 'lead_actor',
+          line: 'SCENE 4 APPROVED! Counter-strike connected!',
+          marks: { lead_actor: [-0.3, -1.6], lead_actress: [1.3, -2.1], co_star: [2.2, -2.3], villain: [0.8, -1.6] },
+          focus: { lead_actor: 'villain', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+          gesture: { lead_actor: 'combat_stance', lead_actress: 'cheer', co_star: 'cheer', villain: 'fight_block' },
+        },
+        {
+          start: 2.0, end: 4.0,
+          label: 'SCENE 4 APPROVED — FINISH HIM',
+          speaker: 'lead_actress',
+          line: 'Finish him Ravi! Final knockout blow in Scene 5!',
+          marks: { lead_actor: [-0.3, -1.6], lead_actress: [1.3, -2.1], co_star: [2.2, -2.3], villain: [0.8, -1.6] },
+          focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+          gesture: { lead_actor: 'combat_stance', lead_actress: 'triumph', co_star: 'cheer', villain: 'fight_block' },
+        },
+      ];
+    } else {
+      return [
+        {
+          start: 0, end: 2.0,
+          label: 'SCENE 5 APPROVED — KNOCKOUT VICTORY',
+          speaker: 'lead_actor',
+          line: 'KNOCKOUT! Scene 5 WRAPPED! Dev is down!',
+          marks: { lead_actor: [-0.4, -1.7], lead_actress: [0.8, -1.9], villain: [1.3, -1.6] },
+          focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+          gesture: { lead_actor: 'triumph', lead_actress: 'cheer', co_star: 'cheer', villain: 'knocked_out' },
+        },
+        {
+          start: 2.0, end: 4.0,
+          label: 'SCENE 5 APPROVED — ROLL FEATURE FILM',
+          speaker: 'lead_actress',
+          line: "IT'S A WRAP! Roll the full feature film now!",
+          marks: { lead_actor: [-0.4, -1.7], lead_actress: [0.8, -1.9], villain: [1.3, -1.6] },
+          focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+          gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'knocked_out' },
+        },
+      ];
+    }
   }
 
+  // ── Incorrect Retake Beats ──
   if (feedback === 'incorrect') {
     return [
       {
@@ -228,7 +325,7 @@ export function questionBeatsFor(
         end: 4.0,
         label: 'SCENE RETAKE — RESET MARKS',
         speaker: 'lead_actress',
-        line: 'Hold the roll! Check the stunt cues and reset to opening marks!',
+        line: 'Hold the roll! Re-check the stage ratio cues and reset marks!',
         marks: { lead_actress: [1.1, -2.2], lead_actor: [-1.6, -2.2], villain: [3.2, -1.8] },
         focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
         gesture: { lead_actress: 'talk_open', lead_actor: 'plead', villain: 'menace', co_star: 'recoil' },
@@ -236,46 +333,212 @@ export function questionBeatsFor(
     ];
   }
 
+  // ── Idle Rehearsal Scene Shoots (1 to 5) ──
+  if (stage === 1) {
+    // ── SCENE 1: THE RENDEZVOUS & MASTER REEL (Question 1) ──
+    return [
+      {
+        start: 0, end: 4.0,
+        label: 'SCENE 1 SHOOT — HERO CHECKS REEL',
+        speaker: 'lead_actor',
+        line: 'Maya, the master reel is secure in the vault. Tonight we complete our mission.',
+        marks: { lead_actor: [-1.6, -2.2], lead_actress: [1.1, -2.2], co_star: [2.5, -2.4], villain: [3.5, -1.8] },
+        focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+        gesture: { lead_actor: 'talk_open', lead_actress: 'listen', co_star: 'listen', villain: 'rest' },
+      },
+      {
+        start: 4.0, end: 8.0,
+        label: 'SCENE 1 SHOOT — MAYA CONFIRMS',
+        speaker: 'lead_actress',
+        line: 'Understood Ravi. The security codes are encrypted. We must stay alert!',
+        marks: { lead_actress: [0.95, -2.2], lead_actor: [-1.5, -2.2] },
+        focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actress' },
+        gesture: { lead_actress: 'hand_to_heart', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
+      },
+      {
+        start: 8.0, end: 12.0,
+        label: 'SCENE 1 SHOOT — DEV LURKING',
+        speaker: 'villain',
+        line: 'Enjoy your little reel while you can... your time is running out!',
+        marks: { villain: [2.8, -1.8], co_star: [2.3, -2.6] },
+        focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
+        gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
+      },
+      {
+        start: 12.0, end: 16.0,
+        label: 'SCENE 1 SHOOT — HERO CALLS TAKE',
+        speaker: 'lead_actor',
+        line: 'Stay on your mark Maya. Lock in the Scene 1 ratio cue!',
+        marks: { lead_actor: [-0.9, -1.8], lead_actress: [1.2, -2.1] },
+        focus: { lead_actor: 'camera', lead_actress: 'lead_actor', co_star: 'camera', villain: 'lead_actor' },
+        gesture: { lead_actor: 'talk_point', lead_actress: 'plead', co_star: 'cheer', villain: 'rest' },
+      },
+    ];
+  }
+
+  if (stage === 2) {
+    // ── SCENE 2: THE WARNING & BLACKOUT (Question 2) ──
+    return [
+      {
+        start: 0, end: 4.0,
+        label: 'SCENE 2 SHOOT — MAYA WARNS OF SHADOWS',
+        speaker: 'lead_actress',
+        line: 'Ravi, look at the catwalk! Someone cut the studio main line!',
+        marks: { lead_actress: [0.95, -2.2], lead_actor: [-1.5, -2.2], co_star: [2.5, -2.4], villain: [3.2, -1.8] },
+        focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
+        gesture: { lead_actress: 'talk_open', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
+      },
+      {
+        start: 4.0, end: 8.0,
+        label: 'SCENE 2 SHOOT — HERO GUARDS SET',
+        speaker: 'lead_actor',
+        line: 'Stay calm. Keep your guard up and stick to the protocol.',
+        marks: { lead_actor: [-1.4, -2.1], lead_actress: [1.0, -2.2] },
+        focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+        gesture: { lead_actor: 'talk_point', lead_actress: 'listen', co_star: 'listen', villain: 'rest' },
+      },
+      {
+        start: 8.0, end: 12.0,
+        label: 'SCENE 2 SHOOT — VILLAIN THREAT',
+        speaker: 'villain',
+        line: 'There is no escape from this stage! The trap is set!',
+        marks: { villain: [2.5, -1.7], co_star: [2.2, -2.5] },
+        focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
+        gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
+      },
+      {
+        start: 12.0, end: 16.0,
+        label: 'SCENE 2 SHOOT — RESTORE LIGHTS',
+        speaker: 'lead_actress',
+        line: 'We need to calibrate the stage spotlight ratio right now!',
+        marks: { lead_actress: [1.1, -2.2], lead_actor: [-1.5, -2.2] },
+        focus: { lead_actress: 'camera', lead_actor: 'lead_actress', co_star: 'camera', villain: 'lead_actress' },
+        gesture: { lead_actress: 'hand_to_heart', lead_actor: 'talk_open', co_star: 'cheer', villain: 'rest' },
+      },
+    ];
+  }
+
+  if (stage === 3) {
+    // ── SCENE 3: VILLAIN STORMS SET (Question 3) ──
+    return [
+      {
+        start: 0, end: 4.0,
+        label: 'SCENE 3 SHOOT — VILLAIN STORMS IN',
+        speaker: 'villain',
+        line: 'ENOUGH GAMES! I will destroy both of you today! No one leaves alive!',
+        marks: { villain: [0.35, -1.6], lead_actress: [1.3, -2.2], lead_actor: [-1.2, -2.0], co_star: [2.5, -2.5] },
+        focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
+        gesture: { villain: 'menace', lead_actor: 'combat_stance', lead_actress: 'recoil', co_star: 'recoil' },
+      },
+      {
+        start: 4.0, end: 8.0,
+        label: 'SCENE 3 SHOOT — MAYA GASPS',
+        speaker: 'lead_actress',
+        line: 'Ravi watch out! He has compromised the soundstage!',
+        marks: { lead_actress: [1.4, -2.3], lead_actor: [-0.9, -1.8] },
+        focus: { lead_actress: 'lead_actor', lead_actor: 'villain', co_star: 'villain', villain: 'lead_actor' },
+        gesture: { lead_actress: 'plead', lead_actor: 'combat_stance', co_star: 'recoil', villain: 'menace' },
+      },
+      {
+        start: 8.0, end: 12.0,
+        label: 'SCENE 3 SHOOT — HERO SHIELDS HER',
+        speaker: 'lead_actor',
+        line: 'Get behind me Maya! You won’t lay a finger on her, Dev!',
+        marks: { lead_actor: [-0.4, -1.6], lead_actress: [1.5, -2.3], villain: [0.35, -1.6] },
+        focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+        gesture: { lead_actor: 'talk_point', villain: 'combat_stance', lead_actress: 'recoil', co_star: 'recoil' },
+      },
+      {
+        start: 12.0, end: 16.0,
+        label: 'SCENE 3 SHOOT — DEV CHALLENGE',
+        speaker: 'villain',
+        line: 'You think you can stop me? 10 seconds and you are finished!',
+        marks: { villain: [0.35, -1.6], lead_actor: [-0.4, -1.6] },
+        focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
+        gesture: { villain: 'menace', lead_actor: 'combat_stance', lead_actress: 'plead', co_star: 'recoil' },
+      },
+    ];
+  }
+
+  if (stage === 4) {
+    // ── SCENE 4: 1v1 UFC FIGHT ROUND 1 (Question 4) ──
+    return [
+      {
+        start: 0, end: 4.0,
+        label: 'SCENE 4 SHOOT — HERO PROTECTS MAYA',
+        speaker: 'lead_actor',
+        line: 'Step back Maya! If you want her Dev, you have to go through me first!',
+        marks: { lead_actor: [-0.28, -1.6], villain: [0.28, -1.6], lead_actress: [1.5, -2.3], co_star: [2.5, -2.5] },
+        focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+        gesture: { lead_actor: 'combat_stance', villain: 'combat_stance', lead_actress: 'plead', co_star: 'recoil' },
+      },
+      {
+        start: 4.0, end: 8.0,
+        label: 'SCENE 4 SHOOT — DEV STRIKES',
+        speaker: 'villain',
+        line: 'Take your best shot, champion!',
+        marks: { lead_actor: [-0.28, -1.6], villain: [0.28, -1.6] },
+        focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'lead_actor', co_star: 'villain' },
+        gesture: { villain: 'fight_cross', lead_actor: 'fight_slip_dodge', lead_actress: 'plead', co_star: 'recoil' },
+      },
+      {
+        start: 8.0, end: 12.0,
+        label: 'SCENE 4 SHOOT — HERO SLIPS & COUNTERS',
+        speaker: 'lead_actor',
+        line: '[SLIPS PUNCH] Too slow Dev! Is that all you got?!',
+        marks: { lead_actor: [-0.22, -1.6], villain: [0.35, -1.6] },
+        focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+        gesture: { lead_actor: 'fight_jab', villain: 'fight_block', lead_actress: 'cheer', co_star: 'recoil' },
+      },
+      {
+        start: 12.0, end: 16.0,
+        label: 'SCENE 4 SHOOT — DEV BLOCKED',
+        speaker: 'villain',
+        line: 'Ugh! Block this!',
+        marks: { lead_actor: [-0.22, -1.6], villain: [0.35, -1.6] },
+        focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+        gesture: { villain: 'fight_cross', lead_actor: 'fight_block', lead_actress: 'plead', co_star: 'cheer' },
+      },
+    ];
+  }
+
+  // ── SCENE 5: 1v1 UFC FIGHT ROUND 2 & KNOCKOUT UPPERCUT (Question 5) ──
   return [
     {
-      start: 0,
-      end: 4.0,
-      label: 'REHEARSAL — HERO REVIEWS MARKS',
+      start: 0, end: 4.0,
+      label: 'SCENE 5 SHOOT — HERO COMBO',
       speaker: 'lead_actor',
-      line: 'Camera 1 is rolling — Maya, check your marks for the fight cue!',
-      marks: { lead_actor: [-1.6, -2.2], lead_actress: [1.1, -2.2], co_star: [2.5, -2.4], villain: [3.5, -1.8] },
-      focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
-      gesture: { lead_actor: 'talk_open', lead_actress: 'listen', co_star: 'listen', villain: 'rest' },
+      line: 'This ends right now on this canvas!',
+      marks: { lead_actor: [-0.15, -1.6], villain: [0.35, -1.6], lead_actress: [1.5, -2.3], co_star: [2.5, -2.5] },
+      focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+      gesture: { lead_actor: 'combat_stance', villain: 'combat_stance', lead_actress: 'plead', co_star: 'recoil' },
     },
     {
-      start: 4.0,
-      end: 8.0,
-      label: 'REHEARSAL — ACTRESS CONFIRMS PACING',
-      speaker: 'lead_actress',
-      line: 'Stage lights are locked! Let us verify our pacing before action!',
-      marks: { lead_actress: [0.95, -2.2], lead_actor: [-1.5, -2.2] },
-      focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actress' },
-      gesture: { lead_actress: 'hand_to_heart', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
-    },
-    {
-      start: 8.0,
-      end: 12.0,
-      label: 'REHEARSAL — VILLAIN CHALLENGE',
+      start: 4.0, end: 8.0,
+      label: 'SCENE 5 SHOOT — DEV ATTACKS',
       speaker: 'villain',
-      line: 'You have 10 seconds before I charge the stage! Make your move!',
-      marks: { villain: [2.8, -1.8], co_star: [2.3, -2.6] },
-      focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
-      gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
+      line: 'Never! I’ll take this entire stage down with you!',
+      marks: { lead_actor: [-0.15, -1.6], villain: [0.35, -1.6] },
+      focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'lead_actor', co_star: 'villain' },
+      gesture: { villain: 'fight_cross', lead_actor: 'fight_slip_dodge', lead_actress: 'plead', co_star: 'recoil' },
     },
     {
-      start: 12.0,
-      end: 16.0,
-      label: 'REHEARSAL — HERO READY',
+      start: 8.0, end: 12.0,
+      label: 'SCENE 5 SHOOT — KNOCKOUT UPPERCUT',
       speaker: 'lead_actor',
-      line: 'Lock in the ratio and execute the cue on my mark!',
-      marks: { lead_actor: [-0.9, -1.8], lead_actress: [1.2, -2.1] },
-      focus: { lead_actor: 'camera', lead_actress: 'lead_actor', co_star: 'camera', villain: 'lead_actor' },
-      gesture: { lead_actor: 'talk_point', lead_actress: 'plead', co_star: 'cheer', villain: 'rest' },
+      line: 'DOWN YOU GO! [KNOCKOUT UPPERCUT!]',
+      marks: { lead_actor: [-0.1, -1.6], villain: [0.75, -1.6] },
+      focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+      gesture: { lead_actor: 'fight_uppercut', villain: 'fight_knockdown', lead_actress: 'cheer', co_star: 'cheer' },
+    },
+    {
+      start: 12.0, end: 16.0,
+      label: 'SCENE 5 SHOOT — DEV DOWNED',
+      speaker: 'lead_actress',
+      line: 'DIRECT HIT! Dev is down for the count!',
+      marks: { lead_actor: [-0.2, -1.7], lead_actress: [0.8, -1.9], villain: [1.2, -1.6] },
+      focus: { lead_actress: 'camera', lead_actor: 'camera', co_star: 'camera', villain: 'lead_actor' },
+      gesture: { lead_actress: 'cheer', lead_actor: 'triumph', villain: 'knocked_out', co_star: 'cheer' },
     },
   ];
 }
@@ -289,7 +552,8 @@ export function beatAt(time: number, isFilming = false): Beat {
 
   const beats = questionBeatsFor(
     activeQuestionContext.question,
-    activeQuestionContext.feedbackStatus
+    activeQuestionContext.feedbackStatus,
+    activeQuestionContext.stageNumber
   );
   const cycleLen = activeQuestionContext.feedbackStatus !== 'idle' ? 4.0 : QUESTION_CYCLE_LENGTH;
   const t = ((time % cycleLen) + cycleLen) % cycleLen;
@@ -311,7 +575,8 @@ export function markAt(role: ActorRole, time: number, isFilming = false): [numbe
 
   const beats = questionBeatsFor(
     activeQuestionContext.question,
-    activeQuestionContext.feedbackStatus
+    activeQuestionContext.feedbackStatus,
+    activeQuestionContext.stageNumber
   );
   const cycleLen = activeQuestionContext.feedbackStatus !== 'idle' ? 4.0 : QUESTION_CYCLE_LENGTH;
   const t = ((time % cycleLen) + cycleLen) % cycleLen;

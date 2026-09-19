@@ -995,14 +995,16 @@ BlenderHumanoid.displayName = 'BlenderHumanoid';
 const SceneClockDriver: React.FC<{
   filmStartedAt: number | null;
   activeQuestion?: RatioQuestion | null;
+  stageNumber?: number;
   feedbackStatus?: 'idle' | 'correct' | 'incorrect';
   feedbackMessage?: string;
-}> = ({ filmStartedAt, activeQuestion = null, feedbackStatus = 'idle', feedbackMessage = '' }) => {
+}> = ({ filmStartedAt, activeQuestion = null, stageNumber = 1, feedbackStatus = 'idle', feedbackMessage = '' }) => {
   useEffect(() => {
     activeQuestionContext.question = activeQuestion;
+    activeQuestionContext.stageNumber = stageNumber;
     activeQuestionContext.feedbackStatus = feedbackStatus;
     activeQuestionContext.feedbackMessage = feedbackMessage;
-  }, [activeQuestion, feedbackStatus, feedbackMessage]);
+  }, [activeQuestion, stageNumber, feedbackStatus, feedbackMessage]);
 
   useFrame((state) => {
     if (filmStartedAt !== null) {
@@ -1167,6 +1169,7 @@ export const StudioCharacters3D: React.FC<{
   dollyProgress?: number;
   filmStartedAt?: number | null;
   activeQuestion?: RatioQuestion | null;
+  stageNumber?: number;
   feedbackStatus?: 'idle' | 'correct' | 'incorrect';
   feedbackMessage?: string;
 }> = React.memo(({
@@ -1175,6 +1178,7 @@ export const StudioCharacters3D: React.FC<{
   dollyProgress = 0,
   filmStartedAt = null,
   activeQuestion = null,
+  stageNumber = 1,
   feedbackStatus = 'idle',
   feedbackMessage = '',
 }) => {
@@ -1240,6 +1244,7 @@ export const StudioCharacters3D: React.FC<{
       <SceneClockDriver
         filmStartedAt={filmStartedAt}
         activeQuestion={activeQuestion}
+        stageNumber={stageNumber}
         feedbackStatus={feedbackStatus}
         feedbackMessage={feedbackMessage}
       />

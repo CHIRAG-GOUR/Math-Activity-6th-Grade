@@ -90,7 +90,15 @@ const StudioCameraRig: React.FC<{
     const rolling = isFilming && sceneTime !== null && sceneTime < SCENE_LENGTH;
 
     if (rolling) {
-      // Synchronize combat audio hits during the 10-second UFC fight!
+      // Synchronize cinematic & combat audio during the continuous 30s feature film!
+      if (sceneTime >= 0.2 && !fightAudioPlayed.current['action']) {
+        ratioAudio.playDirectorCall();
+        fightAudioPlayed.current['action'] = true;
+      }
+      if (sceneTime >= 8.6 && !fightAudioPlayed.current['villain_entry']) {
+        ratioAudio.playCameraFlash();
+        fightAudioPlayed.current['villain_entry'] = true;
+      }
       if (sceneTime >= 16.2 && !fightAudioPlayed.current['whoosh1']) {
         ratioAudio.playFightWhoosh();
         fightAudioPlayed.current['whoosh1'] = true;
@@ -110,6 +118,10 @@ const StudioCameraRig: React.FC<{
       if (sceneTime >= 22.2 && !fightAudioPlayed.current['knockdown']) {
         ratioAudio.playFightKnockdown();
         fightAudioPlayed.current['knockdown'] = true;
+      }
+      if (sceneTime >= 24.2 && !fightAudioPlayed.current['victory']) {
+        ratioAudio.playVictoryFanfare();
+        fightAudioPlayed.current['victory'] = true;
       }
 
       // Cut to whichever setup covers this beat, then hold it on the sticks.
@@ -369,6 +381,7 @@ export const RatioRushScene3D: React.FC = () => {
             dollyProgress={isFilmingActive ? 0.8 : 0.2}
             filmStartedAt={filmStartedAt}
             activeQuestion={activeQuestion}
+            stageNumber={activeQuestion?.stage || blueTeam.currentQuestionIndex + 1}
             feedbackStatus={feedbackStatus}
             feedbackMessage={feedbackMessage}
           />
