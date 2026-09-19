@@ -7,7 +7,7 @@
 
 import { create } from 'zustand';
 import { RatioGameState, StudioCameraView, StudioTeam, ProductionStage, RatioQuestion } from '../types';
-import { RATIO_QUESTIONS } from '../data/questions';
+import { RATIO_QUESTIONS, sampleRandomRatioQuestions } from '../data/questions';
 import { ratioAudio } from '../engine/ratioAudio';
 import { SCENE_LENGTH } from '../world/StudioPerformance';
 import { getActiveGameSession, finalizeGameQuestions, adaptUniversalToRatioQuestions } from '@/services/gameSessionService';
@@ -64,7 +64,7 @@ function getInitialQuestions(): RatioQuestion[] {
       console.warn('Failed to load active session for Ratio Rush, using built-in questions:', err);
     }
   }
-  return RATIO_QUESTIONS;
+  return sampleRandomRatioQuestions();
 }
 
 const initialQuestions = getInitialQuestions();
@@ -109,6 +109,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       isFilmingActive: false,
       isPremiereActive: false,
       winningTeam: null,
+      filmStartedAt: null,
     });
   },
 
@@ -352,8 +353,9 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   },
 
   resetGame: () => {
-    const qs = get().questions || RATIO_QUESTIONS;
+    const qs = getInitialQuestions();
     set({
+      questions: qs,
       activeCameraView: 'overview',
       isTimerRunning: true,
       timeRemaining: 300,
@@ -380,17 +382,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
     if (!isTimerRunning) return;
     if (timeRemaining > 0) {
       set({ timeRemaining: timeRemaining - 1 });
-    } else {
-      set({ isTimerRunning: false });
-      const { blueTeam, redTeam, gameMode } = get();
-      if (gameMode === 'duel') {
-        const winner =
-          blueTeam.score > redTeam.score ? 'blue' : redTeam.score > blueTeam.score ? 'red' : 'tie';
-        set({ winningTeam: winner });
-      } else {
-        set({ winningTeam: 'blue' });
-      }
-      get().startFilmingSequence();
     }
+    // Activity NEVER auto-proceeds or skips forward without the student submitting an answer
   },
 }));

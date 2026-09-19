@@ -937,8 +937,10 @@ const SceneClockDriver: React.FC<{ filmStartedAt: number | null }> = ({ filmStar
 };
 
 // ============================================================
-// DIALOGUE CAPTION — the line currently being delivered, floating over
-// the speaker so the audience (and the live camera feed) can follow the scene.
+// ============================================================
+// DIALOGUE CAPTION — Comic book styled speech/dialogue bubble
+// Crisp pure white balloon with bold solid black border, comic typography,
+// speaker badge, and pointer tail over the speaking character's head.
 // ============================================================
 const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
   const groupRef = useRef<THREE.Group>(null);
@@ -950,7 +952,7 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
     }
     const canvas = document.createElement('canvas');
     canvas.width = 1024;
-    canvas.height = 192;
+    canvas.height = 256;
     const tex = new THREE.CanvasTexture(canvas);
     tex.colorSpace = THREE.SRGBColorSpace;
     return {
@@ -977,30 +979,97 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
       const canvas = texture.image as HTMLCanvasElement;
       const ctx = canvas.getContext('2d');
       if (ctx) {
-        ctx.clearRect(0, 0, 1024, 192);
-        ctx.fillStyle = 'rgba(8, 11, 24, 0.82)';
-        ctx.fillRect(0, 36, 1024, 120);
-        ctx.fillStyle = '#facc15';
-        ctx.fillRect(0, 36, 1024, 7);
-        ctx.fillRect(0, 149, 1024, 7);
-        ctx.font = 'bold 54px "Arial Black", Impact, sans-serif';
+        ctx.clearRect(0, 0, 1024, 256);
+
+        // ── 1. Comic Speech Balloon Dimensions ──
+        const x = 36;
+        const y = 24;
+        const w = 952;
+        const h = 156;
+        const r = 24;
+
+        // Path with downward speech tail pointing towards actor
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + w - r, y);
+        ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+        ctx.lineTo(x + w, y + h - r);
+        ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+        // Tail Right
+        ctx.lineTo(512 + 32, y + h);
+        ctx.lineTo(512, y + h + 46); // Speech bubble tip
+        ctx.lineTo(512 - 32, y + h);
+        // Tail Left & bottom left
+        ctx.lineTo(x + r, y + h);
+        ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+
+        // Solid White Background
         ctx.fillStyle = '#ffffff';
+        ctx.fill();
+
+        // Thick Solid Comic Black Border
+        ctx.lineWidth = 10;
+        ctx.strokeStyle = '#000000';
+        ctx.lineJoin = 'round';
+        ctx.stroke();
+
+        // ── 2. Comic Speaker Character Pill ──
+        let speakerName = 'SPEAKER';
+        let badgeColor = '#facc15';
+        if (spoken.speaker === 'lead_actor') {
+          speakerName = '★ RAVI (LEAD)';
+          badgeColor = '#60a5fa';
+        } else if (spoken.speaker === 'lead_actress') {
+          speakerName = '★ MAYA (LEAD)';
+          badgeColor = '#34d399';
+        } else if (spoken.speaker === 'villain') {
+          speakerName = '★ DEV (RIVAL)';
+          badgeColor = '#fb923c';
+        } else if (spoken.speaker === 'co_star') {
+          speakerName = '★ CO-STAR';
+          badgeColor = '#f472b6';
+        }
+
+        ctx.fillStyle = badgeColor;
+        ctx.strokeStyle = '#000000';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(x + 24, y - 14, 210, 36, 10);
+        } else {
+          ctx.rect(x + 24, y - 14, 210, 36);
+        }
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.font = '900 20px "Arial Black", Impact, sans-serif';
+        ctx.fillStyle = '#000000';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(spoken.line, 512, 98, 960);
+        ctx.fillText(speakerName, x + 129, y + 4);
+
+        // ── 3. Comic Dialogue Line ──
+        ctx.font = '900 44px "Arial Black", Impact, sans-serif';
+        ctx.fillStyle = '#000000';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(`“${spoken.line}”`, 512, y + 88, 880);
       }
       texture.needsUpdate = true;
     }
 
     const at = ACTOR_STAGE_POS[spoken.speaker];
-    if (at) group.position.set(at.x, baseY + 2.12, at.y);
+    if (at) group.position.set(at.x, baseY + 2.35, at.y);
     group.quaternion.copy(camera.quaternion);
   });
 
   return (
     <group ref={groupRef} visible={false} renderOrder={999}>
       <mesh renderOrder={999}>
-        <planeGeometry args={[2.6, 0.49]} />
+        <planeGeometry args={[3.1, 0.78]} />
         <primitive object={material} attach="material" />
       </mesh>
     </group>
