@@ -1,22 +1,16 @@
-// ============================================================
-// RATIO RUSH — MASTER 3D SCENE (FRONT DIRECTOR PERSPECTIVE & LIGHT THEME)
-// High-FPS Three.js environment with eye-level cinematic camera presets:
-// - Front Director's Eye-Level Default View (Looking at green screen & cast)
-// - Bright Daylight Studio Lighting & Ceiling Light Arrays
-// - Smooth Camera Rig & Parallax
-// ============================================================
-
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import * as THREE from 'three';
 import { StudioSoundstage3D } from './StudioSoundstage3D';
 import { StudioEquipment3D } from './StudioEquipment3D';
 import { StudioMovieSet3D } from './StudioMovieSet3D';
 import { StudioCharacters3D } from './StudioCharacters3D';
+import { StudioPropsTable3D } from './StudioPropsTable3D';
 import { StudioLiveFeedProvider } from './StudioLiveFeed';
 import { StudioTheatre3D } from './StudioTheatre3D';
-import { sceneClock, SCENE_LENGTH } from './StudioPerformance';
+import { sceneClock, SCENE_LENGTH, ACTOR_STAGE_POS, beatAt } from './StudioPerformance';
 import { useRatioStore } from '../store/ratioStore';
+import { StudioCameraView } from '../types';
 
 // ============================================================
 // SHOT LIST — how the scene is covered while the camera is rolling.
@@ -46,9 +40,7 @@ function shotAt(t: number) {
   }
   return shot;
 }
-import { StudioCameraView } from '../types';
 
-// ============================================================
 // ============================================================
 // CAMERA RIG: Panoramic Soundstage View & Director Presets
 // ============================================================
@@ -139,6 +131,143 @@ const StudioCameraRig: React.FC<{
 };
 
 // ============================================================
+// DYNAMIC TRACKING FOLLOW-SPOTLIGHT
+// Overhead studio spotlight physically tracks whoever currently has the line
+// ============================================================
+const StudioFollowSpotlight: React.FC<{
+  isFilming: boolean;
+  stageLift: number;
+}> = ({ isFilming, stageLift }) => {
+  const spotRef = useRef<THREE.SpotLight>(null);
+  const targetObj = useMemo(() => new THREE.Object3D(), []);
+  const { scene } = useThree();
+
+  useEffect(() => {
+    scene.add(targetObj);
+    return () => {
+      scene.remove(targetObj);
+    };
+  }, [scene, targetObj]);
+
+  useFrame((state, delta) => {
+    if (!spotRef.current) return;
+    const t = state.clock.getElapsedTime();
+    const sceneTime = sceneClock.time !== null ? sceneClock.time : t;
+    const beat = beatAt(sceneTime, isFilming);
+    const speaker = beat.speaker;
+
+    let targetX = 0;
+    let targetZ = -2.0;
+
+    if (speaker && ACTOR_STAGE_POS[speaker]) {
+      const pos = ACTOR_STAGE_POS[speaker];
+      targetX = pos.x;
+      targetZ = pos.y;
+    }
+
+    const k = Math.min(delta * 4.5, 0.25);
+    targetObj.position.x += (targetX - targetObj.position.x) * k;
+    targetObj.position.y = 1.35 + stageLift;
+    targetObj.position.z += (targetZ - targetObj.position.z) * k;
+
+    spotRef.current.target = targetObj;
+  });
+
+  return (
+    <spotLight
+      ref={spotRef}
+      position={[0, 9.2, 1.8]}
+      angle={0.42}
+      penumbra={0.65}
+      intensity={5.2}
+      color="#ffffff"
+      castShadow
+      shadow-mapSize-width={1024}
+      shadow-mapSize-height={1024}
+      shadow-bias={-0.0001}
+    />
+  );
+};
+
+// ============================================================
+// DYNAMIC SCENE MOOD LIGHTING
+// Lighting warms to golden amber during celebration beats and shifts to cool cyan/blue
+// during challenging multi-step proportion questions
+// ============================================================
+const StudioMoodLighting: React.FC<{
+  feedbackStatus: 'idle' | 'correct' | 'incorrect';
+}> = ({ feedbackStatus }) => {
+  const ambientRef = useRef<THREE.AmbientLight>(null);
+  const keyLightRef = useRef<THREE.DirectionalLight>(null);
+  const fillLightRef = useRef<THREE.DirectionalLight>(null);
+
+  useFrame((_, delta) => {
+    const k = Math.min(delta * 3.5, 0.2);
+
+    let ambColor = new THREE.Color('#ffffff');
+    let keyColor = new THREE.Color('#ffffff');
+    let fillColor = new THREE.Color('#fef08a');
+    let ambIntensity = 1.15;
+    let keyIntensity = 2.6;
+
+    if (feedbackStatus === 'correct') {
+      // Golden Amber Celebration
+      ambColor = new THREE.Color('#fef08a');
+      keyColor = new THREE.Color('#fde047');
+      fillColor = new THREE.Color('#f59e0b');
+      ambIntensity = 1.45;
+      keyIntensity = 3.2;
+    } else if (feedbackStatus === 'incorrect') {
+      // Cool Cyan Recalculating
+      ambColor = new THREE.Color('#bae6fd');
+      keyColor = new THREE.Color('#38bdf8');
+      fillColor = new THREE.Color('#0284c7');
+      ambIntensity = 0.95;
+      keyIntensity = 2.2;
+    }
+
+    if (ambientRef.current) {
+      ambientRef.current.color.lerp(ambColor, k);
+      ambientRef.current.intensity = THREE.MathUtils.lerp(ambientRef.current.intensity, ambIntensity, k);
+    }
+    if (keyLightRef.current) {
+      keyLightRef.current.color.lerp(keyColor, k);
+      keyLightRef.current.intensity = THREE.MathUtils.lerp(keyLightRef.current.intensity, keyIntensity, k);
+    }
+    if (fillLightRef.current) {
+      fillLightRef.current.color.lerp(fillColor, k);
+    }
+  });
+
+  return (
+    <>
+      <ambientLight ref={ambientRef} intensity={1.15} />
+      <hemisphereLight color="#ffffff" groundColor="#e2e8f0" intensity={1.4} />
+      <directionalLight
+        ref={keyLightRef}
+        position={[4, 12, 8]}
+        color="#ffffff"
+        intensity={2.6}
+        castShadow
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
+      />
+      <directionalLight
+        ref={fillLightRef}
+        position={[-6, 10, 4]}
+        color="#fef08a"
+        intensity={1.4}
+      />
+      <directionalLight
+        position={[0, 8, -6]}
+        color="#22c55e"
+        intensity={1.2}
+      />
+    </>
+  );
+};
+
+// ============================================================
 // MASTER 3D STUDIO SCENE CONTAINER (BRIGHT LIGHT THEME)
 // ============================================================
 export const RatioRushScene3D: React.FC = () => {
@@ -156,6 +285,8 @@ export const RatioRushScene3D: React.FC = () => {
   const feedbackStatus = blueTeam.feedbackStatus;
   const feedbackMessage = blueTeam.feedbackMessage;
 
+  const stageLift = globalLevel >= 1 ? 0.3 : 0;
+
   return (
     <div className="relative w-full h-full select-none bg-[#f8fafc]">
       <Canvas
@@ -171,24 +302,11 @@ export const RatioRushScene3D: React.FC = () => {
       >
         <color attach="background" args={['#0c1222']} />
 
-        {/* ── 1. BRIGHT STUDIO DAYLIGHT & PRODUCTION FLOODLIGHTS ── */}
-        <ambientLight intensity={1.1} />
-        <hemisphereLight color="#ffffff" groundColor="#e2e8f0" intensity={1.5} />
-        <directionalLight
-          position={[4, 12, 8]}
-          color="#ffffff"
-          intensity={2.6}
-        />
-        <directionalLight
-          position={[-6, 10, 4]}
-          color="#fef08a"
-          intensity={1.4}
-        />
-        <directionalLight
-          position={[0, 8, -6]}
-          color="#22c55e"
-          intensity={1.2}
-        />
+        {/* ── 1. DYNAMIC MOOD LIGHTING & PRODUCTION FLOODLIGHTS ── */}
+        <StudioMoodLighting feedbackStatus={feedbackStatus} />
+
+        {/* ── 2. DYNAMIC OVERHEAD TRACKING SPOTLIGHT ── */}
+        <StudioFollowSpotlight isFilming={isFilmingActive} stageLift={stageLift} />
 
         {/* Dynamic Photographer Flash */}
         {flashActive && (
@@ -201,18 +319,26 @@ export const RatioRushScene3D: React.FC = () => {
           />
         )}
 
-        {/* ── 2. CAMERA RIG CONTROLLER ── */}
+        {/* ── 3. CAMERA RIG CONTROLLER ── */}
         <StudioCameraRig
           cameraView={activeCameraView}
           isFilming={isFilmingActive}
-          stageLift={globalLevel >= 1 ? 0.3 : 0}
+          stageLift={stageLift}
         />
 
-        {/* ── 3. WORLD COMPONENTS ── */}
+        {/* ── 4. WORLD COMPONENTS ── */}
         <StudioLiveFeedProvider isFilming={isFilmingActive}>
           <StudioSoundstage3D isFilming={isFilmingActive} isPremiere={isPremiereActive} />
           <StudioEquipment3D isFilming={isFilmingActive} dollyProgress={isFilmingActive ? 0.8 : 0.2} />
           <StudioMovieSet3D productionLevel={globalLevel} isFilming={isFilmingActive} />
+          
+          {/* Physical Math Props Table Demonstration */}
+          <StudioPropsTable3D
+            position={[0, stageLift, -1.8]}
+            activeQuestion={activeQuestion}
+            feedbackStatus={feedbackStatus}
+          />
+
           <group position={[17.6, 0, -1]}>
             <StudioTheatre3D isPremiere={isPremiereActive} />
           </group>

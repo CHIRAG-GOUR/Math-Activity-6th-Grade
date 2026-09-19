@@ -9,6 +9,7 @@
 // 2. Filming Take Phase: The complete scripted 26-second movie scene.
 // ============================================================
 
+import * as THREE from 'three';
 import { RatioQuestion } from '../types';
 
 export type ActorRole = 'lead_actor' | 'lead_actress' | 'co_star' | 'villain';
@@ -41,7 +42,9 @@ export type Gesture =
   | 'menace'        // slow accusing point, other hand behind back
   | 'recoil'        // hands up defensively, leaning away
   | 'cheer'         // arms raised in relief
-  | 'triumph';      // final hero tableau
+  | 'triumph'       // final hero tableau
+  | 'high_five_right'
+  | 'high_five_left';
 
 export interface Beat {
   start: number;
@@ -63,6 +66,16 @@ export const OPENING_MARKS: Record<ActorRole, [number, number]> = {
   lead_actress: [-0.55, -2.5],
   co_star: [0.85, -2.45],
   villain: [2.15, -1.7],
+};
+
+/**
+ * Live position of each actor on stage, shared with follow-spotlights and camera rig.
+ */
+export const ACTOR_STAGE_POS: Record<ActorRole, THREE.Vector2> = {
+  lead_actor: new THREE.Vector2(...OPENING_MARKS.lead_actor),
+  lead_actress: new THREE.Vector2(...OPENING_MARKS.lead_actress),
+  co_star: new THREE.Vector2(...OPENING_MARKS.co_star),
+  villain: new THREE.Vector2(...OPENING_MARKS.villain),
 };
 
 export const SCENE_LENGTH = 26;
@@ -147,13 +160,23 @@ export function questionBeatsFor(
     return [
       {
         start: 0,
+        end: 2.0,
+        label: 'TAKE APPROVED — HIGH FIVE',
+        speaker: 'lead_actor',
+        line: `HIGH-FIVE! Perfect ${rA}:${rB} ratio match!`,
+        marks: { lead_actor: [-0.45, -2.1], lead_actress: [0.05, -2.1], co_star: [0.65, -2.3], villain: [2.2, -1.6] },
+        focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+        gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
+      },
+      {
+        start: 2.0,
         end: 4.0,
         label: 'TAKE APPROVED — CELEBRATION',
-        speaker: 'lead_actor',
-        line: `PERFECT! The ${rA}:${rB} ratio is completely locked in!`,
-        marks: { lead_actor: [-1.2, -1.9], lead_actress: [-0.4, -2.1], co_star: [0.6, -2.3], villain: [2.2, -1.6] },
-        focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
-        gesture: { lead_actor: 'triumph', lead_actress: 'cheer', co_star: 'cheer', villain: 'recoil' },
+        speaker: 'lead_actress',
+        line: `Scene approved! Advancing to the next set take!`,
+        marks: { lead_actor: [-0.45, -2.1], lead_actress: [0.05, -2.1], co_star: [0.65, -2.3], villain: [2.2, -1.6] },
+        focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+        gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'recoil' },
       },
     ];
   }
@@ -344,15 +367,15 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.torsoLean = 0.08;
       break;
     case 'menace':
-      p.rShoulderX = -0.95 - energy * 0.3;
+      p.rShoulderX = -0.85 - energy * 0.3;
       p.rShoulderZ = -0.24;
       p.rElbow = 0.55 - energy * 0.2;
-      p.lShoulderX = 0.25;
-      p.lShoulderZ = 0.16;
-      p.lElbow = 1.5;
-      p.headPitch = 0.1;
+      p.lShoulderX = -0.75;
+      p.lShoulderZ = 0.22;
+      p.lElbow = 1.38;
+      p.headPitch = 0.22;
       p.headRoll = -0.06;
-      p.torsoLean = 0.11;
+      p.torsoLean = 0.08;
       break;
     case 'recoil':
       p.lShoulderX = -0.78;
@@ -383,6 +406,24 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.lElbow = 0.6;
       p.headPitch = -0.1;
       p.torsoLean = 0.03;
+      break;
+    case 'high_five_right':
+      p.rShoulderX = -2.15;
+      p.rShoulderZ = -0.32;
+      p.rElbow = 0.22;
+      p.lShoulderX = -0.2;
+      p.lShoulderZ = 0.2;
+      p.torsoLean = 0.08;
+      p.headPitch = -0.15;
+      break;
+    case 'high_five_left':
+      p.lShoulderX = -2.15;
+      p.lShoulderZ = 0.32;
+      p.lElbow = 0.22;
+      p.rShoulderX = -0.2;
+      p.rShoulderZ = -0.2;
+      p.torsoLean = 0.08;
+      p.headPitch = -0.15;
       break;
     case 'rest':
     default:

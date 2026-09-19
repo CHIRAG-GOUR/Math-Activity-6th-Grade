@@ -96,6 +96,8 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   isFullscreen: false,
 
   reloadSessionQuestions: () => {
+    ratioAudio.playClapperSnap();
+    ratioAudio.startBGM();
     const qs = getInitialQuestions();
     set({
       questions: qs,
@@ -122,6 +124,8 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   },
 
   selectOption: (team, option) => {
+    ratioAudio.playOptionSelect();
+    ratioAudio.startBGM();
     const key = team === 'blue' ? 'blueTeam' : 'redTeam';
     const current = get()[key];
     set({
@@ -171,6 +175,8 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
 
     if (isCorrect) {
       ratioAudio.playCorrectChime();
+      ratioAudio.playHighFiveClap();
+      ratioAudio.playPropPlacement();
       const nextScore = teamState.score + 100 + teamState.streak * 25;
       const nextStreak = teamState.streak + 1;
       const nextSolved = Array.from(new Set([...teamState.solvedStages, currentQ.stage]));
@@ -244,7 +250,6 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
       ratioAudio.playIncorrectBuzz();
       const miscon = currentQ.misconceptions?.find((m) => m.wrongAnswer === numVal);
       const msg = miscon
-
         ? miscon.reason
         : `Incorrect. Try scaling the ratio ${currentQ.ratioA} : ${currentQ.ratioB} using unit rates.`;
 
@@ -261,6 +266,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   },
 
   nextQuestion: (team) => {
+    ratioAudio.playClapperSnap();
     const state = get();
     const questionsList = state.questions && state.questions.length > 0 ? state.questions : RATIO_QUESTIONS;
     const nextIdx = state.currentMovieStage + 1;
@@ -353,6 +359,7 @@ export const useRatioStore = create<RatioGameState & RatioRuntimeState & RatioSt
   },
 
   resetGame: () => {
+    ratioAudio.playClapperSnap();
     const qs = getInitialQuestions();
     set({
       questions: qs,

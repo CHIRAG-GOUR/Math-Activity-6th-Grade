@@ -21,6 +21,7 @@ import {
   poseFor,
   speechEnergy,
   OPENING_MARKS,
+  ACTOR_STAGE_POS,
   PoseTargets,
   lineAt,
   sceneClock,
@@ -40,6 +41,7 @@ import {
   MAT_STEEL_BRIGHT,
   MAT_ROAD_CASE_BLACK,
   MAT_STAGE_TAPE_YELLOW,
+  MAT_STAGE_TAPE_BLUE,
   MAT_STAGE_TAPE_RED,
   MAT_SKIN_PEACH,
   MAT_SKIN_WARM,
@@ -103,17 +105,6 @@ function createDirectorShirtBackTexture(): THREE.CanvasTexture {
   return texture;
 }
 
-/**
- * Where each actor is standing right now, published by their own rig so the
- * others can turn and look at whoever currently has the line.
- */
-const ACTOR_STAGE_POS: Record<string, THREE.Vector2> = {
-  lead_actor: new THREE.Vector2(...OPENING_MARKS.lead_actor),
-  lead_actress: new THREE.Vector2(...OPENING_MARKS.lead_actress),
-  co_star: new THREE.Vector2(...OPENING_MARKS.co_star),
-  villain: new THREE.Vector2(...OPENING_MARKS.villain),
-};
-
 export interface BlenderHumanProps {
   position: [number, number, number];
   rotationY?: number;
@@ -156,6 +147,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
     const headRef = useRef<THREE.Group>(null);
     const bodyRootRef = useRef<THREE.Group>(null);
     const stageRef = useRef<THREE.Group>(null);
+    const rightFootRef = useRef<THREE.Group>(null);
 
     const directorShirtBackMaterial = useMemo(() => {
       if (typeof document === 'undefined') return MAT_ROAD_CASE_BLACK;
@@ -238,6 +230,10 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
         if (rightArmRef.current) rightArmRef.current.rotation.set(h.rShoulderX, 0, h.rShoulderZ);
         if (leftElbowRef.current) leftElbowRef.current.rotation.x = -h.lElbow;
         if (rightElbowRef.current) rightElbowRef.current.rotation.x = -h.rElbow;
+        if (rightFootRef.current && characterType === 'villain') {
+          const footTap = Math.max(0, Math.sin(t * 6.5)) * 0.14;
+          rightFootRef.current.rotation.x = footTap;
+        }
         return;
       }
 
@@ -372,7 +368,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
           </group>
 
           {/* Right Leg */}
-          <group position={[0.13, 0, 0]}>
+          <group ref={rightFootRef} position={[0.13, 0, 0]}>
             <mesh
               geometry={geoBox}
               material={MAT_STEEL_BRIGHT}
@@ -600,6 +596,50 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
                 scale={[0.055, 0.07, 0.045]}
                 position={[0, -0.26, 0]}
               />
+
+              {/* Handheld Prop for Hero: Rolled Film Script */}
+              {characterType === 'lead_actor' && (
+                <group position={[0, -0.27, 0.05]} rotation={[0.4, 0.2, 0.8]}>
+                  <mesh
+                    geometry={geoCylinder12}
+                    material={getStudioMaterial('#ffffff', 0.8)}
+                    scale={[0.024, 0.26, 0.024]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                  <mesh
+                    geometry={geoCylinder12}
+                    material={MAT_STAGE_TAPE_BLUE}
+                    scale={[0.026, 0.04, 0.026]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                </group>
+              )}
+
+              {/* Handheld Prop for Villain: Gold Pocket Watch */}
+              {characterType === 'villain' && (
+                <group position={[0, -0.27, 0.04]} rotation={[0.3, 0, 0]}>
+                  <mesh
+                    geometry={geoCylinder16}
+                    material={MAT_GOLD_BRASS}
+                    scale={[0.038, 0.015, 0.038]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                  <mesh
+                    geometry={geoCylinder12}
+                    material={getStudioMaterial('#ffffff')}
+                    scale={[0.032, 0.016, 0.032]}
+                    position={[0, 0, 0.005]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                  <mesh
+                    geometry={geoCylinder8}
+                    material={MAT_GOLD_BRASS}
+                    scale={[0.005, 0.16, 0.005]}
+                    position={[0, 0.08, 0]}
+                    rotation={[0.3, 0, 0.2]}
+                  />
+                </group>
+              )}
             </group>
           </group>
 
@@ -630,6 +670,31 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
                 scale={[0.055, 0.07, 0.045]}
                 position={[0, -0.26, 0]}
               />
+
+              {/* Handheld Prop for Lead Actress: Director's Optical Viewfinder Lens */}
+              {characterType === 'lead_actress' && (
+                <group position={[0, -0.27, 0.04]} rotation={[0.2, -0.3, 0]}>
+                  <mesh
+                    geometry={geoCylinder8}
+                    material={MAT_GOLD_BRASS}
+                    scale={[0.012, 0.14, 0.012]}
+                  />
+                  <mesh
+                    geometry={geoCylinder12}
+                    material={MAT_GOLD_BRASS}
+                    scale={[0.05, 0.02, 0.05]}
+                    position={[0, 0.08, 0]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                  <mesh
+                    geometry={geoCylinder12}
+                    material={getStudioMaterial('#38bdf8', 0.2, 0.1, '#0284c7', 0.3)}
+                    scale={[0.042, 0.015, 0.042]}
+                    position={[0, 0.08, 0]}
+                    rotation={[Math.PI / 2, 0, 0]}
+                  />
+                </group>
+              )}
             </group>
           </group>
 

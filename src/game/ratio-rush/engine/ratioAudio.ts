@@ -1,11 +1,14 @@
 // ============================================================
 // RATIO RUSH — MOVIE PRODUCTION HOUSE AUDIO ENGINE
 // Synthesizes authentic studio sound effects using the Web Audio API
+// and plays Movie Shoot Background Music.
 // ============================================================
 
 class RatioAudioEngine {
   private ctx: AudioContext | null = null;
   private isMuted: boolean = false;
+  private bgmAudio: HTMLAudioElement | null = null;
+  private isBgmPlaying: boolean = false;
 
   private initCtx(): AudioContext | null {
     if (typeof window === 'undefined') return null;
@@ -21,12 +24,46 @@ class RatioAudioEngine {
     return this.ctx;
   }
 
+  public startBGM() {
+    if (typeof window === 'undefined') return;
+    if (!this.bgmAudio) {
+      try {
+        this.bgmAudio = new Audio('/audio/Movie Shoot BGM.mp3');
+        this.bgmAudio.loop = true;
+        this.bgmAudio.volume = 0.38;
+      } catch (e) {
+        console.warn('Could not initialize Movie Shoot BGM audio:', e);
+      }
+    }
+    if (this.bgmAudio && !this.isMuted) {
+      this.bgmAudio.play().then(() => {
+        this.isBgmPlaying = true;
+      }).catch((e) => {
+        console.warn('Auto-play blocked, will resume on interaction:', e);
+      });
+    }
+  }
+
+  public stopBGM() {
+    if (this.bgmAudio) {
+      this.bgmAudio.pause();
+      this.isBgmPlaying = false;
+    }
+  }
+
   public setMuted(muted: boolean) {
     this.isMuted = muted;
+    if (this.bgmAudio) {
+      if (muted) {
+        this.bgmAudio.pause();
+      } else {
+        this.bgmAudio.play().catch(() => {});
+      }
+    }
   }
 
   public toggleMute(): boolean {
-    this.isMuted = !this.isMuted;
+    this.setMuted(!this.isMuted);
     return this.isMuted;
   }
 
@@ -35,7 +72,7 @@ class RatioAudioEngine {
   }
 
   /**
-   * Film Clapperboard Snap Sound (Wooden clack + resonance)
+   * Film Clapperboard Snap Sound (Authentic wooden clack + acoustic resonance)
    */
   public playClapperSnap() {
     if (this.isMuted) return;
@@ -43,42 +80,98 @@ class RatioAudioEngine {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    
-    // Impact click
+
+    // Hard impact snap
     const osc = ctx.createOscillator();
     const gain = ctx.createGain();
     osc.type = 'triangle';
-    osc.frequency.setValueAtTime(600, t);
-    osc.frequency.exponentialRampToValueAtTime(80, t + 0.04);
-    gain.gain.setValueAtTime(0.35, t);
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(70, t + 0.04);
+    gain.gain.setValueAtTime(0.45, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.start(t);
     osc.stop(t + 0.05);
 
-    // Wood body resonance
-    const bufferSize = ctx.sampleRate * 0.08;
+    // Wood body acoustic resonance
+    const bufferSize = ctx.sampleRate * 0.1;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
     for (let i = 0; i < bufferSize; i++) {
-      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.015));
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.02));
     }
     const noise = ctx.createBufferSource();
     noise.buffer = buffer;
     const filter = ctx.createBiquadFilter();
     filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(1400, t);
-    filter.Q.setValueAtTime(4.0, t);
+    filter.frequency.setValueAtTime(1550, t);
+    filter.Q.setValueAtTime(5.0, t);
 
     const noiseGain = ctx.createGain();
-    noiseGain.gain.setValueAtTime(0.3, t);
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    noiseGain.gain.setValueAtTime(0.4, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
 
     noise.connect(filter);
     filter.connect(noiseGain);
     noiseGain.connect(ctx.destination);
     noise.start(t);
+  }
+
+  /**
+   * High-Five / Fist-Bump Hand Slap Sound
+   */
+  public playHighFiveClap() {
+    if (this.isMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const bufferSize = ctx.sampleRate * 0.12;
+    const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      data[i] = (Math.random() * 2 - 1) * Math.exp(-i / (ctx.sampleRate * 0.018));
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = buffer;
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(2200, t);
+
+    const gain = ctx.createGain();
+    gain.gain.setValueAtTime(0.35, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.12);
+
+    noise.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
+    noise.start(t);
+  }
+
+  /**
+   * Option Selection Pop
+   */
+  public playOptionSelect() {
+    if (this.isMuted) return;
+    const ctx = this.initCtx();
+    if (!ctx) return;
+
+    const t = ctx.currentTime;
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(520, t);
+    osc.frequency.exponentialRampToValueAtTime(780, t + 0.06);
+
+    gain.gain.setValueAtTime(0.18, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start(t);
+    osc.stop(t + 0.07);
   }
 
   /**
@@ -148,8 +241,7 @@ class RatioAudioEngine {
     if (!ctx) return;
 
     const t = ctx.currentTime;
-    
-    // Shutter click 1
+
     const osc1 = ctx.createOscillator();
     const gain1 = ctx.createGain();
     osc1.type = 'square';
@@ -162,7 +254,6 @@ class RatioAudioEngine {
     osc1.start(t);
     osc1.stop(t + 0.04);
 
-    // Shutter click 2 (rebound)
     const osc2 = ctx.createOscillator();
     const gain2 = ctx.createGain();
     osc2.type = 'square';
@@ -177,29 +268,29 @@ class RatioAudioEngine {
   }
 
   /**
-   * Prop Master placement thud / heavy equipment roll
+   * Prop Master placement / scaling sparkle sound
    */
   public playPropPlacement() {
     if (this.isMuted) return;
     const ctx = this.initCtx();
     if (!ctx) return;
 
-    const t = ctx.currentTime;
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    const notes = [587.33, 739.99, 880, 1174.66]; // D5, F#5, A5, D6
+    notes.forEach((freq, idx) => {
+      const startTime = ctx.currentTime + idx * 0.04;
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
 
-    osc.type = 'sine';
-    osc.frequency.setValueAtTime(140, t);
-    osc.frequency.exponentialRampToValueAtTime(45, t + 0.2);
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startTime);
+      gain.gain.setValueAtTime(0.15, startTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.22);
 
-    gain.gain.setValueAtTime(0.2, t);
-    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
-
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-
-    osc.start(t);
-    osc.stop(t + 0.25);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(startTime);
+      osc.stop(startTime + 0.22);
+    });
   }
 
   /**
@@ -219,7 +310,7 @@ class RatioAudioEngine {
       osc.type = 'triangle';
       osc.frequency.setValueAtTime(freq, startTime);
 
-      gain.gain.setValueAtTime(0.18, startTime);
+      gain.gain.setValueAtTime(0.2, startTime);
       gain.gain.exponentialRampToValueAtTime(0.001, startTime + 0.4);
 
       osc.connect(gain);
@@ -246,7 +337,7 @@ class RatioAudioEngine {
     osc.frequency.setValueAtTime(160, t);
     osc.frequency.linearRampToValueAtTime(120, t + 0.28);
 
-    gain.gain.setValueAtTime(0.16, t);
+    gain.gain.setValueAtTime(0.18, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
 
     osc.connect(gain);

@@ -14,6 +14,8 @@ import { StudioBriefingModal } from './StudioBriefingModal';
 import { useRatioStore } from '../store/ratioStore';
 import { Film, Eye, Sparkles } from 'lucide-react';
 
+import { ratioAudio } from '../engine/ratioAudio';
+
 export const RatioRushGame: React.FC = () => {
   const isFilmingActive = useRatioStore((s) => s.isFilmingActive);
   const isPremiereActive = useRatioStore((s) => s.isPremiereActive);
@@ -24,9 +26,25 @@ export const RatioRushGame: React.FC = () => {
 
   const hidePanels = isFilmingActive || isPremiereActive || (blueComplete && redComplete);
 
-  // Reload active session questions on mount
+  // Reload active session questions and start Movie Shoot BGM on mount
   useEffect(() => {
     reloadSessionQuestions();
+    ratioAudio.startBGM();
+
+    const handleFirstInteraction = () => {
+      ratioAudio.startBGM();
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+    };
+
+    window.addEventListener('pointerdown', handleFirstInteraction);
+    window.addEventListener('keydown', handleFirstInteraction);
+
+    return () => {
+      window.removeEventListener('pointerdown', handleFirstInteraction);
+      window.removeEventListener('keydown', handleFirstInteraction);
+      ratioAudio.stopBGM();
+    };
   }, [reloadSessionQuestions]);
 
   // Countdown timer hook
