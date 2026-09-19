@@ -11,7 +11,7 @@
 // 8. Sound Crew (Over-ear studio headphones & boom microphone)
 // ============================================================
 
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useEffect } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import {
@@ -24,7 +24,9 @@ import {
   PoseTargets,
   lineAt,
   sceneClock,
+  activeQuestionContext,
 } from './StudioPerformance';
+import { RatioQuestion } from '../types';
 import {
   geoBox,
   geoCylinder8,
@@ -179,20 +181,18 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
       const breath = Math.sin(t * 2.0) * 0.015;
       const k = 1 - Math.exp(-6 * Math.min(delta, 0.05));
 
-      // ══ ACTORS — perform the scripted scene ══
+      // ══ ACTORS — perform the scripted scene or active question rehearsal ══
       if (role) {
-        const sceneTime = sceneClock.time;
-        const performing = sceneTime !== null;
-        const st = performing ? sceneTime : 0;
-        const beat = beatAt(st);
-        const speaking = performing && beat.speaker === role;
-        const gesture = performing ? beat.gesture[role] ?? 'rest' : 'rest';
+        const sceneTime = sceneClock.time !== null ? sceneClock.time : t;
+        const beat = beatAt(sceneTime, isFilming);
+        const speaking = beat.speaker === role;
+        const gesture = beat.gesture[role] ?? 'rest';
         const energy = speaking ? speechEnergy(t) : 0;
 
         // 1. Walk onto the mark this beat calls for.
-        const mark = performing ? markAt(role, st) : OPENING_MARKS[role];
-        heldPos.current.x += (mark[0] - heldPos.current.x) * k * 0.5;
-        heldPos.current.y += (mark[1] - heldPos.current.y) * k * 0.5;
+        const mark = markAt(role, sceneTime, isFilming);
+        heldPos.current.x += (mark[0] - heldPos.current.x) * k * 0.7;
+        heldPos.current.y += (mark[1] - heldPos.current.y) * k * 0.7;
         if (stageRef.current) {
           stageRef.current.position.x = heldPos.current.x - position[0];
           stageRef.current.position.z = heldPos.current.y - position[2];
@@ -200,7 +200,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
         ACTOR_STAGE_POS[role] = heldPos.current;
 
         // 2. Turn toward whoever they are playing the beat with.
-        const focus = performing ? beat.focus[role] : undefined;
+        const focus = beat.focus[role];
         let wantFacing = 0;
         if (focus && focus !== 'camera') {
           const other = ACTOR_STAGE_POS[focus];
@@ -211,7 +211,7 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
         let dFace = wantFacing - heldFacing.current;
         while (dFace > Math.PI) dFace -= Math.PI * 2;
         while (dFace < -Math.PI) dFace += Math.PI * 2;
-        heldFacing.current += dFace * k * 0.6;
+        heldFacing.current += dFace * k * 0.8;
         if (stageRef.current) stageRef.current.rotation.y = heldFacing.current - rotationY;
 
         // 3. Ease every joint toward the gesture for this beat.
@@ -229,9 +229,9 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
           bodyRootRef.current.rotation.z = Math.cos(t * 1.6) * 0.012;
         }
         if (headRef.current) {
-          const talkBob = speaking ? Math.sin(t * 5.2) * 0.05 * energy : 0;
+          const talkBob = speaking ? Math.sin(t * 5.2) * 0.06 * (0.4 + energy * 0.6) : 0;
           headRef.current.rotation.x = h.headPitch + talkBob;
-          headRef.current.rotation.y = h.headYaw + Math.sin(t * 0.8) * 0.03;
+          headRef.current.rotation.y = h.headYaw + Math.sin(t * 0.8) * 0.04;
           headRef.current.rotation.z = h.headRoll;
         }
         if (leftArmRef.current) leftArmRef.current.rotation.set(h.lShoulderX, 0, h.lShoulderZ);
@@ -923,15 +923,27 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
 BlenderHumanoid.displayName = 'BlenderHumanoid';
 
 /** Advances the shared scene clock; every actor rig reads it in the same frame. */
-const SceneClockDriver: React.FC<{ filmStartedAt: number | null }> = ({ filmStartedAt }) => {
-  useFrame(() => {
-    if (filmStartedAt === null) {
-      sceneClock.time = null;
-      return;
+const SceneClockDriver: React.FC<{
+  filmStartedAt: number | null;
+  activeQuestion?: RatioQuestion | null;
+  feedbackStatus?: 'idle' | 'correct' | 'incorrect';
+  feedbackMessage?: string;
+}> = ({ filmStartedAt, activeQuestion = null, feedbackStatus = 'idle', feedbackMessage = '' }) => {
+  useEffect(() => {
+    activeQuestionContext.question = activeQuestion;
+    activeQuestionContext.feedbackStatus = feedbackStatus;
+    activeQuestionContext.feedbackMessage = feedbackMessage;
+  }, [activeQuestion, feedbackStatus, feedbackMessage]);
+
+  useFrame((state) => {
+    if (filmStartedAt !== null) {
+      const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
+      const elapsed = (now - filmStartedAt) / 1000;
+      sceneClock.time = elapsed < 0 ? 0 : elapsed;
+    } else {
+      // Continuous question rehearsal clock
+      sceneClock.time = state.clock.getElapsedTime();
     }
-    const now = typeof performance !== 'undefined' ? performance.now() : Date.now();
-    const elapsed = (now - filmStartedAt) / 1000;
-    sceneClock.time = elapsed < 0 ? 0 : elapsed;
   });
   return null;
 };
@@ -942,7 +954,7 @@ const SceneClockDriver: React.FC<{ filmStartedAt: number | null }> = ({ filmStar
 // Crisp pure white balloon with bold solid black border, comic typography,
 // speaker badge, and pointer tail over the speaking character's head.
 // ============================================================
-const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
+const DialogueCaption3D: React.FC<{ baseY: number; isFilming: boolean }> = ({ baseY, isFilming }) => {
   const groupRef = useRef<THREE.Group>(null);
   const drawnFor = useRef<string>('');
 
@@ -970,7 +982,8 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
     const group = groupRef.current;
     if (!group || !texture) return;
 
-    const spoken = sceneClock.time === null ? null : lineAt(sceneClock.time);
+    const t = sceneClock.time !== null ? sceneClock.time : 0;
+    const spoken = lineAt(t, isFilming);
     group.visible = spoken !== null;
     if (!spoken) return;
 
@@ -1020,7 +1033,7 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
         let speakerName = 'SPEAKER';
         let badgeColor = '#facc15';
         if (spoken.speaker === 'lead_actor') {
-          speakerName = '★ RAVI (LEAD)';
+          speakerName = '★ RAVI (HERO)';
           badgeColor = '#60a5fa';
         } else if (spoken.speaker === 'lead_actress') {
           speakerName = '★ MAYA (LEAD)';
@@ -1037,8 +1050,8 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
         ctx.strokeStyle = '#000000';
         ctx.lineWidth = 4;
         ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(x + 24, y - 14, 210, 36, 10);
+        if (typeof (ctx as any).roundRect === 'function') {
+          (ctx as any).roundRect(x + 24, y - 14, 210, 36, 10);
         } else {
           ctx.rect(x + 24, y - 14, 210, 36);
         }
@@ -1052,7 +1065,7 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
         ctx.fillText(speakerName, x + 129, y + 4);
 
         // ── 3. Comic Dialogue Line ──
-        ctx.font = '900 44px "Arial Black", Impact, sans-serif';
+        ctx.font = '900 36px "Arial Black", Impact, sans-serif';
         ctx.fillStyle = '#000000';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -1083,9 +1096,19 @@ export const StudioCharacters3D: React.FC<{
   isFilming: boolean;
   productionLevel: number;
   dollyProgress?: number;
-  /** performance.now() at which 'ACTION' was called; null between takes. */
   filmStartedAt?: number | null;
-}> = React.memo(({ isFilming, productionLevel, dollyProgress = 0, filmStartedAt = null }) => {
+  activeQuestion?: RatioQuestion | null;
+  feedbackStatus?: 'idle' | 'correct' | 'incorrect';
+  feedbackMessage?: string;
+}> = React.memo(({
+  isFilming,
+  productionLevel,
+  dollyProgress = 0,
+  filmStartedAt = null,
+  activeQuestion = null,
+  feedbackStatus = 'idle',
+  feedbackMessage = '',
+}) => {
   const stageY = productionLevel >= 1 ? 0.3 : 0;
   return (
     <group>
@@ -1108,7 +1131,7 @@ export const StudioCharacters3D: React.FC<{
         />
       </group>
 
-      {/* ── 2. THE CAST — staged on their opening marks and driven by the scene script ── */}
+      {/* ── 2. THE CAST — staged on their marks and performing continuous scene/question beats ── */}
       <BlenderHumanoid
         position={[OPENING_MARKS.lead_actor[0], stageY, OPENING_MARKS.lead_actor[1]]}
         characterType="lead_actor"
@@ -1145,8 +1168,13 @@ export const StudioCharacters3D: React.FC<{
         role="villain"
       />
 
-      <SceneClockDriver filmStartedAt={filmStartedAt} />
-      <DialogueCaption3D baseY={stageY} />
+      <SceneClockDriver
+        filmStartedAt={filmStartedAt}
+        activeQuestion={activeQuestion}
+        feedbackStatus={feedbackStatus}
+        feedbackMessage={feedbackMessage}
+      />
+      <DialogueCaption3D baseY={stageY} isFilming={isFilming} />
 
       {/* ── 3. CAMERA OPERATOR (Behind Cinema Camera 1, Looking at Actors) ── */}
       <BlenderHumanoid

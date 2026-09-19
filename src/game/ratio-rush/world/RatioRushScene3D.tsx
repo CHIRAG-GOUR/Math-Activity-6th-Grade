@@ -150,6 +150,11 @@ export const RatioRushScene3D: React.FC = () => {
   const blueLevel = useRatioStore((s) => s.blueTeam.productionLevel);
   const redLevel = useRatioStore((s) => s.redTeam.productionLevel);
   const globalLevel = Math.max(blueLevel, redLevel);
+  const questions = useRatioStore((s) => s.questions);
+  const blueTeam = useRatioStore((s) => s.blueTeam);
+  const activeQuestion = questions[blueTeam.currentQuestionIndex] || questions[0];
+  const feedbackStatus = blueTeam.feedbackStatus;
+  const feedbackMessage = blueTeam.feedbackMessage;
 
   return (
     <div className="relative w-full h-full select-none bg-[#f8fafc]">
@@ -159,14 +164,15 @@ export const RatioRushScene3D: React.FC = () => {
         gl={{
           powerPreference: 'high-performance',
           antialias: true,
-          stencil: false,
-          depth: true,
+          toneMapping: THREE.ACESFilmicToneMapping,
+          toneMappingExposure: 1.18,
         }}
+        shadows
       >
-        <color attach="background" args={['#f8fafc']} />
+        <color attach="background" args={['#0c1222']} />
 
         {/* ── 1. BRIGHT STUDIO DAYLIGHT & PRODUCTION FLOODLIGHTS ── */}
-        <ambientLight color="#ffffff" intensity={2.2} />
+        <ambientLight intensity={1.1} />
         <hemisphereLight color="#ffffff" groundColor="#e2e8f0" intensity={1.5} />
         <directionalLight
           position={[4, 12, 8]}
@@ -215,6 +221,9 @@ export const RatioRushScene3D: React.FC = () => {
             productionLevel={globalLevel}
             dollyProgress={isFilmingActive ? 0.8 : 0.2}
             filmStartedAt={filmStartedAt}
+            activeQuestion={activeQuestion}
+            feedbackStatus={feedbackStatus}
+            feedbackMessage={feedbackMessage}
           />
         </StudioLiveFeedProvider>
       </Canvas>
