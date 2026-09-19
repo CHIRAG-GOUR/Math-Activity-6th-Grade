@@ -14,6 +14,7 @@ import { StudioEquipment3D } from './StudioEquipment3D';
 import { StudioMovieSet3D } from './StudioMovieSet3D';
 import { StudioCharacters3D } from './StudioCharacters3D';
 import { StudioLiveFeedProvider } from './StudioLiveFeed';
+import { StudioTheatre3D } from './StudioTheatre3D';
 import { sceneClock, SCENE_LENGTH } from './StudioPerformance';
 import { useRatioStore } from '../store/ratioStore';
 
@@ -24,13 +25,17 @@ import { useRatioStore } from '../store/ratioStore';
 // instead of sitting on one locked-off angle for half a minute.
 // ============================================================
 const COVERAGE: { at: number; pos: [number, number, number]; look: [number, number, number] }[] = [
-  { at: 0.0, pos: [1.4, 2.1, 4.2], look: [-0.1, 1.45, -2.3] },   // establishing wide
-  { at: 3.4, pos: [-0.2, 1.7, 0.4], look: [-1.6, 1.55, -2.0] },  // single: the hero
-  { at: 8.2, pos: [-2.0, 1.7, 0.1], look: [-0.7, 1.52, -2.2] },  // reverse: the actress
-  { at: 12.4, pos: [0.2, 1.55, 0.2], look: [1.6, 1.6, -1.9] },   // low single: the villain
-  { at: 16.6, pos: [0.9, 1.65, -0.5], look: [-0.9, 1.55, -1.9] },// over the villain's shoulder
-  { at: 20.6, pos: [-0.6, 1.75, 0.9], look: [-1.1, 1.5, -2.0] }, // two-shot on the turn
-  { at: 23.6, pos: [0.5, 2.6, 3.4], look: [0.0, 1.4, -2.2] },    // crane out to the final wide
+  // Every setup stays downstage looking back at the cyclorama, favouring
+  // whoever has the line — so the camera is never behind an actor's head.
+  // Heights sit just under eye line so the cast fill the frame rather than
+  // leaving half of it on empty green.
+  { at: 0.0, pos: [0.15, 1.95, 0.75], look: [0.15, 1.6, -2.15] },  // establishing wide
+  { at: 3.4, pos: [-0.75, 1.75, -0.35], look: [-1.5, 1.6, -2.1] }, // favouring the hero
+  { at: 8.2, pos: [0.1, 1.75, -0.55], look: [-0.55, 1.58, -2.35] },// reverse onto the actress
+  { at: 12.4, pos: [1.95, 1.7, -0.4], look: [1.45, 1.6, -2.0] },   // the villain cuts in
+  { at: 16.6, pos: [0.5, 1.78, 0.35], look: [0.05, 1.6, -1.6] },   // hero stands his ground
+  { at: 20.6, pos: [-0.5, 1.78, 0.1], look: [-0.85, 1.58, -1.95] },// two-shot on the turn
+  { at: 23.6, pos: [0.15, 2.15, 1.35], look: [0.15, 1.55, -2.15] },// crane out to the final wide
 ];
 
 function shotAt(t: number) {
@@ -50,7 +55,9 @@ import { StudioCameraView } from '../types';
 const StudioCameraRig: React.FC<{
   cameraView: StudioCameraView;
   isFilming: boolean;
-}> = ({ cameraView, isFilming }) => {
+  /** The stage deck rises once the build starts; the coverage must rise with it. */
+  stageLift: number;
+}> = ({ cameraView, isFilming, stageLift }) => {
   const { camera, pointer } = useThree();
   const targetCamPos = useRef(new THREE.Vector3(0, 4.4, 11.8));
   const targetLookAt = useRef(new THREE.Vector3(0, 1.6, -1.0));
@@ -79,9 +86,9 @@ const StudioCameraRig: React.FC<{
         look: new THREE.Vector3(-17, 1.6, -1),
       },
       premiere: {
-        // Red Carpet Cinema Premiere View
-        pos: new THREE.Vector3(17, 2.8, 4.5),
-        look: new THREE.Vector3(17, 2.2, -5),
+        // In the back row of the auditorium, watching the film over the audience
+        pos: new THREE.Vector3(17.6, 4.2, 7.2),
+        look: new THREE.Vector3(17.6, 3.2, -8),
       },
     };
   }, []);
@@ -95,8 +102,8 @@ const StudioCameraRig: React.FC<{
     if (rolling) {
       // Cut to whichever setup covers this beat, then hold it on the sticks.
       const shot = shotAt(sceneTime as number);
-      targetCamPos.current.set(...shot.pos);
-      targetLookAt.current.set(...shot.look);
+      targetCamPos.current.set(shot.pos[0], shot.pos[1] + stageLift, shot.pos[2]);
+      targetLookAt.current.set(shot.look[0], shot.look[1] + stageLift, shot.look[2]);
 
       const t = Date.now() * 0.002;
       targetCamPos.current.x += Math.sin(t * 1.5) * 0.02;
@@ -189,13 +196,20 @@ export const RatioRushScene3D: React.FC = () => {
         )}
 
         {/* ── 2. CAMERA RIG CONTROLLER ── */}
-        <StudioCameraRig cameraView={activeCameraView} isFilming={isFilmingActive} />
+        <StudioCameraRig
+          cameraView={activeCameraView}
+          isFilming={isFilmingActive}
+          stageLift={globalLevel >= 1 ? 0.3 : 0}
+        />
 
         {/* ── 3. WORLD COMPONENTS ── */}
         <StudioLiveFeedProvider isFilming={isFilmingActive}>
           <StudioSoundstage3D isFilming={isFilmingActive} isPremiere={isPremiereActive} />
           <StudioEquipment3D isFilming={isFilmingActive} dollyProgress={isFilmingActive ? 0.8 : 0.2} />
           <StudioMovieSet3D productionLevel={globalLevel} isFilming={isFilmingActive} />
+          <group position={[17.6, 0, -1]}>
+            <StudioTheatre3D isPremiere={isPremiereActive} />
+          </group>
           <StudioCharacters3D
             isFilming={isFilmingActive}
             productionLevel={globalLevel}

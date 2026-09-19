@@ -16,7 +16,6 @@ import { useRatioStore } from '../store/ratioStore';
 import { Users, User, HelpCircle } from 'lucide-react';
 
 export const RatioRushGame: React.FC = () => {
-  if (typeof window !== 'undefined') (window as unknown as Record<string, unknown>).__ratio = useRatioStore;
   const gameMode = useRatioStore((s) => s.gameMode);
   const setGameMode = useRatioStore((s) => s.setGameMode);
   const decrementTimer = useRatioStore((s) => s.decrementTimer);

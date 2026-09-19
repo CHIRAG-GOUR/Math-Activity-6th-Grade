@@ -24,7 +24,6 @@ import {
   MAT_GOLD_BRASS,
   MAT_STEEL_DARK,
   MAT_SCREEN_GLOW,
-  MAT_WALL_ACOUSTIC,
 } from './StudioMaterials';
 import { useLiveFeed } from './StudioLiveFeed';
 
@@ -34,11 +33,13 @@ const ROW_PITCH = 1.45;
 const ROW_RISE = 0.34;
 const FIRST_ROW_Z = -2.4;
 /** Two blocks of four, with a centre aisle straight up the middle. */
-const SEAT_X = [-3.35, -2.6, -1.85, -1.1, 1.1, 1.85, 2.6, 3.35];
+const SEAT_X = [-3.1, -2.42, -1.74, -1.06, 1.06, 1.74, 2.42, 3.1];
 
 const MAT_SEAT = getStudioMaterial('#7f1d1d', 0.85, 0.0);
 const MAT_SEAT_TRIM = getStudioMaterial('#a16207', 0.5, 0.35);
 const MAT_RISER = getStudioMaterial('#1c1917', 0.9, 0.0);
+const MAT_WALL_DARK = getStudioMaterial('#27272a', 0.95, 0.0);
+const MAT_PANEL = getStudioMaterial('#3f3f46', 0.95, 0.0);
 const MAT_AISLE_LIGHT = getStudioMaterial('#fde047', 0.2, 0.0, '#facc15', 2.2);
 const MAT_EXIT_SIGN = getStudioMaterial('#16a34a', 0.3, 0.0, '#22c55e', 1.8);
 const MAT_SCREEN_MASK = getStudioMaterial('#09090b', 0.95, 0.0);
@@ -126,15 +127,15 @@ const AudienceInstanced: React.FC<{ seats: Seat[] }> = ({ seats }) => {
       const sway = Math.sin(t * 0.7 + p.phase) * 0.018;
       const bob = Math.sin(t * 1.6 + p.phase) * 0.008;
 
-      dummy.position.set(p.x, p.y + 0.78 + bob, p.z + 0.06);
+      dummy.position.set(p.x, p.y + 0.76 + bob, p.z - 0.04);
       dummy.rotation.set(0, sway, 0);
-      dummy.scale.set(0.42, 0.62, 0.34);
+      dummy.scale.set(0.4, 0.58, 0.32);
       dummy.updateMatrix();
       body.setMatrixAt(i, dummy.matrix);
 
-      dummy.position.set(p.x, p.y + 1.22 + bob, p.z + 0.04);
+      dummy.position.set(p.x, p.y + 1.12 + bob, p.z - 0.06);
       dummy.rotation.set(Math.sin(t * 0.9 + p.phase) * 0.03, sway * 1.6, 0);
-      dummy.scale.set(0.14, 0.16, 0.14);
+      dummy.scale.set(0.125, 0.145, 0.125);
       dummy.updateMatrix();
       head.setMatrixAt(i, dummy.matrix);
     }
@@ -173,23 +174,23 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
         <mesh
           geometry={geoBox}
           material={MAT_RISER}
-          scale={[13, 0.1, 22]}
+          scale={[10.6, 0.1, 22]}
           position={[0, 0.02, -1]}
         />
         {/* Side walls with acoustic panelling */}
-        {[-6.4, 6.4].map((wx) => (
+        {[-5.4, 5.4].map((wx) => (
           <group key={`wall-${wx}`}>
             <mesh
               geometry={geoBox}
-              material={MAT_WALL_ACOUSTIC}
-              scale={[0.3, 7.5, 22]}
-              position={[wx, 3.75, -1]}
+              material={MAT_WALL_DARK}
+              scale={[0.3, 8.6, 22]}
+              position={[wx, 4.3, -1]}
             />
             {[-5.5, -3, -0.5, 2, 4.5].map((pz) => (
               <mesh
                 key={`panel-${wx}-${pz}`}
                 geometry={geoBox}
-                material={MAT_SEAT}
+                material={MAT_PANEL}
                 scale={[0.08, 4.4, 1.6]}
                 position={[wx + (wx < 0 ? 0.2 : -0.2), 3.4, pz]}
               />
@@ -206,25 +207,32 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
             ))}
           </group>
         ))}
-        {/* Back wall and ceiling, so the room is closed and reads dark */}
+        {/* Front, back and ceiling: a sealed room, so the soundstage next door
+            never shows up behind the screen. */}
         <mesh
           geometry={geoBox}
-          material={MAT_WALL_ACOUSTIC}
-          scale={[13, 7.5, 0.3]}
-          position={[0, 3.75, 10]}
+          material={MAT_WALL_DARK}
+          scale={[10.7, 8.6, 0.4]}
+          position={[0, 4.3, SCREEN_Z - 0.35]}
+        />
+        <mesh
+          geometry={geoBox}
+          material={MAT_WALL_DARK}
+          scale={[10.7, 8.6, 0.4]}
+          position={[0, 4.3, 10]}
         />
         <mesh
           geometry={geoBox}
           material={MAT_RISER}
-          scale={[13, 0.2, 22]}
-          position={[0, 7.4, -1]}
+          scale={[10.7, 0.3, 22]}
+          position={[0, 8.5, -1]}
         />
 
         {/* ── Masked cinema screen carrying the live feed ── */}
         <group position={[0, 3.5, SCREEN_Z]}>
           {/* Black masking surround */}
-          <mesh geometry={geoBox} material={MAT_SCREEN_MASK} scale={[10.4, 6.4, 0.3]} />
-          <mesh scale={[8.6, 4.84, 1]} position={[0, 0, 0.17]}>
+          <mesh geometry={geoBox} material={MAT_SCREEN_MASK} scale={[8.9, 5.6, 0.3]} />
+          <mesh scale={[7.5, 4.22, 1]} position={[0, 0, 0.17]}>
             <planeGeometry args={[1, 1]} />
             {feed ? (
               <primitive object={feed.screenMaterial} attach="material" />
@@ -234,10 +242,10 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
           </mesh>
           {/* Gold proscenium trim */}
           {[
-            [0, 3.3, 0.22, 10.8, 0.22, 0.12],
-            [0, -3.3, 0.22, 10.8, 0.22, 0.12],
-            [-5.3, 0, 0.22, 0.22, 6.8, 0.12],
-            [5.3, 0, 0.22, 0.22, 6.8, 0.12],
+            [0, 2.9, 0.22, 9.3, 0.22, 0.12],
+            [0, -2.9, 0.22, 9.3, 0.22, 0.12],
+            [-4.55, 0, 0.22, 0.22, 6.0, 0.12],
+            [4.55, 0, 0.22, 0.22, 6.0, 0.12],
           ].map((t, i) => (
             <mesh
               key={`trim-${i}`}
@@ -253,7 +261,7 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
         <mesh
           geometry={geoBox}
           material={MAT_RED_CARPET}
-          scale={[11, 0.6, 1.6]}
+          scale={[9.4, 0.6, 1.6]}
           position={[0, 0.3, SCREEN_Z + 1.2]}
         />
 
@@ -296,7 +304,7 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
             key={`riser-${r}`}
             geometry={geoBox}
             material={MAT_RISER}
-            scale={[12.4, r * ROW_RISE + 0.08, ROW_PITCH]}
+            scale={[10.2, r * ROW_RISE + 0.08, ROW_PITCH]}
             position={[0, (r * ROW_RISE + 0.08) / 2, FIRST_ROW_Z + r * ROW_PITCH]}
           />
         ))}
@@ -333,7 +341,7 @@ export const StudioTheatre3D: React.FC<{ isPremiere: boolean }> = React.memo(
         )}
 
         {/* Exit signs */}
-        {[-5.9, 5.9].map((ex) => (
+        {[-4.9, 4.9].map((ex) => (
           <mesh
             key={`exit-${ex}`}
             geometry={geoBox}

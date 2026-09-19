@@ -313,17 +313,16 @@ export const StudioSoundstage3D: React.FC<{ isFilming: boolean; isPremiere: bool
           </group>
         </group>
 
-        {/* ── 7. RIGHT WING: CINEMA PREMIERE AUDITORIUM ── */}
-        <group position={[17, 0, -1]}>
-          {/* Red Carpet */}
+        {/* ── 7. RIGHT WING: the auditorium itself lives in StudioTheatre3D ── */}
+        <group position={[17.6, 0, -1]}>
+          {/* Red carpet approach from the stage door to the theatre entrance */}
           <mesh
             geometry={geoBox}
             material={MAT_RED_CARPET}
-            scale={[3.2, 0.04, 16]}
-            position={[0, 0.03, 0]}
+            scale={[3.2, 0.04, 8]}
+            position={[0, 0.03, 14]}
           />
-          {/* Brass Stanchion Posts */}
-          {[-6, -2, 2, 6].map((pz, idx) => (
+          {[11, 13.5, 16].map((pz, idx) => (
             <React.Fragment key={`stanchion-light-${idx}`}>
               <mesh
                 geometry={geoCylinder8}
@@ -339,22 +338,6 @@ export const StudioSoundstage3D: React.FC<{ isFilming: boolean; isPremiere: bool
               />
             </React.Fragment>
           ))}
-          {/* Giant Premiere Projection Screen */}
-          <group position={[0, 3.8, -7]}>
-            <mesh geometry={geoBox} material={MAT_ROAD_CASE_BLACK} scale={[6.8, 4.4, 0.2]} />
-            {/* The premiere plays back what the A-camera actually shot. */}
-            <mesh scale={[6.4, 4.0, 0.08]} position={[0, 0, 0.1]}>
-              <planeGeometry args={[1, 1]} />
-              {isPremiere && feed ? (
-                <primitive object={feed.screenMaterial} attach="material" />
-              ) : (
-                <primitive
-                  object={isPremiere ? MAT_SCREEN_RECORDING : MAT_SCREEN_GLOW}
-                  attach="material"
-                />
-              )}
-            </mesh>
-          </group>
         </group>
       </group>
     );

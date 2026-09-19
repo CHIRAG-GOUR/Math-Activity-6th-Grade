@@ -77,7 +77,7 @@ export const SCENE: Beat[] = [
     label: 'SC 12 — SHE ANSWERS',
     speaker: 'lead_actress',
     line: 'Three to one? I carried two of every four scenes.',
-    marks: { lead_actress: [-0.75, -2.2] },
+    marks: { lead_actress: [-0.5, -2.35] },
     focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actress' },
     gesture: { lead_actress: 'hand_to_heart', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
   },
@@ -86,7 +86,7 @@ export const SCENE: Beat[] = [
     label: 'SC 12 — THE VILLAIN CUTS IN',
     speaker: 'villain',
     line: 'Then neither of you gets a single frame of it.',
-    marks: { villain: [1.5, -2.0], co_star: [1.25, -2.8] },
+    marks: { villain: [1.5, -2.0], co_star: [0.8, -2.95] },
     focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
     gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
   },
@@ -95,7 +95,7 @@ export const SCENE: Beat[] = [
     label: 'SC 12 — HERO STANDS HIS GROUND',
     speaker: 'lead_actor',
     line: 'You do not get to rewrite our ratio. Not today.',
-    marks: { lead_actor: [-0.9, -1.85] },
+    marks: { lead_actor: [0.0, -1.55] },
     focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'lead_actor' },
     gesture: { lead_actor: 'talk_point', villain: 'recoil', lead_actress: 'plead', co_star: 'listen' },
   },
@@ -104,7 +104,7 @@ export const SCENE: Beat[] = [
     label: 'SC 12 — THE TURN',
     speaker: 'lead_actress',
     line: 'Make it one to one. We finish this picture together.',
-    marks: { lead_actress: [-1.25, -2.05], villain: [2.3, -1.6] },
+    marks: { lead_actress: [-0.9, -1.95], villain: [2.3, -1.6] },
     focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
     gesture: { lead_actress: 'talk_open', lead_actor: 'listen', co_star: 'cheer', villain: 'rest' },
   },
@@ -193,15 +193,16 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.torsoLean = 0.02;
       break;
     case 'hand_to_heart':
-      p.lShoulderX = -0.95;
-      p.lShoulderZ = 0.52;
-      p.lElbow = 1.75;
+      p.lShoulderX = -0.88;
+      p.lShoulderZ = 0.3;
+      p.lElbow = 1.42;
       p.rShoulderX = -0.45 - energy * 0.35;
       p.rShoulderZ = -0.38;
       p.rElbow = 0.95 - energy * 0.3;
       p.headPitch = -0.06;
       p.headRoll = 0.07;
       p.torsoLean = 0.04;
+      p.torsoTwist = -0.1;
       break;
     case 'plead':
       p.lShoulderX = -0.8 - energy * 0.2;
@@ -214,9 +215,9 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.torsoLean = 0.08;
       break;
     case 'menace':
-      p.rShoulderX = -1.05 - energy * 0.35;
-      p.rShoulderZ = -0.2;
-      p.rElbow = 0.3;
+      p.rShoulderX = -0.95 - energy * 0.3;
+      p.rShoulderZ = -0.24;
+      p.rElbow = 0.55 - energy * 0.2;
       p.lShoulderX = 0.25;      // other hand tucked behind the back
       p.lShoulderZ = 0.16;
       p.lElbow = 1.5;
@@ -225,14 +226,15 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.torsoLean = 0.11;
       break;
     case 'recoil':
-      p.lShoulderX = -1.25;
-      p.lShoulderZ = 0.62;
-      p.lElbow = 1.5;
-      p.rShoulderX = -1.25;
-      p.rShoulderZ = -0.62;
-      p.rElbow = 1.5;
-      p.headPitch = -0.14;
-      p.torsoLean = -0.14;      // leaning away
+      p.lShoulderX = -0.78;
+      p.lShoulderZ = 0.58;
+      p.lElbow = 1.05;
+      p.rShoulderX = -0.78;
+      p.rShoulderZ = -0.58;
+      p.rElbow = 1.05;
+      p.headPitch = -0.1;
+      p.headYaw = 0.12;
+      p.torsoLean = -0.2;       // leaning away
       break;
     case 'cheer':
       p.lShoulderX = -2.25;

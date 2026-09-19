@@ -809,16 +809,16 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
                 <mesh
                   geometry={geoCylinder16}
                   material={MAT_HAIR_BRUNETTE}
-                  scale={[0.055, 0.45, 0.055]}
-                  position={[-0.13, -0.22, 0.06]}
-                  rotation={[0.25, 0, -0.15]}
+                  scale={[0.052, 0.45, 0.052]}
+                  position={[-0.155, -0.2, -0.045]}
+                  rotation={[-0.12, 0, -0.1]}
                 />
                 <mesh
                   geometry={geoCylinder16}
                   material={MAT_HAIR_BRUNETTE}
-                  scale={[0.055, 0.45, 0.055]}
-                  position={[0.13, -0.22, 0.06]}
-                  rotation={[0.25, 0, 0.15]}
+                  scale={[0.052, 0.45, 0.052]}
+                  position={[0.155, -0.2, -0.045]}
+                  rotation={[-0.12, 0, 0.1]}
                 />
                 {/* Back Hair Sheet */}
                 <mesh
@@ -993,14 +993,14 @@ const DialogueCaption3D: React.FC<{ baseY: number }> = ({ baseY }) => {
     }
 
     const at = ACTOR_STAGE_POS[spoken.speaker];
-    if (at) group.position.set(at.x, baseY + 2.24, at.y);
+    if (at) group.position.set(at.x, baseY + 2.12, at.y);
     group.quaternion.copy(camera.quaternion);
   });
 
   return (
-    <group ref={groupRef} visible={false}>
-      <mesh>
-        <planeGeometry args={[3.0, 0.56]} />
+    <group ref={groupRef} visible={false} renderOrder={999}>
+      <mesh renderOrder={999}>
+        <planeGeometry args={[2.6, 0.49]} />
         <primitive object={material} attach="material" />
       </mesh>
     </group>
@@ -1077,6 +1077,7 @@ export const StudioCharacters3D: React.FC<{
       />
 
       <SceneClockDriver filmStartedAt={filmStartedAt} />
+      <DialogueCaption3D baseY={stageY} />
 
       {/* ── 3. CAMERA OPERATOR (Behind Cinema Camera 1, Looking at Actors) ── */}
       <BlenderHumanoid
