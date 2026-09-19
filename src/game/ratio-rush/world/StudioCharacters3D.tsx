@@ -213,10 +213,14 @@ export const BlenderHumanoid: React.FC<BlenderHumanProps> = React.memo(
           h[key] += (want[key] - h[key]) * k;
         });
 
-        // 4. Apply, with breathing and a speaking head bob on top.
+        // 4. Apply, with breathing, knockdown tilt, and speaking head bob.
         if (bodyRootRef.current) {
-          bodyRootRef.current.position.y = breath * 1.2;
-          bodyRootRef.current.rotation.x = h.torsoLean * 0.35;
+          const isKnocked = gesture === 'knocked_out';
+          const isStaggered = gesture === 'fight_knockdown';
+          const knockPitch = isKnocked ? -1.52 : isStaggered ? -0.75 : h.torsoLean * 0.35;
+          const knockY = isKnocked ? 0.08 : isStaggered ? 0.02 : breath * 1.2;
+          bodyRootRef.current.position.y = knockY;
+          bodyRootRef.current.rotation.x = knockPitch;
           bodyRootRef.current.rotation.y = h.torsoTwist;
           bodyRootRef.current.rotation.z = Math.cos(t * 1.6) * 0.012;
         }

@@ -13,23 +13,18 @@ import { useRatioStore } from '../store/ratioStore';
 import { StudioCameraView } from '../types';
 
 // ============================================================
-// SHOT LIST — how the scene is covered while the camera is rolling.
-// Each entry holds until the next one starts, so the take is cut like a
-// real scene (wide, singles on whoever has the line, reverse, final wide)
-// instead of sitting on one locked-off angle for half a minute.
+// SHOT LIST — Dynamic cinematic coverage with UFC 1v1 fight angles
 // ============================================================
 const COVERAGE: { at: number; pos: [number, number, number]; look: [number, number, number] }[] = [
-  // Every setup stays downstage looking back at the cyclorama, favouring
-  // whoever has the line — so the camera is never behind an actor's head.
-  // Heights sit just under eye line so the cast fill the frame rather than
-  // leaving half of it on empty green.
-  { at: 0.0, pos: [0.15, 1.95, 0.75], look: [0.15, 1.6, -2.15] },  // establishing wide
-  { at: 3.4, pos: [-0.75, 1.75, -0.35], look: [-1.5, 1.6, -2.1] }, // favouring the hero
-  { at: 8.2, pos: [0.1, 1.75, -0.55], look: [-0.55, 1.58, -2.35] },// reverse onto the actress
-  { at: 12.4, pos: [1.95, 1.7, -0.4], look: [1.45, 1.6, -2.0] },   // the villain cuts in
-  { at: 16.6, pos: [0.5, 1.78, 0.35], look: [0.05, 1.6, -1.6] },   // hero stands his ground
-  { at: 20.6, pos: [-0.5, 1.78, 0.1], look: [-0.85, 1.58, -1.95] },// two-shot on the turn
-  { at: 23.6, pos: [0.15, 2.15, 1.35], look: [0.15, 1.55, -2.15] },// crane out to the final wide
+  { at: 0.0, pos: [-0.2, 1.8, 2.2], look: [-0.4, 1.55, -2.1] },   // Beat 1: wide on Ravi & Maya talking
+  { at: 4.5, pos: [0.6, 1.7, 0.4], look: [0.95, 1.55, -2.2] },    // Beat 2: close-up on Maya warning Ravi
+  { at: 8.5, pos: [1.6, 1.75, 0.8], look: [0.35, 1.55, -1.6] },   // Beat 3: villain Dev storms the set
+  { at: 12.5, pos: [-1.2, 1.75, 0.6], look: [-0.35, 1.55, -1.6] }, // Beat 4: Ravi steps in front of Maya
+  { at: 16.0, pos: [0.0, 1.65, 1.5], look: [0.0, 1.45, -1.6] },    // Beat 5 (UFC 1v1): Round 1 Jab & Weave
+  { at: 18.5, pos: [-0.6, 1.6, 1.2], look: [0.05, 1.45, -1.6] },   // Beat 6 (UFC 1v1): Round 2 Counter Hook
+  { at: 21.0, pos: [0.4, 1.55, 0.8], look: [0.2, 1.4, -1.6] },    // Beat 7 (UFC 1v1): Knockout Uppercut
+  { at: 24.0, pos: [-0.1, 1.75, 1.8], look: [0.0, 1.5, -1.8] },   // Beat 8: Victory two-shot
+  { at: 27.0, pos: [0.0, 3.4, 4.8], look: [0.0, 1.4, -2.0] },     // Beat 9: Crane high-angle final wrap!
 ];
 
 function shotAt(t: number) {
@@ -40,6 +35,8 @@ function shotAt(t: number) {
   }
   return shot;
 }
+
+import { ratioAudio } from '../engine/ratioAudio';
 
 // ============================================================
 // CAMERA RIG: Panoramic Soundstage View & Director Presets
@@ -53,6 +50,7 @@ const StudioCameraRig: React.FC<{
   const { camera, pointer } = useThree();
   const targetCamPos = useRef(new THREE.Vector3(0, 4.4, 11.8));
   const targetLookAt = useRef(new THREE.Vector3(0, 1.6, -1.0));
+  const fightAudioPlayed = useRef<Record<string, boolean>>({});
 
   // Cinematic camera presets showing the whole professional studio
   const presets = useMemo(() => {
@@ -92,6 +90,28 @@ const StudioCameraRig: React.FC<{
     const rolling = isFilming && sceneTime !== null && sceneTime < SCENE_LENGTH;
 
     if (rolling) {
+      // Synchronize combat audio hits during the 10-second UFC fight!
+      if (sceneTime >= 16.2 && !fightAudioPlayed.current['whoosh1']) {
+        ratioAudio.playFightWhoosh();
+        fightAudioPlayed.current['whoosh1'] = true;
+      }
+      if (sceneTime >= 17.2 && !fightAudioPlayed.current['punch1']) {
+        ratioAudio.playFightPunch();
+        fightAudioPlayed.current['punch1'] = true;
+      }
+      if (sceneTime >= 19.2 && !fightAudioPlayed.current['punch2']) {
+        ratioAudio.playFightPunch();
+        fightAudioPlayed.current['punch2'] = true;
+      }
+      if (sceneTime >= 21.4 && !fightAudioPlayed.current['uppercut']) {
+        ratioAudio.playFightPunch();
+        fightAudioPlayed.current['uppercut'] = true;
+      }
+      if (sceneTime >= 22.2 && !fightAudioPlayed.current['knockdown']) {
+        ratioAudio.playFightKnockdown();
+        fightAudioPlayed.current['knockdown'] = true;
+      }
+
       // Cut to whichever setup covers this beat, then hold it on the sticks.
       const shot = shotAt(sceneTime as number);
       targetCamPos.current.set(shot.pos[0], shot.pos[1] + stageLift, shot.pos[2]);
@@ -113,6 +133,7 @@ const StudioCameraRig: React.FC<{
     }
 
     lastShotAt.current = -1;
+    fightAudioPlayed.current = {};
     const activePreset = presets[cameraView] || presets.overview;
 
     targetCamPos.current.copy(activePreset.pos);

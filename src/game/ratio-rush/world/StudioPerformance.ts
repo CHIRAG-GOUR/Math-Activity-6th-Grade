@@ -44,7 +44,15 @@ export type Gesture =
   | 'cheer'         // arms raised in relief
   | 'triumph'       // final hero tableau
   | 'high_five_right'
-  | 'high_five_left';
+  | 'high_five_left'
+  | 'combat_stance'   // UFC boxing guard protecting chin
+  | 'fight_jab'       // fast straight left jab
+  | 'fight_cross'     // powerful right cross
+  | 'fight_slip_dodge'// weaving under the strike
+  | 'fight_block'     // forearm guard blocking strike
+  | 'fight_uppercut'  // climax right uppercut knockout
+  | 'fight_knockdown' // staggered back falling to canvas
+  | 'knocked_out';    // defeated on stage floor
 
 export interface Beat {
   start: number;
@@ -60,12 +68,12 @@ export interface Beat {
   gesture: Partial<Record<ActorRole, Gesture>>;
 }
 
-/** Opening marks — a loose semicircle, already turned in toward each other. */
+/** Opening marks — spacious, professional cinematic staging (no crowding!) */
 export const OPENING_MARKS: Record<ActorRole, [number, number]> = {
-  lead_actor: [-1.9, -1.9],
-  lead_actress: [-0.55, -2.5],
-  co_star: [0.85, -2.45],
-  villain: [2.15, -1.7],
+  lead_actor: [-1.6, -2.2],
+  lead_actress: [1.1, -2.2],
+  co_star: [2.5, -2.4],
+  villain: [3.6, -1.5],
 };
 
 /**
@@ -78,84 +86,116 @@ export const ACTOR_STAGE_POS: Record<ActorRole, THREE.Vector2> = {
   villain: new THREE.Vector2(...OPENING_MARKS.villain),
 };
 
-export const SCENE_LENGTH = 26;
+export const SCENE_LENGTH = 30;
 export const QUESTION_CYCLE_LENGTH = 16;
 
-/** Master scripted scene performed during the final filming take */
+/** Master scripted scene: Full cinematic story & 10-second UFC 1v1 fight sequence */
 export const SCENE: Beat[] = [
+  // ── 1. THE RENDEZVOUS (0.0s – 4.5s) ──
   {
-    start: 0, end: 3.4,
-    label: 'SC 12 — THE MEETING',
-    speaker: null,
-    marks: OPENING_MARKS,
-    focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actress', villain: 'lead_actor' },
-    gesture: { lead_actor: 'rest', lead_actress: 'rest', co_star: 'rest', villain: 'rest' },
-  },
-  {
-    start: 3.4, end: 8.2,
-    label: 'SC 12 — HERO: "WE SPLIT IT THREE TO ONE."',
+    start: 0, end: 4.5,
+    label: 'SC 12 — THE RENDEZVOUS',
     speaker: 'lead_actor',
-    line: 'We split the reel three to one — that was the deal.',
-    marks: { lead_actor: [-1.5, -2.1] },
+    line: 'Maya, the master reel is secure. Tonight we finish what we started.',
+    marks: { lead_actor: [-1.6, -2.2], lead_actress: [1.1, -2.2], co_star: [2.5, -2.4], villain: [3.6, -1.5] },
     focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
     gesture: { lead_actor: 'talk_open', lead_actress: 'listen', co_star: 'listen', villain: 'rest' },
   },
+
+  // ── 2. HEROINE WARNING (4.5s – 8.5s) ──
   {
-    start: 8.2, end: 12.4,
-    label: 'SC 12 — SHE ANSWERS',
+    start: 4.5, end: 8.5,
+    label: 'SC 12 — THE WARNING',
     speaker: 'lead_actress',
-    line: 'Three to one? I carried two of every four scenes.',
-    marks: { lead_actress: [-0.5, -2.35] },
-    focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actress' },
+    line: 'Careful Ravi... Dev tracked us to the soundstage. We are not alone!',
+    marks: { lead_actress: [0.95, -2.2], lead_actor: [-1.5, -2.2] },
+    focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
     gesture: { lead_actress: 'hand_to_heart', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
   },
+
+  // ── 3. VILLAIN STORMS IN (8.5s – 12.5s) ──
   {
-    start: 12.4, end: 16.6,
-    label: 'SC 12 — THE VILLAIN CUTS IN',
+    start: 8.5, end: 12.5,
+    label: 'SC 12 — VILLAIN STORMS IN',
     speaker: 'villain',
-    line: 'Then neither of you gets a single frame of it.',
-    marks: { villain: [1.5, -2.0], co_star: [0.8, -2.95] },
+    line: 'Too late! I will destroy both of you today! No one walks off this set alive!',
+    marks: { villain: [0.35, -1.6], lead_actress: [1.4, -2.3], co_star: [2.6, -2.5] },
     focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
     gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
   },
+
+  // ── 4. HERO STEPS IN FRONT TO PROTECT HER (12.5s – 16.0s) ──
   {
-    start: 16.6, end: 20.6,
-    label: 'SC 12 — HERO STANDS HIS GROUND',
+    start: 12.5, end: 16.0,
+    label: 'SC 12 — HERO PROTECTS MAYA',
     speaker: 'lead_actor',
-    line: 'You do not get to rewrite our ratio. Not today.',
-    marks: { lead_actor: [0.0, -1.55] },
-    focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'lead_actor' },
-    gesture: { lead_actor: 'talk_point', villain: 'recoil', lead_actress: 'plead', co_star: 'listen' },
+    line: 'Step back Maya! If you want her Dev, you have to go through me first!',
+    marks: { lead_actor: [-0.35, -1.6], lead_actress: [1.5, -2.3], villain: [0.35, -1.6] },
+    focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+    gesture: { lead_actor: 'combat_stance', villain: 'combat_stance', lead_actress: 'plead', co_star: 'recoil' },
   },
+
+  // ── 5. UFC FIGHT ROUND 1: JAB & WEAVE (16.0s – 18.5s) ──
   {
-    start: 20.6, end: 23.6,
-    label: 'SC 12 — THE TURN',
+    start: 16.0, end: 18.5,
+    label: 'SC 12 — 1v1 UFC FIGHT: JAB & WEAVE',
+    speaker: 'lead_actor',
+    line: 'Take your best shot!',
+    marks: { lead_actor: [-0.28, -1.6], villain: [0.28, -1.6] },
+    focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+    gesture: { lead_actor: 'fight_slip_dodge', villain: 'fight_cross', lead_actress: 'plead', co_star: 'recoil' },
+  },
+
+  // ── 6. UFC FIGHT ROUND 2: BODY HOOK & COUNTER (18.5s – 21.0s) ──
+  {
+    start: 18.5, end: 21.0,
+    label: 'SC 12 — 1v1 UFC FIGHT: COUNTER HOOK',
+    speaker: 'villain',
+    line: 'Ugh! Is that all you got?!',
+    marks: { lead_actor: [-0.22, -1.6], villain: [0.35, -1.6] },
+    focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+    gesture: { lead_actor: 'fight_jab', villain: 'fight_block', lead_actress: 'cheer', co_star: 'recoil' },
+  },
+
+  // ── 7. UFC FIGHT ROUND 3: CLIMAX UPPERCUT KNOCKOUT (21.0s – 24.0s) ──
+  {
+    start: 21.0, end: 24.0,
+    label: 'SC 12 — 1v1 UFC FIGHT: KNOCKOUT UPPERCUT',
+    speaker: 'lead_actor',
+    line: 'DOWN YOU GO!',
+    marks: { lead_actor: [-0.1, -1.6], villain: [0.75, -1.6] },
+    focus: { lead_actor: 'villain', villain: 'lead_actor', lead_actress: 'lead_actor', co_star: 'villain' },
+    gesture: { lead_actor: 'fight_uppercut', villain: 'fight_knockdown', lead_actress: 'cheer', co_star: 'cheer' },
+  },
+
+  // ── 8. VILLAIN DEFEATED & HERO TRIUMPH (24.0s – 27.0s) ──
+  {
+    start: 24.0, end: 27.0,
+    label: 'SC 12 — VICTORY & SCENE WRAP',
+    speaker: 'lead_actor',
+    line: "It's over Dev. Scene wrapped!",
+    marks: { lead_actor: [-0.5, -1.8], lead_actress: [0.65, -1.8], villain: [1.3, -1.6] },
+    focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
+    gesture: { lead_actor: 'triumph', lead_actress: 'cheer', villain: 'knocked_out', co_star: 'cheer' },
+  },
+
+  // ── 9. FINAL TABLEAU & CAMERA WRAP (27.0s – 30.0s) ──
+  {
+    start: 27.0, end: SCENE_LENGTH,
+    label: 'SC 12 — FINAL TABLEAU & WRAP',
     speaker: 'lead_actress',
-    line: 'Make it one to one. We finish this picture together.',
-    marks: { lead_actress: [-0.9, -1.95], villain: [2.3, -1.6] },
-    focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
-    gesture: { lead_actress: 'talk_open', lead_actor: 'listen', co_star: 'cheer', villain: 'rest' },
-  },
-  {
-    start: 23.6, end: SCENE_LENGTH,
-    label: 'SC 12 — FINAL TABLEAU',
-    speaker: null,
-    marks: OPENING_MARKS,
-    focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'camera' },
-    gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'menace' },
+    line: "Direct hit! We got the ultimate take!",
+    marks: { lead_actor: [-0.65, -1.9], lead_actress: [0.65, -1.9], villain: [1.5, -1.6], co_star: [2.2, -2.1] },
+    focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
+    gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'knocked_out' },
   },
 ];
 
-/** Dynamic question rehearsal beats generated on the fly for each question */
+/** Real movie dialogue & stunt rehearsal banter for each question */
 export function questionBeatsFor(
   q: RatioQuestion | null,
   feedback: 'idle' | 'correct' | 'incorrect'
 ): Beat[] {
-  const rA = q ? q.ratioA : 3;
-  const rB = q ? q.ratioB : 2;
-  const lA = q?.labelA || 'Item A';
-  const lB = q?.labelB || 'Item B';
-
   if (feedback === 'correct') {
     return [
       {
@@ -163,8 +203,8 @@ export function questionBeatsFor(
         end: 2.0,
         label: 'TAKE APPROVED — HIGH FIVE',
         speaker: 'lead_actor',
-        line: `HIGH-FIVE! Perfect ${rA}:${rB} ratio match!`,
-        marks: { lead_actor: [-0.45, -2.1], lead_actress: [0.05, -2.1], co_star: [0.65, -2.3], villain: [2.2, -1.6] },
+        line: 'BOOM! Perfect stunt timing! Ready for the camera take!',
+        marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
         focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
         gesture: { lead_actor: 'high_five_right', lead_actress: 'high_five_left', co_star: 'cheer', villain: 'recoil' },
       },
@@ -173,8 +213,8 @@ export function questionBeatsFor(
         end: 4.0,
         label: 'TAKE APPROVED — CELEBRATION',
         speaker: 'lead_actress',
-        line: `Scene approved! Advancing to the next set take!`,
-        marks: { lead_actor: [-0.45, -2.1], lead_actress: [0.05, -2.1], co_star: [0.65, -2.3], villain: [2.2, -1.6] },
+        line: 'Scene approved! Advancing to the next stunt cue!',
+        marks: { lead_actor: [-0.75, -2.1], lead_actress: [0.75, -2.1], co_star: [2.2, -2.3], villain: [3.4, -1.6] },
         focus: { lead_actor: 'camera', lead_actress: 'camera', co_star: 'camera', villain: 'lead_actor' },
         gesture: { lead_actor: 'triumph', lead_actress: 'triumph', co_star: 'cheer', villain: 'recoil' },
       },
@@ -186,59 +226,54 @@ export function questionBeatsFor(
       {
         start: 0,
         end: 4.0,
-        label: 'SCENE RETAKE — RECALCULATING',
+        label: 'SCENE RETAKE — RESET MARKS',
         speaker: 'lead_actress',
-        line: `Hold on! Check the ${rA}:${rB} ratio and unit rate multiplier!`,
-        marks: { lead_actress: [-0.6, -2.2], lead_actor: [-1.4, -2.0], villain: [1.8, -1.8] },
+        line: 'Hold the roll! Check the stunt cues and reset to opening marks!',
+        marks: { lead_actress: [1.1, -2.2], lead_actor: [-1.6, -2.2], villain: [3.2, -1.8] },
         focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actor' },
         gesture: { lead_actress: 'talk_open', lead_actor: 'plead', villain: 'menace', co_star: 'recoil' },
       },
     ];
   }
 
-  const actionText = q?.studioActionText || `For our scene, ratio is ${rA} ${lA} for every ${rB} ${lB}!`;
-  const promptText = q?.mathPrompt
-    ? (q.mathPrompt.length > 55 ? q.mathPrompt.slice(0, 52) + '...' : q.mathPrompt)
-    : `How many ${lB} match with ${q?.givenQuantityValue || rA * 2} ${lA}?`;
-
   return [
     {
       start: 0,
       end: 4.0,
-      label: 'REHEARSAL — HERO INTRODUCES RATIO',
+      label: 'REHEARSAL — HERO REVIEWS MARKS',
       speaker: 'lead_actor',
-      line: actionText.length > 55 ? actionText.slice(0, 52) + '...' : actionText,
-      marks: { lead_actor: [-1.4, -2.0], lead_actress: [-0.5, -2.4], co_star: [0.85, -2.45], villain: [2.0, -1.8] },
+      line: 'Camera 1 is rolling — Maya, check your marks for the fight cue!',
+      marks: { lead_actor: [-1.6, -2.2], lead_actress: [1.1, -2.2], co_star: [2.5, -2.4], villain: [3.5, -1.8] },
       focus: { lead_actor: 'lead_actress', lead_actress: 'lead_actor', co_star: 'lead_actor', villain: 'lead_actor' },
       gesture: { lead_actor: 'talk_open', lead_actress: 'listen', co_star: 'listen', villain: 'rest' },
     },
     {
       start: 4.0,
       end: 8.0,
-      label: 'REHEARSAL — ACTRESS DISCUSSES QUESTION',
+      label: 'REHEARSAL — ACTRESS CONFIRMS PACING',
       speaker: 'lead_actress',
-      line: promptText,
-      marks: { lead_actress: [-0.4, -2.2], lead_actor: [-1.3, -2.0] },
+      line: 'Stage lights are locked! Let us verify our pacing before action!',
+      marks: { lead_actress: [0.95, -2.2], lead_actor: [-1.5, -2.2] },
       focus: { lead_actress: 'lead_actor', lead_actor: 'lead_actress', co_star: 'lead_actress', villain: 'lead_actress' },
       gesture: { lead_actress: 'hand_to_heart', lead_actor: 'listen', co_star: 'listen', villain: 'rest' },
     },
     {
       start: 8.0,
       end: 12.0,
-      label: 'REHEARSAL — VILLAIN CHALLENGES MULTIPLIER',
+      label: 'REHEARSAL — VILLAIN CHALLENGE',
       speaker: 'villain',
-      line: `Find the ratio multiplier for ${rA}:${rB} before action is called!`,
-      marks: { villain: [1.3, -1.9], co_star: [0.7, -2.6] },
+      line: 'You have 10 seconds before I charge the stage! Make your move!',
+      marks: { villain: [2.8, -1.8], co_star: [2.3, -2.6] },
       focus: { villain: 'lead_actor', lead_actor: 'villain', lead_actress: 'villain', co_star: 'villain' },
       gesture: { villain: 'menace', lead_actor: 'listen', lead_actress: 'recoil', co_star: 'recoil' },
     },
     {
       start: 12.0,
       end: 16.0,
-      label: 'REHEARSAL — CAST POINTS TO OPTIONS',
+      label: 'REHEARSAL — HERO READY',
       speaker: 'lead_actor',
-      line: `Select the correct answer to complete this stage take!`,
-      marks: { lead_actor: [-0.2, -1.6], lead_actress: [-0.7, -2.0] },
+      line: 'Lock in the ratio and execute the cue on my mark!',
+      marks: { lead_actor: [-0.9, -1.8], lead_actress: [1.2, -2.1] },
       focus: { lead_actor: 'camera', lead_actress: 'lead_actor', co_star: 'camera', villain: 'lead_actor' },
       gesture: { lead_actor: 'talk_point', lead_actress: 'plead', co_star: 'cheer', villain: 'rest' },
     },
@@ -424,6 +459,91 @@ export function poseFor(gesture: Gesture, energy: number, t: number): PoseTarget
       p.rShoulderZ = -0.2;
       p.torsoLean = 0.08;
       p.headPitch = -0.15;
+      break;
+    case 'combat_stance':
+      p.lShoulderX = -1.15;
+      p.lShoulderZ = 0.35;
+      p.lElbow = 1.65;
+      p.rShoulderX = -1.05;
+      p.rShoulderZ = -0.3;
+      p.rElbow = 1.7;
+      p.torsoLean = 0.08;
+      p.torsoTwist = 0.15;
+      p.headPitch = 0.05;
+      break;
+    case 'fight_jab':
+      p.lShoulderX = -1.58;
+      p.lShoulderZ = 0.05;
+      p.lElbow = 0.15;
+      p.rShoulderX = -1.05;
+      p.rShoulderZ = -0.3;
+      p.rElbow = 1.75;
+      p.torsoLean = 0.15;
+      p.torsoTwist = 0.22;
+      p.headPitch = 0.04;
+      break;
+    case 'fight_cross':
+      p.rShoulderX = -1.62;
+      p.rShoulderZ = -0.05;
+      p.rElbow = 0.18;
+      p.lShoulderX = -1.05;
+      p.lShoulderZ = 0.32;
+      p.lElbow = 1.65;
+      p.torsoLean = 0.18;
+      p.torsoTwist = -0.25;
+      p.headPitch = 0.04;
+      break;
+    case 'fight_slip_dodge':
+      p.lShoulderX = -0.95;
+      p.lShoulderZ = 0.38;
+      p.lElbow = 1.6;
+      p.rShoulderX = -0.95;
+      p.rShoulderZ = -0.38;
+      p.rElbow = 1.6;
+      p.torsoLean = -0.22;
+      p.torsoTwist = 0.28;
+      p.headPitch = 0.18;
+      break;
+    case 'fight_block':
+      p.lShoulderX = -1.25;
+      p.lShoulderZ = 0.18;
+      p.lElbow = 1.85;
+      p.rShoulderX = -1.25;
+      p.rShoulderZ = -0.18;
+      p.rElbow = 1.85;
+      p.torsoLean = -0.12;
+      p.headPitch = 0.15;
+      break;
+    case 'fight_uppercut':
+      p.rShoulderX = -1.85;
+      p.rShoulderZ = -0.12;
+      p.rElbow = 1.15;
+      p.lShoulderX = -0.85;
+      p.lShoulderZ = 0.35;
+      p.lElbow = 1.5;
+      p.torsoLean = 0.2;
+      p.torsoTwist = -0.2;
+      p.headPitch = -0.12;
+      break;
+    case 'fight_knockdown':
+      p.lShoulderX = -0.35;
+      p.lShoulderZ = 0.65;
+      p.lElbow = 0.55;
+      p.rShoulderX = -0.35;
+      p.rShoulderZ = -0.65;
+      p.rElbow = 0.55;
+      p.torsoLean = -0.75;
+      p.headPitch = -0.45;
+      break;
+    case 'knocked_out':
+      p.lShoulderX = 0.2;
+      p.lShoulderZ = 0.55;
+      p.lElbow = 0.2;
+      p.rShoulderX = 0.2;
+      p.rShoulderZ = -0.55;
+      p.rElbow = 0.2;
+      p.torsoLean = -1.55;
+      p.headPitch = -0.4;
       break;
     case 'rest':
     default:
