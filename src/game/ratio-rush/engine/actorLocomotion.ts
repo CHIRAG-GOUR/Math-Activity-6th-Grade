@@ -211,6 +211,21 @@ function startStep(m: ActorMotion, foot: Foot, side: number, lead: number) {
   m.sinceStep = 0;
 }
 
+/** Set destination and optional facing direction for the actor. */
+export function setDestination(
+  m: ActorMotion,
+  x: number,
+  z: number,
+  faceTarget?: { x: number; z: number } | null
+) {
+  m.targetX = x;
+  m.targetZ = z;
+  if (faceTarget) {
+    m.faceX = faceTarget.x;
+    m.faceZ = faceTarget.z;
+  }
+}
+
 /**
  * Advance one actor. `obstacles` and `others` are consulted every frame, so
  * the cast keep clear of the equipment and of each other while they move.
@@ -218,8 +233,8 @@ function startStep(m: ActorMotion, foot: Foot, side: number, lead: number) {
 export function stepMotion(
   m: ActorMotion,
   dt: number,
-  obstacles: Obstacle[],
-  others: ActorMotion[]
+  obstacles: Obstacle[] = [],
+  others: ActorMotion[] = []
 ) {
   const d = Math.min(dt, 0.05);
 

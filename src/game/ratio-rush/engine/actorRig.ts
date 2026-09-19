@@ -123,6 +123,7 @@ export const EXPRESSIONS: Record<Expression, FaceTargets> = {
 
 export type Gesture =
   | 'idle'
+  | 'rest'
   | 'walk'          // arms swing; locomotion supplies the phase
   | 'talk_open'     // open-palm explaining
   | 'talk_point'    // emphatic point at whoever is being addressed
@@ -131,12 +132,15 @@ export type Gesture =
   | 'listen_arms_crossed'
   | 'hand_to_heart'
   | 'present'       // both hands offering something forward
+  | 'plead'         // both hands out, imploring
+  | 'menace'        // slow accusing point, other hand behind back
   | 'reach'         // reaching for a prop; locomotion overrides the arm
   | 'carry'         // holding a prop at chest height
   | 'point_at_prop'
   | 'shrug'
   | 'recoil'
   | 'cheer'
+  | 'triumph'       // final hero victory
   | 'applaud'
   | 'thumbs_up';
 
@@ -285,6 +289,31 @@ export function poseFor(gesture: Gesture, energy: number, t: number): BodyPose {
       p.chestLift = 0.07;
       p.headRoll = 0.08;
       p.headPitch = -0.06;
+      break;
+
+    case 'plead':
+      p.left = arm({ shoulderX: -0.75 - energy * 0.2, shoulderZ: 0.22, shoulderY: 0.45, elbow: 1.1, wristX: -0.35, curl: 0.08, thumb: 0.5 });
+      p.right = arm({ shoulderX: -0.75 - energy * 0.2, shoulderZ: -0.22, shoulderY: -0.45, elbow: 1.1, wristX: -0.35, curl: 0.08, thumb: 0.5 });
+      p.spineLean = 0.08;
+      p.chestLift = -0.02;
+      p.headPitch = -0.04;
+      break;
+
+    case 'menace':
+      p.right = arm({ shoulderX: -1.05 - energy * 0.3, shoulderZ: -0.15, shoulderY: -0.1, elbow: 0.35, wristX: -0.1, curl: 0.85, thumb: 0.1 });
+      p.left = arm({ shoulderX: 0.3, shoulderZ: 0.1, shoulderY: 0.8, elbow: 1.6, wristX: 0.1, curl: 0.6 });
+      p.spineLean = 0.12;
+      p.spineTwist = -0.15;
+      p.chestLift = 0.08;
+      p.headPitch = 0.04;
+      break;
+
+    case 'triumph':
+      p.left = arm({ shoulderX: -2.2, shoulderZ: 0.4, shoulderY: 0.3, elbow: 0.4, curl: 0.9, thumb: 0.1 });
+      p.right = arm({ shoulderX: -2.2, shoulderZ: -0.4, shoulderY: -0.3, elbow: 0.4, curl: 0.9, thumb: 0.1 });
+      p.spineLean = -0.12;
+      p.chestLift = 0.14;
+      p.headPitch = -0.22;
       break;
 
     case 'recoil':
