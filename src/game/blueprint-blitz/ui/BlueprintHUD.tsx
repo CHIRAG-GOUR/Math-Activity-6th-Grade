@@ -103,6 +103,7 @@ export const BlueprintHUD: React.FC = () => {
   };
 
   const isScanning = phase === 'scanning';
+  const isPlayPhase = phase === 'building' || phase === 'mega-build' || phase === 'tie-break';
   const isUrgent = timeRemaining <= 10;
 
   return (
@@ -287,7 +288,7 @@ export const BlueprintHUD: React.FC = () => {
               score={mobileActiveTeam === 'blue' ? blueTeam.score : redTeam.score}
               build={mobileActiveTeam === 'blue' ? blueTeam.build : redTeam.build}
               mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={(mobileActiveTeam === 'blue' ? blueTeam.build.isLocked : redTeam.build.isLocked) || isScanning || phase !== 'building'}
+              isLocked={(mobileActiveTeam === 'blue' ? blueTeam.build.isLocked : redTeam.build.isLocked) || isScanning || !isPlayPhase || (mobileActiveTeam === 'blue' ? blueTeam.attemptsLeft <= 0 : redTeam.attemptsLeft <= 0)}
               isConfirmed={mobileActiveTeam === 'blue' ? blueTeam.build.isConfirmed : redTeam.build.isConfirmed}
             />
           </div>
@@ -303,7 +304,7 @@ export const BlueprintHUD: React.FC = () => {
               score={blueTeam.score}
               build={blueTeam.build}
               mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={blueTeam.build.isLocked || isScanning || phase !== 'building'}
+              isLocked={blueTeam.build.isLocked || isScanning || !isPlayPhase || blueTeam.attemptsLeft <= 0}
               isConfirmed={blueTeam.build.isConfirmed}
             />
           </div>
@@ -332,7 +333,7 @@ export const BlueprintHUD: React.FC = () => {
               score={redTeam.score}
               build={redTeam.build}
               mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={redTeam.build.isLocked || isScanning || phase !== 'building'}
+              isLocked={redTeam.build.isLocked || isScanning || !isPlayPhase || redTeam.attemptsLeft <= 0}
               isConfirmed={redTeam.build.isConfirmed}
             />
           </div>

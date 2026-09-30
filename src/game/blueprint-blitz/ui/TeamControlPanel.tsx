@@ -198,19 +198,27 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
                 (elim) => String(elim).trim().toLowerCase() === String(opt).trim().toLowerCase()
               );
               const letter = OPTION_LETTERS[idx] || String(idx + 1);
+              const isOptionDisabled =
+                isLocked ||
+                isConfirmed ||
+                isEliminated ||
+                teamState.attemptsLeft <= 0 ||
+                (teamState.scanResult !== null && teamState.scanResult.isCorrect);
 
               return (
                 <button
                   key={`opt-${idx}-${opt}`}
                   type="button"
                   onClick={() => selectOption(teamId, opt)}
-                  disabled={isLocked || isConfirmed || isEliminated}
-                  className={`p-2.5 rounded-xl font-black text-left transition-all flex items-center gap-2 border-3 cursor-pointer select-none ${
+                  disabled={isOptionDisabled}
+                  className={`p-2.5 rounded-xl font-black text-left transition-all flex items-center gap-2 border-3 select-none ${
                     isEliminated
                       ? 'bg-slate-200 border-slate-300 text-slate-400 line-through opacity-40 cursor-not-allowed'
-                      : isSelected
-                        ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-[4px_4px_0px_#000000] ring-2 ring-amber-300 scale-[1.02]'
-                        : 'bg-white hover:bg-amber-50 border-slate-800 text-slate-900 shadow-[2px_2px_0px_#000000] active:scale-95'
+                      : isOptionDisabled
+                        ? 'bg-slate-100 border-slate-300 text-slate-400 opacity-60 cursor-not-allowed'
+                        : isSelected
+                          ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-[4px_4px_0px_#000000] ring-2 ring-amber-300 scale-[1.02] cursor-pointer'
+                          : 'bg-white hover:bg-amber-50 border-slate-800 text-slate-900 shadow-[2px_2px_0px_#000000] active:scale-95 cursor-pointer'
                   }`}
                 >
                   <span
@@ -271,9 +279,15 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
       <button
         type="button"
         onClick={() => submitBuild(teamId)}
-        disabled={isLocked || isConfirmed || !selectedAnswer}
+        disabled={
+          isLocked ||
+          isConfirmed ||
+          !selectedAnswer ||
+          teamState.attemptsLeft <= 0 ||
+          (teamState.scanResult !== null && teamState.scanResult.isCorrect)
+        }
         className={`w-full py-3.5 rounded-xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center gap-2 border-3 border-slate-950 cursor-pointer ${
-          isConfirmed
+          isConfirmed || (teamState.scanResult !== null && teamState.scanResult.isCorrect)
             ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-2 ring-emerald-300'
             : isWrong && teamState.attemptsLeft === 1
               ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 ring-2 ring-amber-300 shadow-[4px_4px_0px_#000000] active:scale-98'

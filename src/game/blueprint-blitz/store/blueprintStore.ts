@@ -231,7 +231,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     if (state.phase !== 'building' && state.phase !== 'tie-break' && state.phase !== 'mega-build') return;
     const isBlue = teamId === 'blue';
     const team = isBlue ? state.blueTeam : state.redTeam;
-    if (team.build.isLocked || team.build.isConfirmed) return;
+    if (team.build.isLocked || team.build.isConfirmed || team.attemptsLeft <= 0) return;
 
     blueprintAudio.playButtonTap();
 
@@ -562,10 +562,10 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     blueprintAudio.playButtonTap();
     set({
       currentRound: nextRoundNumber,
-      phase: isMegaRound ? 'mega-build' : 'briefing',
+      phase: 'briefing',
       activeChallenge: nextChallenge,
       usedChallengeIds: [...usedChallengeIds, nextChallenge.id],
-      timeRemaining: nextChallenge.timeLimit,
+      timeRemaining: nextChallenge.timeLimit || 50,
       isTimerRunning: false,
       cameraFocus: 'overview',
       blueMisconception: null,
