@@ -54,7 +54,7 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
   }, []);
 
   const topicsList: { id: MathTopic; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'mixed', label: 'Bloom’s Mixed Challenge', icon: Dices },
+    { id: 'mixed', label: 'Mixed Math Challenge', icon: Dices },
     { id: 'multiplication', label: 'Integers & Multiplication', icon: X },
     { id: 'division', label: 'Ratios, HCF & Division', icon: Divide },
     { id: 'addition', label: 'BODMAS & Number Patterns', icon: Plus },
@@ -139,7 +139,7 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
           <div className="hidden sm:flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/95 border-2 border-slate-300 shadow-sm">
             <GraduationCap className="w-4 h-4 text-blue-700" />
             <span className="text-xs font-black tracking-widest text-slate-800 font-game uppercase">
-              GRADE 6 MATHEMATICS • BLOOM’S TAXONOMY HEIST
+              GRADE 6 MATHEMATICS • VAULT HEIST
             </span>
           </div>
         </div>
@@ -206,12 +206,12 @@ export const RoomStartScreen: React.FC<RoomStartScreenProps> = ({
           </div>
         </div>
 
-        {/* 2. BLOOM'S TAXONOMY TOPICS MULTI-SELECT (ZERO SCROLLBARS) */}
+        {/* 2. MATH TOPICS MULTI-SELECT (ZERO SCROLLBARS) */}
         <div className="bg-white/95 border-2 border-blue-200 p-4 sm:p-5 rounded-2xl shadow-sm flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-black uppercase tracking-widest text-slate-800 font-game flex items-center gap-1.5">
-                <Calculator className="w-4 h-4 text-blue-600" /> BLOOM’S TOPICS
+                <Calculator className="w-4 h-4 text-blue-600" /> MATH TOPICS
               </span>
               <button
                 onClick={handleSelectAll}

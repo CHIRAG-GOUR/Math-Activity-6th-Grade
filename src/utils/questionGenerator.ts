@@ -25,7 +25,7 @@ type GeneratorFn = (diff: DifficultyLevel) => {
 };
 
 // =========================================================================
-// MASSIVE GRADE 6 BLOOM'S TAXONOMY GENERATOR POOL (1000+ Unique Combinations)
+// MASSIVE GRADE 6 CURRICULUM GENERATOR POOL (1000+ Unique Combinations)
 // =========================================================================
 
 const TOPIC_GENERATORS: Record<MathTopic, GeneratorFn[]> = {
@@ -330,7 +330,7 @@ const TOPIC_GENERATORS: Record<MathTopic, GeneratorFn[]> = {
     },
   ],
 
-  // 5. BLOOM'S MIXED CHALLENGE (PERCENTAGES & ALGEBRA)
+  // 5. MIXED MATH CHALLENGE (PERCENTAGES & ALGEBRA)
   mixed: [
     // Mental Percentages
     (diff) => {
