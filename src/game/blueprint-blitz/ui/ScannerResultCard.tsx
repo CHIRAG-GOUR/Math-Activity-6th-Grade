@@ -86,32 +86,29 @@ export const ScannerResultCard: React.FC = () => {
           </div>
         </div>
 
-        {/* Physical Inspection Grid Data */}
-        <div className="bg-white p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2 shadow-sm">
-          <div className="grid grid-cols-3 gap-2 text-center border-b border-slate-200 pb-2">
-            <div>
-              <span className="text-[9px] font-black text-slate-500 uppercase block">LENGTH</span>
-              <span className="text-base font-black text-slate-950 font-mono">{res.measuredLength} m</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-black text-slate-500 uppercase block">WIDTH</span>
-              <span className="text-base font-black text-slate-950 font-mono">{res.measuredWidth} m</span>
-            </div>
-            <div>
-              <span className="text-[9px] font-black text-slate-500 uppercase block">HEIGHT</span>
-              <span className="text-base font-black text-slate-950 font-mono">{res.measuredHeight} m</span>
-            </div>
+        {/* Multiple Choice Diagnostic Readout */}
+        <div className="bg-white p-3 rounded-xl border-2 border-slate-300 flex flex-col gap-2 shadow-sm text-left">
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs">
+            <span className="font-bold text-slate-500 uppercase">SELECTED CHOICE:</span>
+            <span className={`font-black text-sm ${isCorrect ? 'text-emerald-700' : 'text-red-700'}`}>
+              {res.selectedOption || 'None'}
+            </span>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 pt-0.5">
-            <div className="bg-amber-50 p-2 rounded-lg border border-amber-300 text-center">
-              <span className="text-[9px] font-black text-amber-700 uppercase block">CURRENT AREA</span>
-              <span className="text-lg font-black text-slate-950 font-mono">{res.measuredArea} m²</span>
-            </div>
-            <div className="bg-cyan-50 p-2 rounded-lg border border-cyan-300 text-center">
-              <span className="text-[9px] font-black text-cyan-700 uppercase block">CURRENT VOLUME</span>
-              <span className="text-lg font-black text-slate-950 font-mono">{res.measuredVolume} m³</span>
-            </div>
+          <div className="flex items-center justify-between border-b border-slate-200 pb-2 text-xs">
+            <span className="font-bold text-slate-500 uppercase">CORRECT ANSWER:</span>
+            <span className="font-black text-sm text-emerald-800 font-mono">
+              {activeChallenge.correctAnswer}
+            </span>
+          </div>
+
+          <div className="bg-amber-50 p-2.5 rounded-lg border border-amber-300">
+            <span className="text-[10px] font-black text-amber-800 uppercase block mb-0.5">
+              📐 MATHEMATICAL EXPLANATION:
+            </span>
+            <span className="text-xs font-bold text-slate-900 leading-snug">
+              {activeChallenge.explanationFormula}
+            </span>
           </div>
         </div>
 

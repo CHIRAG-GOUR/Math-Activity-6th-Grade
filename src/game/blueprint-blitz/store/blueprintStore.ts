@@ -1,11 +1,11 @@
 // ============================================================
 // BLUEPRINT BLITZ — Zustand Store & Mathematical Engine
 // Supports:
-// - Simultaneous Dual-Team State (Blue LEFT, Red RIGHT)
-// - Non-Repeating 100 Challenge Deck Selection with Bloom Progression
-// - Independent 3D Physical Floor, Cube & Crane Manipulations
-// - Multi-Solution Mathematical Validation
-// - Diagnostic Second-Chance Learning Logic
+// - Simultaneous Dual-Team Multiple Choice State (Blue LEFT, Red RIGHT)
+// - 20 Shapes, Area & Volume Questions with Bloom Progression (Stages 1-5)
+// - Instant Option Selection & Direct Evaluation
+// - 2-Chance System with Diagnostic Coach Tips & Second Chances
+// - 3D House Stage Progression per Correct Build
 // ============================================================
 
 import { create } from 'zustand';
@@ -29,7 +29,6 @@ import { initialBoostManager } from '@/utils/initialBoost';
 import { TeamPowerUps, initialTeamPowerUps } from '@/types/powerUps';
 import { getMisconceptionHint } from '@/utils/misconceptions';
 import { soundManager } from '@/utils/audio';
-
 
 interface BlueprintBlitzStore {
   // Game lifecycle
@@ -69,16 +68,8 @@ interface BlueprintBlitzStore {
   tickTimer: () => void;
   setCameraFocus: (focus: 'overview' | 'blue' | 'red' | 'scanner' | 'podium') => void;
 
-  // Team Building Controls
-  adjustDimension: (team: TeamId, dim: 'length' | 'width' | 'height', delta: number) => void;
-  setDimension: (team: TeamId, dim: 'length' | 'width' | 'height', val: number) => void;
-  adjustBlocks: (team: TeamId, delta: number) => void;
-  setShapeType: (team: TeamId, shape: string) => void;
-  selectTool: (team: TeamId, tool: 'tile' | 'cube' | 'crane' | 'demolish') => void;
-  operateCrane: (
-    team: TeamId,
-    action: 'rotate_left' | 'rotate_right' | 'move_forward' | 'move_back' | 'up' | 'down' | 'grab_release'
-  ) => void;
+  // Direct Option Selection
+  selectOption: (team: TeamId, option: string | number) => void;
 
   // Tactical Power-ups & Tiebreaker
   usePowerUp5050: (team: TeamId) => void;
@@ -94,7 +85,6 @@ interface BlueprintBlitzStore {
   restartGame: () => void;
   toggleMute: () => void;
 }
-
 
 const DEFAULT_BUILD: TeamBuild = {
   length: 4,
@@ -120,6 +110,9 @@ const createInitialTeam = (id: TeamId, name: string): TeamGameState => ({
   completedChallengesCount: 0,
   attemptsLeft: 2,
   attemptCount: 0,
+  selectedOption: null,
+  inputAnswer: '',
+  eliminatedOptions: [],
   build: { ...DEFAULT_BUILD },
   scanResult: null,
   hasSecondChance: false,
@@ -157,18 +150,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   },
 
   initGame: () => {
-    // Pick the first challenge
     const firstChallenge = getRandomChallenge([], 1);
-    const initialBlueBuild: TeamBuild = {
-      ...DEFAULT_BUILD,
-      length: firstChallenge.initialBuild.length,
-      width: firstChallenge.initialBuild.width,
-      height: firstChallenge.initialBuild.height,
-      blocks: firstChallenge.initialBuild.blocks || (firstChallenge.initialBuild.length * firstChallenge.initialBuild.width * firstChallenge.initialBuild.height),
-      shapeType: firstChallenge.initialBuild.shapeType || 'rectangle',
-      selectedTool: firstChallenge.mechanic === 'cubes' ? 'cube' : firstChallenge.mechanic === 'crane' ? 'crane' : 'tile',
-    };
-    const initialRedBuild: TeamBuild = { ...initialBlueBuild };
 
     // Check Initial Boost from previous game winner
     const boost = initialBoostManager.getBoost();
@@ -199,20 +181,17 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
         ...createInitialTeam('blue', 'BLUE SQUAD'),
         score: isBlueBoosted ? 100 : 0,
         completedChallengesCount: isBlueBoosted ? 1 : 0,
-        build: initialBlueBuild,
       },
       redTeam: {
         ...createInitialTeam('red', 'RED SQUAD'),
         score: isRedBoosted ? 100 : 0,
         completedChallengesCount: isRedBoosted ? 1 : 0,
-        build: initialRedBuild,
       },
       winner: null,
     });
 
     blueprintAudio.startBgm();
   },
-
 
   startBriefing: () => {
     blueprintAudio.playButtonTap();
@@ -235,7 +214,6 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     if (!isTimerRunning || phase !== 'building') return;
 
     if (timeRemaining <= 1) {
-      // Time is up - automatically evaluate remaining builds
       set({ timeRemaining: 0, isTimerRunning: false });
       get().triggerScanAndEvaluate();
     } else {
@@ -243,204 +221,49 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     }
   },
 
-  setCameraFocus: (focus) => {
-    // Keep camera on balanced overview so both sides have a fair view
+  setCameraFocus: (_focus) => {
     set({ cameraFocus: 'overview' });
   },
 
-  adjustDimension: (teamId, dim, delta) => {
+  // ── DIRECT MULTIPLE CHOICE OPTION SELECTION ──
+  selectOption: (teamId, option) => {
     const state = get();
-    if (state.phase !== 'building' && state.phase !== 'mega-build') return;
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    if (team.build.isLocked) return;
+    if (state.phase !== 'building' && state.phase !== 'tie-break' && state.phase !== 'mega-build') return;
+    const isBlue = teamId === 'blue';
+    const team = isBlue ? state.blueTeam : state.redTeam;
+    if (team.build.isLocked || team.build.isConfirmed) return;
 
-    const currentVal = team.build[dim];
-    const nextVal = Math.max(1, Math.min(12, currentVal + delta));
-    if (currentVal === nextVal) return;
-
-    if (delta > 0) {
-      if (team.build.shapeType === 'wood') {
-        blueprintAudio.playWoodPlace();
-      } else {
-        blueprintAudio.playStonePlace();
-      }
-    } else {
-      blueprintAudio.playBlockRemove();
-    }
-
-    const nextBuild = {
-      ...team.build,
-      [dim]: nextVal,
-      blocks: dim === 'height' 
-        ? team.build.length * team.build.width * nextVal 
-        : dim === 'length' 
-          ? nextVal * team.build.width * team.build.height 
-          : team.build.length * nextVal * team.build.height,
-    };
-
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
-    } else {
-      set({ redTeam: { ...team, build: nextBuild } });
-    }
-  },
-
-  setDimension: (teamId, dim, val) => {
-    const state = get();
-    if (state.phase !== 'building' && state.phase !== 'mega-build') return;
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    if (team.build.isLocked) return;
-
-    const clampedVal = Math.max(1, Math.min(12, val));
     blueprintAudio.playButtonTap();
 
-    const nextBuild = {
-      ...team.build,
-      [dim]: clampedVal,
-      blocks: dim === 'height'
-        ? team.build.length * team.build.width * clampedVal
-        : dim === 'length'
-          ? clampedVal * team.build.width * team.build.height
-          : team.build.length * clampedVal * team.build.height,
+    const updatedTeam: TeamGameState = {
+      ...team,
+      selectedOption: option,
+      inputAnswer: String(option),
     };
 
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
+    if (isBlue) {
+      set({ blueTeam: updatedTeam });
     } else {
-      set({ redTeam: { ...team, build: nextBuild } });
-    }
-  },
-
-  adjustBlocks: (teamId, delta) => {
-    const state = get();
-    if (state.phase !== 'building' && state.phase !== 'mega-build') return;
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    if (team.build.isLocked) return;
-
-    const currentBlocks = team.build.blocks;
-    const nextBlocks = Math.max(1, Math.min(64, currentBlocks + delta));
-    if (currentBlocks === nextBlocks) return;
-
-    if (delta > 0) {
-      if (team.build.shapeType === 'wood') {
-        blueprintAudio.playWoodPlace();
-      } else {
-        blueprintAudio.playStonePlace();
-      }
-    } else {
-      blueprintAudio.playBlockRemove();
-    }
-
-    const nextBuild = { ...team.build, blocks: nextBlocks };
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
-    } else {
-      set({ redTeam: { ...team, build: nextBuild } });
-    }
-  },
-
-  setShapeType: (teamId, shape) => {
-    const state = get();
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    blueprintAudio.playButtonTap();
-    const nextBuild = { ...team.build, shapeType: shape };
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
-    } else {
-      set({ redTeam: { ...team, build: nextBuild } });
-    }
-  },
-
-  selectTool: (teamId, tool) => {
-    const state = get();
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-    blueprintAudio.playButtonTap();
-    const nextBuild = { ...team.build, selectedTool: tool };
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
-    } else {
-      set({ redTeam: { ...team, build: nextBuild } });
-    }
-  },
-
-  operateCrane: (teamId, action) => {
-    const state = get();
-    if (state.phase !== 'building' && state.phase !== 'mega-build') return;
-    const team = teamId === 'blue' ? state.blueTeam : state.redTeam;
-
-    let { craneAngle, craneHeight, craneHolding, cranePosition } = team.build;
-    blueprintAudio.playCraneMove();
-
-    switch (action) {
-      case 'rotate_left':
-        craneAngle = (craneAngle - Math.PI / 8) % (Math.PI * 2);
-        break;
-      case 'rotate_right':
-        craneAngle = (craneAngle + Math.PI / 8) % (Math.PI * 2);
-        break;
-      case 'up':
-        craneHeight = Math.min(5, craneHeight + 0.5);
-        break;
-      case 'down':
-        craneHeight = Math.max(1, craneHeight - 0.5);
-        break;
-      case 'move_forward':
-        cranePosition = [cranePosition[0], cranePosition[1], cranePosition[2] + 0.5];
-        break;
-      case 'move_back':
-        cranePosition = [cranePosition[0], cranePosition[1], cranePosition[2] - 0.5];
-        break;
-      case 'grab_release':
-        craneHolding = !craneHolding;
-        if (!craneHolding) {
-          blueprintAudio.playBlockPlace();
-        }
-        break;
-    }
-
-    const nextBuild: TeamBuild = {
-      ...team.build,
-      craneAngle,
-      craneHeight,
-      craneHolding,
-      cranePosition,
-    };
-
-    if (teamId === 'blue') {
-      set({ blueTeam: { ...team, build: nextBuild } });
-    } else {
-      set({ redTeam: { ...team, build: nextBuild } });
+      set({ redTeam: updatedTeam });
     }
   },
 
   // ── Tactical Power-ups (1 per match per team) ──
-  usePowerUp5050: (team) => {
+  usePowerUp5050: (teamId) => {
     const state = get();
     const ch = state.activeChallenge;
     if (!ch || (state.phase !== 'building' && state.phase !== 'tie-break' && state.phase !== 'mega-build')) return;
-    const isBlue = team === 'blue';
+    const isBlue = teamId === 'blue';
     const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
+    const team = isBlue ? state.blueTeam : state.redTeam;
     if (!powerUps.fiftyFifty) return;
 
-    const currentBuild = isBlue ? state.blueTeam.build : state.redTeam.build;
-    let nextBuild = { ...currentBuild };
-
-    // Auto-assist with one correct target dimension
-    if (ch.target.length) {
-      nextBuild.length = ch.target.length;
-    } else if (ch.target.width) {
-      nextBuild.width = ch.target.width;
-    } else if (ch.target.height) {
-      nextBuild.height = ch.target.height;
-    } else if (ch.target.area) {
-      const targetL = Math.max(1, Math.min(12, Math.round(ch.target.area / currentBuild.width)));
-      nextBuild.length = targetL;
-    } else if (ch.target.volume) {
-      const targetH = Math.max(1, Math.min(10, Math.round(ch.target.volume / (currentBuild.length * currentBuild.width))));
-      nextBuild.height = targetH;
-    }
-
-    nextBuild.blocks = nextBuild.length * nextBuild.width * nextBuild.height;
+    // Pick 2 incorrect options to eliminate
+    const wrongOptions = ch.options.filter(
+      (opt) => String(opt).trim().toLowerCase() !== String(ch.correctAnswer).trim().toLowerCase()
+    );
+    const shuffledWrong = [...wrongOptions].sort(() => Math.random() - 0.5);
+    const eliminated = shuffledWrong.slice(0, 2);
 
     soundManager.play('powerup');
     set((s) => ({
@@ -450,16 +273,16 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       },
       [isBlue ? 'blueTeam' : 'redTeam']: {
         ...(isBlue ? s.blueTeam : s.redTeam),
-        build: nextBuild,
+        eliminatedOptions: eliminated,
       },
-      toastMessage: `🔍 50:50 ASSIST ACTIVATED FOR ${isBlue ? s.blueTeam.name : s.redTeam.name}! OPTIMAL DIMENSION SET!`,
+      toastMessage: `🔍 50:50 ASSIST ACTIVATED FOR ${team.name}! 2 INCORRECT CHOICES ELIMINATED!`,
     }));
   },
 
-  usePowerUpTimeFreeze: (team) => {
+  usePowerUpTimeFreeze: (teamId) => {
     const state = get();
     if (state.phase !== 'building' && state.phase !== 'tie-break' && state.phase !== 'mega-build') return;
-    const isBlue = team === 'blue';
+    const isBlue = teamId === 'blue';
     const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
     if (!powerUps.timeFreeze) return;
 
@@ -474,10 +297,10 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     }));
   },
 
-  usePowerUp2x: (team) => {
+  usePowerUp2x: (teamId) => {
     const state = get();
     if (state.phase !== 'building' && state.phase !== 'tie-break' && state.phase !== 'mega-build') return;
-    const isBlue = team === 'blue';
+    const isBlue = teamId === 'blue';
     const powerUps = isBlue ? state.bluePowerUps : state.redPowerUps;
     if (!powerUps.doublePoints) return;
 
@@ -495,19 +318,6 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
   // ── Sudden Death "Speed Duel" Tiebreaker (15-second rapid question) ──
   startTieBreak: () => {
     const rapidChallenge = getRandomChallenge([], 2);
-    const initialBlueBuild: TeamBuild = {
-      ...DEFAULT_BUILD,
-      length: rapidChallenge.initialBuild.length,
-      width: rapidChallenge.initialBuild.width,
-      height: rapidChallenge.initialBuild.height,
-      blocks: rapidChallenge.initialBuild.blocks || (rapidChallenge.initialBuild.length * rapidChallenge.initialBuild.width * rapidChallenge.initialBuild.height),
-      shapeType: rapidChallenge.initialBuild.shapeType || 'rectangle',
-      selectedTool: rapidChallenge.mechanic === 'cubes' ? 'cube' : rapidChallenge.mechanic === 'crane' ? 'crane' : 'tile',
-      isConfirmed: false,
-      isLocked: false,
-    };
-    const initialRedBuild: TeamBuild = { ...initialBlueBuild };
-
     blueprintAudio.playRoundStart();
     set((prev) => ({
       phase: 'tie-break',
@@ -516,7 +326,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       timeRemaining: 15,
       isTimerRunning: true,
       cameraFocus: 'overview',
-      toastMessage: `🚨 SUDDEN DEATH SPEED DUEL! 15 SECONDS! FIRST CORRECT BUILD WINS!`,
+      toastMessage: `🚨 SUDDEN DEATH SPEED DUEL! 15 SECONDS! FIRST CORRECT ANSWER WINS!`,
       blueMisconception: null,
       redMisconception: null,
       blueTeam: {
@@ -524,18 +334,24 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
         roundScore: 0,
         attemptsLeft: 1,
         attemptCount: 0,
-        build: initialBlueBuild,
+        selectedOption: null,
+        inputAnswer: '',
+        eliminatedOptions: [],
         scanResult: null,
         hasSecondChance: false,
+        build: { ...DEFAULT_BUILD, isConfirmed: false, isLocked: false },
       },
       redTeam: {
         ...prev.redTeam,
         roundScore: 0,
         attemptsLeft: 1,
         attemptCount: 0,
-        build: initialRedBuild,
+        selectedOption: null,
+        inputAnswer: '',
+        eliminatedOptions: [],
         scanResult: null,
         hasSecondChance: false,
+        build: { ...DEFAULT_BUILD, isConfirmed: false, isLocked: false },
       },
     }));
   },
@@ -560,7 +376,8 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
 
     const nextAttemptCount = team.attemptCount + 1;
     const nextAttemptsLeft = Math.max(0, team.attemptsLeft - 1);
-    const evalResult = validateChallengeSolution(activeChallenge, team.build);
+    const chosenAnswer = team.selectedOption !== null ? team.selectedOption : team.inputAnswer;
+    const evalResult = validateChallengeSolution(activeChallenge, chosenAnswer);
 
     const isFirstAttempt = nextAttemptCount === 1;
     const speedBonus = isFirstAttempt ? 25 : 10;
@@ -586,9 +403,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       measuredArea: team.build.length * team.build.width,
       measuredVolume: team.build.length * team.build.width * team.build.height,
       targetDescription: activeChallenge.target.description,
+      selectedOption: chosenAnswer,
+      correctAnswer: activeChallenge.correctAnswer,
       isCorrect: evalResult.isValid,
       statusMessage: evalResult.isValid
-        ? '✓ BUILD APPROVED!'
+        ? '✓ ANSWER APPROVED!'
         : nextAttemptsLeft > 0
           ? '✕ CHANCE 1 WRONG — 1 CHANCE LEFT!'
           : '✕ OUT OF CHANCES',
@@ -673,7 +492,6 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     const { activeChallenge, blueTeam, redTeam } = get();
     if (!activeChallenge) return;
 
-    // Evaluate remaining teams if timer ran out
     if (!blueTeam.scanResult) get().submitBuild('blue');
     if (!redTeam.scanResult) get().submitBuild('red');
 
@@ -684,7 +502,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     blueprintAudio.playButtonTap();
     set((prev) => {
       const team = teamId === 'blue' ? prev.blueTeam : prev.redTeam;
-      const updatedTeam = {
+      const updatedTeam: TeamGameState = {
         ...team,
         build: { ...team.build, isLocked: false, isConfirmed: false },
         hasSecondChance: false,
@@ -692,7 +510,7 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       return {
         phase: 'building',
         isTimerRunning: true,
-        timeRemaining: 25, // 25 bonus seconds to refine & fix build
+        timeRemaining: 25,
         cameraFocus: 'overview',
         [teamId === 'blue' ? 'blueTeam' : 'redTeam']: updatedTeam,
       };
@@ -703,13 +521,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     const { currentRound, maxRounds, usedChallengeIds, blueTeam, redTeam } = get();
 
     if (currentRound >= maxRounds || blueTeam.completedChallengesCount >= maxRounds || redTeam.completedChallengesCount >= maxRounds) {
-      // Sudden Death Check: If scores or completed challenges are tied
       if (blueTeam.completedChallengesCount === redTeam.completedChallengesCount && blueTeam.score === redTeam.score) {
         get().startTieBreak();
         return;
       }
 
-      // Game Over / Podium Phase - Winner Close-up on Completed Dream House
       blueprintAudio.playChampionshipVictory();
       const finalWinner: TeamId | 'tie' =
         blueTeam.completedChallengesCount > redTeam.completedChallengesCount
@@ -738,24 +554,10 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     const nextRoundNumber = currentRound + 1;
     const isMegaRound = nextRoundNumber === maxRounds;
     
-    // Pick next challenge progressing in difficulty / mechanics
     const nextChallenge = getRandomChallenge(
       usedChallengeIds,
       isMegaRound ? 5 : (nextRoundNumber as 1 | 2 | 3 | 4)
     );
-
-    const initialBlueBuild: TeamBuild = {
-      ...DEFAULT_BUILD,
-      length: nextChallenge.initialBuild.length,
-      width: nextChallenge.initialBuild.width,
-      height: nextChallenge.initialBuild.height,
-      blocks: nextChallenge.initialBuild.blocks || (nextChallenge.initialBuild.length * nextChallenge.initialBuild.width * nextChallenge.initialBuild.height),
-      shapeType: nextChallenge.initialBuild.shapeType || 'rectangle',
-      selectedTool: nextChallenge.mechanic === 'cubes' ? 'cube' : nextChallenge.mechanic === 'crane' ? 'crane' : 'tile',
-      isConfirmed: false,
-      isLocked: false,
-    };
-    const initialRedBuild: TeamBuild = { ...initialBlueBuild };
 
     blueprintAudio.playButtonTap();
     set({
@@ -775,7 +577,10 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
         roundScore: 0,
         attemptsLeft: 2,
         attemptCount: 0,
-        build: initialBlueBuild,
+        selectedOption: null,
+        inputAnswer: '',
+        eliminatedOptions: [],
+        build: { ...DEFAULT_BUILD, isConfirmed: false, isLocked: false },
         scanResult: null,
         hasSecondChance: false,
       },
@@ -784,7 +589,10 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
         roundScore: 0,
         attemptsLeft: 2,
         attemptCount: 0,
-        build: initialRedBuild,
+        selectedOption: null,
+        inputAnswer: '',
+        eliminatedOptions: [],
+        build: { ...DEFAULT_BUILD, isConfirmed: false, isLocked: false },
         scanResult: null,
         hasSecondChance: false,
       },
@@ -802,4 +610,3 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
     }));
   },
 }));
-

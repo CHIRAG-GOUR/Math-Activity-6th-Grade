@@ -35,9 +35,11 @@ export interface BlueprintChallenge {
   mechanic: MechanicType;
   prompt: string;
   missionBrief: string;
+  options: (string | number)[];
+  correctAnswer: string | number;
   
   // Starting construction state for both teams
-  initialBuild: {
+  initialBuild?: {
     length: number;
     width: number;
     height: number;
@@ -45,7 +47,7 @@ export interface BlueprintChallenge {
     shapeType?: string;
   };
 
-  // Target mathematical constraints (Any valid mathematical permutation is accepted)
+  // Target mathematical constraints
   target: {
     length?: number;
     width?: number;
@@ -62,7 +64,7 @@ export interface BlueprintChallenge {
     description: string;
   };
 
-  allowedSolutionsDescription: string;
+  allowedSolutionsDescription?: string;
   timeLimit: number; // in seconds
   basePoints: number;
   explanationFormula: string;
@@ -101,6 +103,8 @@ export interface ScanResult {
   measuredArea: number;
   measuredVolume: number;
   targetDescription: string;
+  selectedOption?: string | number | null;
+  correctAnswer?: string | number;
   isCorrect: boolean;
   statusMessage: string;
   diffMessage: string;
@@ -117,6 +121,9 @@ export interface TeamGameState {
   completedChallengesCount: number;
   attemptsLeft: number;
   attemptCount: number;
+  selectedOption: string | number | null;
+  inputAnswer: string;
+  eliminatedOptions: (string | number)[];
   build: TeamBuild;
   scanResult: ScanResult | null;
   hasSecondChance: boolean;

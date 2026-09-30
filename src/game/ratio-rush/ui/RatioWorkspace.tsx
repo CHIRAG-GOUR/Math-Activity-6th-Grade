@@ -22,11 +22,17 @@ export const RatioWorkspace: React.FC = () => {
   const question = questions[activeQIndex] || questions[0] || RATIO_QUESTIONS[0];
 
 
+  const ratioA = question.ratioA ?? 1;
+  const ratioB = question.ratioB ?? 1;
+  const labelA = question.labelA ?? 'First Quantity';
+  const labelB = question.labelB ?? 'Second Quantity';
+  const multiplier = question.diagram?.multiplier ?? 1;
+
   const [activeTab, setActiveTab] = useState<'tape' | 'table' | 'unit_rate'>('tape');
-  const [userMultiplier, setUserMultiplier] = useState<number>(question.diagram.multiplier);
+  const [userMultiplier, setUserMultiplier] = useState<number>(multiplier);
 
   // Table rows for equivalent ratios
-  const scaleMultipliers = [1, 2, 5, 10, question.diagram.multiplier];
+  const scaleMultipliers = [1, 2, 5, 10, multiplier];
   const uniqueMultipliers = Array.from(new Set(scaleMultipliers)).sort((a, b) => a - b);
 
   return (
@@ -76,7 +82,7 @@ export const RatioWorkspace: React.FC = () => {
           {/* Base Ratio Description */}
           <div className="flex items-center justify-between text-xs text-black font-extrabold">
             <span>
-              Base Ratio: <strong className="bg-yellow-300 px-1.5 py-0.5 rounded border border-black">{question.ratioA} : {question.ratioB}</strong>
+              Base Ratio: <strong className="bg-yellow-300 px-1.5 py-0.5 rounded border border-black">{ratioA} : {ratioB}</strong>
             </span>
             <span>
               Scale Factor: <strong className="bg-blue-300 px-1.5 py-0.5 rounded border border-black">{userMultiplier}×</strong>
@@ -86,11 +92,11 @@ export const RatioWorkspace: React.FC = () => {
           {/* Row A Tape */}
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[11px] font-black text-black">
-              <span>{question.labelA} ({question.ratioA} parts)</span>
-              <span>Total: {question.ratioA * userMultiplier}</span>
+              <span>{labelA} ({ratioA} parts)</span>
+              <span>Total: {ratioA * userMultiplier}</span>
             </div>
             <div className="flex items-center gap-1 w-full bg-blue-50 p-1.5 rounded-xl border-2 border-black overflow-x-auto scrollbar-none">
-              {Array.from({ length: Math.min(question.ratioA, 16) }).map((_, idx) => (
+              {Array.from({ length: Math.min(ratioA, 16) }).map((_, idx) => (
                 <div
                   key={`tape-a-${idx}`}
                   className="flex-1 min-w-[20px] h-7 rounded-lg bg-blue-500 border border-black text-white text-xs font-black flex items-center justify-center shadow-[1px_1px_0px_#000000]"
@@ -104,11 +110,11 @@ export const RatioWorkspace: React.FC = () => {
           {/* Row B Tape */}
           <div className="flex flex-col gap-1">
             <div className="flex justify-between text-[11px] font-black text-black">
-              <span>{question.labelB} ({question.ratioB} parts)</span>
-              <span>Total: {question.ratioB * userMultiplier}</span>
+              <span>{labelB} ({ratioB} parts)</span>
+              <span>Total: {ratioB * userMultiplier}</span>
             </div>
             <div className="flex items-center gap-1 w-full bg-yellow-50 p-1.5 rounded-xl border-2 border-black overflow-x-auto scrollbar-none">
-              {Array.from({ length: Math.min(question.ratioB, 16) }).map((_, idx) => (
+              {Array.from({ length: Math.min(ratioB, 16) }).map((_, idx) => (
                 <div
                   key={`tape-b-${idx}`}
                   className="flex-1 min-w-[20px] h-7 rounded-lg bg-yellow-400 border border-black text-black text-xs font-black flex items-center justify-center shadow-[1px_1px_0px_#000000]"
@@ -126,17 +132,17 @@ export const RatioWorkspace: React.FC = () => {
             <input
               type="range"
               min={1}
-              max={Math.max(question.diagram.multiplier * 1.5, 60)}
+              max={Math.max(multiplier * 1.5, 60)}
               step={1}
               value={userMultiplier}
               onChange={(e) => setUserMultiplier(Number(e.target.value))}
               className="flex-1 accent-yellow-400 h-2 bg-white border border-black rounded-lg cursor-pointer"
             />
             <button
-              onClick={() => setUserMultiplier(question.diagram.multiplier)}
+              onClick={() => setUserMultiplier(multiplier)}
               className="px-2.5 py-1 rounded-lg bg-yellow-400 hover:bg-yellow-300 border-2 border-black text-xs font-black text-black shadow-[2px_2px_0px_#000000] active:shadow-none transition-all cursor-pointer"
             >
-              Match ({question.diagram.multiplier}×)
+              Match ({multiplier}×)
             </button>
           </div>
         </div>
@@ -150,16 +156,16 @@ export const RatioWorkspace: React.FC = () => {
               <thead>
                 <tr className="bg-yellow-300 text-xs font-black text-black uppercase border-b-2 border-black">
                   <th className="p-2 border-r-2 border-black">Scale Factor</th>
-                  <th className="p-2 border-r-2 border-black">{question.labelA}</th>
-                  <th className="p-2 border-r-2 border-black">{question.labelB}</th>
+                  <th className="p-2 border-r-2 border-black">{labelA}</th>
+                  <th className="p-2 border-r-2 border-black">{labelB}</th>
                   <th className="p-2">Status</th>
                 </tr>
               </thead>
               <tbody className="text-xs font-extrabold text-black divide-y-2 divide-black">
                 {uniqueMultipliers.map((mult) => {
-                  const valA = question.ratioA * mult;
-                  const valB = question.ratioB * mult;
-                  const isTarget = mult === question.diagram.multiplier;
+                  const valA = ratioA * mult;
+                  const valB = ratioB * mult;
+                  const isTarget = mult === multiplier;
                   return (
                     <tr
                       key={`row-${mult}`}

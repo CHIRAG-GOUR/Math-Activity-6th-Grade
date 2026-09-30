@@ -1,31 +1,25 @@
 // ============================================================
 // BLUEPRINT BLITZ — Physical Construction Workstation Console
 // Heavy-duty industrial control console for Blue (LEFT) and Red (RIGHT):
-// - Solid Cream (#FFF8E7) casing with safety hazard trim & metallic bolts
-// - Bright, high-contrast daytime gauges for Area & Volume (Zero dark slate!)
-// - Material Selection Station (Brick 🧱, Concrete 🔲, Wood 🪵, Tile ◻️, Cube 📦)
-// - Chunky mechanical steppers (70-90px touch targets) with bold black numbers
-// - Heavy industrial "LOCK & TEST BUILD" actuator switch
+// - Direct Multiple Choice Option Selection (A, B, C, D)
+// - Neo-Brutalist Light Styling (#FFF8E7 Solid Cream casing with hazard safety trim)
+// - 2-Chance System with Diagnostic Feedback & Coach Misconception Tips
+// - Tactical Power-ups (50:50 Assist, Time Freeze, 2x Multiplier)
+// - Integrated Digital Scratchpad for student rough work
 // ============================================================
 
 import React from 'react';
 import {
-  Plus,
-  Minus,
   CheckCircle2,
-  RotateCw,
   RotateCcw,
-  ArrowUp,
-  ArrowDown,
   Hammer,
-  Boxes,
-  Gauge,
   Sparkles,
   Zap,
+  Target,
+  Send,
 } from 'lucide-react';
 import { MechanicType, TeamBuild, TeamId } from '../types';
 import { useBlueprintStore } from '../store/blueprintStore';
-import { blueprintAudio } from '../audio/blueprintAudio';
 import { PowerUpTray } from '@/components/shared/PowerUpTray';
 import { DigitalScratchpad } from '@/components/shared/DigitalScratchpad';
 
@@ -34,35 +28,23 @@ interface TeamControlPanelProps {
   teamName: string;
   score: number;
   build: TeamBuild;
-  mechanic: MechanicType;
+  mechanic?: MechanicType;
   isLocked: boolean;
   isConfirmed: boolean;
 }
 
-const MATERIALS = [
-  { id: 'brick', name: 'BRICK', icon: '🧱', sound: 'brick' },
-  { id: 'concrete', name: 'CONCRETE', icon: '🔲', sound: 'concrete' },
-  { id: 'wood', name: 'WOOD BEAM', icon: '🪵', sound: 'wood' },
-  { id: 'tile', name: 'FLOOR TILE', icon: '◻️', sound: 'tile' },
-  { id: 'cube', name: 'UNIT CUBE', icon: '📦', sound: 'cube' },
-] as const;
+const OPTION_LETTERS = ['A', 'B', 'C', 'D'];
 
 export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
   teamId,
   teamName,
   score,
-  build,
-  mechanic,
   isLocked,
   isConfirmed,
 }) => {
   const {
-    adjustDimension,
-    adjustBlocks,
-    operateCrane,
+    selectOption,
     submitBuild,
-    setCameraFocus,
-    setShapeType,
     blueTeam,
     redTeam,
     bluePowerUps,
@@ -72,7 +54,6 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
     usePowerUp5050,
     usePowerUpTimeFreeze,
     usePowerUp2x,
-    phase,
     activeChallenge,
   } = useBlueprintStore();
 
@@ -83,7 +64,7 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
   const misconception = isBlue ? blueMisconception : redMisconception;
   const scanResult = teamState.scanResult;
 
-  // Check Comeback Surge
+  // Check Comeback Surge: +25% bonus points when trailing
   const isTrailingByChallenges = otherTeam.completedChallengesCount - teamState.completedChallengesCount >= 2;
   const isTrailingByPoints = otherTeam.score - teamState.score >= 150;
   const isComebackSurge = isTrailingByChallenges || isTrailingByPoints;
@@ -109,32 +90,12 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
   const testSwitchClass = isBlue ? 'bb-test-switch-blue' : 'bb-test-switch-red';
 
-  const showHeight = mechanic !== 'floor';
-  const showCrane = mechanic === 'crane' || mechanic === 'mega-build';
-  const showBlocks = mechanic === 'modify';
-
-  const handleMaterialTouch = (mat: typeof MATERIALS[number]) => {
-    if (isLocked) return;
-    setShapeType(teamId, mat.id);
-    switch (mat.sound) {
-      case 'brick':
-        blueprintAudio.playBrickClunk();
-        break;
-      case 'concrete':
-        blueprintAudio.playConcreteThud();
-        break;
-      case 'wood':
-        blueprintAudio.playWoodKnock();
-        break;
-      default:
-        blueprintAudio.playBlockPlace();
-        break;
-    }
-  };
+  const selectedAnswer = teamState.selectedOption !== null ? teamState.selectedOption : teamState.inputAnswer;
+  const eliminatedOptions = teamState.eliminatedOptions || [];
 
   return (
     <div
-      className={`w-full max-w-[340px] flex flex-col gap-2 p-3 rounded-2xl ${workstationClass} select-none z-20 text-slate-950 max-h-[92vh] overflow-y-auto`}
+      className={`w-full max-w-[380px] flex flex-col gap-2.5 p-3.5 rounded-2xl ${workstationClass} select-none z-20 text-slate-950 max-h-[92vh] overflow-y-auto`}
     >
       {/* ── TOP BOLTS & HAZARD SAFETY STRIPING ── */}
       <div className="flex items-center justify-between px-1">
@@ -191,288 +152,94 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
       {/* ── TARGETED MISCONCEPTION HINT (On 1st error) ── */}
       {misconception && !isCorrect && teamState.attemptsLeft === 1 && (
-        <div className="bg-amber-100 border-2 border-amber-500 p-2 rounded-xl text-left shadow-md flex items-start gap-1.5 animate-in fade-in">
-          <span className="text-sm shrink-0">💡</span>
+        <div className="bg-amber-100 border-2 border-amber-500 p-2.5 rounded-xl text-left shadow-md flex items-start gap-2 animate-in fade-in">
+          <span className="text-base shrink-0">💡</span>
           <div className="flex flex-col">
             <span className="text-[9px] font-black uppercase tracking-wider text-amber-900">
               COACH TIP:
             </span>
-            <span className="text-[10px] font-bold text-slate-900 leading-tight">
+            <span className="text-[11px] font-bold text-slate-900 leading-tight">
               {misconception}
             </span>
           </div>
         </div>
       )}
 
-      {/* ── ACTIVE MISSION OBJECTIVE / QUESTION STRIP ── */}
+      {/* ── ACTIVE MISSION QUESTION CARD ── */}
       {activeChallenge && (
-        <div className="bg-amber-100/95 border-2 border-amber-400 px-2.5 py-1.5 rounded-xl text-slate-950 flex flex-col gap-0.5 shadow-sm">
-          <div className="flex items-center justify-between text-[9px] font-black text-amber-900 uppercase">
+        <div className="bg-amber-100/95 border-3 border-amber-400 p-3 rounded-xl text-slate-950 flex flex-col gap-1 shadow-sm">
+          <div className="flex items-center justify-between text-[9.5px] font-black text-amber-900 uppercase">
             <span className="flex items-center gap-1">
-              <span>🎯</span>
-              <span>MISSION QUESTION</span>
+              <Target className="w-3.5 h-3.5" />
+              <span>QUESTION #{activeChallenge.code}</span>
             </span>
-            <span className="bg-amber-400 text-slate-950 px-1.5 py-0.2 rounded font-black text-[9px] border border-slate-950">
+            <span className="bg-amber-400 text-slate-950 px-2 py-0.5 rounded-md font-black text-[9px] border border-slate-950">
               {activeChallenge.target.description}
             </span>
           </div>
-          <p className="text-[11px] font-black text-slate-950 leading-tight">
+          <p className="text-xs sm:text-sm font-black text-slate-950 leading-snug">
             {activeChallenge.prompt}
           </p>
         </div>
       )}
 
-
-      {/* ── BRIGHT INDUSTRIAL GAUGES (AREA & VOLUME) ── */}
-      <div className="grid grid-cols-2 gap-2 bg-amber-50 p-2 rounded-xl border-2 border-amber-300 shadow-sm">
-        {/* Area Gauge */}
-        <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border-2 border-amber-400 shadow-sm">
-          <span className="text-[10px] font-black text-amber-800 uppercase tracking-widest flex items-center gap-1">
-            <Gauge className="w-3.5 h-3.5 text-amber-600" />
-            AREA METER
-          </span>
-          <span className="text-2xl font-black text-slate-950 font-mono mt-0.5">
-            {build.length * build.width} m²
-          </span>
-          <span className="text-xs text-amber-900 font-mono font-black">
-            {build.length} × {build.width}
-          </span>
-        </div>
-
-        {/* Volume Gauge */}
-        <div className="flex flex-col items-center justify-center p-2 bg-white rounded-lg border-2 border-cyan-400 shadow-sm">
-          <span className="text-[10px] font-black text-cyan-800 uppercase tracking-widest flex items-center gap-1">
-            <Boxes className="w-3.5 h-3.5 text-cyan-600" />
-            VOLUME METER
-          </span>
-          <span className="text-2xl font-black text-slate-950 font-mono mt-0.5">
-            {build.length * build.width * build.height} m³
-          </span>
-          <span className="text-xs text-cyan-900 font-mono font-black">
-            {build.length * build.width} × {build.height}
-          </span>
-        </div>
-      </div>
-
-      {/* ── MATERIAL PALLET STATION (Daytime Palette) ── */}
-      <div className="bg-white p-2 rounded-xl border-2 border-amber-300 shadow-sm flex flex-col gap-1.5">
-        <div className="flex items-center justify-between text-[10px] font-black text-slate-700 uppercase tracking-wider px-1">
-          <span>MATERIAL PALLET</span>
-          <span className="text-amber-700 font-black">ACTIVE: {build.shapeType.toUpperCase()}</span>
-        </div>
-        <div className="grid grid-cols-5 gap-1">
-          {MATERIALS.map((mat) => {
-            const isActive = build.shapeType === mat.id;
-            return (
-              <button
-                key={mat.id}
-                onClick={() => handleMaterialTouch(mat)}
-                disabled={isLocked}
-                className={`flex flex-col items-center justify-center p-1 rounded-lg border-2 transition-all active:scale-95 disabled:opacity-50 ${
-                  isActive
-                    ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-md font-black ring-2 ring-amber-300'
-                    : 'bg-slate-50 border-slate-300 text-slate-800 hover:bg-amber-50 hover:border-amber-400'
-                }`}
-                title={mat.name}
-              >
-                <span className="text-base">{mat.icon}</span>
-                <span className="text-[8px] font-black tracking-tight mt-0.5 truncate w-full text-center">
-                  {mat.name.split(' ')[0]}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* ── MECHANICAL STEPPER CONTROLS (70-90PX TOUCH TARGETS) ── */}
-      <div className="flex flex-col gap-2">
-        {/* LENGTH DIAL */}
-        <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
-          <div className="flex flex-col pl-1">
-            <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
-              LENGTH (L)
-            </span>
-            <span className="text-[10px] font-bold text-slate-500">Columns</span>
+      {/* ── DIRECT MULTIPLE CHOICE OPTIONS GRID ── */}
+      {activeChallenge && (
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between px-1 text-[10px] font-black text-slate-700 uppercase tracking-wider">
+            <span>SELECT YOUR ANSWER</span>
+            <span className="text-amber-800 font-black">4 OPTIONS</span>
           </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => adjustDimension(teamId, 'length', -1)}
-              disabled={isLocked || build.length <= 1}
-              className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              title="Decrease Length"
-            >
-              <Minus className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-14 h-12 bg-amber-50 rounded-xl border-2 border-amber-400 flex items-center justify-center shadow-inner">
-              <span className="text-2xl font-black text-slate-950 font-mono">{build.length}m</span>
-            </div>
-            <button
-              onClick={() => adjustDimension(teamId, 'length', 1)}
-              disabled={isLocked || build.length >= 12}
-              className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              title="Increase Length"
-            >
-              <Plus className="w-5 h-5 stroke-[3]" />
-            </button>
-          </div>
-        </div>
 
-        {/* WIDTH DIAL */}
-        <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
-          <div className="flex flex-col pl-1">
-            <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
-              WIDTH (W)
-            </span>
-            <span className="text-[10px] font-bold text-slate-500">Rows</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <button
-              onClick={() => adjustDimension(teamId, 'width', -1)}
-              disabled={isLocked || build.width <= 1}
-              className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              title="Decrease Width"
-            >
-              <Minus className="w-5 h-5 stroke-[3]" />
-            </button>
-            <div className="w-14 h-12 bg-amber-50 rounded-xl border-2 border-amber-400 flex items-center justify-center shadow-inner">
-              <span className="text-2xl font-black text-slate-950 font-mono">{build.width}m</span>
-            </div>
-            <button
-              onClick={() => adjustDimension(teamId, 'width', 1)}
-              disabled={isLocked || build.width >= 12}
-              className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              title="Increase Width"
-            >
-              <Plus className="w-5 h-5 stroke-[3]" />
-            </button>
-          </div>
-        </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {activeChallenge.options.map((opt, idx) => {
+              const isSelected = String(selectedAnswer).trim().toLowerCase() === String(opt).trim().toLowerCase();
+              const isEliminated = eliminatedOptions.some(
+                (elim) => String(elim).trim().toLowerCase() === String(opt).trim().toLowerCase()
+              );
+              const letter = OPTION_LETTERS[idx] || String(idx + 1);
 
-        {/* HEIGHT LEVER */}
-        {showHeight && (
-          <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
-            <div className="flex flex-col pl-1">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
-                HEIGHT (H)
-              </span>
-              <span className="text-[10px] font-bold text-slate-500">Layers</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => adjustDimension(teamId, 'height', -1)}
-                disabled={isLocked || build.height <= 1}
-                className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-                title="Decrease Height"
-              >
-                <Minus className="w-5 h-5 stroke-[3]" />
-              </button>
-              <div className="w-14 h-12 bg-cyan-50 rounded-xl border-2 border-cyan-400 flex items-center justify-center shadow-inner">
-                <span className="text-2xl font-black text-slate-950 font-mono">{build.height}m</span>
-              </div>
-              <button
-                onClick={() => adjustDimension(teamId, 'height', 1)}
-                disabled={isLocked || build.height >= 10}
-                className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-                title="Increase Height"
-              >
-                <Plus className="w-5 h-5 stroke-[3]" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* MODIFY BLOCKS STEPPER */}
-        {showBlocks && (
-          <div className="bg-white p-2 rounded-xl border-2 border-slate-300 shadow-sm flex items-center justify-between">
-            <div className="flex flex-col pl-1">
-              <span className="text-xs font-black text-slate-900 uppercase tracking-wide">
-                BLOCKS
-              </span>
-              <span className="text-[10px] font-bold text-slate-500">Add / Del</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={() => adjustBlocks(teamId, -1)}
-                disabled={isLocked || build.blocks <= 1}
-                className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              >
-                <Minus className="w-5 h-5 stroke-[3]" />
-              </button>
-              <div className="w-14 h-12 bg-emerald-50 rounded-xl border-2 border-emerald-400 flex items-center justify-center shadow-inner">
-                <span className="text-2xl font-black text-slate-950 font-mono">{build.blocks}</span>
-              </div>
-              <button
-                onClick={() => adjustBlocks(teamId, 1)}
-                disabled={isLocked || build.blocks >= 64}
-                className="w-12 h-12 bb-stepper-btn flex items-center justify-center text-lg"
-              >
-                <Plus className="w-5 h-5 stroke-[3]" />
-              </button>
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── CRANE D-PAD & WINCH CONTROLS (When active) ── */}
-      {showCrane && (
-        <div className="bg-amber-50 p-2 rounded-xl border-2 border-amber-400 shadow-sm flex flex-col gap-1.5">
-          <div className="flex items-center justify-between text-[10px] font-black text-amber-900">
-            <span>🏗️ TOWER CRANE RIG</span>
-          </div>
-          <div className="grid grid-cols-3 gap-1">
-            <button
-              onClick={() => operateCrane(teamId, 'rotate_left')}
-              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
-            >
-              <RotateCcw className="w-3 h-3" /> ROT L
-            </button>
-            <button
-              onClick={() => operateCrane(teamId, 'up')}
-              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
-            >
-              <ArrowUp className="w-3 h-3" /> HOIST
-            </button>
-            <button
-              onClick={() => operateCrane(teamId, 'rotate_right')}
-              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
-            >
-              <RotateCw className="w-3 h-3" /> ROT R
-            </button>
-            <button
-              onClick={() => operateCrane(teamId, 'move_back')}
-              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
-            >
-              ← BACK
-            </button>
-            <button
-              onClick={() => operateCrane(teamId, 'down')}
-              className="py-1.5 bg-white hover:bg-amber-100 active:scale-95 rounded-lg text-[10px] font-bold flex items-center justify-center gap-1 border-2 border-slate-800 text-slate-900"
-            >
-              <ArrowDown className="w-3 h-3" /> LOWER
-            </button>
-            <button
-              onClick={() => operateCrane(teamId, 'grab_release')}
-              className={`py-1.5 rounded-lg text-[10px] font-black flex items-center justify-center gap-1 border-2 border-slate-950 shadow-md ${
-                build.craneHolding
-                  ? 'bg-amber-400 text-slate-950 font-black'
-                  : 'bg-emerald-500 text-white font-black'
-              }`}
-            >
-              {build.craneHolding ? 'RELEASE' : 'GRAB'}
-            </button>
+              return (
+                <button
+                  key={`opt-${idx}-${opt}`}
+                  type="button"
+                  onClick={() => selectOption(teamId, opt)}
+                  disabled={isLocked || isConfirmed || isEliminated}
+                  className={`p-2.5 rounded-xl font-black text-left transition-all flex items-center gap-2 border-3 cursor-pointer select-none ${
+                    isEliminated
+                      ? 'bg-slate-200 border-slate-300 text-slate-400 line-through opacity-40 cursor-not-allowed'
+                      : isSelected
+                        ? 'bg-amber-400 border-slate-950 text-slate-950 shadow-[4px_4px_0px_#000000] ring-2 ring-amber-300 scale-[1.02]'
+                        : 'bg-white hover:bg-amber-50 border-slate-800 text-slate-900 shadow-[2px_2px_0px_#000000] active:scale-95'
+                  }`}
+                >
+                  <span
+                    className={`w-6 h-6 rounded-lg text-xs font-black flex items-center justify-center shrink-0 border-2 ${
+                      isSelected
+                        ? 'bg-slate-950 text-amber-300 border-slate-950'
+                        : 'bg-amber-100 text-slate-950 border-slate-800'
+                    }`}
+                  >
+                    {letter}
+                  </span>
+                  <span className="text-xs sm:text-sm font-black leading-tight flex-1 break-words">
+                    {opt}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
       )}
 
-      {/* ── ANSWER STATUS BANNER (GREEN IF RIGHT, RED/AMBER IF WRONG) ── */}
+      {/* ── ANSWER STATUS FEEDBACK BANNER ── */}
       {scanResult && (
         <div
           className={`p-2.5 rounded-xl border-2 flex items-start gap-2 shadow-md ${
             isCorrect
               ? 'bg-emerald-600 border-emerald-800 text-white animate-pulse'
               : teamState.attemptsLeft === 1
-                ? 'bg-red-600 border-red-800 text-white'
+                ? 'bg-amber-600 border-amber-800 text-white'
                 : 'bg-red-700 border-red-900 text-white'
           }`}
         >
@@ -486,15 +253,15 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
           <div className="flex flex-col text-left leading-tight">
             <span className="text-xs font-black uppercase tracking-wider">
               {isCorrect
-                ? '✓ CORRECT! APPROVED'
+                ? '✓ CORRECT! OPTION APPROVED'
                 : teamState.attemptsLeft === 1
-                  ? '✕ CHANCE 1 MISMATCH (1 TRY LEFT)'
+                  ? '✕ CHANCE 1 WRONG (1 TRY LEFT)'
                   : '✕ 2 CHANCES EXHAUSTED'}
             </span>
             <span className="text-[10px] text-white/95 font-medium mt-0.5">
               {isCorrect
                 ? `+${scanResult.scoreBreakdown.total} PTS AWARDED!`
-                : `${scanResult.diffMessage} (Adjust and retry below)`}
+                : `${scanResult.diffMessage}`}
             </span>
           </div>
         </div>
@@ -502,27 +269,30 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
 
       {/* ── 2-CHANCE SUBMIT BUTTON ── */}
       <button
+        type="button"
         onClick={() => submitBuild(teamId)}
-        disabled={isLocked || isConfirmed}
-        className={`w-full py-3.5 rounded-xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center gap-2 ${
-          isCorrect
+        disabled={isLocked || isConfirmed || !selectedAnswer}
+        className={`w-full py-3.5 rounded-xl font-black text-sm sm:text-base tracking-wider uppercase flex items-center justify-center gap-2 border-3 border-slate-950 cursor-pointer ${
+          isConfirmed
             ? 'bg-emerald-600 hover:bg-emerald-500 text-white ring-2 ring-emerald-300'
             : isWrong && teamState.attemptsLeft === 1
-              ? 'bg-amber-500 hover:bg-amber-400 text-slate-950 ring-2 ring-amber-300 shadow-lg'
+              ? 'bg-amber-400 hover:bg-amber-300 text-slate-950 ring-2 ring-amber-300 shadow-[4px_4px_0px_#000000] active:scale-98'
               : isWrong
                 ? 'bg-red-600 hover:bg-red-500 text-white ring-2 ring-red-300'
-                : testSwitchClass
+                : selectedAnswer
+                  ? testSwitchClass + ' shadow-[4px_4px_0px_#000000] active:scale-98'
+                  : 'bg-slate-200 text-slate-500 border-slate-400 cursor-not-allowed shadow-none'
         } disabled:opacity-50 disabled:cursor-not-allowed transition-all`}
       >
         {isConfirmed ? (
           <>
             <CheckCircle2 className="w-5 h-5 text-emerald-300" />
-            <span>✓ BUILD CONFIRMED</span>
+            <span>✓ ANSWER CONFIRMED</span>
           </>
         ) : teamState.attemptsLeft === 1 && !isCorrect ? (
           <>
             <RotateCcw className="w-5 h-5 stroke-[2.5]" />
-            <span>REVISE & TEST (FINAL CHANCE #2)</span>
+            <span>REVISE & SUBMIT (CHANCE #2)</span>
           </>
         ) : teamState.attemptsLeft === 0 && !isCorrect ? (
           <>
@@ -530,8 +300,8 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
           </>
         ) : (
           <>
-            <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
-            <span>LOCK & TEST (CHANCE 1 OF 2)</span>
+            <Send className="w-4 h-4 stroke-[2.5]" />
+            <span>LOCK & SUBMIT (CHANCE 1 OF 2)</span>
           </>
         )}
       </button>
@@ -564,4 +334,3 @@ export const TeamControlPanel: React.FC<TeamControlPanelProps> = ({
     </div>
   );
 };
-

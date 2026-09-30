@@ -11,11 +11,8 @@
 import React, { useState } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Text } from '@react-three/drei';
-import * as THREE from 'three';
 import { MechanicType, TeamBuild, TeamId } from '../types';
 import { useBlueprintStore } from '../store/blueprintStore';
-import { PhysicalTileGrid3D } from './PhysicalTileGrid3D';
-import { PhysicalCubeStack3D } from './PhysicalCubeStack3D';
 import { CraneRig3D } from './CraneRig3D';
 import { MeasurementScanner3D } from './MeasurementScanner3D';
 import { HouseBuildingStage3D } from './HouseBuildingStage3D';
@@ -25,7 +22,7 @@ interface ConstructionPlot3DProps {
   teamName: string;
   score: number;
   build: TeamBuild;
-  mechanic: MechanicType;
+  mechanic?: MechanicType;
   isScanning: boolean;
   position: [number, number, number];
 }
@@ -35,7 +32,6 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
   teamName,
   score,
   build,
-  mechanic,
   isScanning,
   position,
 }) => {
@@ -46,7 +42,6 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
 
   const isBlue = teamId === 'blue';
   const teamColor = isBlue ? '#2563eb' : '#dc2626';
-  const teamLight = isBlue ? '#93c5fd' : '#fca5a5';
 
   // Animate scan progress when active
   useFrame((_, delta) => {
@@ -56,8 +51,6 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
       setScanProgress(0);
     }
   });
-
-  const isAreaMode = mechanic === 'floor';
 
   return (
     <group position={position}>
@@ -147,30 +140,7 @@ export const ConstructionPlot3D: React.FC<ConstructionPlot3DProps> = ({
         </Text>
       </group>
 
-      {/* ── 5. ACTIVE BUILDING STRUCTURE (Floor Tiles or 3D Cubes) ── */}
-      {isAreaMode ? (
-        <PhysicalTileGrid3D
-          length={build.length}
-          width={build.width}
-          teamId={teamId}
-          materialType={build.shapeType}
-          isScanning={isScanning}
-          scanProgress={scanProgress}
-        />
-      ) : (
-        <PhysicalCubeStack3D
-          length={build.length}
-          width={build.width}
-          height={build.height}
-          teamId={teamId}
-          materialType={build.shapeType}
-          totalBlocks={mechanic === 'modify' ? build.blocks : undefined}
-          isScanning={isScanning}
-          scanProgress={scanProgress}
-        />
-      )}
-
-      {/* ── 5B. HOUSE BUILDING STAGE PROGRESSION (Rounds 1-5) ── */}
+      {/* ── 5. 3D HOUSE BUILDING STAGE PROGRESSION (Rounds 1-5) ── */}
       <HouseBuildingStage3D
         teamId={teamId}
         currentRound={currentRound}

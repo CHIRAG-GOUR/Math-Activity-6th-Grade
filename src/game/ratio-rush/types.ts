@@ -22,26 +22,26 @@ export interface RatioQuestion {
   title: string;
   scenario: string;
   mathPrompt: string;
-  ratioA: number;
-  ratioB: number;
-  labelA: string;
-  labelB: string;
-  targetQuantityName: string;
-  givenQuantityName: string;
-  givenQuantityValue: number;
-  correctAnswer: number;
-  correctUnit: string;
-  options: number[];
+  ratioA?: number;
+  ratioB?: number;
+  labelA?: string;
+  labelB?: string;
+  targetQuantityName?: string;
+  givenQuantityName?: string;
+  givenQuantityValue?: number;
+  correctAnswer: number | string;
+  correctUnit?: string;
+  options: (number | string)[];
   unitRateExplanation: string;
   studioActionText: string;
-  diagram: {
+  diagram?: {
     blocksA: number;
     blocksB: number;
     multiplier: number;
     totalUnits: number;
   };
-  misconceptions: {
-    wrongAnswer: number;
+  misconceptions?: {
+    wrongAnswer: number | string;
     reason: string;
   }[];
 }
@@ -52,7 +52,7 @@ export interface TeamStudioState {
   score: number;
   streak: number;
   isComplete: boolean;
-  selectedOption: number | null;
+  selectedOption: number | string | null;
   inputAnswer: string;
   feedbackStatus: 'idle' | 'correct' | 'incorrect';
   feedbackMessage: string;

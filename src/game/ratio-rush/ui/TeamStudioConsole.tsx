@@ -337,23 +337,31 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
 
       {/* ── 4. Multiple Choice Option Buttons (Neo-Brutalism) ── */}
       <div className="grid grid-cols-2 gap-2.5 my-2.5">
-        {currentQ.options.map((opt) => {
+        {currentQ.options.map((opt, optIdx) => {
           const isSelected = teamState.selectedOption === opt || teamState.inputAnswer === opt.toString();
+          const optionLetter = ['A', 'B', 'C', 'D'][optIdx] || String(optIdx + 1);
           return (
             <button
               key={`opt-${opt}`}
               onClick={() => selectOption(team, opt)}
               disabled={teamState.feedbackStatus === 'correct'}
-              className={`p-3.5 rounded-xl text-base font-black transition-all cursor-pointer flex items-center justify-between border-3 border-black ${
+              className={`p-3 rounded-xl text-base font-black transition-all cursor-pointer flex items-center justify-between border-3 border-black ${
                 isSelected
                   ? 'bg-yellow-400 text-black shadow-[5px_5px_0px_#000000] ring-2 ring-black scale-102'
                   : 'bg-white hover:bg-yellow-100 text-black shadow-[3px_3px_0px_#000000] active:translate-x-0.5 active:translate-y-0.5 active:shadow-none'
               }`}
             >
-              <span className="text-lg sm:text-xl font-black">{opt}</span>
-              <span className="text-xs text-black font-black uppercase">
-                {currentQ.correctUnit}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className="w-6 h-6 rounded-lg bg-black text-white text-xs font-black flex items-center justify-center shrink-0">
+                  {optionLetter}
+                </span>
+                <span className="text-base sm:text-lg font-black text-left">{opt}</span>
+              </div>
+              {currentQ.correctUnit ? (
+                <span className="text-xs text-black font-black uppercase ml-1">
+                  {currentQ.correctUnit}
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -396,7 +404,7 @@ export const TeamStudioConsole: React.FC<{ team: StudioTeam }> = ({ team }) => {
             }`}
           >
             <Clapperboard className="w-5 h-5 text-black" />
-            <span>SUBMIT RATIO ({teamState.inputAnswer || '—'} {currentQ.correctUnit})</span>
+            <span>SUBMIT RATIO ({teamState.inputAnswer || '—'}{currentQ.correctUnit ? ` ${currentQ.correctUnit}` : ''})</span>
           </button>
         )}
       </div>
