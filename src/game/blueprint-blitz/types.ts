@@ -139,6 +139,7 @@ export type GamePhase =
   | 'round-result'    // Mathematical diagnostic breakdown & score animation
   | 'mega-build'      // Final championship mega round
   | 'tie-break'       // 15-second sudden death speed duel
+  | 'building-showcase' // 8-second celebration showcase of final buildings before victory popup
   | 'game-over';      // Winner podium celebration & stats
 
 export interface GameSettings {

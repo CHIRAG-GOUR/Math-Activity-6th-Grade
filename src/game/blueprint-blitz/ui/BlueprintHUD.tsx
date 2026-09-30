@@ -208,7 +208,7 @@ export const BlueprintHUD: React.FC = () => {
         </header>
 
         {/* Row 2: ULTRA-READABLE DAYTIME PROJECT MISSION SIGNBOARD (Centered Billboard) */}
-        {activeChallenge && phase !== 'game-over' && (
+        {activeChallenge && phase !== 'game-over' && phase !== 'building-showcase' && (
           <div className="pointer-events-auto max-w-3xl w-full mx-auto bg-[#fffdf5] border-4 border-slate-950 rounded-2xl shadow-2xl overflow-hidden flex flex-col text-slate-950">
             {/* Top Yellow Header Bar */}
             <div className="bg-amber-400 px-3.5 py-1.5 border-b-3 border-slate-950 flex items-center justify-between">
@@ -248,96 +248,134 @@ export const BlueprintHUD: React.FC = () => {
         )}
       </div>
 
-      {/* ── DUAL-WORKSTATION BATTLE ARENA (BLUE LEFT, RED RIGHT, 64% CENTER) ── */}
-      {isMobileViewport ? (
-        /* Mobile / Small Screen: Single active workstation with quick team switcher */
-        <div className="pointer-events-auto w-full max-w-lg mx-auto flex flex-col gap-1.5 pb-1 z-30">
-          {/* Mobile Team Toggle Bar */}
-          <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border-2 border-slate-950">
+      {/* ── 8-SECOND 3D FINAL BUILDING SHOWCASE CELEBRATION BANNER ── */}
+      {phase === 'building-showcase' && (
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 z-40 pointer-events-auto select-none max-w-xl w-[92vw] px-5 py-3.5 rounded-3xl bg-[#fff8e7] border-4 border-slate-950 shadow-2xl flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-4 duration-500">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400 border-3 border-slate-950 flex items-center justify-center text-2xl shadow">
+              🏛️
+            </div>
+            <div className="flex flex-col text-left">
+              <span className="text-[10px] font-black uppercase tracking-widest text-amber-700">
+                CHAMPIONSHIP 3D BUILD INSPECTION
+              </span>
+              <span className="text-sm sm:text-base font-black text-slate-950">
+                {blueTeam.score > redTeam.score || blueTeam.completedChallengesCount > redTeam.completedChallengesCount
+                  ? 'BLUE SQUAD COMPLETED DREAM HOUSE!'
+                  : redTeam.score > blueTeam.score || redTeam.completedChallengesCount > blueTeam.completedChallengesCount
+                    ? 'RED SQUAD COMPLETED DREAM HOUSE!'
+                    : 'FINAL 3D ARCHITECTURAL SHOWCASE!'}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0">
+            <div className="px-3 py-1.5 rounded-xl bg-amber-400 border-2 border-slate-950 text-slate-950 font-black text-sm font-mono flex items-center gap-1 shadow">
+              <Timer className="w-4 h-4" />
+              <span>{timeRemaining}s</span>
+            </div>
             <button
               type="button"
-              onClick={() => setMobileActiveTeam('blue')}
-              className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                mobileActiveTeam === 'blue'
-                  ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
-                  : 'text-slate-300 hover:text-white bg-slate-800/60'
-              }`}
+              onClick={() => useBlueprintStore.setState({ phase: 'game-over', isTimerRunning: false, timeRemaining: 0 })}
+              className="px-3 py-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 active:scale-95 text-white font-black text-xs uppercase tracking-wider border-2 border-slate-950 shadow transition-all cursor-pointer"
             >
-              <span className="w-2 h-2 rounded-full bg-sky-400" />
-              <span>BLUE SITE ({blueTeam.score} PTS)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setMobileActiveTeam('red')}
-              className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
-                mobileActiveTeam === 'red'
-                  ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
-                  : 'text-slate-300 hover:text-white bg-slate-800/60'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-rose-400" />
-              <span>RED SITE ({redTeam.score} PTS)</span>
+              SKIP ➔
             </button>
           </div>
-
-          {/* Active Mobile Workstation */}
-          <div className="w-full flex justify-center">
-            <TeamControlPanel
-              teamId={mobileActiveTeam}
-              teamName={mobileActiveTeam === 'blue' ? blueTeam.name : redTeam.name}
-              score={mobileActiveTeam === 'blue' ? blueTeam.score : redTeam.score}
-              build={mobileActiveTeam === 'blue' ? blueTeam.build : redTeam.build}
-              mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={(mobileActiveTeam === 'blue' ? blueTeam.build.isLocked : redTeam.build.isLocked) || isScanning || !isPlayPhase || (mobileActiveTeam === 'blue' ? blueTeam.attemptsLeft <= 0 : redTeam.attemptsLeft <= 0)}
-              isConfirmed={mobileActiveTeam === 'blue' ? blueTeam.build.isConfirmed : redTeam.build.isConfirmed}
-            />
-          </div>
         </div>
-      ) : (
-        /* Desktop, Laptop, and TV Screens: Dual Workstations on Left and Right */
-        <div className="flex-1 min-h-0 flex items-end justify-between w-full pb-1 gap-3 pointer-events-none">
-          {/* LEFT: BLUE WORKSTATION CONSOLE */}
-          <div className="pointer-events-auto flex flex-col justify-end w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
-            <TeamControlPanel
-              teamId="blue"
-              teamName={blueTeam.name}
-              score={blueTeam.score}
-              build={blueTeam.build}
-              mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={blueTeam.build.isLocked || isScanning || !isPlayPhase || blueTeam.attemptsLeft <= 0}
-              isConfirmed={blueTeam.build.isConfirmed}
-            />
-          </div>
+      )}
 
-          {/* CENTER: 3D CONSTRUCTION SITE VIEWPORT SCANNER OVERLAY */}
-          <div className="flex-1 pointer-events-none flex items-center justify-center">
-            {/* Active Site Inspector Scan Indicator */}
-            {isScanning && (
-              <div className="bg-[#fff8e7] border-4 border-slate-950 px-8 py-4 rounded-3xl text-center shadow-2xl animate-pulse pointer-events-auto">
-                <div className="text-xs font-black tracking-widest text-amber-700 uppercase flex items-center justify-center gap-1.5">
-                  <span>⚡</span>
-                  <span>SITE INSPECTOR GANTRY ACTIVE</span>
-                </div>
-                <div className="text-xl sm:text-2xl font-black text-slate-950 mt-1">
-                  SCANNING PHYSICAL DIMENSIONS...
-                </div>
-              </div>
-            )}
-          </div>
+      {/* ── DUAL-WORKSTATION BATTLE ARENA (BLUE FAR-LEFT, RED FAR-RIGHT, 64% CENTER 3D VIEWPORT) ── */}
+      {phase !== 'intro' && phase !== 'briefing' && phase !== 'building-showcase' && phase !== 'game-over' && (
+        isMobileViewport ? (
+          /* Mobile / Small Screen: Single active workstation with quick team switcher */
+          <div className="pointer-events-auto w-full max-w-lg mx-auto flex flex-col gap-1.5 pb-1 z-30">
+            {/* Mobile Team Toggle Bar */}
+            <div className="flex items-center gap-1.5 bg-slate-900/90 backdrop-blur-md p-1 rounded-xl shadow-lg border-2 border-slate-950">
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('blue')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'blue'
+                    ? 'bg-gradient-to-r from-blue-600 to-sky-600 text-white shadow-md shadow-blue-500/30 ring-2 ring-sky-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-sky-400" />
+                <span>BLUE SITE ({blueTeam.score} PTS)</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setMobileActiveTeam('red')}
+                className={`flex-1 py-1.5 px-3 rounded-lg font-black text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+                  mobileActiveTeam === 'red'
+                    ? 'bg-gradient-to-r from-red-600 to-rose-600 text-white shadow-md shadow-red-500/30 ring-2 ring-rose-300'
+                    : 'text-slate-300 hover:text-white bg-slate-800/60'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-rose-400" />
+                <span>RED SITE ({redTeam.score} PTS)</span>
+              </button>
+            </div>
 
-          {/* RIGHT: RED WORKSTATION CONSOLE */}
-          <div className="pointer-events-auto flex flex-col justify-end w-[340px] md:w-[370px] lg:w-[400px] xl:w-[440px] 2xl:w-[480px] max-w-[calc(50vw-20px)]">
-            <TeamControlPanel
-              teamId="red"
-              teamName={redTeam.name}
-              score={redTeam.score}
-              build={redTeam.build}
-              mechanic={activeChallenge?.mechanic || 'floor'}
-              isLocked={redTeam.build.isLocked || isScanning || !isPlayPhase || redTeam.attemptsLeft <= 0}
-              isConfirmed={redTeam.build.isConfirmed}
-            />
+            {/* Active Mobile Workstation */}
+            <div className="w-full flex justify-center">
+              <TeamControlPanel
+                teamId={mobileActiveTeam}
+                teamName={mobileActiveTeam === 'blue' ? blueTeam.name : redTeam.name}
+                score={mobileActiveTeam === 'blue' ? blueTeam.score : redTeam.score}
+                build={mobileActiveTeam === 'blue' ? blueTeam.build : redTeam.build}
+                mechanic={activeChallenge?.mechanic || 'floor'}
+                isLocked={(mobileActiveTeam === 'blue' ? blueTeam.build.isLocked : redTeam.build.isLocked) || isScanning || !isPlayPhase || (mobileActiveTeam === 'blue' ? blueTeam.attemptsLeft <= 0 : redTeam.attemptsLeft <= 0)}
+                isConfirmed={mobileActiveTeam === 'blue' ? blueTeam.build.isConfirmed : redTeam.build.isConfirmed}
+              />
+            </div>
           </div>
-        </div>
+        ) : (
+          /* Desktop, Laptop, and TV Screens: Dual Workstations Firmly Anchored to Left & Right Sides */
+          <div className="flex-1 min-h-0 flex items-end justify-between w-full pb-1 pointer-events-none px-2 sm:px-4">
+            {/* LEFT: BLUE WORKSTATION CONSOLE (Firmly Anchored to Left Edge) */}
+            <div className="pointer-events-auto flex flex-col items-start justify-end shrink-0 w-[340px] md:w-[360px] lg:w-[380px] max-w-[calc(50vw-20px)] z-20">
+              <TeamControlPanel
+                teamId="blue"
+                teamName={blueTeam.name}
+                score={blueTeam.score}
+                build={blueTeam.build}
+                mechanic={activeChallenge?.mechanic || 'floor'}
+                isLocked={blueTeam.build.isLocked || isScanning || !isPlayPhase || blueTeam.attemptsLeft <= 0}
+                isConfirmed={blueTeam.build.isConfirmed}
+              />
+            </div>
+
+            {/* CENTER: 3D CONSTRUCTION SITE VIEWPORT SCANNER OVERLAY */}
+            <div className="flex-1 pointer-events-none flex items-center justify-center px-2">
+              {/* Active Site Inspector Scan Indicator */}
+              {isScanning && (
+                <div className="bg-[#fff8e7] border-4 border-slate-950 px-8 py-4 rounded-3xl text-center shadow-2xl animate-pulse pointer-events-auto">
+                  <div className="text-xs font-black tracking-widest text-amber-700 uppercase flex items-center justify-center gap-1.5">
+                    <span>⚡</span>
+                    <span>SITE INSPECTOR GANTRY ACTIVE</span>
+                  </div>
+                  <div className="text-xl sm:text-2xl font-black text-slate-950 mt-1">
+                    SCANNING PHYSICAL DIMENSIONS...
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* RIGHT: RED WORKSTATION CONSOLE (Firmly Anchored to Right Edge) */}
+            <div className="pointer-events-auto flex flex-col items-end justify-end shrink-0 w-[340px] md:w-[360px] lg:w-[380px] ml-auto max-w-[calc(50vw-20px)] z-20">
+              <TeamControlPanel
+                teamId="red"
+                teamName={redTeam.name}
+                score={redTeam.score}
+                build={redTeam.build}
+                mechanic={activeChallenge?.mechanic || 'floor'}
+                isLocked={redTeam.build.isLocked || isScanning || !isPlayPhase || redTeam.attemptsLeft <= 0}
+                isConfirmed={redTeam.build.isConfirmed}
+              />
+            </div>
+          </div>
+        )
       )}
 
       {/* ── INTRO / SITE INDUCTION MODAL ── */}

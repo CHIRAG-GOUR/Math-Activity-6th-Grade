@@ -28,7 +28,7 @@ export const BlueprintCameraRig: React.FC = () => {
     const px = state.pointer.x * 0.8;
     const py = state.pointer.y * 0.4;
 
-    const isGameOver = phase === 'game-over';
+    const isGameOver = phase === 'game-over' || phase === 'building-showcase';
 
     if (isGameOver || cameraFocus === 'podium') {
       const angle = state.clock.getElapsedTime() * 0.35;

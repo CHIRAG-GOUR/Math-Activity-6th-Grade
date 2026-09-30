@@ -182,9 +182,13 @@ export const ScannerResultCard: React.FC = () => {
         <div className="flex justify-end pt-2 border-t-2 border-slate-300">
           <button
             onClick={nextRound}
-            className="py-3.5 px-8 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-base uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all border-3 border-slate-950"
+            className="py-3.5 px-8 rounded-2xl bg-amber-400 hover:bg-amber-300 active:scale-95 text-slate-950 font-black text-base uppercase tracking-wider flex items-center gap-2 shadow-xl transition-all border-3 border-slate-950 cursor-pointer"
           >
-            <span>PROCEED TO NEXT BLUEPRINT</span>
+            <span>
+              {currentRound >= maxRounds || blueTeam.completedChallengesCount >= maxRounds || redTeam.completedChallengesCount >= maxRounds
+                ? 'VIEW FINAL 3D BUILDING SHOWCASE'
+                : 'PROCEED TO NEXT BLUEPRINT'}
+            </span>
             <ArrowRight className="w-5 h-5" />
           </button>
         </div>

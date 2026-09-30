@@ -211,7 +211,18 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
 
   tickTimer: () => {
     const { timeRemaining, isTimerRunning, phase } = get();
-    if (!isTimerRunning || phase !== 'building') return;
+    if (!isTimerRunning) return;
+
+    if (phase === 'building-showcase') {
+      if (timeRemaining <= 1) {
+        set({ phase: 'game-over', isTimerRunning: false, timeRemaining: 0 });
+      } else {
+        set({ timeRemaining: timeRemaining - 1 });
+      }
+      return;
+    }
+
+    if (phase !== 'building' && phase !== 'tie-break' && phase !== 'mega-build') return;
 
     if (timeRemaining <= 1) {
       set({ timeRemaining: 0, isTimerRunning: false });
@@ -451,10 +462,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       blueprintAudio.playChampionshipVictory();
       initialBoostManager.recordWinner(teamId, updatedTeam.name, 'Blueprint Blitz');
       set({
-        phase: 'game-over',
+        phase: 'building-showcase',
         winner: teamId,
         cameraFocus: 'podium',
-        isTimerRunning: false,
+        timeRemaining: 8,
+        isTimerRunning: true,
         [isBlue ? 'blueTeam' : 'redTeam']: updatedTeam,
       });
       return;
@@ -544,9 +556,11 @@ export const useBlueprintStore = create<BlueprintBlitzStore>((set, get) => ({
       }
 
       set({
-        phase: 'game-over',
+        phase: 'building-showcase',
         winner: finalWinner,
         cameraFocus: 'podium',
+        timeRemaining: 8,
+        isTimerRunning: true,
       });
       return;
     }
